@@ -16,7 +16,7 @@ case(symbol)
 8'h5D: opcode = 4'b0110;//]
 8'h2E: opcode = 4'b0111;//.
 8'h2C: opcode = 4'b1000;//,
-default: opcode = 4'b0000;
+default: opcode = 4'b0000;//NOP
 endcase
 
 end

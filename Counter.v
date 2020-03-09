@@ -9,23 +9,19 @@ input wire RST;
 output reg[WIDTH-1:0] COUNT = 0;
 
 
-always @(posedge UP)
-	if (RST)
-		if (COUNT == MAX_VALUE)
-			COUNT = 0;
-		else
-			COUNT = COUNT + 1;
-	else
+always @(posedge UP && RST)
+	if (COUNT == MAX_VALUE)
 		COUNT = 0;
+	else
+		COUNT = COUNT + 1;
 
 always @(posedge DOWN && RST)
-	if (RST)
-		if (COUNT == 0)
-			COUNT = MAX_VALUE;
-		else
-			COUNT = COUNT - 1;
-
+	if (COUNT == 0)
+		COUNT = MAX_VALUE;
 	else
-		COUNT = 0;
+		COUNT = COUNT - 1;
+
+always @(!RST)
+	COUNT = 0;
 
 endmodule

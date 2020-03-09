@@ -58,18 +58,35 @@ module dekatronpc(CLOCK, OUT, RST_N);
 input wire RST_N;
 input wire CLOCK;
 input wire[15:0] OUT;
-wire[15:0] COUNTER;
-wire[7:0] DATA;
+wire[15:0] InstructionPtr;
+wire[15:0] LoopLevel;
+wire[15:0] AddressPtr;
+wire[7:0] Data;
 
-wire[3:0] OPCODE;
+wire[7:0] InstructionSymbol;//Instruction symbol, from ROM
+wire[3:0] OPCODE;//Operation, decoded from symbol
 
-wire DOWN = 0;
+//Instruction counter wires
+wire instructionPtrUp = 0;
+wire instructionPtrDown = 0;
+
+//Instruction counter wires
+wire loopLevelPtrUp = 0;
+wire loopLevelPtrDown = 0;
+
+//Address counter wires
+wire addressPtrUp = 0;
+wire addressPtrDown = 0;
 
 Sequenser seq(.clk(CLOCK), .out(OUT));
 
-Counter #(.WIDTH(16)) count(.UP(CLOCK), .DOWN(DOWN), .RST(RST_N), .COUNT(COUNTER));
+Counter #(.WIDTH(16), .MAX_VALUE(1000)) ipCount(.UP(instructionPtrUp), .DOWN(instructionPtrDown), .RST(RST_N), .COUNT(InstructionPtr));
 
-ROM IP(.Address(COUNTER), .Data(DATA));
+Counter #(.WIDTH(7), .MAX_VALUE(100)) loopCount(.UP(loopLevelPtrUp), .DOWN(loopLevelPtrDown), .RST(RST_N), .COUNT(LoopLevel));
+
+Counter #(.WIDTH(16), .MAX_VALUE(30000)) apCount(.UP(addressPtrUp), .DOWN(addressPtrDown), .RST(RST_N), .COUNT(AddressPtr));
+
+ROM IP(.Address(InstructionPtr), .Data(DATA));
 
 Encoder encoder(.symbol(DATA), .opcode(OPCODE));
 
