@@ -24,7 +24,7 @@ begin
 	CLOCK = 1'b0;
 	
 	
-	#240;
+	#32;
 	$display($time, "<< Simulation Complete >>");
 	$stop;
 end

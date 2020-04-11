@@ -4,7 +4,7 @@
 This module includes Memory and Data Counter
 
 */
-module DataLine(ADDRESS, CLOCK, RST, LOAD, STORE, INC, DEC, IN, OUT);
+module DataLine(ADDRESS, CLOCK, RST, LOAD, STORE, INC, DEC, DataLine);
 
 parameter ADDRESS_WIDTH=16;
 parameter MAX_ADDRESS=29999;
@@ -14,7 +14,7 @@ parameter MAX_DATA=255;
 
 input wire[ADDRESS_WIDTH-1:0] ADDRESS;
 
-reg [DATA_WIDTH-1:0] DataLine;
+output reg [DATA_WIDTH-1:0] DataLine;
 
 input wire CLOCK;
 input wire RST;
@@ -24,9 +24,6 @@ input wire STORE;//Save data from Counter to RAM
 
 input wire INC;
 input wire DEC;
-
-input wire IN;
-input wire OUT;
 
 wire WE= 1'b1;
 wire OE= 1'b1;
@@ -49,12 +46,10 @@ CounterLoad(.CLOCK(CLOCK),
 	.LD(LOAD),
 	.LD_DATA(DataLine));
 
-always @(negedge CLOCK && RST) begin
-	if (STORE) begin
+always @(negedge CLOCK) begin
+	if (STORE && RST) begin
 		assign DataLine = CounterData;
 		end
-	if (OUT)begin
-		$display("Symbol: %s", DataLine);
 	end
 end
 	
