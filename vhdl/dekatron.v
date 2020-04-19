@@ -6,8 +6,9 @@ module Dekatron(Step, Enable, Reverse, Rst_n, Set, In, Out);
     input wire Rst_n;
     input wire Set;
     input wire [9:0] In; 
-    output wire[9:0] Out;
+    output reg[9:0] Out;
 
+	 
 always @(posedge Step or negedge Rst_n)
 	if (~Rst_n) Out <= 10'b0000000001;//Rst_n
 	else if (Enable)
@@ -20,6 +21,3 @@ always @(posedge Step or negedge Rst_n)
 				Out <= {Out[8:0], Out[9]};//Enable forward
 		    
 endmodule
-
-		
-		
