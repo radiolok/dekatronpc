@@ -4,7 +4,7 @@ parameter AddressSize=16;
 parameter DataSize=8;
 
 input wire [AddressSize-1:0] Address;
-inout reg [DataSize-1:0] Data;
+inout wire [DataSize-1:0] Data;
 input WE_n;//if 0 We do write, else read
 input Clk;//Sync operation
 input CS;//CS==1 to do operations

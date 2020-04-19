@@ -1,4 +1,4 @@
 module IpBlock();
 
 
-endmodule;
+endmodule
