@@ -1,2 +1,6 @@
-VHDL/quartus/
+vhdl/quartus/
+vhdl/share/
 *.dch~
+*.raw
+*.log
+*.bak
