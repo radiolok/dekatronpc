@@ -1,5 +1,5 @@
 `timescale 1 us / 1 ns
-module tb ();
+module DataCounter ();
 
 //Inputs to DUT are reg type
 	reg clk = 1'b0;

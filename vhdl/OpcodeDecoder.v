@@ -1,22 +1,22 @@
-module OpcodeDecoder(opcode, Out);
-    input wire [3:0] opcode;
-    output wire [15:0] Out;
+module InsnDecoder(Insn, Opcode);
+    input wire [3:0] Insn;
+    output wire [15:0] Opcode;
 
-    assign Out[0] =  ~opcode[0] &   ~opcode[1] &  ~opcode[2] &  ~opcode[3];  
-    assign Out[1] =   opcode[0] &   ~opcode[1] &  ~opcode[2] &  ~opcode[3];  
-    assign Out[2] =  ~opcode[0] &    opcode[1] &  ~opcode[2] &  ~opcode[3];  
-    assign Out[3] =   opcode[0] &    opcode[1] &  ~opcode[2] &  ~opcode[3];  
-    assign Out[4] =  ~opcode[0] &   ~opcode[1] &   opcode[2] &  ~opcode[3];  
-    assign Out[5] =   opcode[0] &   ~opcode[1] &   opcode[2] &  ~opcode[3];  
-    assign Out[6] =  ~opcode[0] &    opcode[1] &   opcode[2] &  ~opcode[3];  
-    assign Out[7] =   opcode[0] &    opcode[1] &   opcode[2] &  ~opcode[3];  
-    assign Out[8] =  ~opcode[0] &   ~opcode[1] &  ~opcode[2] &   opcode[3];  
-    assign Out[9] =   opcode[0] &   ~opcode[1] &  ~opcode[2] &   opcode[3];  
-    assign Out[10] = ~opcode[0] &    opcode[1] &  ~opcode[2] &   opcode[3];  
-    assign Out[11] =  opcode[0] &    opcode[1] &  ~opcode[2] &   opcode[3];  
-    assign Out[12] = ~opcode[0] &   ~opcode[1] &   opcode[2] &   opcode[3];  
-    assign Out[13] =  opcode[0] &   ~opcode[1] &   opcode[2] &   opcode[3];  
-    assign Out[14] = ~opcode[0] &    opcode[1] &   opcode[2] &   opcode[3];  
-    assign Out[15] =  opcode[0] &    opcode[1] &   opcode[2] &   opcode[3];  
+    assign Opcode[0] =  ~Insn[0] &   ~Insn[1] &  ~Insn[2] &  ~Insn[3];  
+    assign Opcode[1] =   Insn[0] &   ~Insn[1] &  ~Insn[2] &  ~Insn[3];  
+    assign Opcode[2] =  ~Insn[0] &    Insn[1] &  ~Insn[2] &  ~Insn[3];  
+    assign Opcode[3] =   Insn[0] &    Insn[1] &  ~Insn[2] &  ~Insn[3];  
+    assign Opcode[4] =  ~Insn[0] &   ~Insn[1] &   Insn[2] &  ~Insn[3];  
+    assign Opcode[5] =   Insn[0] &   ~Insn[1] &   Insn[2] &  ~Insn[3];  
+    assign Opcode[6] =  ~Insn[0] &    Insn[1] &   Insn[2] &  ~Insn[3];  
+    assign Opcode[7] =   Insn[0] &    Insn[1] &   Insn[2] &  ~Insn[3];  
+    assign Opcode[8] =  ~Insn[0] &   ~Insn[1] &  ~Insn[2] &   Insn[3];  
+    assign Opcode[9] =   Insn[0] &   ~Insn[1] &  ~Insn[2] &   Insn[3];  
+    assign Opcode[10] = ~Insn[0] &    Insn[1] &  ~Insn[2] &   Insn[3];  
+    assign Opcode[11] =  Insn[0] &    Insn[1] &  ~Insn[2] &   Insn[3];  
+    assign Opcode[12] = ~Insn[0] &   ~Insn[1] &   Insn[2] &   Insn[3];  
+    assign Opcode[13] =  Insn[0] &   ~Insn[1] &   Insn[2] &   Insn[3];  
+    assign Opcode[14] = ~Insn[0] &    Insn[1] &   Insn[2] &   Insn[3];  
+    assign Opcode[15] =  Insn[0] &    Insn[1] &   Insn[2] &   Insn[3];  
 
 endmodule
