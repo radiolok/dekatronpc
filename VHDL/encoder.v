@@ -1,5 +1,5 @@
 module Encoder(symbol, opcode);
-
+//Symbol to opcode
 input [7:0] symbol;
 output reg [3:0] opcode;
 
@@ -22,4 +22,6 @@ endcase
 end
 
 endmodule
+
+
 
