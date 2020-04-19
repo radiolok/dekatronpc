@@ -20,13 +20,13 @@ always @(posedge Step or negedge Rst_n)
                 end
             else
                 begin
-                    if (!Dir) 
-                    begin 
-                        Out <= {Out[8:0], Out[9]};
+                    if (Reverse) 
+					begin 
+                        Out <= {Out[9], Out[8:0]};
                     end 
                     else 
                     begin 
-                        Out <= {Out[9], Out[8:0]};
+                        Out <= {Out[8:0], Out[9]};
                     end 
                 end
         end

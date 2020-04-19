@@ -46,12 +46,8 @@ CounterLoad(.CLOCK(CLOCK),
 	.LD(LOAD),
 	.LD_DATA(DataLine));
 
-always @(negedge CLOCK) begin
-	if (STORE && RST) begin
-		assign DataLine = CounterData;
-		end
-	end
-end
-	
+always @(negedge CLOCK) 
+	if (STORE && RST)
+		DataLine = CounterData;
 
 endmodule

@@ -11,8 +11,7 @@ module DataCounter(Step, Reverse, Rst_n, Set, In, Out);
 	wire [9:0] In10;
 	wire [9:0] In100;
 
-	wire [1:0] down;
-	pulldown wireDown(.O(down))
+	wire [1:0] down = 2'b00;
 
 	// convert 8-4-2-1 to binary
 	BdcToBin bin1(.In(In[3:0]), .Out(In1));

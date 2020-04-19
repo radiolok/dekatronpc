@@ -8,11 +8,11 @@ input wire Rst;
 
 output reg[15:0] Out = 15'b1;
 
-always @(posedge clk, negedge Rst)
+always @(posedge Clk, negedge Rst)
 	if( !Rst )
-		state <= 10'd1;
+		Out <= 10'd1;
 	else
-		state <= {state[14:0], state[15]};
+		Out <= {Out[14:0], Out[15]};
 endmodule
 
 
@@ -53,10 +53,9 @@ ROM IP(.Address(InstructionPtr), .Data(DATA));
 
 Encoder encoder(.symbol(DATA), .opcode(OPCODE));
 
-always @(negedge CLOCK) begin
-
+always @(negedge CLOCK) 
 	$display("OPCODE %d", OPCODE);
-end
+
 
 
 endmodule
