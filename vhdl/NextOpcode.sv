@@ -1,9 +1,9 @@
-module IpLine(
+module NextOpcode(
     input wire Rst_n,
     input wire Count,
     input wire Reverse,
     input wire Load,
-    output reg[15:0] Opcode
+    output wire[15:0] Opcode
 );
 
 wire[23:0] IpAddress;
@@ -16,15 +16,13 @@ CounterIp IP(.Step(Count),
 wire [3:0] Insn;
 wire [15:0] _Opcode;
 
-ROM rom(
+ROM rom(.Rst_n(Rst_n),
         .Clk(Load), 
         .Address(IpAddress),
         .Insn(Insn));
 
 OpcodeDecoder opcodeDecoder(.Insn(Insn),
-                            .Opcode(_Opcode));
+                            .Opcode(Opcode));
 
-always @(posedge Load)
-    Opcode <= _Opcode;
 
 endmodule

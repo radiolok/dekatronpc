@@ -4,11 +4,11 @@ module DekatronPC(
     output wire[15:0] Opcode
 );
 
-parameter SequencdrLength = 16;
+parameter SequencerWidth = 16;
 
-wire [SequencdrLength-1:0] sequencerOut;
+wire [SequencerWidth-1:0] sequencerOut;
 
-Sequencer #(.LENGTH(SequencdrLength)) 
+Sequencer #(.LENGTH(SequencerWidth)) 
                     sequencer(.Clk(Clk),
                     .Rst_n(Rst_n),
                     .Out(sequencerOut)
@@ -19,10 +19,7 @@ wire Count = sequencerOut[0];//First step is ever IP couner //TODO: check for ci
 wire Reverse = 1'b0;//not now
 wire Load = sequencerOut[1];//Second step is ever load from ROM
 
-
-
-
-IpLine ipLine(.Rst_n(Rst_n),
+NextOpcode nextOpcode(.Rst_n(Rst_n),
                 .Count(Count),
                 .Reverse(Reverse),
                 .Load(Load),
