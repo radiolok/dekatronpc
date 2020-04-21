@@ -5,7 +5,7 @@ module CounterLoop(Step, Reverse, Rst_n, Out, Overflow);
 	input wire Step;
 	input wire Reverse;
 	input wire Rst_n;
-	input wire [7:0] Out;//8-4-2-1  x2
+	output wire [7:0] Out;//8-4-2-1  x2
 	output reg Overflow;//Set to 1 if we reach the top
 
 	//Binary Dekatron outputs:

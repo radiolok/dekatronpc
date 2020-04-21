@@ -5,7 +5,7 @@ module CounterIp(Step, Reverse, Rst_n, Out);
 	input wire Step;
 	input wire Reverse;
 	input wire Rst_n;
-	input wire [23:0] Out;//8-4-2-1 x6
+	output wire [23:0] Out;//8-4-2-1 x6
 
 	//Binary Dekatron outputs:
 	wire [9:0] Out1;

@@ -1,4 +1,4 @@
-module InsnDecoder(Insn, Opcode);
+module OpcodeDecoder(Insn, Opcode);
     input wire [3:0] Insn;
     output wire [15:0] Opcode;
 

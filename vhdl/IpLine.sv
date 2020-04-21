@@ -13,15 +13,13 @@ CounterIp IP(.Step(Count),
             .Rst_n(Rst_n), 
             .Out(IpAddress));
 
-wire [7:0] Data;
 wire [3:0] Insn;
 wire [15:0] _Opcode;
 
-ROM rom(.Address(IpAddress),
-        .Data(Data));
-
-SymbolToInsn symbolToInsn(.Symbol(Data),
-                            .Insn(Insn));
+ROM rom(
+        .Clk(Load), 
+        .Address(IpAddress),
+        .Insn(Insn));
 
 OpcodeDecoder opcodeDecoder(.Insn(Insn),
                             .Opcode(_Opcode));

@@ -7,7 +7,7 @@ module CounterData(Step, Reverse, Rst_n, Set, In, Out);
 	input logic Rst_n;
 	input logic Set;
 	input logic [11:0] In; //8-4-2-1
-	input logic [11:0] Out;//8-4-2-1
+	output logic [11:0] Out;//8-4-2-1
 
 	//Binary dekatron Inputs
 	logic [9:0] In1;
