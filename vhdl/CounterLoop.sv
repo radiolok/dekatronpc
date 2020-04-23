@@ -1,24 +1,22 @@
-module CounterLoop(Step, Reverse, Rst_n, Out, Overflow);
+module CounterLoop(Step, Reverse, Rst_n, Zero, Overflow);
 	
 	parameter binaryWidth = 10;//Internal dekatron width
 	
 	input wire Step;
 	input wire Reverse;
 	input wire Rst_n;
-	output wire [7:0] Out;//8-4-2-1  x2
+	output wire Zero;//Set one if at > 0
 	output reg Overflow;//Set to 1 if we reach the top
 
 	//Binary Dekatron outputs:
 	wire [9:0] Out1;
 	wire [9:0] Out10;
 
-	//convert binary to 8-4-2-1
-	BinToDbc bdc1(.In(Out1), .Out(Out[3:0]));
-	BinToDbc bdc10(.In(Out10), .Out(Out[7:4]));
-
 	//If we reach limits next step cause SET event
 	wire upLimit = Out10[9] & Out1[9] & ~Reverse;
 	wire downLimit= Out10[0] & Out1[0] & Reverse;
+
+	assign Zero = Out10[0] & Out1[0];
 
 	//Carry step signals to next digits
 	wire Enable1 = 1'b1;

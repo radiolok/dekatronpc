@@ -19,8 +19,8 @@ Sequencer #(.LENGTH(SequencerWidth))
                     );
 
 
-wire Count = Rst_n & sequencerOut[0];//First step is ever IP couner //TODO: check for cin;
-wire Load = Rst_n & sequencerOut[1];//Second step is ever load from ROM
+wire Load = Rst_n & sequencerOut[0];//Second step is ever load from ROM
+wire Count = Rst_n & sequencerOut[1];//Last step is ever IP couner //TODO: check for cin;
 
 NextOpcode nextOpcode(.Rst_n(Rst_n),
                 .Count(Count),
