@@ -19,7 +19,7 @@ def checkSymbol(symbol):
     return False 
 
 symbolToOpcode = {
-    ' ' : "0000",
+    ' ' : "0000",#NOP
     '+' : "0001",
     '-' : "0010",
     '>' : "0011",
@@ -28,7 +28,7 @@ symbolToOpcode = {
     ']' : "0110",
     '.' : "0111",
     ',' : "1000",
-    'H' : "1111",
+    'H' : "1111",#HALT
 }
 
 decToBin = {

@@ -15,31 +15,21 @@ Sequencer #(.LENGTH(SequencerWidth))
                     );
 
 
-wire Count = sequencerOut[0];//First step is ever IP couner //TODO: check for cin;
-wire Reverse = 1'b0;//not now
-wire Load = sequencerOut[1];//Second step is ever load from ROM
-
-NextOpcode nextOpcode(.Rst_n(Rst_n),
-                .Count(Count),
-                .Reverse(Reverse),
-                .Load(Load),
-                .Opcode(Opcode)
-                );
-
-reg loopEnabled;
-
-wire counterLoopClk = Clk & loopEnabled;
-wire counterLoopReverse;
-
-CounterLoop counterLoop(.Rst_n(Rst_n),
-                        .Step(counterLoopClk),
-                        .Reverse(counterLoopReverse)
-                        );
-
+wire OpcodeReady;
+wire OpcodeAck;
 wire [9:0] DataOut;
 wire [9:0] DataIn;
 wire        DataZero;
 wire ExtDataWrite;
+
+IpLine ipLine(
+    .Rst_n(Rst_n),
+    .Clk(Clk),
+    .DataZero(DataZero),
+    .Opcode(Opcode),
+    .OpcodeAck(OpcodeAck),
+    .OpcodeReady(OpcodeReady)
+);
 
 ApLine APline(.Rst_n(Rst_n),
                 .Clk(Clk),
