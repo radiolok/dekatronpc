@@ -104,7 +104,7 @@ def GenerateHeader(fileIn, fileName, fileSize, fileOut, width = 4):
     if codeSize > 100000:
         portSize = 24 - int(width /2)
     fileOut.write("parameter portSize = %d;\n" % (portSize))
-    fileOut.write("parameter dataSize = 16;\n\n")
+    fileOut.write("parameter dataSize = %d;\n\n" % (width * 4))
     fileOut.write("input logic [portSize-1:0] Address;\n")
     fileOut.write("output logic [dataSize-1:0] Data;\n\n")
     fileOut.write("always_comb\n")
@@ -136,11 +136,14 @@ def GenerateBody(fileIn, fileOut, portSize, widthBits):
         addressStr = encodeAddress(caseNumber)
         addressStrCut = addressStr[0: len(addressStr)- int(widthBits / 2)]
         if widthBits == 4:
-            generatedCase = "    %d'b%s: Data = {4'b%s, 4'b%s, 4'b%s, 4'b%s};\n" % (portSize, addressStrCut, symbols_enc[3], symbols_enc[2], symbols_enc[1], symbols_enc[0])
+            generatedCase = "    %d'b%s: Data = {4'b%s, 4'b%s, 4'b%s, 4'b%s}; //%s %s %s %s\n" % (portSize, addressStrCut, 
+                symbols_enc[3], symbols_enc[2], symbols_enc[1], symbols_enc[0],
+                symbols[3], symbols[2], symbols[1], symbols[0])
         elif widthBits == 2:
-            generatedCase = "    %d'b%s: Data = {4'b%s, 4'b%s};\n" % (portSize, addressStrCut, symbols_enc[1], symbols_enc[0])
+            generatedCase = "    %d'b%s: Data = {4'b%s, 4'b%s}; //%s %s \n" % (portSize, addressStrCut, 
+            symbols_enc[1], symbols_enc[0], symbols[1], symbols[0]) 
         elif widthBits == 1:
-            generatedCase = "    %d'b%s: Data = {4'b%s};\n" % (portSize, addressStrCut, symbols_enc[0])
+            generatedCase = "    %d'b%s: Data = {4'b%s}; //%s\n" % (portSize, addressStrCut, symbols_enc[0], symbols[0])
         else:
             print("Sorry, only width 1, 2 and 4 is supported")
         sys.stdout.write(generatedCase)
