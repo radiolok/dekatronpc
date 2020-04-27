@@ -1,10 +1,11 @@
-module CounterAp(Step, Reverse, Rst_n, Out);
+module CounterAp(Step, Reverse, Rst_n, Ready, Out);
 	
 	parameter binaryWidth = 10;//Internal dekatron width
 	
 	input wire Step;
 	input wire Reverse;
 	input wire Rst_n;
+	output wire Ready;
 	output wire [19:0] Out;//8-4-2-1 x5
 
 	//Binary Dekatron outputs:
@@ -25,6 +26,8 @@ module CounterAp(Step, Reverse, Rst_n, Out);
 	wire upLimit =  Out10000[2] & ~Reverse;
 	wire downLimit= Out10000[0] & Reverse;
 	wire setData = upLimit | downLimit;
+
+	assign Ready = 1'b1;
 
 	//Carry step signals to next digits
 	wire Enable1 = 1'b1;

@@ -9,17 +9,21 @@ module IpLine(
     output reg OpcodeReady
 );
 
-parameter INSN_FETCH = 2'b00;
-parameter IP_COUNT = 2'b01;
-parameter LOOP_COUNT = 2'b10;
+parameter NONE = 2'b00;
+parameter INSN_FETCH = 2'b01;
+parameter IP_COUNT = 2'b10;
+parameter LOOP_COUNT = 2'b11;
+
+wire LoopZero;
+wire IpReady;
+wire LoopReady;
 
 reg [1:0] IpLineState;
 reg [1:0] NextIpLineState;
 
-
-wire IpClk =  (IpLineState == IP_COUNT) ?  Clk : 1'b0;
-wire LoopClk = (IpLineState == LOOP_COUNT) ? Clk : 1'b0;
-wire InsnFetch = (IpLineState == INSN_FETCH) ? Clk : 1'b0;
+wire IpClk =  (NextIpLineState == IP_COUNT) ?  Clk : 1'b0;
+wire LoopClk = (NextIpLineState == LOOP_COUNT) ? Clk : 1'b0;
+wire InsnFetch = (NextIpLineState == INSN_FETCH) ? Clk & (LoopReady & IpReady): 1'b0;
 
 /*
 Used only for Loop Lookup mode
@@ -36,22 +40,31 @@ wire IpForward = ~IpReverse;
 
 wire DataNotZero = ~DataZero;
 
-wire LoopZero;
+wire[23:0] IpAddress;
 
-NextOpcode nextOpcode(
-        .Rst_n(Rst_n),
-        .Count(IpClk),
-        .Reverse(Reverse),
-        .Load(InsnFetch),
-        .Opcode(Opcode)
-);
+CounterIp IP(.Clk(IpClk),
+            .Reverse(IpReverse), 
+            .Rst_n(Rst_n), 
+            .Out(IpAddress),
+            .Ready(IpReady));
+
+wire [3:0] Insn;
+
+ROM rom(.Rst_n(Rst_n),
+        .Clk(InsnFetch), 
+        .Address(IpAddress),
+        .Insn(Insn));
+
+OpcodeDecoder opcodeDecoder(.Insn(Insn),
+                            .Opcode(Opcode));
 
 
 CounterLoop counterLoop(
     .Rst_n(Rst_n),
-    .Step(LoopClk),
+    .Clk(LoopClk),
     .Reverse(loopReverse),
-    .Zero(LoopZero)
+    .Zero(LoopZero),
+    .Ready(LoopReady)
     );
 
 
@@ -63,7 +76,7 @@ always @(negedge Clk, negedge Rst_n)
         IpLineState <= INSN_FETCH;
     end
     else begin
-        IpLineState <= NextIpLineState;//FIXME
+        IpLineState <= NextIpLineState;
         case (IpLineState) 
             INSN_FETCH: begin
                 if ((DataZero & Opcode[5]) | (DataNotZero & Opcode[6])) begin

@@ -1,4 +1,4 @@
-module CounterData(Step, Reverse, Rst_n, Set, In, Out);
+module CounterData(Step, Reverse, Rst_n, Set, Ready, In, Out);
 	
 	parameter binaryWidth = 10;//Internal dekatron width
 	
@@ -6,8 +6,11 @@ module CounterData(Step, Reverse, Rst_n, Set, In, Out);
 	input logic Reverse;
 	input logic Rst_n;
 	input logic Set;
+	output wire Ready;
 	input logic [11:0] In; //8-4-2-1
 	output logic [11:0] Out;//8-4-2-1
+
+	assign Ready = 1'b1; 
 
 	//Binary dekatron Inputs
 	logic [9:0] In1;

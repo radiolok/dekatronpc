@@ -17,7 +17,7 @@ reg [DataSize-1:0] Data;
 
 assign Out = CS ? Data : {DataSize{1'bz}};
 
-always @(posedge Clk)
+always @(posedge Clk, negedge Rst_n)
     if (~Rst_n) Data <= {DataSize{1'b0}};
     else if (WE_n) Data <= Mem[Address];
       else Mem[Address] <= In;

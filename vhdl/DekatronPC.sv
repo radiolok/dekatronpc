@@ -20,7 +20,7 @@ wire OpcodeAck;
 wire [9:0] DataOut;
 wire [9:0] DataIn;
 wire        DataZero;
-wire ExtDataWrite;
+wire DataWriteAck;
 
 IpLine ipLine(
     .Rst_n(Rst_n),
@@ -35,7 +35,7 @@ ApLine APline(.Rst_n(Rst_n),
                 .Clk(Clk),
                 .DataOut(DataOut),
                 .DataIn(DataIn),
-                .ExtDataWrite(ExtDataWrite)
+                .DataWriteAck(DataWriteAck)
                 );
 
 
@@ -47,7 +47,7 @@ ConsoleIn consoleIn(
                     .Clk(Clk),
                     .Rst_n(Rst_n),
                     .Data(DataIn),
-                    .Ready(ExtDataWrite)
+                    .Ready(DataWriteAck)
                     );
 
 ConsoleOut consoleOut(
