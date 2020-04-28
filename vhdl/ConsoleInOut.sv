@@ -17,7 +17,7 @@ module ConsoleOut
     (
         input wire Clk,
         input wire Rst_n,
-        output wire Print,
+        output wire Write,
         input wire[DataSize-1:0] Data
     );
 

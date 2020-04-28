@@ -6,7 +6,6 @@ module ApLine(
     input wire DataWriteAck,
     input wire CounterReverse,
     output wire Ready,
-    output reg ApCounterLock,
     input wire[9:0] DataIn,
     output wire[9:0] DataOut
 );
@@ -20,6 +19,8 @@ parameter AP_COUNT = 3'b100;
 
 reg [2:0] LastApLineState;
 reg [2:0] NextApLineState;
+
+reg ApCounterLock;
 
 wire ApClk = (LastApLineState == AP_COUNT) & Clk;
 wire DataClk = (LastApLineState == DATA_COUNT) & Clk;
