@@ -15,8 +15,15 @@ wire [3:0] ActiveInsn ;/*Address[1] ?
             (Address[0]? StorageData[15:12] : StorageData[11:8]):
             (Address[0]? StorageData[7:4] : StorageData[3:0]);*/
 
-helloworld storage(.Address(Address),
-                    .Data(ActiveInsn));
+`ifdef LOOP_TEST
+    loopTest storage(.Address(Address),
+                        .Data(ActiveInsn));
+`else
+    helloworld storage(.Address(Address),
+                        .Data(ActiveInsn));
+`endif
+
+
 
 
 always @(posedge Clk, negedge Rst_n)

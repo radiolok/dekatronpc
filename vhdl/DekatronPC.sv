@@ -8,6 +8,8 @@ wire OpcodeReady;
 reg OpcodeAck;
 wire   DataZero;
 
+wire DataInReady;
+
 IpLine ipLine(
     .Rst_n(Rst_n),
     .Clk(Clk),

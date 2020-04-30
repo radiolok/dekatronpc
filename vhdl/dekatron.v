@@ -9,7 +9,7 @@ module Dekatron(Step, Enable, Reverse, Rst_n, Set, In, Out);
     output reg[9:0] Out;
 
 	 
-always @(posedge Step or negedge Rst_n)
+always @(posedge Step, negedge Rst_n)
 	if (~Rst_n) Out <= 10'b0000000001;//Rst_n
 	else if (Enable)
 		if (Set) 
