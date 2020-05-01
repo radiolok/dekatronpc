@@ -6,7 +6,7 @@ module IpLine(
     input wire OpcodeAck,
     output wire [15:0] Opcode,
     //Nen insn is loaded and can be used
-    output reg OpcodeReady
+    output wire OpcodeReady
 );
 
 parameter NONE = 2'b00;
@@ -27,8 +27,8 @@ wire InsnFetch = (~IpLineState[1] & IpLineState[0]) ? Clk & (LoopReady & IpReady
 /*
 Used only for Loop Lookup mode
 */
-reg IpReverse;
-reg loopReverse;
+wire IpReverse;
+wire loopReverse;
 /*
 If 1 - Find Loop Mode
 Else - Normal mode
@@ -67,56 +67,34 @@ CounterLoop counterLoop(
     );
 
 
+wire loopSkipCase = Opcode[5] & DataZero;
+wire loopIterCase = Opcode[6] & ~DataZero;
+wire loopCornerCase = loopSkipCase | loopIterCase;
+wire loopOpcode = (Opcode[5]) || (Opcode[6]);
+
+wire IpLineStateNone = ~IpLineState[1] & ~IpLineState[0];
+wire IpLineStateInsnFetch = ~IpLineState[1] & IpLineState[0];
+wire IpLineStateIpCount = IpLineState[1] & ~IpLineState[0];
+wire IpLineStateLoopCount = IpLineState[1] & IpLineState[0];
+
+assign OpcodeReady = IpLineStateNone & ~FindLoopMode & LoopReady & IpReady;
+assign loopReverse =  ~loopCornerCase; 
+assign IpReverse = FindLoopMode & ~DataZero;
+
+
 always @(negedge Clk, negedge Rst_n)
     if (~Rst_n) begin
-        IpReverse <= 1'b0;
-        FindLoopMode <= 1'b0;        
-        loopReverse <= 1'b0;
+        FindLoopMode <= 1'b0;
         IpLineState <= INSN_FETCH;
     end
     else begin
-        case (IpLineState) 
-            INSN_FETCH: begin
-                if (FindLoopMode) begin
-                    if ((Opcode[5]) || (Opcode[6])) begin
-                        IpLineState <= LOOP_COUNT;
-                        loopReverse <= ((Opcode[5] & DataZero) | (Opcode[6] & ~DataZero)) ? 1'b0 : 1'b1; 
-                    end
-                    else begin
-                        OpcodeReady <= ~FindLoopMode;
-                        IpLineState <= IP_COUNT;
-                    end
-                end
-                else begin
-                    if ((DataZero & Opcode[5]) | (DataNotZero & Opcode[6])) begin
-                        FindLoopMode <= 1'b1;
-                        IpLineState <= LOOP_COUNT;
-                        OpcodeReady <= 1'b0;
-                        IpReverse <= ~DataZero;
-                        loopReverse <= ((Opcode[5] & DataZero) | (Opcode[6] & ~DataZero)) ? 1'b0 : 1'b1;               
-                    end
-                    else begin
-                        OpcodeReady <= ~FindLoopMode;
-                        IpLineState <= IP_COUNT;
-                    end
-                end
-            end
-            IP_COUNT: begin
-                IpLineState <= INSN_FETCH;
-            end
-            LOOP_COUNT: begin
-                FindLoopMode <= ~LoopZero;
-                if (IpReverse & LoopZero)
-                    IpReverse <= 1'b0;
-                IpLineState <= IP_COUNT;
-            end
-            default: begin
-                IpLineState <= INSN_FETCH;
-                OpcodeReady <= 1'b0;
-                IpReverse <= 1'b0;
-                loopReverse <= 1'b0;
-            end
-        endcase
+        if (IpLineStateInsnFetch & ~FindLoopMode & loopCornerCase)
+            FindLoopMode <= 1'b1;
+        if (IpLineStateLoopCount)
+            FindLoopMode <= ~LoopZero;
+        IpLineState <= (OpcodeAck & IpLineStateNone)? INSN_FETCH :
+        IpLineStateInsnFetch ? (((loopOpcode & FindLoopMode) | (loopCornerCase)) ? LOOP_COUNT : IP_COUNT) :
+                                            IpLineStateLoopCount ? IP_COUNT : NONE;
     end
 
 
