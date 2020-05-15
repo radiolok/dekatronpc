@@ -14,8 +14,8 @@ always @(posedge Step, negedge Rst_n)
 		Out <= 10'b0000000001;//Rst_n
 	else if (En)
 		Out <= Set ? In : Reverse ? 
-				Out <= {Out[0], Out[9:1]}://Enable reverse
-				Out <= {Out[8:0], Out[9]};//Enable forward
+				{Out[0], Out[9:1]}://Enable reverse
+				{Out[8:0], Out[9]};//Enable forward
 endmodule
 
 module Octotron(
