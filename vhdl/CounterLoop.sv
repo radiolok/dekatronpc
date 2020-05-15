@@ -25,8 +25,8 @@ module CounterLoop(Clk, Reverse, Rst_n, Zero, Ready, Overflow);
 	wire Enable1 = 1'b1;
 	wire Enable10 = Enable1 & ((Out1[0] & Reverse ) | (Out1[9] & ~Reverse));
 	
-	Dekatron  dataDek1(.Step(Clk), .Enable(Enable1), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In({binaryWidth{1'b0}}), .Out(Out1));
-	Dekatron  dataDek10(.Step(Clk), .Enable(Enable10), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In({binaryWidth{1'b0}}), .Out(Out10));
+	Dekatron  dataDek1(.Step(Clk), .En(Enable1), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In({binaryWidth{1'b0}}), .Out(Out1));
+	Dekatron  dataDek10(.Step(Clk), .En(Enable10), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In({binaryWidth{1'b0}}), .Out(Out10));
 	
 always @(posedge Clk or negedge Rst_n)
 	if (~Rst_n)

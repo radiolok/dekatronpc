@@ -64,8 +64,8 @@ always_comb
 		_In100 <= 10'b0000000001;
 		end
 	
-	Dekatron  dataDek1(.Step(Step), .Enable(Enable1), .Reverse(Reverse), .Rst_n(Rst_n), .Set(setData), .In(_In1), .Out(Out1));
-	Dekatron  dataDek10(.Step(Step), .Enable(Enable10), .Reverse(Reverse), .Rst_n(Rst_n), .Set(setData), .In(_In10), .Out(Out10));
-	Dekatron  dataDek100(.Step(Step), .Enable(Enable100), .Reverse(Reverse), .Rst_n(Rst_n), .Set(setData), .In(_In100), .Out(Out100));
+	Dekatron  dataDek1(.Step(Step), .En(Enable1), .Reverse(Reverse), .Rst_n(Rst_n), .Set(setData), .In(_In1), .Out(Out1));
+	Dekatron  dataDek10(.Step(Step), .En(Enable10), .Reverse(Reverse), .Rst_n(Rst_n), .Set(setData), .In(_In10), .Out(Out10));
+	Dekatron  dataDek100(.Step(Step), .En(Enable100), .Reverse(Reverse), .Rst_n(Rst_n), .Set(setData), .In(_In100), .Out(Out100));
 
 endmodule

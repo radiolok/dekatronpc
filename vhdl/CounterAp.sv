@@ -41,10 +41,10 @@ module CounterAp(Step, Reverse, Rst_n, Ready, Out);
 	//Only last Dekatron occured.
 	wire [9:0]  _In10000  =  upLimit? 10'b0000000001 : 10'b0000000100;
 	
-	Dekatron  dataDek1(.Step(Step), .Enable(Enable1), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In({binaryWidth{1'b0}}), .Out(Out1));
-	Dekatron  dataDek10(.Step(Step), .Enable(Enable10), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In({binaryWidth{1'b0}}), .Out(Out10));
-	Dekatron  dataDek100(.Step(Step), .Enable(Enable100), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In({binaryWidth{1'b0}}), .Out(Out100));
-	Dekatron  dataDek1000(.Step(Step), .Enable(Enable1000), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In({binaryWidth{1'b0}}), .Out(Out1000));
-	Dekatron  dataDek10000(.Step(Step), .Enable(Enable10000), .Reverse(Reverse), .Rst_n(Rst_n), .Set(setData), .In(_In10000), .Out(Out10000));
+	Dekatron  dataDek1(.Step(Step), .En(Enable1), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In({binaryWidth{1'b0}}), .Out(Out1));
+	Dekatron  dataDek10(.Step(Step), .En(Enable10), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In({binaryWidth{1'b0}}), .Out(Out10));
+	Dekatron  dataDek100(.Step(Step), .En(Enable100), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In({binaryWidth{1'b0}}), .Out(Out100));
+	Dekatron  dataDek1000(.Step(Step), .En(Enable1000), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In({binaryWidth{1'b0}}), .Out(Out1000));
+	Dekatron  dataDek10000(.Step(Step), .En(Enable10000), .Reverse(Reverse), .Rst_n(Rst_n), .Set(setData), .In(_In10000), .Out(Out10000));
 
 endmodule
