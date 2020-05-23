@@ -38,7 +38,7 @@ but there are two Instruction Set Registers - ISAR0 and ISAR1, which extend numb
 |  < |  0x5   |     <     | ADEC | Decrement of address pointer|
 |   |  0x6   |          | | |
 |   |  0x7   |          || |
-|  B |  0x8   |          |SETI| Set instruction counter to begin point|
+|  S |  0x8   |          |SETI| Set instruction counter to start point|
 |  I |  0x9   |          |CLRI |Clear instruction counter|
 |  A |  0xA   |          |CLRA | Clear address counter|
 |  0 |  0xB   |          | CLRD   | Clear Data |
