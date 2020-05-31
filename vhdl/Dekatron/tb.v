@@ -10,9 +10,22 @@ reg[9:0] In;
 wire [3:0] DecOut;
 wire [9:0] BinOut;
 
-Octotron dek1(.Step(Clk),
-            .En(En),
-            .Reverse(Reverse),
+wire PulseRight_n;
+wire PulseLeft_n;
+
+wire Ready;
+
+DekatronPulseSender dekatronPulseSender(.Clk(Clk),
+                                        .En(En),
+                                        .Rst_n(Rst_n),
+                                        .Reverse(Reverse),
+                                        .PulseRight_n(PulseRight_n),
+                                        .PulseLeft_n(PulseLeft_n),
+                                        .Ready(Ready));
+
+Dekatron dek1(
+            .PulseRight_n(PulseRight_n),
+            .PulseLeft_n(PulseLeft_n),
             .Rst_n(Rst_n),
             .Set(Set),
             .In(In),
@@ -38,13 +51,15 @@ begin
 	#1
 	Rst_n <= 1'b1;
 	$display($time, " << Starting Simulation >> ");
+    #20
+    Reverse <= 1'b1;
 	#100;
 	$display($time, "<< Simulation Complete >>");
 	$stop;
 end
 
 always @(negedge Clk) begin
-    $display($time, " Rst_n:%d, Set:%d, En:%d, Out: %d",  Rst_n, Set, En, DecOut);
+    $display($time, " Rst_n:%d, Set:%d, En:%d, PulseRight:%d, PulseLeft:%d, Out: %d",  Rst_n, Set, En, PulseRight_n, PulseLeft_n, DecOut);
 end
 
 endmodule
