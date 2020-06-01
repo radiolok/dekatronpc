@@ -1,3 +1,34 @@
+module Dekatron(//Temp module
+    //Each Step cause +1 or -1(if Reverse) or storing In value(if Set)
+    input wire Step,
+	input wire En,
+    input wire Reverse,//1 for reverse
+    input wire Rst_n,
+    input wire Set,
+    input wire [9:0] In,
+    output wire[9:0] Out,
+    output wire Ready
+);
+
+DekatronPulseSender dekatronPulseSender(.Clk(Step),
+                                        .En(En),
+                                        .Rst_n(Rst_n),
+                                        .Reverse(Reverse),
+                                        .PulseRight_n(PulseRight_n),
+                                        .PulseLeft_n(PulseLeft_n),
+                                        .Ready(Ready));
+
+DekatronBulb dek1(
+            .PulseRight_n(PulseRight_n),
+            .PulseLeft_n(PulseLeft_n),
+            .Rst_n(Rst_n),
+            .Set(Set),
+            .In(In),
+            .Out(Out)
+            );
+
+endmodule
+
 module DekatronPulseSender(
     //Each Step cause +1 or -1(if Reverse) or storing In value(if Set)
     input wire Clk,    
@@ -54,6 +85,7 @@ endmodule
 module DekatronBulb(
     //For forward direction, use PulseRight->PulseLeft order
     //and vise versa for reverse direction
+    input wire Clk,
     input wire PulseRight_n,
 	input wire PulseLeft_n,
     input wire Rst_n,
@@ -105,35 +137,26 @@ wire [29:0] InLong = {{2'b00}, In[9], 2'b00, In[8],
 wire PulseLeft = ~PulseLeft_n;
 wire PulseRight = ~ PulseRight_n;
 
-always @(negedge Rst_n, posedge PulseRight, posedge PulseLeft, posedge PulseRight_n, posedge PulseLeft_n)
+always @(negedge Rst_n, posedge Clk)
  begin
     if (~Rst_n) begin
         Cathodes <= 30'b000000000000000000000000000001;//Rst_n
      end
      else begin
-        if (Set) begin
-            Cathodes <= InLong;
+        if (PulseRight) begin
+            Cathodes <= Set ? InLong : 
+                CathodeGlow ? {Cathodes[28:0], Cathodes[29]} :
+                     GuideLeftGlow ? {Cathodes[0], Cathodes[29:1]} : Cathodes;
         end
-        else if (CathodeGlow) begin
-            if (PulseRight)
-                Cathodes <= {Cathodes[28:0], Cathodes[29]};
-            if (PulseLeft)
-                Cathodes <= {Cathodes[0], Cathodes[29:1]};
-        end//CathodeGlow
-        else if (GuideRightGlow) begin
-            if (PulseLeft) begin
-                Cathodes <= {Cathodes[28:0], Cathodes[29]};
-            end//GuideRightGlow
-            else if (PulseRight_n)//Clean Guide Right signal but with no Guide Left:
-                Cathodes <= {Cathodes[0], Cathodes[29:1]};
-            end
-        else if (GuideLeftGlow) begin
-            if (PulseRight) begin
-                Cathodes <= {Cathodes[0], Cathodes[29:1]};
-            end//GuideRightGlow
-            else if (PulseLeft_n)//Clean Guide Left signal but with no Guide Left:
-                Cathodes <= {Cathodes[28:0], Cathodes[29]};
-            end
+        else if (PulseLeft) begin
+            Cathodes <= Set ? InLong : 
+                CathodeGlow ? {Cathodes[0], Cathodes[29:1]}:
+                GuideRightGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
+        end
+        else begin
+            Cathodes <= GuideRightGlow ? {Cathodes[0], Cathodes[29:1]}:
+            GuideLeftGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
+        end
      end//Rst_n
  end
 endmodule

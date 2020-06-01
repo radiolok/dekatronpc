@@ -23,7 +23,8 @@ DekatronPulseSender dekatronPulseSender(.Clk(Clk),
                                         .PulseLeft_n(PulseLeft_n),
                                         .Ready(Ready));
 
-Dekatron dek1(
+DekatronBulb dek1(
+            .Clk(Clk),
             .PulseRight_n(PulseRight_n),
             .PulseLeft_n(PulseLeft_n),
             .Rst_n(Rst_n),
