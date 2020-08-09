@@ -30,14 +30,14 @@ but there are two Instruction Set Registers - ISAR0 and ISAR1, which extend numb
 
 | Symbol | Opcode | Brainfuck | Name | Description |
 |------|--------|-----------|-|------------|
-|  { |  0x0   |          |LABEG | If current address equal zero, skip the loop|
-|  } |  0x1   |          |LAEND | If current address is not equal zero, repeat loop iteration  |
+|   |  0x0   |          | | |
+|   |  0x1   |          || |
 |   |  0x2   |          |  ||
 |   |  0x3   |         |  ||
 |  > |  0x4   |     >     | AINC | Increment of address pointer|
 |  < |  0x5   |     <     | ADEC | Decrement of address pointer|
-|   |  0x6   |          | | |
-|   |  0x7   |          || |
+|  { |  0x6   |          |LABEG | If current address equal zero, skip the loop|
+|  } |  0x7   |          |LAEND | If current address is not equal zero, repeat loop iteration  |
 |  S |  0x8   |          |SETI| Set instruction counter to start point|
 |  I |  0x9   |          |CLRI |Clear instruction counter|
 |  A |  0xA   |          |CLRA | Clear address counter|
