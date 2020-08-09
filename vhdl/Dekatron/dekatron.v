@@ -1,34 +1,3 @@
-module Dekatron(//Temp module
-    //Each Step cause +1 or -1(if Reverse) or storing In value(if Set)
-    input wire Step,
-	input wire En,
-    input wire Reverse,//1 for reverse
-    input wire Rst_n,
-    input wire Set,
-    input wire [9:0] In,
-    output wire[9:0] Out,
-    output wire Ready
-);
-
-DekatronPulseSender dekatronPulseSender(.Clk(Step),
-                                        .En(En),
-                                        .Rst_n(Rst_n),
-                                        .Reverse(Reverse),
-                                        .PulseRight_n(PulseRight_n),
-                                        .PulseLeft_n(PulseLeft_n),
-                                        .Ready(Ready));
-
-DekatronBulb dek1(
-            .PulseRight_n(PulseRight_n),
-            .PulseLeft_n(PulseLeft_n),
-            .Rst_n(Rst_n),
-            .Set(Set),
-            .In(In),
-            .Out(Out)
-            );
-
-endmodule
-
 module DekatronPulseSender(
     //Each Step cause +1 or -1(if Reverse) or storing In value(if Set)
     input wire Clk,    
@@ -36,16 +5,13 @@ module DekatronPulseSender(
 	input wire En,
     input wire Reverse,//1 for reverse
     output wire PulseRight_n,
-    output wire PulseLeft_n,
-    output wire Ready
+    output wire PulseLeft_n
 );
 
 reg [1:0] Pulses;
 
-assign PulseRight_n = Pulses[0];
-assign PulseLeft_n = Pulses[1];
-
-assign Ready = Pulses[0] & Pulses[1];
+assign PulseRight_n = En ? Pulses[0] : 1'b1;
+assign PulseLeft_n = En ? Pulses[1] : 1'b1;
 
 parameter PULSE_FAIL = 2'b00;
 parameter PULSE_RIGHT = 2'b10;
@@ -83,15 +49,15 @@ end
 endmodule
 
 module DekatronBulb(
-    //For forward direction, use PulseRight->PulseLeft order
-    //and vise versa for reverse direction
-    input wire Clk,
+    /**/
+
     input wire PulseRight_n,
 	input wire PulseLeft_n,
     input wire Rst_n,
     input wire Set,
     input wire [9:0] In,
-    output wire[9:0] Out
+    output wire[9:0] Out,
+    output wire Ready
 );
 
 
@@ -127,6 +93,8 @@ assign Out[7] = Cathodes[21];
 assign Out[8] = Cathodes[24];
 assign Out[9] = Cathodes[27];
 
+assign Ready = CathodeGlow & PulseLeft_n & PulseRight_n;
+
 //Internal extended InLong signal is used for Writing operation
 wire [29:0] InLong = {{2'b00}, In[9], 2'b00, In[8], 
                     2'b00, In[7], 2'b00, In[6], 
@@ -137,7 +105,9 @@ wire [29:0] InLong = {{2'b00}, In[9], 2'b00, In[8],
 wire PulseLeft = ~PulseLeft_n;
 wire PulseRight = ~ PulseRight_n;
 
-always @(negedge Rst_n, posedge Clk)
+wire Pulse = PulseLeft | PulseRight;
+
+always @(negedge Rst_n, negedge Pulse, negedge PulseLeft_n, negedge PulseRight_n, posedge Set)
  begin
     if (~Rst_n) begin
         Cathodes <= 30'b000000000000000000000000000001;//Rst_n
@@ -154,7 +124,7 @@ always @(negedge Rst_n, posedge Clk)
                 GuideRightGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
         end
         else begin
-            Cathodes <= GuideRightGlow ? {Cathodes[0], Cathodes[29:1]}:
+            Cathodes <= Set ? InLong : GuideRightGlow ? {Cathodes[0], Cathodes[29:1]}:
             GuideLeftGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
         end
      end//Rst_n

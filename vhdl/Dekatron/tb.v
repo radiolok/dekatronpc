@@ -20,17 +20,16 @@ DekatronPulseSender dekatronPulseSender(.Clk(Clk),
                                         .Rst_n(Rst_n),
                                         .Reverse(Reverse),
                                         .PulseRight_n(PulseRight_n),
-                                        .PulseLeft_n(PulseLeft_n),
-                                        .Ready(Ready));
+                                        .PulseLeft_n(PulseLeft_n));
 
 DekatronBulb dek1(
-            .Clk(Clk),
             .PulseRight_n(PulseRight_n),
             .PulseLeft_n(PulseLeft_n),
             .Rst_n(Rst_n),
             .Set(Set),
             .In(In),
-            .Out(BinOut)
+            .Out(BinOut),
+            .Ready(Ready)
             );
 
 
@@ -54,7 +53,16 @@ begin
 	$display($time, " << Starting Simulation >> ");
     #20
     Reverse <= 1'b1;
-	#100;
+	#41
+    Reverse <= 1'b0;
+	#41
+    In <= 10'b0001000000;
+    Set <= 1'b1;
+    En <= 1'b0;
+    #2
+    Set <= 1'b0;
+    En <= 1'b1;
+    #20
 	$display($time, "<< Simulation Complete >>");
 	$stop;
 end
