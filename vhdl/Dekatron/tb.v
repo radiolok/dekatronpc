@@ -32,6 +32,15 @@ DekatronBulb dek1(
             .Ready(Ready)
             );
 
+wire CarryLow;
+wire CarryHigh;
+
+dekatronCarrySignal carry1(
+    .Rst_n(Rst_n),
+    .In(BinOut),
+    .CarryLow(CarryLow),
+    .CarryHigh(CarryHigh)
+);
 
 
 //convert binary to 8-4-2-1
