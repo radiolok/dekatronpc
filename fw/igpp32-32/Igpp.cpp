@@ -20,15 +20,17 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.*/
 
+#include <Igpp.h>
+#include "define.h"
 
-#include <msp430.h> 
-#include "Serial.h"
+//Double buffering mechanism
+volatile uint8_t frameBuffer[2][(DISPLAY_HEIGTH >> 3) * DISPLAY_WIDTH] = {{0x00}, {0x00}};
 
+volatile uint8_t currentFrame = 0;//or 1
 
-int main(void)
+uint8_t sendCathode(uint8_t num)
 {
-	WDTCTL = WDTPW | WDTHOLD;	// stop watchdog timer
-	
+    uint8_t status = 0;
 
-	return 0;
+    return status;
 }

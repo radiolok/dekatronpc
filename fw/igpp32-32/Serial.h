@@ -20,15 +20,11 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.*/
 
+#ifndef SERIAL_H_
+#define SERIAL_H_
 
-#include <msp430.h> 
-#include "Serial.h"
-
-
-int main(void)
+class Serial
 {
-	WDTCTL = WDTPW | WDTHOLD;	// stop watchdog timer
-	
+};
 
-	return 0;
-}
+#endif /* SERIAL_H_ */

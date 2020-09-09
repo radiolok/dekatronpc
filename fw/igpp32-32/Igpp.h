@@ -20,15 +20,11 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.*/
 
+#ifndef IGPP_H_
+#define IGPP_H_
 
-#include <msp430.h> 
-#include "Serial.h"
-
-
-int main(void)
+class Igpp
 {
-	WDTCTL = WDTPW | WDTHOLD;	// stop watchdog timer
-	
+};
 
-	return 0;
-}
+#endif /* IGPP_H_ */
