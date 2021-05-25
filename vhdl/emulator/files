@@ -1,0 +1,6 @@
+../Logic/mux.sv
+../Logic/RS_latch.sv
+./in12_logic.sv
+./Emulator.sv
+../Logic/counters.sv
+./Sequencer.sv
