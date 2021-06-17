@@ -66,56 +66,61 @@ assign cathodeData[3] = 1'b0;
 wire Clock_1ms;
 wire Clock_1us;
 
-Clock_divider #(.DIVISOR(28'd50000)) clock_divider_ms(
-	.clock_in(FPGA_CLK_50),
+
+Clock_divider #(.DIVISOR(28'd1000)) clock_divider_ms(
+    .Rst_n(Rst_n),
+	.clock_in(Clock_1us),
 	.clock_out(Clock_1ms)
 );
 
+assign Clock_1us = FPGA_CLK_50;
+
+
+/*
+
 Clock_divider #(.DIVISOR(28'd50)) clock_divider_us(
+    .Rst_n(Rst_n),
 	.clock_in(FPGA_CLK_50),
 	.clock_out(Clock_1us)
-);
+);*/
 
 DekatronPC dekatronPC(
     .ipCounter(ipCounter),
     .loopCounter(loopCounter),
     .apCounter(apCounter),
-    .dataCounter(dataCounter)
+    .dataCounter(dataCounter),
+    .Clk(Clock_1ms),
+    .Rst_n(Rst_n)
 );
 
+wire [4:0] anodeCount;
+
 //This mux  compress IP and LOOP data into 3-bit interface
-mux_3b_9w muxCathode1
-        (
-            .d0(loopCounter[2:0]),
-            .d1(loopCounter[5:3]),
-            .d2(loopCounter[8:6]),
-            .d3(ipCounter[2:0]),
-            .d4(ipCounter[5:3]),
-            .d5(ipCounter[8:6]),
-            .d6(ipCounter[11:9]),
-            .d7(ipCounter[14:12]),
-            .d8(ipCounter[17:15]),
+bn_mux_n_1_generate #(
+.DATA_WIDTH(8), 
+.SEL_WIDTH(5)
+)  muxCathode1
+        (  .data({
+            ipCounter,
+            loopCounter}),
             .sel(anodeCount),
             .y(cathodeData[2:0])
         );
     
 //This mux  compress AP and DATA info into 3-bit interface
-mux_3b_9w muxCathode2
-        (
-            .d0(dataCounter[2:0]),
-            .d1(dataCounter[5:3]),
-            .d2(dataCounter[8:6]),
-            .d3(4'b0000),
-            .d4(apCounter[2:0]),
-            .d5(apCounter[5:3]),
-            .d6(apCounter[8:6]),
-            .d7(apCounter[11:9]),
-            .d8(apCounter[14:12]),
+bn_mux_n_1_generate #(
+.DATA_WIDTH(8), 
+.SEL_WIDTH(5)
+)  muxCathode2
+        (  .data({
+            apCounter,
+            4'b0000,
+            dataCounter}),
             .sel(anodeCount),
             .y(cathodeData[6:4])
         );
 
-wire anodeSel;
+wire [9:0] anodeSel;
 
 wire anodesClkEn;
 
@@ -142,18 +147,28 @@ BdcToBin  bdcToBin(
 wire [7:0] ms6205_addr;
 wire [7:0] ms6205_data;
 
-mux_8b_5w muxOutput(
-    .d0(cathodeData),
-    .d1({4'b0000, anodeCount}),
-    .d2(anodeSel),
-    .d3(ms6205_addr),
-    .d4(ms6205_data),
+wire [2:0] selectOutput;
+
+bn_mux_n_1_generate #(
+.DATA_WIDTH(8), 
+.SEL_WIDTH(3)
+) muxOutput(
+    .data(
+        {8'b00000000, 
+        8'b00000000, 
+        ms6205_data,
+        ms6205_addr, 
+        anodeSel[7:0], 
+        {4'b0000, anodeCount}, 
+        cathodeData, 
+        8'b00000000}),
     .sel(selectOutput),
     .y(emulData)
 );
 
-
 Keyboard kb(
+    .Rst_n(Rst_n),
+    .Clk(Clock_1us),
     .kbCol(anodeSel),
     .kbRow(keyboard_data_in),
     .write(keyboard_write),
@@ -162,12 +177,13 @@ Keyboard kb(
 );
 
 Ms6205 ms6205(
+    .Rst_n(Rst_n),
+    .Clk(Clock_1us),
     .address(ms6205_addr),
     .data(ms6205_data),
     .write_addr(ms6205_write_addr),
     .write_data(ms6205_write_data),
     .ready(ms6205_ready)
-
 );
 
 Sequencer sequencer(
@@ -181,7 +197,8 @@ Sequencer sequencer(
 	.in12_clear(in12_clear),
 	.keyboard_write(keyboard_write),
 	.keyboard_clear(keyboard_clear),
-	.keyboard_read(keyboard_read)
+	.keyboard_read(keyboard_read),
+    .state(selectOutput)
 );
 
 

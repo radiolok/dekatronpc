@@ -8,39 +8,42 @@ parameter TOP = 4'b1001
 );
 
 always @(posedge Clk, negedge Rst_n) begin
-    Count <=  (!Rst_n) ? 0 :
-            (Count == TOP) ? 0:
+    Count <=  (!Rst_n) ? 4'b0 :
+            (Count == TOP) ? 4'b0:
             (Enable)? Count + 1 : Count;
 end
 
 endmodule
 
-module Keyboard(
-    input [7:0] kbCol,
-    input [6:0] kbRow,
-    input write,
-    input read,
-    input clear
-);
 
-endmodule
 
-module Ms6205(
-    output [7:0] address,
-    output [7:0] data,
-    input write_addr,
-    input write_data,
-    input ready
-);
 
-endmodule
 
 module DekatronPC(
     output reg  [17:0] ipCounter,
     output reg [8:0] loopCounter,
     output reg [14:0] apCounter,
-    output reg [8:0] dataCounter
+    output reg [8:0] dataCounter,
+    input wire Clk,
+    input wire Rst_n
 );
+
+always @(posedge Clk, negedge Rst_n) begin
+    if (~Rst_n) begin
+        ipCounter <= 0;
+        loopCounter <= 0;
+        apCounter <= 0;
+        dataCounter <= 0;
+    end
+    else begin
+        ipCounter <= ipCounter + 1;
+        loopCounter <= loopCounter + 1;
+        apCounter <= apCounter + 1;
+        dataCounter <= dataCounter + 1;
+    end
+
+end
+
 
 endmodule
 

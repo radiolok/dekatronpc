@@ -2,5 +2,8 @@
 ../Logic/RS_latch.sv
 ./in12_logic.sv
 ./Emulator.sv
+./Keyboard.sv
+./MS6205.sv
 ../Logic/counters.sv
+../Logic/registers.sv
 ./Sequencer.sv

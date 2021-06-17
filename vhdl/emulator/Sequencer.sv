@@ -9,19 +9,20 @@ module Sequencer(
     output reg in12_clear,
     output reg keyboard_write,
     output reg keyboard_read,
-    output reg keyboard_clear
+    output reg keyboard_clear,
+	output reg [2:0] state
 );
 
 parameter [2:0] 
 		NONE = 0, 
-		KEYBOARD_RD = 1,
-		CATHODES = 2, 
-		ANODES = 3, 
-		KEYBOARD_WR = 4, 
-		MC_ADDR = 5, 
-		MC_DATA = 6, 
+		CATHODES = 1,
+		ANODES = 2, 
+		KEYBOARD_WR = 3, 
+		MC_ADDR = 4, 
+		MC_DATA = 5, 
+		KEYBOARD_RD = 6, 
 		STOP = 7;
-reg [2:0] state, next_state;
+reg [2:0] next_state;
 
 //Now, we need to do next job if ack signal:
 /*
