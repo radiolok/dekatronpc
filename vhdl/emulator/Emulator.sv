@@ -1,12 +1,3 @@
-//Group Enable Definitions
-//This lists every pinout group
-//Users can enable any group by uncommenting the corresponding line below:
-//`define enable_ADC
-//`define enable_ARDUINO
-`define enable_GPIO0
-`define enable_GPIO1
-//`define enable_HPS
-
 module Emulator (
 	//////////// CLOCK //////////
 	input 		          		FPGA_CLK_50,
@@ -18,6 +9,7 @@ module Emulator (
 	input ms6205_ready,
 	output ms6205_write_addr,
 	output ms6205_write_data,
+    output ms6205_marker,
 
 	output in12_write_anode,
 	output in12_write_cathode,
@@ -25,16 +17,9 @@ module Emulator (
 
 	output keyboard_write,
 	output keyboard_read,
-	output keyboard_clear,
 
 	output [7:0] emulData,
 
-`ifdef enable_GPIO1	
-	//////////// GPIO 1 ////////////
-	/* 3.3-V LVTTL */
-	inout				[35:0]		GPIO_1,
-`endif
-	
 	//////////// KEY ////////////
 	/* 3.3-V LVTTL */
 	input				[1:0]			KEY,
@@ -63,9 +48,18 @@ wire [7:0] cathodeData;
 assign cathodeData[7] = 1'b0;
 assign cathodeData[3] = 1'b0;
 
+wire Clock_1s;
 wire Clock_1ms;
 wire Clock_1us;
 
+assign LED[0] = Clock_1s;
+
+
+Clock_divider #(.DIVISOR(28'd1000)) clock_divider_s(
+    .Rst_n(Rst_n),
+	.clock_in(Clock_1ms),
+	.clock_out(Clock_1s)
+);
 
 Clock_divider #(.DIVISOR(28'd1000)) clock_divider_ms(
     .Rst_n(Rst_n),
@@ -73,23 +67,22 @@ Clock_divider #(.DIVISOR(28'd1000)) clock_divider_ms(
 	.clock_out(Clock_1ms)
 );
 
-assign Clock_1us = FPGA_CLK_50;
-
-
-/*
-
-Clock_divider #(.DIVISOR(28'd50)) clock_divider_us(
-    .Rst_n(Rst_n),
-	.clock_in(FPGA_CLK_50),
-	.clock_out(Clock_1us)
-);*/
+`ifdef MODELSIM_MODE
+    assign Clock_1us = FPGA_CLK_50;
+`else
+    Clock_divider #(.DIVISOR(28'd50)) clock_divider_us(
+        .Rst_n(Rst_n),
+        .clock_in(FPGA_CLK_50),
+        .clock_out(Clock_1us)
+    );
+`endif
 
 DekatronPC dekatronPC(
     .ipCounter(ipCounter),
     .loopCounter(loopCounter),
     .apCounter(apCounter),
     .dataCounter(dataCounter),
-    .Clk(Clock_1ms),
+    .Clk(Clock_1s),
     .Rst_n(Rst_n)
 );
 
@@ -181,11 +174,12 @@ Keyboard kb(
 
 Ms6205 ms6205(
     .Rst_n(Rst_n),
-    .Clk(Clock_1us),
+    .Clk(Clock_1ms),
     .address(ms6205_addr),
     .data(ms6205_data),
     .write_addr(ms6205_write_addr),
     .write_data(ms6205_write_data),
+    .marker(ms6205_marker),
     .ready(ms6205_ready),
     .key_ms6205_iram(keyboard_keysCurrentState[KEYBOARD_IRAM_KEY]),
     .key_ms6205_dram(keyboard_keysCurrentState[KEYBOARD_DRAM_KEY]),

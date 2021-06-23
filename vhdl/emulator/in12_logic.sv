@@ -1,5 +1,5 @@
 module UpCounter #(
-parameter TOP = 4'b1001
+    parameter TOP = 4'b1001
 )(
     input wire Clk,
     input wire Rst_n,
@@ -15,10 +15,6 @@ end
 
 endmodule
 
-
-
-
-
 module DekatronPC(
     output reg  [17:0] ipCounter,
     output reg [8:0] loopCounter,
@@ -30,10 +26,11 @@ module DekatronPC(
     input wire key_dpc_soft_rst,
     input wire key_dpc_halt,
     input wire key_dpc_step,
-    input wire key_dpc_run
+    input wire key_dpc_run,
+    output reg [2:0] DPC_currentState
 );
 
-output reg [2:0] DPC_currentState;
+
 reg [2:0] DPC_nextState;
 parameter [2:0]
     DPC_HARD_RST = 3'b000,
@@ -42,9 +39,6 @@ parameter [2:0]
     DPC_STEP = 3'b011,
     DPC_RUN = 3'b100;
 
-
-always @(*)
-    case ()
 
 always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
@@ -73,14 +67,20 @@ module Impulse(
 );
 
 reg D_state;
+reg D_state2;
 
-assign Impulse = Enable & ~D_state;
+assign Impulse = Enable & ~D_state2;
 
 always @(posedge Clock, negedge Rst_n) begin
-    if (~Rst_n)
+    if (~Rst_n) begin
         D_state <= 1'b0;
+        D_state2 <= 1'b0;
+    end
     else
+    begin
         D_state <= Enable;
+        D_state2 <= D_state;
+    end
 end
 
 endmodule

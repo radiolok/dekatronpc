@@ -1,3 +1,5 @@
+`define MODELSIM_MODE;
+
 module tb;
 
 

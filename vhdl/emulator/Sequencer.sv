@@ -47,16 +47,23 @@ assign in12_clear = Rst_n;
 assign keyboard_clear = Rst_n;
 
 always @(posedge Clock_1us, negedge Rst_n) begin
-	if (!Rst_n)
+	if (!Rst_n) begin
 		state <= NONE;
+	 	in12_write_cathode <= 1'b0;
+		in12_write_anode <= 1'b0;
+		keyboard_write <= 1'b0;
+		keyboard_read <= 1'b0;
+		ms6205_write_addr <= 1'b0;
+		ms6205_write_data <= 1'b0;
+	end
 	else begin
 		state <= next_state;
 		in12_write_cathode <= (state==CATHODES) & Enable;
         in12_write_anode <= (state==ANODES) & Enable;
         keyboard_write <= (state==KEYBOARD_WR) & Enable;
         keyboard_read <= (state==KEYBOARD_RD) & Enable;
-        ms6205_write_addr <= (state==MC_ADDR) & Enable;
-        ms6205_write_data <= (state==MC_DATA) & Enable;
+        ms6205_write_addr <= ~((state==MC_ADDR) & Enable);
+        ms6205_write_data <= ~((state==MC_DATA) & Enable);
 	end
 end
 
