@@ -32,11 +32,11 @@ module CounterIp(Clk, Reverse, Rst_n, Ready, Out);
 	wire En10000 = En1000 &((Out1000[0] & Reverse ) | (Out1000[7] & ~Reverse));
 	wire En100000 =  En10000 & ((Out10000[0] & Reverse ) | (Out10000[7] & ~Reverse));
 
-	Octotron  dataDek1(.Step(Clk), .En(En1), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In(10'b0), .Out(Out1));
-	Octotron  dataDek10(.Step(Clk), .En(En10), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In(10'b0), .Out(Out10));
-	Octotron  dataDek100(.Step(Clk), .En(En100), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In(10'b0), .Out(Out100));
-	Octotron  dataDek1000(.Step(Clk), .En(En1000), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In(10'b0), .Out(Out1000));
-	Octotron  dataDek10000(.Step(Clk), .En(En10000), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In(10'b0), .Out(Out10000));
-	Octotron  dataDek100000(.Step(Clk), .En(En100000), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In(10'b0), .Out(Out100000));
+	Dekatron  dataDek1(.Step(Clk), .En(En1), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In(10'b0), .Out(Out1));
+	Dekatron  dataDek10(.Step(Clk), .En(En10), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In(10'b0), .Out(Out10));
+	Dekatron  dataDek100(.Step(Clk), .En(En100), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In(10'b0), .Out(Out100));
+	Dekatron  dataDek1000(.Step(Clk), .En(En1000), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In(10'b0), .Out(Out1000));
+	Dekatron  dataDek10000(.Step(Clk), .En(En10000), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In(10'b0), .Out(Out10000));
+	Dekatron  dataDek100000(.Step(Clk), .En(En100000), .Reverse(Reverse), .Rst_n(Rst_n), .Set(1'b0), .In(10'b0), .Out(Out100000));
 
 endmodule

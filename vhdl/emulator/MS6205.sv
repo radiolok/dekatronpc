@@ -5,7 +5,13 @@ module Ms6205(
     output wire [7:0] data,
     input wire write_addr,
     input wire write_data,
-    input wire ready
+    input wire ready,
+    input wire key_ms6205_iram,
+    input wire key_ms6205_dram,
+    input wire key_ms6205_cin,
+    input wire key_ms6205_cout,
+    output reg [1:0] ms6205_currentView
+
 );
 
 parameter COLUMNS = 16;
@@ -65,5 +71,36 @@ RegisterFileSharedOut #(.WIDTH(8),.HEIGHT(ROWS)) column12 (.Rst_n(Rst_n),.En(c12
 RegisterFileSharedOut #(.WIDTH(8),.HEIGHT(ROWS)) column13 (.Rst_n(Rst_n),.En(c13),.Out(OutShared[(14*WIDTH)-1: (13*WIDTH)]),.Cs(CsRows));
 RegisterFileSharedOut #(.WIDTH(8),.HEIGHT(ROWS)) column14 (.Rst_n(Rst_n),.En(c14),.Out(OutShared[(15*WIDTH)-1: (14*WIDTH)]),.Cs(CsRows));
 RegisterFileSharedOut #(.WIDTH(8),.HEIGHT(ROWS)) column15 (.Rst_n(Rst_n),.En(c15),.Out(OutShared[(16*WIDTH)-1: (15*WIDTH)]),.Cs(CsRows));
+
+
+reg [1:0] ms6205_nextView;
+
+parameter [1:0] 
+    MS6205_IRAM = 2'b00,
+    MS6205_DRAM = 2'b01,
+    MS6205_CIN = 2'b10,
+    MS6205_COUT = 2'b11;
+
+always @(*) begin
+        if (key_ms6205_iram)
+            ms6205_nextView = MS6205_IRAM;
+        else if (key_ms6205_dram)
+            ms6205_nextView = MS6205_DRAM;
+        else if (key_ms6205_cin)
+            ms6205_nextView = MS6205_CIN;
+        else if (key_ms6205_cout)
+            ms6205_nextView = MS6205_COUT;
+        else
+            ms6205_nextView = ms6205_currentView;
+end
+
+always @(posedge Clk, negedge Rst_n) begin
+    if (!Rst_n)
+        ms6205_currentView <= MS6205_IRAM;
+    else begin
+        ms6205_currentView <= ms6205_nextView;
+    end
+end
+
 
 endmodule

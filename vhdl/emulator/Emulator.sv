@@ -166,6 +166,8 @@ bn_mux_n_1_generate #(
     .y(emulData)
 );
 
+wire [39:0] keyboard_keysCurrentState;
+
 Keyboard kb(
     .Rst_n(Rst_n),
     .Clk(Clock_1us),
@@ -173,7 +175,8 @@ Keyboard kb(
     .kbRow(keyboard_data_in),
     .write(keyboard_write),
 	.read(keyboard_read),
-    .clear(keyboard_clear)
+    .clear(keyboard_clear),
+    .keysCurrentState(keyboard_keysCurrentState)
 );
 
 Ms6205 ms6205(
@@ -183,7 +186,11 @@ Ms6205 ms6205(
     .data(ms6205_data),
     .write_addr(ms6205_write_addr),
     .write_data(ms6205_write_data),
-    .ready(ms6205_ready)
+    .ready(ms6205_ready),
+    .key_ms6205_iram(keyboard_keysCurrentState[KEYBOARD_IRAM_KEY]),
+    .key_ms6205_dram(keyboard_keysCurrentState[KEYBOARD_DRAM_KEY]),
+    .key_ms6205_cin(keyboard_keysCurrentState[KEYBOARD_CIN_KEY]),
+    .key_ms6205_cout(keyboard_keysCurrentState[KEYBOARD_COUT_KEY])
 );
 
 Sequencer sequencer(
@@ -199,6 +206,11 @@ Sequencer sequencer(
 	.keyboard_clear(keyboard_clear),
 	.keyboard_read(keyboard_read),
     .state(selectOutput)
+);
+
+yam430_core Yam430(
+    .Clk(Clock_1us),
+	.Rst_n(Rst_n)
 );
 
 

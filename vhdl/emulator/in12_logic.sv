@@ -25,8 +25,26 @@ module DekatronPC(
     output reg [14:0] apCounter,
     output reg [8:0] dataCounter,
     input wire Clk,
-    input wire Rst_n
+    input wire Rst_n,
+    input wire key_dpc_hard_rst,
+    input wire key_dpc_soft_rst,
+    input wire key_dpc_halt,
+    input wire key_dpc_step,
+    input wire key_dpc_run
 );
+
+output reg [2:0] DPC_currentState;
+reg [2:0] DPC_nextState;
+parameter [2:0]
+    DPC_HARD_RST = 3'b000,
+    DPC_SOFT_RST = 3'b001,
+    DPC_HALT = 3'b010,
+    DPC_STEP = 3'b011,
+    DPC_RUN = 3'b100;
+
+
+always @(*)
+    case ()
 
 always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
