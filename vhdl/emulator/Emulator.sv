@@ -30,7 +30,12 @@ module Emulator (
 	
 	//////////// SW ////////////
 	/* 3.3-V LVTTL */
-	input				[3:0]			SW
+	input				[3:0]			SW,
+
+    output wire Clock_1s,
+    output wire Clock_1ms,
+    output wire Clock_1us,
+    output wire anodesClkTick
 );
 
 
@@ -48,24 +53,8 @@ wire [7:0] cathodeData;
 assign cathodeData[7] = 1'b0;
 assign cathodeData[3] = 1'b0;
 
-wire Clock_1s;
-wire Clock_1ms;
-wire Clock_1us;
-
 assign LED[0] = Clock_1s;
 
-
-Clock_divider #(.DIVISOR(28'd1000)) clock_divider_s(
-    .Rst_n(Rst_n),
-	.clock_in(Clock_1ms),
-	.clock_out(Clock_1s)
-);
-
-Clock_divider #(.DIVISOR(28'd1000)) clock_divider_ms(
-    .Rst_n(Rst_n),
-	.clock_in(Clock_1us),
-	.clock_out(Clock_1ms)
-);
 
 `ifdef MODELSIM_MODE
     assign Clock_1us = FPGA_CLK_50;
@@ -77,16 +66,52 @@ Clock_divider #(.DIVISOR(28'd1000)) clock_divider_ms(
     );
 `endif
 
+Clock_divider #(.DIVISOR(28'd1000)) clock_divider_ms(
+    .Rst_n(Rst_n),
+	.clock_in(Clock_1us),
+	.clock_out(Clock_1ms)
+);
+
+wire Clock_500ms;
+Clock_divider #(.DIVISOR(28'd500)) clock_divider_500ms(
+    .Rst_n(Rst_n),
+	.clock_in(Clock_1us),
+	.clock_out(Clock_500ms)
+);
+
+
+Clock_divider #(.DIVISOR(28'd1000)) clock_divider_s(
+    .Rst_n(Rst_n),
+	.clock_in(Clock_1ms),
+	.clock_out(Clock_1s)
+);
+
+
 DekatronPC dekatronPC(
     .ipCounter(ipCounter),
     .loopCounter(loopCounter),
     .apCounter(apCounter),
     .dataCounter(dataCounter),
-    .Clk(Clock_1s),
+    .Clk(Clock_500ms),
     .Rst_n(Rst_n)
 );
 
 wire [4:0] anodeCount;
+
+wire [2:0]cathodeLow;
+wire [2:0] cathodeHigh;
+
+in12_cathodeToPinConverter cathodeLowConvert
+(
+    .in(cathodeLow),
+    .out(cathodeData[6:4])
+);
+
+in12_cathodeToPinConverter cathodeHighConvert
+(
+    .in(cathodeHigh),
+    .out(cathodeData[2:0])
+);
 
 //This mux  compress IP and LOOP data into 3-bit interface
 bn_mux_n_1_generate #(
@@ -97,7 +122,7 @@ bn_mux_n_1_generate #(
             ipCounter,
             loopCounter}),
             .sel(anodeCount),
-            .y(cathodeData[2:0])
+            .y(cathodeLow)
         );
     
 //This mux  compress AP and DATA info into 3-bit interface
@@ -110,25 +135,22 @@ bn_mux_n_1_generate #(
             4'b0000,
             dataCounter}),
             .sel(anodeCount),
-            .y(cathodeData[6:4])
+            .y(cathodeHigh)
         );
 
 wire [9:0] anodeSel;
-
-wire anodesClkEn;
 
 Impulse impulse(
 	.Clock(Clock_1us),
 	.Rst_n(Rst_n),
 	.Enable(Clock_1ms),
-	.Impulse(anodesClkEn)
+	.Impulse(anodesClkTick)
 );
 
 //We do anodes inc only when we need it
 UpCounter #(.TOP(4'b1001)) anodesCounter(
-            .Clk(Clock_1us),
+            .Tick(anodesClkTick),
             .Rst_n(Rst_n),
-			.Enable(anodesClkEn),
             .Count(anodeCount)
 );
 
@@ -201,11 +223,11 @@ Sequencer sequencer(
 	.keyboard_read(keyboard_read),
     .state(selectOutput)
 );
-
+/*
 yam430_core Yam430(
     .Clk(Clock_1us),
 	.Rst_n(Rst_n)
-);
+);*/
 
 
 endmodule
