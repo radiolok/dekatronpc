@@ -2,7 +2,7 @@ module Ms6205(
     input wire Rst_n,
     input wire Clk,
     output reg [7:0] address,
-    output reg [7:0] data,
+    output wire [7:0] data,
     input wire write_addr,
     input wire write_data,
     output wire marker,
@@ -19,6 +19,9 @@ parameter COLUMNS = 16;
 parameter ROWS = 10;
 parameter WIDTH = 8;
 
+reg [7:0] data_n;
+
+assign data[6:0] = {1'b0, ~data_n[6:0]};
 
  assign marker = 1'b0;
 
@@ -55,11 +58,11 @@ end
 always @(posedge Clk, negedge Rst_n) begin
     if (!Rst_n) begin
         address <= 8'h00;
-        data <= 8'h20;
+        data_n <= 8'h20;
     end
     else begin
         address <= (address == 8'h20)? 0 : address  + 1;
-        data <= address + 8'h20;
+        data_n <= (address[0])? 8'h41 : 8'h42;
     end
 
 

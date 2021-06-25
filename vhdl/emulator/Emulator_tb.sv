@@ -27,7 +27,6 @@ Emulator Emulator(
     .in12_write_cathode(in12_write_cathode),
     .in12_clear(in12_clear),
     .keyboard_write(keyboard_write),
-    .keyboard_read(keyboard_read),
     .keyboard_clear(keyboard_clear),
     .emulData(emulData),
     .KEY(KEYS)

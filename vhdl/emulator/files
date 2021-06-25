@@ -10,3 +10,4 @@
 ../YAM430/yam430_core.sv
 ../YAM430/yam430_alu.sv
 ../YAM430/yam430_reg_file.sv
+./Emulator_tb.sv

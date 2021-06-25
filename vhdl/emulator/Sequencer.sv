@@ -2,8 +2,8 @@ module Sequencer(
     input Clock_1us,
     input Enable,
     input Rst_n,
-    output reg ms6205_write_addr,
-    output reg ms6205_write_data,
+    output wire ms6205_write_addr_n,
+    output wire ms6205_write_data_n,
     output reg in12_write_anode,
     output reg in12_write_cathode,
     output reg in12_clear,
@@ -23,6 +23,12 @@ parameter [2:0]
 		KEYBOARD_RD = 6, 
 		STOP = 7;
 reg [2:0] next_state;
+
+reg ms6205_write_addr;
+reg ms6205_write_data;
+
+assign ms6205_write_data_n = ~ms6205_write_data;
+assign ms6205_write_addr_n = ~ms6205_write_addr;
 
 //Now, we need to do next job if ack signal:
 /*
@@ -62,8 +68,8 @@ always @(posedge Clock_1us, negedge Rst_n) begin
         in12_write_anode <= (state==ANODES) & Enable;
         keyboard_write <= (state==KEYBOARD_WR) & Enable;
         keyboard_read <= (state==KEYBOARD_RD) & Enable;
-        ms6205_write_addr <= ~((state==MC_ADDR) & Enable);
-        ms6205_write_data <= ~((state==MC_DATA) & Enable);
+        ms6205_write_addr <= ((state==MC_ADDR) & Enable);
+        ms6205_write_data <= ((state==MC_DATA) & Enable);
 	end
 end
 

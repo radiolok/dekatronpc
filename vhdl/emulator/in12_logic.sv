@@ -16,7 +16,7 @@ endmodule
 
 module in12_cathodeToPinConverter(
     input wire [3:0] in,
-    output wire[3:0] out
+    output reg[3:0] out
 );
 
 always @(*)
@@ -63,16 +63,16 @@ parameter [2:0]
 
 always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
-        ipCounter <= 0;
-        loopCounter <= 0;
-        apCounter <= 0;
-        dataCounter <= 0;
+        ipCounter <= 0654321;
+        loopCounter <= 0321;
+        apCounter <= 054321;
+        dataCounter <= 0321;
     end
     else begin
-        ipCounter <= ipCounter + 1;
-        loopCounter <= loopCounter + 1;
-        apCounter <= apCounter + 1;
-        dataCounter <= dataCounter + 1;
+        ipCounter <= ipCounter + 0111;
+        loopCounter <= loopCounter + 0111;
+        apCounter <= apCounter + 0111;
+        dataCounter <= dataCounter + 0111;
     end
 
 end

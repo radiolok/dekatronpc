@@ -7,8 +7,8 @@ module Emulator (
 	input [6:0] keyboard_data_in,
 
 	input ms6205_ready,
-	output ms6205_write_addr,
-	output ms6205_write_data,
+	output ms6205_write_addr_n,
+	output ms6205_write_data_n,
     output ms6205_marker,
 
 	output in12_write_anode,
@@ -16,7 +16,7 @@ module Emulator (
 	output in12_clear,
 
 	output keyboard_write,
-	output keyboard_read,
+	output keyboard_clear,
 
 	output [7:0] emulData,
 
@@ -57,30 +57,27 @@ assign LED[0] = Clock_1s;
 
 
 `ifdef MODELSIM_MODE
-    assign Clock_1us = FPGA_CLK_50;
+    parameter DIVIDE_TO_1US = 28'd2;
+    parameter DIVIDE_TO_1MS = 28'd40;
+    parameter DIVIDE_TO_1S = 28'd20;
 `else
-    Clock_divider #(.DIVISOR(28'd50)) clock_divider_us(
-        .Rst_n(Rst_n),
-        .clock_in(FPGA_CLK_50),
-        .clock_out(Clock_1us)
-    );
+    parameter DIVIDE_TO_1US = 28'd50;
+    parameter DIVIDE_TO_1MS = 28'd1000;
+    parameter DIVIDE_TO_1S = 28'd1000;
 `endif
+Clock_divider #(.DIVISOR({DIVIDE_TO_1US})) clock_divider_us(
+    .Rst_n(Rst_n),
+    .clock_in(FPGA_CLK_50),
+    .clock_out(Clock_1us)
+);
 
-Clock_divider #(.DIVISOR(28'd1000)) clock_divider_ms(
+Clock_divider #(.DIVISOR({DIVIDE_TO_1MS})) clock_divider_ms(
     .Rst_n(Rst_n),
 	.clock_in(Clock_1us),
 	.clock_out(Clock_1ms)
 );
 
-wire Clock_500ms;
-Clock_divider #(.DIVISOR(28'd500)) clock_divider_500ms(
-    .Rst_n(Rst_n),
-	.clock_in(Clock_1us),
-	.clock_out(Clock_500ms)
-);
-
-
-Clock_divider #(.DIVISOR(28'd1000)) clock_divider_s(
+Clock_divider #(.DIVISOR({DIVIDE_TO_1S})) clock_divider_s(
     .Rst_n(Rst_n),
 	.clock_in(Clock_1ms),
 	.clock_out(Clock_1s)
@@ -92,7 +89,7 @@ DekatronPC dekatronPC(
     .loopCounter(loopCounter),
     .apCounter(apCounter),
     .dataCounter(dataCounter),
-    .Clk(Clock_500ms),
+    .Clk(Clock_1s),
     .Rst_n(Rst_n)
 );
 
@@ -199,8 +196,8 @@ Ms6205 ms6205(
     .Clk(Clock_1ms),
     .address(ms6205_addr),
     .data(ms6205_data),
-    .write_addr(ms6205_write_addr),
-    .write_data(ms6205_write_data),
+    .write_addr(ms6205_write_addr_n),
+    .write_data(ms6205_write_data_n),
     .marker(ms6205_marker),
     .ready(ms6205_ready),
     .key_ms6205_iram(keyboard_keysCurrentState[KEYBOARD_IRAM_KEY]),
@@ -213,8 +210,8 @@ Sequencer sequencer(
 	.Clock_1us(Clock_1us),
 	.Enable(Clock_1ms),
 	.Rst_n(Rst_n),
-	.ms6205_write_addr(ms6205_write_addr),
-	.ms6205_write_data(ms6205_write_data),
+	.ms6205_write_addr_n(ms6205_write_addr_n),
+	.ms6205_write_data_n(ms6205_write_data_n),
 	.in12_write_anode(in12_write_anode),
 	.in12_write_cathode(in12_write_cathode),
 	.in12_clear(in12_clear),
