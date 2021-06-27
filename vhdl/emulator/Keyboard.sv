@@ -1,9 +1,3 @@
-`define KEYBOARD_IRAM_KEY 0
-`define KEYBOARD_DRAM_KEY 1
-`define KEYBOARD_CIN_KEY 2
-`define KEYBOARD_COUT_KEY 3
-
-
 module Keyboard(
     input wire Rst_n,
     input wire Clk,

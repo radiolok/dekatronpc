@@ -4,8 +4,8 @@ module tb;
 
 
 reg Clk;
-wire ms6205_write_addr;
-wire ms6205_write_data;
+wire ms6205_write_addr_n;
+wire ms6205_write_data_n;
 wire in12_write_anode;
 wire in12_write_cathode;
 wire in12_clear;
@@ -19,10 +19,14 @@ reg Rst_n;
 
 assign KEYS = {1'b0, Rst_n};
 
-Emulator Emulator(
+Emulator #(
+    .DIVIDE_TO_1US(28'd2),
+    .DIVIDE_TO_1MS(28'd40),
+    .DIVIDE_TO_1S(28'd20)
+    )Emulator(
     .FPGA_CLK_50(Clk),
-    .ms6205_write_addr(ms6205_write_addr),
-    .ms6205_write_data(ms6205_write_data), 
+    .ms6205_write_addr_n(ms6205_write_addr_n),
+    .ms6205_write_data_n(ms6205_write_data_n), 
     .in12_write_anode(in12_write_anode),
     .in12_write_cathode(in12_write_cathode),
     .in12_clear(in12_clear),

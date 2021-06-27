@@ -27,8 +27,25 @@ reg [2:0] next_state;
 reg ms6205_write_addr;
 reg ms6205_write_data;
 
-assign ms6205_write_data_n = ~ms6205_write_data;
-assign ms6205_write_addr_n = ~ms6205_write_addr;
+wire ms6205_write_addr_imp;
+wire ms6205_write_data_imp;
+
+assign ms6205_write_data_n = ~ms6205_write_data_imp;
+assign ms6205_write_addr_n = ~ms6205_write_addr_imp;
+
+Impulse impulse_addr(
+	.Clock(Clock_1us),
+	.Rst_n(Rst_n),
+	.Enable(ms6205_write_addr),
+	.Impulse(ms6205_write_addr_imp)
+);
+
+Impulse impulse_data(
+	.Clock(Clock_1us),
+	.Rst_n(Rst_n),
+	.Enable(ms6205_write_data),
+	.Impulse(ms6205_write_data_imp)
+);
 
 //Now, we need to do next job if ack signal:
 /*
@@ -55,30 +72,16 @@ assign keyboard_clear = Rst_n;
 always @(posedge Clock_1us, negedge Rst_n) begin
 	if (!Rst_n) begin
 		state <= NONE;
-	 	in12_write_cathode <= 1'b0;
-		in12_write_anode <= 1'b0;
-		keyboard_write <= 1'b0;
-		keyboard_read <= 1'b0;
-		ms6205_write_addr <= 1'b0;
-		ms6205_write_data <= 1'b0;
 	end
 	else begin
 		state <= next_state;
-		in12_write_cathode <= (state==CATHODES) & Enable;
-        in12_write_anode <= (state==ANODES) & Enable;
-        keyboard_write <= (state==KEYBOARD_WR) & Enable;
-        keyboard_read <= (state==KEYBOARD_RD) & Enable;
-        ms6205_write_addr <= ((state==MC_ADDR) & Enable);
-        ms6205_write_data <= ((state==MC_DATA) & Enable);
 	end
 end
 
 always @* begin
 	case (state)
 	NONE:
-		next_state = (Enable)? KEYBOARD_RD : NONE;
-	KEYBOARD_RD:
-		next_state = (keyboard_read) ? CATHODES : KEYBOARD_RD;
+		next_state = (Enable)? CATHODES : NONE;
 	CATHODES:
 		next_state = (in12_write_cathode) ? ANODES : CATHODES;
 	ANODES:
@@ -90,11 +93,31 @@ always @* begin
 	MC_DATA:
 		next_state =  (ms6205_write_data) ? STOP : MC_DATA;
 	STOP:
-		next_state = (Enable)? STOP : NONE;
+		next_state = (Enable)? STOP : KEYBOARD_RD;
+	KEYBOARD_RD:
+		next_state = (keyboard_read) ? NONE : KEYBOARD_RD;
 	default:
 		next_state = NONE;
 	endcase
 end
 
+always @(posedge Clock_1us, negedge Rst_n) begin
+	if (!Rst_n) begin
+	 	in12_write_cathode <= 1'b0;
+		in12_write_anode <= 1'b0;
+		keyboard_write <= 1'b0;
+		keyboard_read <= 1'b0;
+		ms6205_write_addr <= 1'b0;
+		ms6205_write_data <= 1'b0;
+	end
+	else begin
+		in12_write_cathode <= (state==CATHODES) & Enable;
+        in12_write_anode <= ((state==ANODES) & Enable) | ((state == KEYBOARD_RD) & ~Enable);
+        keyboard_write <= (state==KEYBOARD_WR) & Enable;
+        keyboard_read <= (state==KEYBOARD_RD) & ~Enable;
+        ms6205_write_addr <= ((state==MC_ADDR) & Enable);
+        ms6205_write_data <= ((state==MC_DATA) & Enable);
+	end
+end
 
 endmodule

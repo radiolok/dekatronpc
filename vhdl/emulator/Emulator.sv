@@ -1,4 +1,9 @@
-module Emulator (
+module Emulator #(
+    parameter DIVIDE_TO_1US = 28'd50,
+    parameter DIVIDE_TO_1MS = 28'd1000,
+    parameter DIVIDE_TO_4MS = 28'd4000,
+    parameter DIVIDE_TO_1S = 28'd1000
+)(
 	//////////// CLOCK //////////
 	input 		          		FPGA_CLK_50,
 	input 		          		FPGA_CLK2_50,
@@ -50,34 +55,38 @@ assign Rst_n = KEY[0];
 
 wire [7:0] cathodeData;
 
-assign cathodeData[7] = 1'b0;
-assign cathodeData[3] = 1'b0;
-
 assign LED[0] = Clock_1s;
 
+wire Clock_4ms;
 
-`ifdef MODELSIM_MODE
-    parameter DIVIDE_TO_1US = 28'd2;
-    parameter DIVIDE_TO_1MS = 28'd40;
-    parameter DIVIDE_TO_1S = 28'd20;
-`else
-    parameter DIVIDE_TO_1US = 28'd50;
-    parameter DIVIDE_TO_1MS = 28'd1000;
-    parameter DIVIDE_TO_1S = 28'd1000;
-`endif
 Clock_divider #(.DIVISOR({DIVIDE_TO_1US})) clock_divider_us(
     .Rst_n(Rst_n),
     .clock_in(FPGA_CLK_50),
     .clock_out(Clock_1us)
 );
 
-Clock_divider #(.DIVISOR({DIVIDE_TO_1MS})) clock_divider_ms(
+Clock_divider #(
+    .DIVISOR({DIVIDE_TO_1MS}),
+    .DUTY_CYCLE(80)
+) clock_divider_ms(
     .Rst_n(Rst_n),
 	.clock_in(Clock_1us),
 	.clock_out(Clock_1ms)
 );
 
-Clock_divider #(.DIVISOR({DIVIDE_TO_1S})) clock_divider_s(
+
+Clock_divider #(
+    .DIVISOR({DIVIDE_TO_4MS}),
+    .DUTY_CYCLE(80)
+) clock_divider_4ms(
+    .Rst_n(Rst_n),
+	.clock_in(Clock_1us),
+	.clock_out(Clock_4ms)
+);
+
+Clock_divider #(
+    .DIVISOR({DIVIDE_TO_1S})
+) clock_divider_s(
     .Rst_n(Rst_n),
 	.clock_in(Clock_1ms),
 	.clock_out(Clock_1s)
@@ -93,46 +102,48 @@ DekatronPC dekatronPC(
     .Rst_n(Rst_n)
 );
 
-wire [4:0] anodeCount;
+wire [3:0] anodeCount;
 
 wire [2:0]cathodeLow;
 wire [2:0] cathodeHigh;
 
 in12_cathodeToPinConverter cathodeLowConvert
 (
-    .in(cathodeLow),
-    .out(cathodeData[6:4])
+    .in({1'b0, cathodeLow}),
+    .out(cathodeData[7:4])
 );
 
 in12_cathodeToPinConverter cathodeHighConvert
 (
-    .in(cathodeHigh),
-    .out(cathodeData[2:0])
+    .in({1'b0,cathodeHigh}),
+    .out(cathodeData[3:0])
 );
 
 //This mux  compress IP and LOOP data into 3-bit interface
 bn_mux_n_1_generate #(
-.DATA_WIDTH(8), 
-.SEL_WIDTH(5)
+.DATA_WIDTH(3), 
+.SEL_WIDTH(4)
 )  muxCathode1
         (  .data({
+            22'b0,
             ipCounter,
             loopCounter}),
             .sel(anodeCount),
-            .y(cathodeLow)
+            .y(cathodeHigh)
         );
     
 //This mux  compress AP and DATA info into 3-bit interface
 bn_mux_n_1_generate #(
-.DATA_WIDTH(8), 
-.SEL_WIDTH(5)
+.DATA_WIDTH(3), 
+.SEL_WIDTH(4)
 )  muxCathode2
         (  .data({
+            22'b0,
             apCounter,
-            4'b0000,
+            3'b000,
             dataCounter}),
             .sel(anodeCount),
-            .y(cathodeHigh)
+            .y(cathodeLow)
         );
 
 wire [9:0] anodeSel;
@@ -140,12 +151,12 @@ wire [9:0] anodeSel;
 Impulse impulse(
 	.Clock(Clock_1us),
 	.Rst_n(Rst_n),
-	.Enable(Clock_1ms),
+	.Enable(Clock_4ms),
 	.Impulse(anodesClkTick)
 );
 
 //We do anodes inc only when we need it
-UpCounter #(.TOP(4'b1001)) anodesCounter(
+UpCounter #(.TOP(4'b1000)) anodesCounter(
             .Tick(anodesClkTick),
             .Rst_n(Rst_n),
             .Count(anodeCount)
@@ -166,14 +177,14 @@ bn_mux_n_1_generate #(
 .SEL_WIDTH(3)
 ) muxOutput(
     .data(
-        {8'b00000000, 
-        8'b00000000, 
-        ms6205_data,
-        ms6205_addr, 
-        anodeSel[7:0], 
-        {4'b0000, anodeCount}, 
-        cathodeData, 
-        8'b00000000}),
+        {8'b00000000, //STOP
+        8'b00001001,  //KEYBOARD_RD + IN TURN OF ANODES
+        ms6205_data,  //MC_DATA
+        ms6205_addr, //MC_ADDR
+        anodeSel[7:0], //KEYBOARD_WR
+        {4'b0000, anodeCount}, //ANODES
+        cathodeData, //CATHODESD
+        8'b00000000}),//NONE
     .sel(selectOutput),
     .y(emulData)
 );
@@ -200,10 +211,7 @@ Ms6205 ms6205(
     .write_data(ms6205_write_data_n),
     .marker(ms6205_marker),
     .ready(ms6205_ready),
-    .key_ms6205_iram(keyboard_keysCurrentState[KEYBOARD_IRAM_KEY]),
-    .key_ms6205_dram(keyboard_keysCurrentState[KEYBOARD_DRAM_KEY]),
-    .key_ms6205_cin(keyboard_keysCurrentState[KEYBOARD_CIN_KEY]),
-    .key_ms6205_cout(keyboard_keysCurrentState[KEYBOARD_COUT_KEY])
+    .keysCurrentState(keyboard_keysCurrentState)
 );
 
 Sequencer sequencer(

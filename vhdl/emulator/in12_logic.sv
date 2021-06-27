@@ -1,14 +1,15 @@
 module UpCounter #(
-    parameter TOP = 4'b1001
+    parameter TOP = 4'b1001,
+    parameter WIDTH=4
 )(
     input wire Tick,
     input wire Rst_n,
-    output reg [4:0] Count
+    output reg [WIDTH-1:0] Count
 );
 
 always @(posedge Tick, negedge Rst_n) begin
-    Count <=  (!Rst_n) ? 4'b0 :
-            (Count == TOP) ? 4'b0:
+    Count <=  (!Rst_n) ? {WIDTH{1'b0}} :
+            (Count == TOP) ? {WIDTH{1'b0}}:
             Count + 1;
 end
 
@@ -43,11 +44,7 @@ module DekatronPC(
     output reg [8:0] dataCounter,
     input wire Clk,
     input wire Rst_n,
-    input wire key_dpc_hard_rst,
-    input wire key_dpc_soft_rst,
-    input wire key_dpc_halt,
-    input wire key_dpc_step,
-    input wire key_dpc_run,
+    input wire [39:0] keysCurrentState,
     output reg [2:0] DPC_currentState
 );
 
@@ -63,16 +60,16 @@ parameter [2:0]
 
 always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
-        ipCounter <= 0654321;
-        loopCounter <= 0321;
-        apCounter <= 054321;
-        dataCounter <= 0321;
+        ipCounter <= 'o111111;
+        loopCounter <= 'o111;
+        apCounter <= 'o11111;
+        dataCounter <= 'o111;
     end
     else begin
-        ipCounter <= ipCounter + 0111;
-        loopCounter <= loopCounter + 0111;
-        apCounter <= apCounter + 0111;
-        dataCounter <= dataCounter + 0111;
+        ipCounter <= ipCounter + 'o111111;
+        loopCounter <= loopCounter + 'o111;
+        apCounter <= apCounter + 'o11111;
+        dataCounter <= dataCounter + 'o111;
     end
 
 end
