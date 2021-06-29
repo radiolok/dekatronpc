@@ -1,7 +1,7 @@
 module Emulator #(
     parameter DIVIDE_TO_1US = 28'd50,
     parameter DIVIDE_TO_1MS = 28'd1000,
-    parameter DIVIDE_TO_4MS = 28'd4000,
+    parameter DIVIDE_TO_4MS = 28'd3000,
     parameter DIVIDE_TO_1S = 28'd1000
 )(
 	//////////// CLOCK //////////
@@ -49,6 +49,8 @@ wire [8:0] loopCounter;
 wire [14:0] apCounter;
 wire [8:0] dataCounter;
 
+wire [39:0] keyboard_keysCurrentState;
+
 wire Rst_n;
 
 assign Rst_n = KEY[0];
@@ -92,14 +94,17 @@ Clock_divider #(
 	.clock_out(Clock_1s)
 );
 
+wire [2:0] DPC_currentState;
 
 DekatronPC dekatronPC(
     .ipCounter(ipCounter),
     .loopCounter(loopCounter),
     .apCounter(apCounter),
     .dataCounter(dataCounter),
-    .Clk(Clock_1s),
-    .Rst_n(Rst_n)
+    .Clk(Clock_1us),
+    .Rst_n(Rst_n),
+    .keysCurrentState(keyboard_keysCurrentState),
+    .DPC_currentState(DPC_currentState)
 );
 
 wire [3:0] anodeCount;
@@ -189,8 +194,6 @@ bn_mux_n_1_generate #(
     .y(emulData)
 );
 
-wire [39:0] keyboard_keysCurrentState;
-
 Keyboard kb(
     .Rst_n(Rst_n),
     .Clk(Clock_1us),
@@ -198,19 +201,29 @@ Keyboard kb(
     .kbRow(keyboard_data_in),
     .write(keyboard_write),
 	.read(keyboard_read),
+    .symbol(symbol),
     .clear(keyboard_clear),
     .keysCurrentState(keyboard_keysCurrentState)
 );
 
+wire ms6205_marker_en;
+
+assign ms6205_marker = ms6205_marker_en & Clock_1s;
+
 Ms6205 ms6205(
     .Rst_n(Rst_n),
-    .Clk(Clock_1ms),
+    .Clock_1ms(Clock_1ms),
     .address(ms6205_addr),
     .data(ms6205_data),
+    .ipAddress(ipCounter[7:0]),
+    .symbol(symbol),
+    .ms6205_addr_acq(ms6205_addr_acq),
+	.ms6205_data_acq(ms6205_data_acq),
     .write_addr(ms6205_write_addr_n),
     .write_data(ms6205_write_data_n),
-    .marker(ms6205_marker),
+    .marker(ms6205_marker_en),
     .ready(ms6205_ready),
+    .DPC_State(DPC_currentState),
     .keysCurrentState(keyboard_keysCurrentState)
 );
 
@@ -218,6 +231,8 @@ Sequencer sequencer(
 	.Clock_1us(Clock_1us),
 	.Enable(Clock_1ms),
 	.Rst_n(Rst_n),
+    .ms6205_addr_acq(ms6205_addr_acq),
+	.ms6205_data_acq(ms6205_data_acq),
 	.ms6205_write_addr_n(ms6205_write_addr_n),
 	.ms6205_write_data_n(ms6205_write_data_n),
 	.in12_write_anode(in12_write_anode),
