@@ -42,9 +42,10 @@ module DekatronPC(
     output reg [8:0] loopCounter,
     output reg [14:0] apCounter,
     output reg [8:0] dataCounter,
-    input wire Clk,
+    input wire Clock_1ms,
     input wire Rst_n,
     input wire [39:0] keysCurrentState,
+    input wire [7:0] symbol,    
     output wire [2:0] DPC_currentState
 );
 
@@ -114,7 +115,7 @@ always @(*) begin
 end
 
 
-always @(posedge Clk, negedge Rst_n) begin
+always @(posedge Clock_1ms, negedge Rst_n) begin
     if (~Rst_n) begin
         currentCounter <= NONE_COUNTER;
     end
@@ -195,7 +196,7 @@ always @* begin
     endcase
 end
 
-always @(posedge Clk, negedge Rst_n) begin
+always @(posedge Clock_1ms, negedge Rst_n) begin
 	if (~Rst_n) begin
 		DPC_currentStateInt <= DPC_HARD_RST;
 	end
@@ -216,9 +217,10 @@ reg ArrowUpKeyOld;
 reg ArrowDownKeyOld;
 reg ArrowLeftKeyOld;
 reg ArrowRightKeyOld;
+reg [7:0] symbolOld;
 
 
-always @(posedge Clk, negedge Rst_n) begin
+always @(posedge Clock_1ms, negedge Rst_n) begin
 	if (~Rst_n) begin
         ipCounter <= 'o0;
         loopCounter <= 'o0;
@@ -231,6 +233,7 @@ always @(posedge Clk, negedge Rst_n) begin
         ArrowDownKeyOld <= 0;
         ArrowLeftKeyOld <= 0;
         ArrowRightKeyOld <= 0;
+        symbolOld <= 0;
 	end
 	else begin
         IncKeyOld <= IncKey;
@@ -240,6 +243,7 @@ always @(posedge Clk, negedge Rst_n) begin
         ArrowDownKeyOld <= ArrowDownKey;
         ArrowLeftKeyOld <= ArrowLeftKey;
         ArrowRightKeyOld <= ArrowRightKey;
+        symbolOld <= symbol;
 
         if ((DPC_currentState == DPC_HARD_RST) || 
             (DPC_currentState == DPC_SOFT_RST)) begin
@@ -288,7 +292,10 @@ always @(posedge Clk, negedge Rst_n) begin
             end
             else  if ((ArrowRightKey & ~ ArrowRightKeyOld) && (currentCounter == IP_COUNTER)) begin
                 ipCounter  <=  ipCounter + 'h1;
-            end                        
+            end
+            else  if (symbol & ~ symbolOld) begin
+                ipCounter  <=  ipCounter + 'h1;
+            end                           
         end
 	end
 end

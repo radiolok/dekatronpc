@@ -43,6 +43,7 @@ module Emulator #(
     output wire anodesClkTick
 );
 
+`include "keyboard_keys.sv" 
 
 wire  [17:0] ipCounter;
 wire [8:0] loopCounter;
@@ -53,6 +54,8 @@ wire [39:0] keyboard_keysCurrentState;
 
 wire Rst_n;
 
+wire hard_rst_key;
+
 assign Rst_n = KEY[0];
 
 wire [7:0] cathodeData;
@@ -60,6 +63,9 @@ wire [7:0] cathodeData;
 assign LED[0] = Clock_1s;
 
 wire Clock_4ms;
+
+wire [15:0] numericKey;
+wire [7:0] symbol;
 
 Clock_divider #(.DIVISOR({DIVIDE_TO_1US})) clock_divider_us(
     .Rst_n(Rst_n),
@@ -101,7 +107,8 @@ DekatronPC dekatronPC(
     .loopCounter(loopCounter),
     .apCounter(apCounter),
     .dataCounter(dataCounter),
-    .Clk(Clock_1us),
+    .Clock_1ms(Clock_1ms),
+    .symbol(symbol),
     .Rst_n(Rst_n),
     .keysCurrentState(keyboard_keysCurrentState),
     .DPC_currentState(DPC_currentState)
@@ -202,6 +209,7 @@ Keyboard kb(
     .write(keyboard_write),
 	.read(keyboard_read),
     .symbol(symbol),
+    .numericKey(numericKey),
     .clear(keyboard_clear),
     .keysCurrentState(keyboard_keysCurrentState)
 );
