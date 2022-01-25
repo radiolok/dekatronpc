@@ -4,4 +4,7 @@ vhdl/share/
 *.raw
 *.log
 *.bak
-*/work/
+*work/
+*.gbr
+*db/
+*output_files/
