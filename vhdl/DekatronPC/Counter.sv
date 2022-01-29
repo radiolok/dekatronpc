@@ -23,40 +23,10 @@ reg [COUNT_DELAY-1:0] delay_shifter;
 
 /*==========================================================*/
 /*FSM for counter. Result on output is guaranteed if Ready == 1*/
-reg [1:0] current_state;
-reg [1:0] next_state;
 
-assign Ready = current_state[0] & ~current_state[1];//READY
+assign Ready = delay_shifter[0];
 
-parameter[2:0] 
-    NONE = 2'b00,
-    READY = 2'b01,
-    WAIT = 2'b10,
-    REQUEST = 2'b11;
-
-always @(*) begin
-    case (current_state)
-    NONE:
-        next_state = READY;
-    READY:
-        if (Request) next_state = REQUEST;
-    REQUEST:
-        next_state = WAIT;
-    WAIT:
-        if (delay_shifter[0]) next_state = READY;
-    endcase
-end
-
-always @(posedge Clk, negedge Rst_n) begin
-	if (~Rst_n) begin
-		current_state <= NONE;
-	end
-	else begin
-		current_state <= next_state;
-	end
-end
 /*==========================================================*/
-
 
 always @(posedge Clk, negedge Rst_n)
     begin
@@ -65,12 +35,10 @@ always @(posedge Clk, negedge Rst_n)
            Out <= {(DEKATRON_NUM*3){1'b0}};           
        end
        else begin
-           if (current_state[1]) begin // REQUEST | WAIT
+           if (~(Ready & ~Request)) begin // Simulate internal logic delay.
                delay_shifter <= {delay_shifter[0], delay_shifter[COUNT_DELAY-1:1]};
            end
-           if (current_state[1] & current_state[0]) begin//REQUEST
-               Out <= Set? In : Dec? Out - 1 : Out + 1;
-           end
+           if (Ready & Request) Out <= Set ? In : (Dec ? Out - 1 : Out + 1);
        end
     end
 

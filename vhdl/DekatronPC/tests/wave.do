@@ -4,12 +4,11 @@ add wave -noupdate /counter_tb/Rst_n
 add wave -noupdate /counter_tb/Clk
 add wave -noupdate /counter_tb/Dec
 add wave -noupdate /counter_tb/Set
-add wave -noupdate /counter_tb/Ready
-add wave -noupdate /counter_tb/Request
-add wave -noupdate /counter_tb/Out
-add wave -noupdate /counter_tb/counter/current_state
+add wave -noupdate /counter_tb/counter/In
+add wave -noupdate /counter_tb/counter/Out
 add wave -noupdate /counter_tb/counter/Ready
 add wave -noupdate /counter_tb/counter/Request
+add wave -noupdate /counter_tb/counter/delay_shifter
 TreeUpdate [SetDefaultTree]
 WaveRestoreCursors {{Cursor 1} {100 ps} 0}
 configure wave -namecolwidth 257

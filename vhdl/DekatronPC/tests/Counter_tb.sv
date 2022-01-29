@@ -39,8 +39,19 @@ initial begin
     Dec <= 0;
     Set <= 0;
     In <= 0;
-    #5  Rst_n <= 1;
-    #200
+    Rst_n <= 0;
+    #1  Rst_n <= 1;
+    #(COUNT_DELAY*50*2)
+    Dec <= 1;
+    #(COUNT_DELAY*50*2)
+    if (Out != 0) $display($time, "<< Count up/down mistmatch! >>");
+    In <= 39;
+    Set <= 1;
+    #3
+    Set <= 0;
+    In <= 0;
+    #(COUNT_DELAY*39*2)
+    if (Out != 0) $display($time, "<< Count up/down mistmatch! >>");
 	$display($time, "<< Simulation Complete >>");
 	$stop;
 end
