@@ -174,7 +174,7 @@ UpCounter #(.TOP(4'b1000)) anodesCounter(
             .Count(anodeCount)
 );
 
-BdcToBin  bdcToBin(
+BcdToBin  bcdToBin(
     .In(anodeCount),
     .Out(anodeSel)
 );
