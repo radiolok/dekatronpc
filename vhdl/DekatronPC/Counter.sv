@@ -1,5 +1,6 @@
 module Counter #(
     parameter DEKATRON_NUM = 6,
+    parameter DEKATRON_WIDTH = 3,
     parameter COUNT_DELAY = 3//delay in clockticks between Req and Rdy
 )(	
 	input wire Clk,
@@ -13,10 +14,10 @@ module Counter #(
     input wire Dec,
     input wire Set,
 
-    input wire [DEKATRON_NUM*3-1:0] In,
+    input wire [DEKATRON_NUM*DEKATRON_WIDTH-1:0] In,
 
 	output wire Ready,
-	output reg [DEKATRON_NUM*3-1:0] Out
+	output reg [DEKATRON_NUM*DEKATRON_WIDTH-1:0] Out
 );
 
 reg [COUNT_DELAY-1:0] delay_shifter;
@@ -32,7 +33,7 @@ always @(posedge Clk, negedge Rst_n)
     begin
        if (~Rst_n) begin
            delay_shifter <= {{(COUNT_DELAY-1){1'b0}}, 1'b1};
-           Out <= {(DEKATRON_NUM*3){1'b0}};           
+           Out <= {(DEKATRON_NUM*DEKATRON_WIDTH){1'b0}};           
        end
        else begin
            if (~(Ready & ~Request)) begin // Simulate internal logic delay.

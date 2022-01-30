@@ -13,10 +13,10 @@ always_comb
     16'b0000000000001000: symbol = 'h2D;                 //3 -
     16'b0000000000010000: symbol = 'h3C;                 //4 <
     16'b0000000000100000: symbol = 'h3E;                 //5 >
-    16'b0000000001000000: symbol = (BFISA) ? 'h5B : 'h28; //6 [ (
-    16'b0000000010000000: symbol = (BFISA) ? 'h5D : 'h29; //7 ] )
-    16'b0000000100000000: symbol = (BFISA) ? 'h2E : 'h4C; //8 . L
-    16'b0000001000000000: symbol = (BFISA) ? 'h2C : 'h49; //9 , I
+    16'b0000000001000000: symbol = (BFISA) ? 8'h5B : 8'h28; //6 [ (
+    16'b0000000010000000: symbol = (BFISA) ? 8'h5D : 8'h29; //7 ] )
+    16'b0000000100000000: symbol = (BFISA) ? 8'h2E : 8'h4C; //8 . L
+    16'b0000001000000000: symbol = (BFISA) ? 8'h2C : 8'h49; //9 , I
     16'b0000010000000000: symbol = 'h30;                 //A
     16'b0000100000000000: symbol = 'h40;                 //B
     16'b0001000000000000: symbol = 'h43;                 //C
@@ -80,8 +80,8 @@ reg nextIsa;
 assign BFISA = currentIsa;
 
 parameter 
-    MaintainanceIsa = 0,
-    BrainfuckISA = 1;
+    MaintainanceIsa = 1'b0,
+    BrainfuckISA = 1'b1;
 
 always @* begin
     if (keysCurrentState[KEYBOARD_F_KEY])

@@ -247,14 +247,14 @@ always @(posedge Clock_1ms, negedge Rst_n) begin
 
         if ((DPC_currentState == DPC_HARD_RST) || 
             (DPC_currentState == DPC_SOFT_RST)) begin
-                ipCounter <= 'b0;
-                loopCounter <= 'o0;
-                apCounter <= 'o0;
-                dataCounter <= 'o0;
+                ipCounter <= 1'b0;
+                loopCounter <= 1'o0;
+                apCounter <= 1'o0;
+                dataCounter <= 1'o0;
             end
         else if ((DPC_currentState == DPC_STEP) || 
             (DPC_currentState == DPC_RUN)) begin
-                ipCounter <= ipCounter + 'b1;
+                ipCounter <= ipCounter + 1'b1;
             end
         else begin
             if (IncKey & ~ IncKeyOld) begin
@@ -282,19 +282,19 @@ always @(posedge Clock_1ms, negedge Rst_n) begin
                 endcase
             end
             else  if ((ArrowUpKey & ~ ArrowUpKeyOld) && (currentCounter == IP_COUNTER)) begin
-                ipCounter  <=  ipCounter - 'h10;
+                ipCounter  <=  ipCounter - 18'h10;
             end
             else  if ((ArrowDownKey & ~ ArrowDownKeyOld) && (currentCounter == IP_COUNTER)) begin
-                ipCounter  <=  ipCounter + 'h10;
+                ipCounter  <=  ipCounter + 18'h10;
             end
             else  if ((ArrowLeftKey & ~ ArrowLeftKeyOld) && (currentCounter == IP_COUNTER)) begin
-                ipCounter  <=  ipCounter - 'h1;
+                ipCounter  <=  ipCounter - 18'h1;
             end
             else  if ((ArrowRightKey & ~ ArrowRightKeyOld) && (currentCounter == IP_COUNTER)) begin
-                ipCounter  <=  ipCounter + 'h1;
+                ipCounter  <=  ipCounter + 18'h1;
             end
             else  if (symbol & ~ symbolOld) begin
-                ipCounter  <=  ipCounter + 'h1;
+                ipCounter  <=  ipCounter + 18'h1;
             end                           
         end
 	end

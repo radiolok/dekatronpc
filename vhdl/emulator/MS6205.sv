@@ -33,7 +33,7 @@ reg [7:0] data_n;
 
 assign data[7:0] = {1'b0, ~data_n[6:0]};
 
-reg [12:0] ms6205_nextView;
+reg [2:0] ms6205_nextView;
 
 assign marker = (ms6205_currentView == MS6205_IRAM) & (DPC_State == 2);
 
