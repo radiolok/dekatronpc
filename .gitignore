@@ -8,3 +8,9 @@ vhdl/share/
 *.gbr
 *db/
 *output_files/
+*.7z
+*.zip
+*.dchb0
+*.drl
+*.step
+*.stl
