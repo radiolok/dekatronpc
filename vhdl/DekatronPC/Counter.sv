@@ -21,13 +21,7 @@ module Counter #(
 );
 
 reg [COUNT_DELAY-1:0] delay_shifter;
-
-/*==========================================================*/
-/*FSM for counter. Result on output is guaranteed if Ready == 1*/
-
 assign Ready = delay_shifter[0];
-
-/*==========================================================*/
 
 always @(posedge Clk, negedge Rst_n)
     begin
