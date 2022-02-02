@@ -11,33 +11,35 @@ module ROM #(
     output reg[DATA_WIDTH-1:0] Insn,
 
     input wire Request,
-    output wire Ready
+    output reg DataReady
     );
 
 wire [DATA_WIDTH-1:0] ActiveInsn;
 
-reg [COUNT_DELAY-1:0] delay_shifter;
-assign Ready = delay_shifter[0];
-
-`ifdef LOOP_TEST
+//`ifdef LOOP_TEST
     loopTest storage(.Address(Address),
                         .Data(ActiveInsn));
-`else
-    helloworld storage(.Address(Address),
-                        .Data(ActiveInsn));
-`endif
-
-always @(posedge Clk, negedge Rst_n)
+//`else
+//    helloworld storage(.Address(Address),
+//                        .Data(ActiveInsn));
+//`endif
+reg Busy;
+always @(negedge Clk, negedge Rst_n)
     if (~Rst_n) begin
-        delay_shifter <= {{(COUNT_DELAY-1){1'b0}}, 1'b1};
-        Insn <= (DATA_WIDTH){1'b0000};
+        Insn <= {(DATA_WIDTH){1'b0}};
+        DataReady <= 1'b0;
+        Busy <= 1'b0;
     end
-    else
-        if (~(Ready & ~Request)) begin // Simulate internal logic delay.
-               delay_shifter <= {delay_shifter[0], delay_shifter[COUNT_DELAY-1:1]};
-        end
-        if (Ready & Request)
+    else begin
+        if (Request) begin
             Insn <= ActiveInsn;
-
+            DataReady <= 1'b0;
+            Busy <= 1'b1;
+		end
+        if (Busy) begin
+            Busy <= 1'b0;
+            DataReady <= 1'b1;
+        end
+    end
 endmodule
 

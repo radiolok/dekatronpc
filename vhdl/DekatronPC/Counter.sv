@@ -21,19 +21,24 @@ module Counter #(
 );
 
 reg [COUNT_DELAY-1:0] delay_shifter;
+
+
 assign Ready = delay_shifter[0];
+
 
 always @(posedge Clk, negedge Rst_n)
     begin
        if (~Rst_n) begin
            delay_shifter <= {{(COUNT_DELAY-1){1'b0}}, 1'b1};
-           Out <= {(DEKATRON_NUM*DEKATRON_WIDTH){1'b0}};           
+           Out <= {(DEKATRON_NUM*DEKATRON_WIDTH){1'b0}};
        end
        else begin
            if (~(Ready & ~Request)) begin // Simulate internal logic delay.
                delay_shifter <= {delay_shifter[0], delay_shifter[COUNT_DELAY-1:1]};
            end
-           if (Ready & Request) Out <= Set ? In : (Dec ? Out - 1 : Out + 1);
+           if (Ready & Request) begin
+               Out <= Set ? In : (Dec ? Out - 1'b1 : Out + 1'b1);
+           end
        end
     end
 
