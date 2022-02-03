@@ -25,18 +25,31 @@ end
 
 initial begin
     Rst_n <= 0;
-    dataIsZeroed <= 1;
+    dataIsZeroed <= 0;
     #1  Rst_n <= 1;
     #40    
 	$display($time, "<< Simulation Complete >>");
 	$stop;
 end
 
+reg Busy;
+
 always @(posedge Clk, Rst_n) begin
-    if (~Rst_n)
+    if (~Rst_n) begin
         Request <= 0;
+        Busy <= 0;
+    end
     else
-        Request <= Ready;
+        if (~Busy & Ready) begin
+            Busy <= 1'b1;
+            Request <= 1'b1;
+        end
+        if (Request) begin
+            Request <= 1'b0;
+        end
+        if (Busy & Ready) begin
+            Busy <= 1'b0;
+        end
 end
 
 endmodule

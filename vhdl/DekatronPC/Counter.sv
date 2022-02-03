@@ -17,27 +17,32 @@ module Counter #(
     input wire [DEKATRON_NUM*DEKATRON_WIDTH-1:0] In,
 
 	output wire Ready,
+    output wire Zero,
 	output reg [DEKATRON_NUM*DEKATRON_WIDTH-1:0] Out
 );
 
 reg [COUNT_DELAY-1:0] delay_shifter;
+reg Busy;
 
-
-assign Ready = delay_shifter[0];
-
+assign Ready = ~Request & delay_shifter[0];
+assign Zero = (Out == {(DEKATRON_NUM*DEKATRON_WIDTH){1'b0}});
 
 always @(posedge Clk, negedge Rst_n)
     begin
        if (~Rst_n) begin
            delay_shifter <= {{(COUNT_DELAY-1){1'b0}}, 1'b1};
            Out <= {(DEKATRON_NUM*DEKATRON_WIDTH){1'b0}};
+           Busy <= 1'b0;
        end
        else begin
-           if (~(Ready & ~Request)) begin // Simulate internal logic delay.
+           if (Busy) begin // Simulate internal logic delay.
                delay_shifter <= {delay_shifter[0], delay_shifter[COUNT_DELAY-1:1]};
+               Busy <= ~delay_shifter[0];
            end
-           if (Ready & Request) begin
+           if (~Busy & Request) begin
+               delay_shifter <= {delay_shifter[0], delay_shifter[COUNT_DELAY-1:1]};
                Out <= Set ? In : (Dec ? Out - 1'b1 : Out + 1'b1);
+               Busy <= 1'b1;
            end
        end
     end

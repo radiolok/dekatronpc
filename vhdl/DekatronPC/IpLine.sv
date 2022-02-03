@@ -57,7 +57,7 @@ parameter [3:0]
     READY     = 4'b1000;
 
 reg [3:0] currentState;
-assign Ready = currentState[3] | currentState[0];//READY | IDLE
+assign Ready = ~Request & (currentState[3] | currentState[0]);//READY | IDLE
 
 always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
@@ -165,9 +165,7 @@ wire Loop_Ready;
 reg Loop_Dec;
 
 wire [LOOP_DEKATRON_NUM*3-1:0] Loop_Out;
-wire Loop_Zero = (Loop_Out == {(LOOP_DEKATRON_NUM*3){1'b0}});
-
-wire Loop_Lookup = ~(Loop_Ready & Loop_Zero);
+wire Loop_Zero;
 
 Counter  #(
             .DEKATRON_NUM(LOOP_DEKATRON_NUM),
@@ -180,7 +178,8 @@ Counter  #(
                 .Dec(Loop_Dec),
                 .Set(1'b0),
                 .Ready(Loop_Ready),
-                .Out(Loop_Out)
+                .Out(Loop_Out),
+                .Zero(Loop_Zero)
             );
 
 parameter [3:0]
@@ -221,25 +220,30 @@ always @(posedge Clk, negedge Rst_n) begin
             INSN_WAIT: begin
                     IP_Request <= 1'b0;
                     if (IP_Ready) begin
-                        if (~Loop_Lookup) begin
+                        if (Loop_Zero) begin
                             currentState <= READY;
                             Insn <= TmpInsnReg;
                         end
                         else begin
-                            IP_Dec <= IP_backwardCount; //backward direction for ']' & nonZero
-                            IP_Request <= 1'b1;
                             if (LoopInsnOpenInternal | LoopInsnCloseInternal) begin
                                 Loop_Dec <= ((IP_backwardCount & LoopInsnOpenInternal)|(~IP_backwardCount & LoopInsnCloseInternal));
                                 Loop_Request <= 1'b1;
                                 currentState <= LOOP_COUNT;
                             end
-
+                            else begin
+                                IP_Dec <= IP_backwardCount; //backward direction for ']' & nonZero
+                                IP_Request <= 1'b1;                             
+                            end
                         end
                     end
                 end
             LOOP_COUNT: begin
                 Loop_Request <= 1'b0;
                 if (Loop_Ready) begin
+                    if ((LoopInsnOpenInternal | LoopInsnCloseInternal)) begin
+                        IP_Dec <= IP_backwardCount & ~Loop_Zero; //backward direction for ']' & nonZero
+                        IP_Request <= 1'b1;    
+                    end
                     currentState <= INSN_WAIT;
                 end
             end
