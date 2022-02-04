@@ -17,7 +17,7 @@ module ROM #(
 wire [DATA_WIDTH-1:0] ActiveInsn;
 
 //`ifdef LOOP_TEST
-    loopTest storage(.Address(Address),
+    looptest storage(.Address(Address),
                         .Data(ActiveInsn));
 //`else
 //    helloworld storage(.Address(Address),

@@ -20,15 +20,16 @@ def checkSymbol(symbol):
 
 symbolToOpcode = {
     ' ' : "0000",#NOP
-    '+' : "0001",
-    '-' : "0010",
-    '>' : "0011",
-    '<' : "0100",
-    '[' : "0101",
-    ']' : "0110",
-    '.' : "0111",
-    ',' : "1000",
-    'H' : "1111",#HALT
+    'H' : "0001", #HALT
+    '+' : "0010",
+    '-' : "0011",
+    '>' : "0100",
+    '<' : "0101",
+    '[' : "0110",
+    ']' : "0111",
+    '.' : "1000",
+    ',' : "1001",
+    'R' : "1010" # HARD Reset
 }
 
 decToBin = {
@@ -41,7 +42,13 @@ decToBin = {
     6 : "0110",
     7 : "0111",
     8 : "1000",
-    9 : "1001"   
+    9 : "1001",
+    0xA: "1010",
+    0xB: "1011",
+    0xC: "1100",
+    0xD: "1101",
+    0xE: "1110",
+    0xF: "1111"
 }
 
 def encodeSymbol(symbol):
@@ -52,16 +59,16 @@ def encodeSymbol(symbol):
         return opcode
     return opcode
 
-def encodeAddress(address):
+def encodeAddress(address, radix = 10):
     addressStr = ""
     if address == 0:
         return decToBin[0]
-    while int(address) > 0:
-        addressStr = decToBin[int(address % 10)] + addressStr
-        address  = int(address/10)
+    while address > 0:
+        addressStr = decToBin[int(address % radix)] + addressStr
+        address  = address//radix
     return addressStr
 
-def Generate(filePath, resultPath, width = None):
+def Generate(filePath, resultPath, width = None, radix = 10):
     fileIn = open(filePath,'r')
     fileOut = open(resultPath, 'w')
     fileSize = os.path.getsize(filePath)
@@ -74,7 +81,7 @@ def Generate(filePath, resultPath, width = None):
     portSize = GenerateHeader(fileIn, fileName, fileSize, fileOut, widthBits)
     if portSize == 0:
         return -1        
-    if GenerateBody(fileIn, fileOut, portSize, widthBits) != 0:
+    if GenerateBody(fileIn, fileOut, portSize, widthBits, radix) != 0:
         return -1
     if GenerateFooter(fileIn, fileOut) != 0:
         return -1
@@ -117,7 +124,7 @@ def GenerateFooter(fileIn, fileOut):
     fileOut.write("endmodule\n")
     return 0
 
-def GenerateBody(fileIn, fileOut, portSize, widthBits):
+def GenerateBody(fileIn, fileOut, portSize, widthBits, radix = 10):
     caseNumber = 0
     while 1:
         count = 0
@@ -133,7 +140,7 @@ def GenerateBody(fileIn, fileOut, portSize, widthBits):
                 symbols[count] = symbol
                 symbols_enc[count] = encodeSymbol(symbol)
                 count += 1
-        addressStr = encodeAddress(caseNumber)
+        addressStr = encodeAddress(caseNumber, radix)
         addressStrCut = addressStr[0: len(addressStr)- int(widthBits / 2)]
         if widthBits == 4:
             generatedCase = "    %d'b%s: Data = {4'b%s, 4'b%s, 4'b%s, 4'b%s}; //%s %s %s %s\n" % (portSize, addressStrCut, 
@@ -157,7 +164,8 @@ def GenerateBody(fileIn, fileOut, portSize, widthBits):
 if __name__ == '__main__':    
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--file', nargs='+')
-    parser.add_argument('-w', '--width', default=4)
+    parser.add_argument('-w', '--width', default=1)
+    parser.add_argument('-r', '--radix', default=16)
 
     args = parser.parse_args()
 
@@ -170,4 +178,4 @@ if __name__ == '__main__':
         print("Generate rom from: %s" %(filePath))        
         resultPath = os.path.splitext(filePath)[0] + ".sv"
         print("Generate file: %s" % (resultPath))
-        Generate(filePath, resultPath, args.width)
+        Generate(filePath, resultPath, args.width, args.radix)

@@ -15,12 +15,13 @@ module IpCounter #(
     input wire Dec,
 
 	output wire Ready,
+    output wire [DEKATRON_NUM*3-1:0] Address,
 	output wire[INSN_WIDTH-1:0] Insn
 );
 
 reg IP_Request;
 wire IP_Ready;
-wire [DEKATRON_NUM*3-1:0] IP_Out;
+
 
 Counter  #(
             .DEKATRON_NUM(DEKATRON_NUM),
@@ -33,7 +34,7 @@ Counter  #(
                 .Dec(Dec),
                 .Set(1'b0),
                 .Ready(IP_Ready),
-                .Out(IP_Out)
+                .Out(Address)
             );
 
 reg ROM_Request;
@@ -44,7 +45,7 @@ ROM #(
         )rom(
         .Rst_n(Rst_n),
         .Clk(Clk), 
-        .Address(IP_Out),
+        .Address(Address),
         .Insn(Insn),
         .Request(ROM_Request),
         .DataReady(ROM_DataReady)
@@ -101,7 +102,12 @@ end
 endmodule
 
 
-module IpLine(
+module IpLine #(
+    parameter IP_DEKATRON_NUM = 6,
+    parameter LOOP_DEKATRON_NUM = 3,
+    parameter DEKATRON_WIDTH = 3,
+    parameter INSN_WIDTH = 4
+)(
     input wire Rst_n,
     input wire Clk,
 
@@ -109,14 +115,10 @@ module IpLine(
 
     input wire Request,
     output wire Ready,
-
+    output wire [IP_DEKATRON_NUM*3-1:0] Address,
     output reg[3:0] Insn
 );
 
-parameter IP_DEKATRON_NUM = 6;
-parameter LOOP_DEKATRON_NUM = 3;
-parameter DEKATRON_WIDTH = 3;
-parameter INSN_WIDTH = 4;
 
 reg IP_Dec;
 
@@ -132,6 +134,7 @@ IpCounter IP_counter(
                 .Request(IP_Request),
                 .Dec(IP_Dec),
                 .Ready(IP_Ready),
+                .Address(Address),
                 .Insn(TmpInsnReg)
             );
 
