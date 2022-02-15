@@ -35,6 +35,7 @@ end
 reg Busy;
 
 reg [10:0] Data;
+reg [31:0] INSN_RETITED;
 assign dataIsZeroed = (Data == 0);
 
 always @(posedge Clk, Rst_n) begin
@@ -42,12 +43,13 @@ always @(posedge Clk, Rst_n) begin
         Request <= 0;
         Busy <= 0;
         Data <= 0;
+        INSN_RETITED <= 0;
     end
     else
         if (~Busy & Ready) begin
             Busy <= 1'b1;
             Request <= 1'b1;
-            $display("Time: %d Addr: %h Insn: %b, Data: %d(%b)", $time, Address, Insn, Data, dataIsZeroed);
+            $display("IRET:%d Time: %d Addr: %h Insn: %b, Data: %d(%b)", INSN_RETITED, $time, Address, Insn, Data, dataIsZeroed);
         end
         if (Request & ~Ready) begin
             Request <= 1'b0;
@@ -59,6 +61,7 @@ always @(posedge Clk, Rst_n) begin
                 4'b0011: Data <= Data - 1;
                 4'b0001: $stop;
             endcase
+            INSN_RETITED <= INSN_RETITED + 1;
                 
         end
 end

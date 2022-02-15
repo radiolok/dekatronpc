@@ -1,4 +1,4 @@
-module dekatronCarrySignal(
+module DekatronCarrySignal(
     input wire Rst_n,
     input wire [9:0] In,
     output reg CarryLow,

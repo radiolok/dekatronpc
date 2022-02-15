@@ -1,0 +1,6 @@
+../../Counter.sv
+../../IpLine.sv
+../../ROM.sv
+../../../programs/looptest/looptest.sv
+../../InsnLoopDetector.sv
+./IpLine_tb.sv

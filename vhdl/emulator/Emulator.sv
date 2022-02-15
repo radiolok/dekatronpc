@@ -195,7 +195,7 @@ bn_mux_n_1_generate #(
         ms6205_addr, //MC_ADDR
         anodeSel[7:0], //KEYBOARD_WR
         {4'b0000, anodeCount}, //ANODES
-        cathodeData, //CATHODESD
+        cathodeData, //CATHODES
         8'b00000000}),//NONE
     .sel(selectOutput),
     .y(emulData)

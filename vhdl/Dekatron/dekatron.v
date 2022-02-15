@@ -3,7 +3,6 @@ module DekatronV2(
 
     input wire PulseRight_n,
 	input wire PulseLeft_n,
-    input wire Rst_n,
     input wire Set,
     input wire [9:0] In,
     output wire[9:0] Out,
@@ -57,27 +56,22 @@ wire PulseRight = ~ PulseRight_n;
 
 wire Pulse = PulseLeft | PulseRight;
 
-always @(negedge Rst_n, negedge Pulse, posedge PulseLeft, posedge PulseRight, posedge Set)
+always @(negedge Pulse, posedge PulseLeft, posedge PulseRight, posedge Set)
  begin
-    if (~Rst_n) begin
-        Cathodes <= 30'b000000000000000000000000000001;//Rst_n
-     end
-     else begin
-        if (PulseRight) begin
-            Cathodes <= Set ? InLong : 
-                CathodeGlow ? {Cathodes[28:0], Cathodes[29]} :
-                     GuideLeftGlow ? {Cathodes[0], Cathodes[29:1]} : Cathodes;
-        end
-        else if (PulseLeft) begin
-            Cathodes <= Set ? InLong : 
-                CathodeGlow ? {Cathodes[0], Cathodes[29:1]}:
-                GuideRightGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
-        end
-        else begin
-            Cathodes <= Set ? InLong : GuideRightGlow ? {Cathodes[0], Cathodes[29:1]}:
-            GuideLeftGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
-        end
-     end//Rst_n
+    if (PulseRight) begin
+        Cathodes <= Set ? InLong : 
+            CathodeGlow ? {Cathodes[28:0], Cathodes[29]} :
+                    GuideLeftGlow ? {Cathodes[0], Cathodes[29:1]} : Cathodes;
+    end
+    else if (PulseLeft) begin
+        Cathodes <= Set ? InLong : 
+            CathodeGlow ? {Cathodes[0], Cathodes[29:1]}:
+            GuideRightGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
+    end
+    else begin
+        Cathodes <= Set ? InLong : GuideRightGlow ? {Cathodes[0], Cathodes[29:1]}:
+        GuideLeftGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
+    end
  end
 endmodule
 
@@ -119,5 +113,4 @@ always @(posedge Step, negedge Rst_n)
 		Out <= Set ? {2'b00, In[7:0]} : Reverse ?
 				Out[0]? 10'b0010000000 : {Out[0], Out[9:1]}://Enable reverse
 				Out[7]? 10'b0000000001 : {Out[8:0], Out[9]};//Enable forward
-
 endmodule
