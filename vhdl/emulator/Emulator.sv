@@ -2,7 +2,9 @@ module Emulator #(
     parameter DIVIDE_TO_1US = 28'd50,
     parameter DIVIDE_TO_1MS = 28'd1000,
     parameter DIVIDE_TO_4MS = 28'd3000,
-    parameter DIVIDE_TO_1S = 28'd1000
+    parameter DIVIDE_TO_1S = 28'd1000,
+    parameter BOARDS = 16,
+    parameter INSTALLED_BOARDS = 2
 )(
 	//////////// CLOCK //////////
 	input 		          		FPGA_CLK_50,
@@ -40,7 +42,10 @@ module Emulator #(
     output wire Clock_1s,
     output wire Clock_1ms,
     output wire Clock_1us,
-    output wire anodesClkTick
+
+    output wire [3:0] io_address,
+    output wire [1:0] io_enable,
+    inout [7:0] io_data
 );
 
 `include "keyboard_keys.sv" 
@@ -58,13 +63,8 @@ wire hard_rst_key;
 
 assign Rst_n = KEY[0];
 
-wire [7:0] cathodeData;
-
 assign LED[0] = Clock_1s;
 
-wire Clock_4ms;
-
-wire [15:0] numericKey;
 wire [7:0] symbol;
 
 Clock_divider #(.DIVISOR({DIVIDE_TO_1US})) clock_divider_us(
@@ -80,16 +80,6 @@ Clock_divider #(
     .Rst_n(Rst_n),
 	.clock_in(Clock_1us),
 	.clock_out(Clock_1ms)
-);
-
-
-Clock_divider #(
-    .DIVISOR({DIVIDE_TO_4MS}),
-    .DUTY_CYCLE(80)
-) clock_divider_4ms(
-    .Rst_n(Rst_n),
-	.clock_in(Clock_1us),
-	.clock_out(Clock_4ms)
 );
 
 Clock_divider #(
@@ -114,10 +104,101 @@ DekatronPC dekatronPC(
     .DPC_currentState(DPC_currentState)
 );
 
+
+io_key_display_block #(
+    .DIVIDE_TO_4MS(DIVIDE_TO_4MS)
+)ioKeyDisplayBlock(
+    .keyboard_data_in(keyboard_data_in),
+    .ms6205_ready(ms6205_ready),
+    .ms6205_write_addr_n(ms6205_write_addr_n),
+    .ms6205_write_data_n(ms6205_write_data_n),
+    .ms6205_marker(ms6205_marker),
+    .in12_write_anode(in12_write_anode),
+    .in12_write_cathode(in12_write_cathode),
+    .in12_clear(in12_clear),
+    .keyboard_write(keyboard_write),
+    .keyboard_clear(keyboard_clear),
+    .keyboard_keysCurrentState(keyboard_keysCurrentState),
+    .emulData(emulData),
+    .ipCounter(ipCounter),
+    .loopCounter(loopCounter),
+    .apCounter(apCounter),
+    .dataCounter(dataCounter),
+    .Clock_1s(Clock_1s),
+    .Clock_1ms(Clock_1ms),
+    .Clock_1us(Clock_1us),
+    .Rst_n(Rst_n),
+    .symbol(symbol),
+    .DPC_currentState(DPC_currentState)
+);
+
+/*
+yam430_core Yam430(
+    .Clk(Clock_1us),
+	.Rst_n(Rst_n)
+);*/
+
+wire [128:0] io_input_regs;
+wire [128:0] io_output_regs;
+
+io_register_block #(
+    .BOARDS(BOARDS),
+    .INSTALLED_BOARDS(INSTALLED_BOARDS)
+)IoRegisterBlock(
+    .Clk(Clock_1us),
+	.Rst_n(Rst_n),
+    .io_address(io_address),
+    .io_enable(io_enable),
+    .io_data(io_data),
+    .inputs(io_input_regs),
+    .outputs(io_output_regs)
+);
+
+endmodule
+
+module io_key_display_block #(
+    parameter DIVIDE_TO_4MS = 28'd3000
+)(
+    input wire Rst_n,
+
+    input [6:0] keyboard_data_in,
+
+	input ms6205_ready,
+	output ms6205_write_addr_n,
+	output ms6205_write_data_n,
+    output ms6205_marker,
+
+	output in12_write_anode,
+	output in12_write_cathode,
+	output in12_clear,
+
+	output keyboard_write,
+	output keyboard_clear,
+    output wire [39:0] keyboard_keysCurrentState,
+
+	output [7:0] emulData,
+    input wire [2:0] DPC_currentState,
+
+    output wire [7:0] symbol,
+
+    input wire  [17:0] ipCounter,
+    input wire [8:0] loopCounter,
+    input wire [14:0] apCounter,
+    input wire [8:0] dataCounter,
+
+    input wire Clock_1s,
+    input wire Clock_1ms,
+    input wire Clock_1us
+);
+
 wire [3:0] anodeCount;
 
 wire [2:0]cathodeLow;
 wire [2:0] cathodeHigh;
+
+wire anodesClkTick;
+
+wire [7:0] cathodeData;
 
 in12_cathodeToPinConverter cathodeLowConvert
 (
@@ -160,6 +241,16 @@ bn_mux_n_1_generate #(
 
 wire [9:0] anodeSel;
 
+wire Clock_4ms;
+Clock_divider #(
+    .DIVISOR({DIVIDE_TO_4MS}),
+    .DUTY_CYCLE(80)
+) clock_divider_4ms(
+    .Rst_n(Rst_n),
+	.clock_in(Clock_1us),
+	.clock_out(Clock_4ms)
+);
+
 Impulse impulse(
 	.Clock(Clock_1us),
 	.Rst_n(Rst_n),
@@ -201,6 +292,9 @@ bn_mux_n_1_generate #(
     .y(emulData)
 );
 
+wire keyboard_read;
+wire [15:0] numericKey;
+
 Keyboard kb(
     .Rst_n(Rst_n),
     .Clk(Clock_1us),
@@ -215,6 +309,8 @@ Keyboard kb(
 );
 
 wire ms6205_marker_en;
+wire ms6205_addr_acq;
+wire ms6205_data_acq;
 
 assign ms6205_marker = ms6205_marker_en & Clock_1s;
 
@@ -251,12 +347,6 @@ Sequencer sequencer(
 	.keyboard_read(keyboard_read),
     .state(selectOutput)
 );
-/*
-yam430_core Yam430(
-    .Clk(Clock_1us),
-	.Rst_n(Rst_n)
-);*/
-
 
 endmodule
 

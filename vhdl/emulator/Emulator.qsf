@@ -42,7 +42,7 @@ set_global_assignment -name DEVICE 5CSEMA4U23C6
 set_global_assignment -name TOP_LEVEL_ENTITY Emulator
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 20.1.1
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "23:39:55  MAY 22, 2021"
-set_global_assignment -name LAST_QUARTUS_VERSION "20.1.1 Lite Edition"
+set_global_assignment -name LAST_QUARTUS_VERSION "21.1.0 Lite Edition"
 set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
 set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
 set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
@@ -104,6 +104,7 @@ set_location_assignment PIN_AC22 -to Clock_1us
 set_location_assignment PIN_AD23 -to anodesClkEn
 set_location_assignment PIN_Y5 -to ms6205_write_addr_n
 set_location_assignment PIN_U11 -to ms6205_write_data_n
+set_global_assignment -name SYSTEMVERILOG_FILE io_register_block.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/BcdToBinary.sv
 set_global_assignment -name SYSTEMVERILOG_FILE keyboard_keys.sv
 set_global_assignment -name SYSTEMVERILOG_FILE Sequencer.sv
@@ -112,7 +113,6 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/registers.sv
 set_global_assignment -name SYSTEMVERILOG_FILE Keyboard.sv
 set_global_assignment -name SYSTEMVERILOG_FILE Emulator.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/counters.sv
-set_global_assignment -name VERILOG_FILE ../Logic.v
 set_global_assignment -name SYSTEMVERILOG_FILE in12_logic.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/RS_latch.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/mux.sv
