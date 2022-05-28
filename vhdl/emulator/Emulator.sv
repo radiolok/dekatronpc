@@ -44,8 +44,8 @@ module Emulator #(
     output wire Clock_1us,
 
     output wire [3:0] io_address,
-    output wire [1:0] io_enable,
-    inout [7:0] io_data
+    output wire [1:0] io_enable_n,
+    inout wire [7:0] io_data
 );
 
 `include "keyboard_keys.sv" 
@@ -92,6 +92,8 @@ Clock_divider #(
 
 wire [2:0] DPC_currentState;
 
+wire [39:0] keyboard_keysCurrentState_added;
+
 DekatronPC dekatronPC(
     .ipCounter(ipCounter),
     .loopCounter(loopCounter),
@@ -100,7 +102,7 @@ DekatronPC dekatronPC(
     .Clock_1ms(Clock_1ms),
     .symbol(symbol),
     .Rst_n(Rst_n),
-    .keysCurrentState(keyboard_keysCurrentState),
+    .keysCurrentState(keyboard_keysCurrentState_added),
     .DPC_currentState(DPC_currentState)
 );
 
@@ -141,212 +143,111 @@ yam430_core Yam430(
 wire [128:0] io_input_regs;
 wire [128:0] io_output_regs;
 
+wire Clock_10us;
+
+Clock_divider #(
+    .DIVISOR(10)
+) clock_divider_10us(
+    .Rst_n(Rst_n),
+	.clock_in(Clock_1us),
+	.clock_out(Clock_10us)
+);
+
 io_register_block #(
     .BOARDS(BOARDS),
     .INSTALLED_BOARDS(INSTALLED_BOARDS)
 )IoRegisterBlock(
-    .Clk(Clock_1us),
+    .Clk(Clock_10us),
 	.Rst_n(Rst_n),
     .io_address(io_address),
-    .io_enable(io_enable),
+    .io_enable_n(io_enable_n),
     .io_data(io_data),
     .inputs(io_input_regs),
     .outputs(io_output_regs)
 );
 
-endmodule
 
-module io_key_display_block #(
-    parameter DIVIDE_TO_4MS = 28'd3000
-)(
-    input wire Rst_n,
+wire start_button = ~io_input_regs[0] | keyboard_keysCurrentState[KEYBOARD_RUN_KEY];
+wire stop_button = ~io_input_regs[1] | keyboard_keysCurrentState[KEYBOARD_HALT_KEY];
 
-    input [6:0] keyboard_data_in,
+assign LED[1] = start_button;
+assign LED[2] = stop_button;
 
-	input ms6205_ready,
-	output ms6205_write_addr_n,
-	output ms6205_write_data_n,
-    output ms6205_marker,
+assign keyboard_keysCurrentState_added = {keyboard_keysCurrentState[39:29], 
+                                    start_button, 
+                                    keyboard_keysCurrentState[27], 
+                                    stop_button, 
+                                    keyboard_keysCurrentState[25:0]};
 
-	output in12_write_anode,
-	output in12_write_cathode,
-	output in12_clear,
+wire [3:0] digit;
+wire[7:0] seg;
 
-	output keyboard_write,
-	output keyboard_clear,
-    output wire [39:0] keyboard_keysCurrentState,
+wire dp;
 
-	output [7:0] emulData,
-    input wire [2:0] DPC_currentState,
 
-    output wire [7:0] symbol,
 
-    input wire  [17:0] ipCounter,
-    input wire [8:0] loopCounter,
-    input wire [14:0] apCounter,
-    input wire [8:0] dataCounter,
+wire Clock_10ms;
 
-    input wire Clock_1s,
-    input wire Clock_1ms,
-    input wire Clock_1us
-);
-
-wire [3:0] anodeCount;
-
-wire [2:0]cathodeLow;
-wire [2:0] cathodeHigh;
-
-wire anodesClkTick;
-
-wire [7:0] cathodeData;
-
-in12_cathodeToPinConverter cathodeLowConvert
-(
-    .in({1'b0, cathodeLow}),
-    .out(cathodeData[7:4])
-);
-
-in12_cathodeToPinConverter cathodeHighConvert
-(
-    .in({1'b0,cathodeHigh}),
-    .out(cathodeData[3:0])
-);
-
-//This mux  compress IP and LOOP data into 3-bit interface
-bn_mux_n_1_generate #(
-.DATA_WIDTH(3), 
-.SEL_WIDTH(4)
-)  muxCathode1
-        (  .data({
-            22'b0,
-            ipCounter,
-            loopCounter}),
-            .sel(anodeCount),
-            .y(cathodeHigh)
-        );
-    
-//This mux  compress AP and DATA info into 3-bit interface
-bn_mux_n_1_generate #(
-.DATA_WIDTH(3), 
-.SEL_WIDTH(4)
-)  muxCathode2
-        (  .data({
-            22'b0,
-            apCounter,
-            3'b000,
-            dataCounter}),
-            .sel(anodeCount),
-            .y(cathodeLow)
-        );
-
-wire [9:0] anodeSel;
-
-wire Clock_4ms;
 Clock_divider #(
-    .DIVISOR({DIVIDE_TO_4MS}),
-    .DUTY_CYCLE(80)
-) clock_divider_4ms(
+    .DIVISOR(5)
+) clock_divider_10ms(
     .Rst_n(Rst_n),
-	.clock_in(Clock_1us),
-	.clock_out(Clock_4ms)
+	.clock_in(Clock_1ms),
+	.clock_out(Clock_10ms)
 );
 
-Impulse impulse(
-	.Clock(Clock_1us),
-	.Rst_n(Rst_n),
-	.Enable(Clock_4ms),
-	.Impulse(anodesClkTick)
-);
+reg [3:0] current_digit_shift;
+reg [1:0] current_digit;
 
-//We do anodes inc only when we need it
-UpCounter #(.TOP(4'b1000)) anodesCounter(
-            .Tick(anodesClkTick),
-            .Rst_n(Rst_n),
-            .Count(anodeCount)
-);
+always @(posedge Clock_10ms, negedge Rst_n) begin
+    if (~Rst_n) begin
+        current_digit_shift <= 4'b0001;
+        current_digit <= 2'b00;
+    end
+    else begin
+        current_digit_shift <= {current_digit_shift[2:0], current_digit_shift[3]};
+        current_digit <= current_digit + 2'b01;
+    end
+end
 
-BcdToBin  bcdToBin(
-    .In(anodeCount),
-    .Out(anodeSel)
-);
 
-wire [7:0] ms6205_addr;
-wire [7:0] ms6205_data;
-
-wire [2:0] selectOutput;
+wire [7:0] output_ch0;
+wire [7:0] output_ch1;
 
 bn_mux_n_1_generate #(
-.DATA_WIDTH(8), 
-.SEL_WIDTH(3)
+.DATA_WIDTH(3), 
+.SEL_WIDTH(2)
 ) muxOutput(
     .data(
-        {8'b00000000, //STOP
-        8'b00001001,  //KEYBOARD_RD + IN TURN OF ANODES
-        ms6205_data,  //MC_DATA
-        ms6205_addr, //MC_ADDR
-        anodeSel[7:0], //KEYBOARD_WR
-        {4'b0000, anodeCount}, //ANODES
-        cathodeData, //CATHODES
-        8'b00000000}),//NONE
-    .sel(selectOutput),
-    .y(emulData)
+        ipCounter[11:0]),//NONE
+    .sel(current_digit),
+    .y(digit)
 );
 
-wire keyboard_read;
-wire [15:0] numericKey;
-
-Keyboard kb(
-    .Rst_n(Rst_n),
-    .Clk(Clock_1us),
-    .kbCol(anodeSel),
-    .kbRow(keyboard_data_in),
-    .write(keyboard_write),
-	.read(keyboard_read),
-    .symbol(symbol),
-    .numericKey(numericKey),
-    .clear(keyboard_clear),
-    .keysCurrentState(keyboard_keysCurrentState)
+segment7 segment7(
+    .hex(digit),
+    .seg(seg)
 );
 
-wire ms6205_marker_en;
-wire ms6205_addr_acq;
-wire ms6205_data_acq;
+assign output_ch1 = {seg[1], seg[6], seg[2], seg[3], seg[4], seg[5], seg[0], 1'b0};
+/*
+bn_mux_n_1_generate #(
+.DATA_WIDTH(8), 
+.SEL_WIDTH(2)
+) muxOutput(
+    .data(
+        io_input_regs[31:0]),//NONE
+    .sel(output_ch1),
+    .y(digit)
+);*/
 
-assign ms6205_marker = ms6205_marker_en & Clock_1s;
+assign output_ch0 = {4'b0, current_digit_shift[0], current_digit_shift[1], current_digit_shift[3], current_digit_shift[2]};
 
-Ms6205 ms6205(
-    .Rst_n(Rst_n),
-    .Clock_1ms(Clock_1ms),
-    .address(ms6205_addr),
-    .data(ms6205_data),
-    .ipAddress(ipCounter[7:0]),
-    .symbol(symbol),
-    .ms6205_addr_acq(ms6205_addr_acq),
-	.ms6205_data_acq(ms6205_data_acq),
-    .write_addr(ms6205_write_addr_n),
-    .write_data(ms6205_write_data_n),
-    .marker(ms6205_marker_en),
-    .ready(ms6205_ready),
-    .DPC_State(DPC_currentState),
-    .keysCurrentState(keyboard_keysCurrentState)
-);
+assign io_output_regs = {112'b0, output_ch1, output_ch0};
 
-Sequencer sequencer(
-	.Clock_1us(Clock_1us),
-	.Enable(Clock_1ms),
-	.Rst_n(Rst_n),
-    .ms6205_addr_acq(ms6205_addr_acq),
-	.ms6205_data_acq(ms6205_data_acq),
-	.ms6205_write_addr_n(ms6205_write_addr_n),
-	.ms6205_write_data_n(ms6205_write_data_n),
-	.in12_write_anode(in12_write_anode),
-	.in12_write_cathode(in12_write_cathode),
-	.in12_clear(in12_clear),
-	.keyboard_write(keyboard_write),
-	.keyboard_clear(keyboard_clear),
-	.keyboard_read(keyboard_read),
-    .state(selectOutput)
-);
+
+
 
 endmodule
+
 

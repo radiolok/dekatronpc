@@ -98,10 +98,6 @@ set_location_assignment PIN_H6 -to SW[2]
 set_location_assignment PIN_L9 -to SW[1]
 set_location_assignment PIN_L10 -to SW[0]
 set_location_assignment PIN_AG5 -to ms6205_marker
-set_location_assignment PIN_AE23 -to Clock_1ms
-set_location_assignment PIN_AH18 -to Clock_1s
-set_location_assignment PIN_AC22 -to Clock_1us
-set_location_assignment PIN_AD23 -to anodesClkEn
 set_location_assignment PIN_Y5 -to ms6205_write_addr_n
 set_location_assignment PIN_U11 -to ms6205_write_data_n
 set_global_assignment -name SYSTEMVERILOG_FILE io_register_block.sv
@@ -116,4 +112,64 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/counters.sv
 set_global_assignment -name SYSTEMVERILOG_FILE in12_logic.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/RS_latch.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/mux.sv
+set_location_assignment PIN_AE23 -to io_address[3]
+set_location_assignment PIN_AC22 -to io_address[1]
+set_location_assignment PIN_AA18 -to io_address[0]
+set_location_assignment PIN_AH19 -to io_data[7]
+set_location_assignment PIN_AH21 -to io_data[6]
+set_location_assignment PIN_AF22 -to io_data[5]
+set_location_assignment PIN_AH22 -to io_data[4]
+set_location_assignment PIN_AE24 -to io_data[3]
+set_location_assignment PIN_AD20 -to io_data[2]
+set_location_assignment PIN_AD19 -to io_data[1]
+set_location_assignment PIN_AE20 -to io_data[0]
+set_location_assignment PIN_AD23 -to io_address[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to keyboard_clear
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to io_address[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to io_address[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to io_address[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to io_address[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to io_data[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to io_data[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to io_data[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to io_data[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to io_data[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to io_data[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to io_data[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to io_data[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to io_data
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to FPGA_CLK2_50
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to FPGA_CLK3_50
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to FPGA_CLK_50
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to emulData[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to emulData[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to emulData[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to emulData[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to emulData[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to emulData[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to emulData[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to emulData[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to emulData
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to in12_clear
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to in12_write_anode
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to in12_write_cathode
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to keyboard_data_in[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to keyboard_data_in[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to keyboard_data_in[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to keyboard_data_in[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to keyboard_data_in[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to keyboard_data_in[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to keyboard_data_in[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to keyboard_data_in
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to keyboard_write
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ms6205_marker
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ms6205_ready
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ms6205_write_addr_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ms6205_write_data_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to io_address
+set_location_assignment PIN_AH18 -to io_enable_n[1]
+set_location_assignment PIN_AG21 -to io_enable_n[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to io_enable_n[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to io_enable_n[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to io_enable_n
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
