@@ -1,4 +1,4 @@
-module ip_line_tb #(
+module ip_line_tb (
 );
 
 reg Clk;
@@ -21,6 +21,7 @@ IpLine  ipLine(
     .Address(Address),
     .Insn(Insn)
 );
+initial begin $dumpfile("ip_line_tb.vcd"); $dumpvars(0,ip_line_tb); end
 
 initial begin
     Clk = 1'b0;
@@ -59,7 +60,7 @@ always @(posedge Clk, Rst_n) begin
             case (Insn)
                 4'b0010: Data <= Data + 1;
                 4'b0011: Data <= Data - 1;
-                4'b0001: $stop;
+                4'b0001: $finish;
             endcase
             INSN_RETITED <= INSN_RETITED + 1;
                 
