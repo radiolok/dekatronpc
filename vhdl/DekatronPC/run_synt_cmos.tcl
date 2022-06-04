@@ -1,7 +1,5 @@
 if { $argc != 2 } {
-  puts "The add.tcl script requires two args to be inputed."
-  puts "For example, tclsh add.tcl path_to_verilog_file  top_module_name".
-  puts "Please try again."
+  puts "call script <file_with_v_list> <top_level_module>".
 } else {
 }
 yosys -import
@@ -38,7 +36,7 @@ yosys opt
 #
 
 set yosys_path "$::env(HOME)/yosys"
-set cell_lib "$yosys_path/examples/cmos/cmos_cells.lib"
+set cell_lib "$::env(HOME)/dekatronpc/vhdl/DekatronPC/vtube_cells.lib"
 # # map to target architecture
 yosys read_liberty -lib $cell_lib 
 yosys dfflibmap -liberty $cell_lib 
