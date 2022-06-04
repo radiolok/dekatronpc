@@ -53,6 +53,20 @@ library(vtube_cells_lib) {
     pin(Y) { direction: output;
              function: "(A*B)"; }
   }
+  cell(AND2_invB) {
+    area: 1;
+    pin(A) { direction: input; }
+    pin(B) { direction: input; }
+    pin(Y) { direction: output;
+             function: "(A*(B'))"; }
+  }
+  cell(AND2_invB_NOT) {
+    area: 1;
+    pin(A) { direction: input; }
+    pin(B) { direction: input; }
+    pin(Y) { direction: output;
+             function: "(A*(B'))'"; }
+  }
   cell(AND3) {
     area: 2;
     pin(A) { direction: input; }
@@ -67,6 +81,20 @@ library(vtube_cells_lib) {
     pin(B) { direction: input; }
     pin(Y) { direction: output;
              function: "(A+B)"; }
+  }
+  cell(OR2_invB) {
+    area: 1;
+    pin(A) { direction: input; }
+    pin(B) { direction: input; }
+    pin(Y) { direction: output;
+             function: "(A+(B'))"; }
+  }
+  cell(OR2_invB_NOT) {
+    area: 1;
+    pin(A) { direction: input; }
+    pin(B) { direction: input; }
+    pin(Y) { direction: output;
+             function: "(A+(B'))'"; }
   }
   cell(OR3) {
     area: 2;
