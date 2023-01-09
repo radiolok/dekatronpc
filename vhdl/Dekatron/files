@@ -1,5 +1,7 @@
 ./dekatron.v
 ./dekatronPulseSender.v
 ./dekatronCarrySignal.sv
+./dekatronModule.sv
 ./BinToBdc.v
-./tb.v
+./Counter.sv
+./Counter_tb.v
