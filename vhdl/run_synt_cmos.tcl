@@ -28,6 +28,7 @@ yosys opt
 yosys memory
 yosys opt
 yosys fsm
+yosys flatten
 yosys opt
 #
 # # low-level synthesis
@@ -36,7 +37,7 @@ yosys opt
 #
 
 set yosys_path "$::env(HOME)/yosys"
-set cell_lib "$::env(HOME)/dekatronpc/vhdl/DekatronPC/vtube_cells.lib"
+set cell_lib "$::env(HOME)/dekatronpc/vhdl/vtube_cells.lib"
 # # map to target architecture
 yosys read_liberty -lib $cell_lib 
 yosys dfflibmap -liberty $cell_lib 
@@ -59,5 +60,5 @@ yosys write_ilang [lindex $argv 1]_ilang.txt
 yosys show -format dot -lib [lindex $argv 1]_synth.v -prefix [lindex $argv 1]
 yosys stat
 yosys stat -liberty $cell_lib 
-exec dot -Tsvg [lindex $argv 1].dot > [lindex $argv 1].svg
-yosys ltp
+#exec dot -Tsvg [lindex $argv 1].dot > [lindex $argv 1].svg
+#yosys ltp

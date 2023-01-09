@@ -14,12 +14,18 @@ cleanup() {
 }
 
 if [ "$#" -ne 2 ]; then
-      echo "Set <test_dir> <top_level_module>"
+      echo "Set <test_dir> <top_module_name>"
     exit
 fi
 
+
+
 current_dir=$(pwd)
+files_path=${current_dir}/${1}/files
 cd ${1}
-iverilog -cfiles -g2012 -s${2} -o${2}
-./${2}
+touch ${2}.txt
+chmod 777 ${2}.txt
+echo 'tcl '${script_dir}'/run_synt_cmos.tcl '${files_path}' '${2}'' > ${2}.txt
+cat ${2}.txt
+yosys < ${2}.txt
 cd ${current_dir}
