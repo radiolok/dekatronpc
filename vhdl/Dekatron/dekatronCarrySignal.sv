@@ -1,4 +1,5 @@
 module DekatronCarrySignal(
+    input wire Rst_n,
     input wire [9:0] In,
     output reg CarryLow,
     output reg CarryHigh
@@ -10,8 +11,8 @@ wire noCarryPin = In[1] | In[2] | In[3] | In[4] | In[5] | In[6] | In[7] | In[8];
 wire carryHighPin = In[9];
 
 always_latch begin
-    CarryLow <= carryLowPin ? 1'b1 : (noCarryPin | carryHighPin) ? 1'b0 : CarryLow;
-    CarryHigh <= carryHighPin ? 1'b1 : (noCarryPin | carryLowPin) ? 1'b0 : CarryHigh;
+    CarryLow <= Rst_n ? carryLowPin ? 1'b1 : (noCarryPin | carryHighPin) ? 1'b0 : CarryLow : 1'b0;
+    CarryHigh <= Rst_n ? carryHighPin ? 1'b1 : (noCarryPin | carryLowPin) ? 1'b0 : CarryHigh : 1'b0;
 end
  
 endmodule

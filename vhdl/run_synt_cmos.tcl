@@ -28,7 +28,7 @@ yosys opt
 yosys memory
 yosys opt
 yosys fsm
-yosys flatten
+#yosys flatten
 yosys opt
 #
 # # low-level synthesis

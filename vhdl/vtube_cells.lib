@@ -5,12 +5,14 @@ library(vtube_cells_lib) {
     area: 0.5;
     pin(A) { direction: input; }
     pin(Y) { direction: output;
+              driver_type : pull_up;
               function: "A"; }
   }
   cell(NOT) {
     area: 0.5;
     pin(A) { direction: input; }
     pin(Y) { direction: output;
+              driver_type : pull_up;
               function: "A'"; }
   }
   cell(NAND2) {
@@ -18,6 +20,7 @@ library(vtube_cells_lib) {
     pin(A) { direction: input; }
     pin(B) { direction: input; }
     pin(Y) { direction: output;
+             driver_type : pull_up;
              function: "(A*B)'"; }
   }
   cell(AND2) {
@@ -25,6 +28,7 @@ library(vtube_cells_lib) {
     pin(A) { direction: input; }
     pin(B) { direction: input; }
     pin(Y) { direction: output;
+            driver_type : pull_up;
              function: "(A*B)"; }
   }
   cell(OR2) {
@@ -32,6 +36,7 @@ library(vtube_cells_lib) {
     pin(A) { direction: input; }
     pin(B) { direction: input; }
     pin(Y) { direction: output;
+            driver_type : pull_up;
              function: "(A+B)"; }
   }  
   cell(MUX2) {
@@ -40,6 +45,7 @@ library(vtube_cells_lib) {
     pin(B) { direction: input; }
     pin(C) { direction: input; }
     pin(Y) { direction: output;
+            driver_type : pull_up;
              function: "(A*C+B*C')"; }
   }
   cell(NOR2) {
@@ -47,6 +53,7 @@ library(vtube_cells_lib) {
     pin(A) { direction: input; }
     pin(B) { direction: input; }
     pin(Y) { direction: output;
+            driver_type : pull_up;
              function: "(A+B)'"; }
   }
   cell(LATCH) {
@@ -57,6 +64,7 @@ library(vtube_cells_lib) {
                  clock: true; }
     pin(D) { direction: input; }
     pin(Q) { direction: output;
+            driver_type : pull_up;
               function: "IQ"; }
   }
   cell(DFF) {
@@ -67,6 +75,7 @@ library(vtube_cells_lib) {
                  clock: true; }
     pin(D) { direction: input; }
     pin(Q) { direction: output;
+            driver_type : pull_up;
               function: "IQ"; }
   }
   cell(DFFSR) {
@@ -79,6 +88,7 @@ library(vtube_cells_lib) {
                  clock: true; }
     pin(D) { direction: input; }
     pin(Q) { direction: output;
+            driver_type : pull_up;
               function: "IQ"; }
     pin(S) { direction: input; }
     pin(R) { direction: input; }

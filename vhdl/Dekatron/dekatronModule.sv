@@ -1,4 +1,7 @@
 (* keep_hierarchy = "yes" *) module dekatronModule(
+    input wire Rst_n,
+    input wire Clk,
+    input wire hsClk,
     input wire Set,
     input wire[1:0] Pulse,
     input wire[3:0] In,
@@ -18,6 +21,7 @@ BdcToBin bcdToBin(
 );
 
 dekatron dekatronV2(
+    .hsClk(hsClk),
     .PulseRight(Pulse[0]),
     .PulseLeft(Pulse[1]),
     .Set(Set),
@@ -31,6 +35,7 @@ BinToDbc binToDbc(
 );
 
 DekatronCarrySignal  dekatronCarrySignal(
+    .Rst_n(Rst_n),
     .In(OutPos),
     .CarryLow(CarryLow),
     .CarryHigh(CarryHigh)

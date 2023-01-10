@@ -1,4 +1,4 @@
-module ROM #(
+(* keep_hierarchy = "yes" *) module ROM #(
     parameter DEKATRON_NUM = 6,
     parameter DEKATRON_WIDTH = 3,
     parameter DATA_WIDTH = 4,

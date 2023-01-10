@@ -10,13 +10,12 @@ module DekatronPulseSender(
 
 reg [1:0] Pulses;
 
-assign PulsesOut = En ? Pulses : 2'b00;
-
 parameter PULSE_FAIL = 2'b11;
 parameter PULSE_RIGHT = 2'b01;
 parameter PULSE_LEFT = 2'b10;
 parameter PULSE_NONE = 2'b00;
 
+assign PulsesOut = En ? Pulses : PULSE_NONE;
 
 assign Ready = ~Pulses[0] & ~Pulses[1];
 
@@ -25,26 +24,21 @@ always @(posedge Clk, negedge Rst_n) begin
         Pulses <= PULSE_NONE;
     end
     else begin
-        if (En) begin
-            case (Pulses)
-                PULSE_FAIL: begin 
-                    //Prohibited state!
-                    Pulses <= PULSE_NONE;
-                end
-                PULSE_RIGHT: begin
-                    Pulses <= Dec ? PULSE_NONE : PULSE_LEFT;
-                end
-                PULSE_LEFT: begin
-                    Pulses <= Dec ? PULSE_RIGHT : PULSE_NONE;
-                end
-                PULSE_NONE: begin
-                    Pulses <= Dec ? PULSE_LEFT : PULSE_RIGHT;
-                end
-            endcase
-        end
-        else 
-            Pulses <= PULSE_NONE;
-            
+        case (Pulses)
+            PULSE_FAIL: begin 
+                //Prohibited state!
+                Pulses <= PULSE_NONE;
+            end
+            PULSE_RIGHT: begin
+                Pulses <= Dec ? PULSE_NONE : PULSE_LEFT;
+            end
+            PULSE_LEFT: begin
+                Pulses <= Dec ? PULSE_RIGHT : PULSE_NONE;
+            end
+            PULSE_NONE: begin
+                Pulses <= Dec ? PULSE_LEFT : PULSE_RIGHT;
+            end
+        endcase
     end
 end
 endmodule

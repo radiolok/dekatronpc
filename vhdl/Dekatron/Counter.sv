@@ -8,6 +8,9 @@ module Counter #(
 	input wire Rst_n,
 	input wire Clk,
 
+	//highSpeed Clock to emulate delay of dekatron circuits. Clk is hsClk/10
+	input wire hsClk,
+
 	// All changes start on Request
     //If Set == 1, Out <= In
     //If Dec = 1, Out <= Out-1
@@ -56,6 +59,9 @@ for (d = 0; d < D_NUM; d++) begin: dek
 		assign pulses = dek[d-1].npulses;
 	end
 	dekatronModule dModule (
+		.Rst_n(Rst_n),
+		.Clk(Clk),
+		.hsClk(hsClk),
 		.Set(Set),
 		.Pulse(pulses),
 		.In(In[D_WIDTH*(d+1)-1:D_WIDTH*d]),

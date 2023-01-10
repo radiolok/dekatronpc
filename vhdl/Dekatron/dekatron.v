@@ -1,5 +1,6 @@
 module dekatron(
     /**/
+    input wire hsClk,
     input wire PulseRight,
 	input wire PulseLeft,
     input wire Set,
@@ -9,7 +10,7 @@ module dekatron(
 );
 
 //Main wire state:
-reg [29:0] Cathodes;
+reg [29:0] Cathodes=30'b1;
 
 //Multiplexed state signals:
 
@@ -49,11 +50,7 @@ wire [29:0] InLong = {{2'b00}, In[9], 2'b00, In[8],
                     2'b00, In[3], 2'b00, In[2], 
                     2'b00, In[1], 2'b00, In[0]};
 
-wire Pulse = PulseLeft | PulseRight;
-
-wire trig = ~Pulse | PulseLeft | PulseRight | Set;
-
-always @(posedge trig)
+always @(posedge hsClk)
  begin
     if (PulseRight) begin
         Cathodes <= Set ? InLong : 

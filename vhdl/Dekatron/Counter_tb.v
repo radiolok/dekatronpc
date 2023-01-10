@@ -3,7 +3,9 @@ module counter_tb #(
     parameter COUNT_DELAY = 3//delay in clockticks between Req and Rdy
 );
 
-reg Clk;
+
+reg hsClk;
+wire Clk;
 reg Rst_n;
 
 reg Request;
@@ -15,10 +17,18 @@ wire Ready;
 
 wire [D_NUM*4-1:0] Out;
 
+
+Clock_divider #(.DIVISOR(10)) clock_divider_10(
+    .Rst_n(Rst_n),
+    .clock_in(hsClk),
+    .clock_out(Clk)
+);
+
 Counter  #(.D_NUM(D_NUM),
             .COUNT_DELAY(COUNT_DELAY))
             counter(
                 .Clk(Clk),
+                .hsClk(hsClk),
                 .Rst_n(Rst_n),
                 .Request(Request),
                 .Dec(Dec),
@@ -33,8 +43,8 @@ Counter  #(.D_NUM(D_NUM),
 initial begin
     $dumpfile("Counter.vcd");
     $dumpvars(0, counter_tb);
-    Clk = 1'b0;
-    forever #1 Clk = ~Clk;
+    hsClk = 1'b0;
+    forever #1 hsClk = ~hsClk;
 end
 
 initial begin
@@ -55,7 +65,8 @@ initial begin
     #(COUNT_DELAY*39*2)
     if (Out != 0) $display($time, "<< Count up/down mistmatch! >>");
 	$display($time, "<< Simulation Complete >>");
-	$stop;
+	
+    $finish;
 end
 
 always @(negedge Clk, Rst_n) begin
