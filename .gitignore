@@ -3,6 +3,7 @@ vhdl/share/
 *.dch~
 *.raw
 *.log
+*.png
 *.bak
 *work/
 *.gbr
@@ -14,3 +15,9 @@ vhdl/share/
 *.drl
 *.step
 *.stl
+*.dot
+*.vcd
+*_synth.v
+*_ilang.txt
+*.svg
+*.txt
