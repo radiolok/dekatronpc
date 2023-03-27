@@ -12,6 +12,7 @@
 );
 
 wire [9:0] InPos;
+wire [9:0] InPosDek;
 wire[9:0] OutPos;
 assign Zero = OutPos[0];
 
@@ -20,12 +21,13 @@ BdcToBin bcdToBin(
     .Out(InPos)
 );
 
+input wire[3:0] InPosDek = Set? InPos : 4'b0;
+
 dekatron dekatronV2(
     .hsClk(hsClk),
     .PulseRight(Pulse[0]),
     .PulseLeft(Pulse[1]),
-    .Set(Set),
-    .In(InPos),
+    .In(InPosDek),
     .Out(OutPos)
 );
 

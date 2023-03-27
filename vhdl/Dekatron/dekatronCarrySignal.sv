@@ -7,7 +7,7 @@ module DekatronCarrySignal(
 /*This module generates carry signal for full 10-position widh dekatron*/
 
 wire carryLowPin = In[0];
-wire noCarryPin = In[1] | In[2] | In[3] | In[4] | In[5] | In[6] | In[7] | In[8];
+wire noCarryPin = |In[1:8];
 wire carryHighPin = In[9];
 
 always_latch begin

@@ -28,7 +28,8 @@ Counter  #(.DEKATRON_NUM(DEKATRON_NUM),
                 .Out(Out)
             );
 
-
+initial begin $dumpfile("counter_tb.vcd"); 
+$dumpvars(0,counter_tb); end
 
 initial begin
     Clk = 1'b0;

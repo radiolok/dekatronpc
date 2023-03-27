@@ -1,12 +1,9 @@
 module dekatron(
-    /**/
     input wire hsClk,
     input wire PulseRight,
 	input wire PulseLeft,
-    input wire Set,
     input wire [9:0] In,
-    output wire[9:0] Out,
-    output wire Ready
+    output wire [9:0] Out
 );
 
 //Main wire state:
@@ -41,7 +38,6 @@ assign Out[7] = Cathodes[21];
 assign Out[8] = Cathodes[24];
 assign Out[9] = Cathodes[27];
 
-assign Ready = CathodeGlow & ~PulseLeft & ~PulseRight;
 
 //Internal extended InLong signal is used for Writing operation
 wire [29:0] InLong = {{2'b00}, In[9], 2'b00, In[8], 
@@ -53,17 +49,17 @@ wire [29:0] InLong = {{2'b00}, In[9], 2'b00, In[8],
 always @(posedge hsClk)
  begin
     if (PulseRight) begin
-        Cathodes <= Set ? InLong : 
+        Cathodes <= (|In) ? InLong : 
             CathodeGlow ? {Cathodes[28:0], Cathodes[29]} :
                     GuideLeftGlow ? {Cathodes[0], Cathodes[29:1]} : Cathodes;
     end
     else if (PulseLeft) begin
-        Cathodes <= Set ? InLong : 
+        Cathodes <= (|In) ? InLong : 
             CathodeGlow ? {Cathodes[0], Cathodes[29:1]}:
             GuideRightGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
     end
     else begin
-        Cathodes <= Set ? InLong : GuideRightGlow ? {Cathodes[0], Cathodes[29:1]}:
+        Cathodes <= (|In) ? InLong : GuideRightGlow ? {Cathodes[0], Cathodes[29:1]}:
         GuideLeftGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
     end
  end
