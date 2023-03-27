@@ -9,13 +9,13 @@ reg Rst_n;
 reg Request;
 reg Dec;
 reg Set;
-reg [DEKATRON_NUM*3-1:0] In;
+reg [DEKATRON_NUM*4-1:0] In;
 
 wire Ready;
 
-wire [DEKATRON_NUM*3-1:0] Out;
+wire [DEKATRON_NUM*4-1:0] Out;
 
-Counter  #(.DEKATRON_NUM(DEKATRON_NUM),
+DekCounter  #(.D_NUM(DEKATRON_NUM),
             .COUNT_DELAY(COUNT_DELAY))
             counter(
                 .Clk(Clk),
@@ -54,7 +54,7 @@ initial begin
     #(COUNT_DELAY*39*2)
     if (Out != 0) $display($time, "<< Count up/down mistmatch! >>");
 	$display($time, "<< Simulation Complete >>");
-	$stop;
+	$finish;
 end
 
 always @(negedge Clk, Rst_n) begin

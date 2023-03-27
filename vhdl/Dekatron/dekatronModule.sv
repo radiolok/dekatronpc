@@ -12,16 +12,15 @@
 );
 
 wire [9:0] InPos;
-wire [9:0] InPosDek;
 wire[9:0] OutPos;
 assign Zero = OutPos[0];
 
-BdcToBin bcdToBin(
+BcdToBin bcdToBin(
     .In(In),
     .Out(InPos)
 );
 
-input wire[3:0] InPosDek = Set? InPos : 4'b0;
+wire[9:0] InPosDek = Set? InPos : 4'b0;
 
 dekatron dekatronV2(
     .hsClk(hsClk),
@@ -31,7 +30,7 @@ dekatron dekatronV2(
     .Out(OutPos)
 );
 
-BinToDbc binToDbc(
+BinToBcd binToDbc(
     .In(OutPos),
     .Out(Out)
 );

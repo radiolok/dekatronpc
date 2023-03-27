@@ -1,4 +1,4 @@
-module BinToDcd(
+module BinToBcd(
     input wire [9:0] In,//position
     output wire [3:0] Out//8-4-2-1
     );
@@ -12,7 +12,7 @@ endmodule
 
 module BcdToBin(
     input wire [3:0] In,//8-4-2-1
-    output wire [9:0] Out//position
+    output reg [9:0] Out//position
 );
    
 always @(*)
