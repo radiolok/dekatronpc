@@ -1,6 +1,5 @@
 (* keep_hierarchy = "yes" *) module DekatronModule(
     input wire Rst_n,
-    input wire Clk,
     input wire hsClk,
     input wire Set,
     input wire[1:0] Pulse,

@@ -1,13 +1,16 @@
-module looptest(Address, Data);
+module looptest #(
+  parameter portSize = 8,
+  parameter dataSize = 4
+)(Address, Data);
 
-parameter portSize = 8;
-parameter dataSize = 4;
 
+/* verilator lint_off UNUSEDSIGNAL */
 input logic [portSize-1:0] Address;
+/* verilator lint_on UNUSEDSIGNAL */
 output logic [dataSize-1:0] Data;
 
 always_comb
-  case(Address)
+  case(Address[7:0])
     8'b0000: Data = {4'b0010}; //+
     8'b0001: Data = {4'b0010}; //+
     8'b0010: Data = {4'b0010}; //+

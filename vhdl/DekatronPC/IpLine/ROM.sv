@@ -1,13 +1,12 @@
 (* keep_hierarchy = "yes" *) module ROM #(
-    parameter DEKATRON_NUM = 6,
-    parameter DEKATRON_WIDTH = 3,
-    parameter DATA_WIDTH = 4,
-    parameter COUNT_DELAY = 2//delay in clockticks between Req and Rdy
+    parameter D_NUM = 6,
+    parameter D_WIDTH = 4,
+    parameter DATA_WIDTH = 4
 )(
     input wire Clk, 
     input wire Rst_n, 
 
-    input wire [DEKATRON_NUM*DEKATRON_WIDTH-1:0] Address, 
+    input wire [D_NUM*D_WIDTH-1:0] Address, 
     output reg[DATA_WIDTH-1:0] Insn,
 
     input wire Request,
@@ -17,8 +16,11 @@
 wire [DATA_WIDTH-1:0] ActiveInsn;
 
 //`ifdef LOOP_TEST
-    looptest storage(.Address(Address),
-                        .Data(ActiveInsn));
+    looptest #(
+        .portSize(D_NUM*D_WIDTH)
+        ) storage(
+            .Address(Address),
+            .Data(ActiveInsn));
 //`else
 //    helloworld storage(.Address(Address),
 //                        .Data(ActiveInsn));
@@ -42,4 +44,3 @@ always @(negedge Clk, negedge Rst_n)
         end
     end
 endmodule
-
