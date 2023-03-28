@@ -1,31 +1,52 @@
+module RsLatch(
+    input wire Rst_n,
+    input wire S,
+    input wire R,
+    output reg Q
+);
+
+always_latch begin
+    if (~Rst_n)
+	Q = 1'b0;
+    else
+        if (S)
+	    Q = 1'b1;
+        if (R)
+	    Q = 1'b0;
+end
+
+
+endmodule
+
 module DekatronCarrySignal(
     input wire Rst_n,
     input wire [9:0] In,
-    output reg CarryLow,
-    output reg CarryHigh
+    output wire CarryLow,
+    output wire CarryHigh
 ); 
 /*This module generates carry signal for full 10-position width dekatron*/
 
-wire carryLowPin = In[0];
-wire noCarryPin = |In[8:1];
-wire carryHighPin = In[9];
+wire carryLowSet = In[0];
+wire noCarrySet = |In[8:1];
+wire carryHighSet = In[9];
 
-always_latch begin
-	if (Rst_n) 
-	begin
-		CarryLow <= 0;
-		CarryHigh <=0;
-	end
-	else begin
-		if (carryHighPin | noCarryPin)
-		
+wire carryLowRst = carryHighSet | noCarrySet;
+wire carryHighRst = carryLowSet | noCarrySet;
 
-	end
-
-    CarryLow <= Rst_n ? carryLowPin ? 1'b1 : (noCarryPin | carryHighPin) ? 1'b0 : CarryLow : 1'b0;
-    CarryHigh <= Rst_n ? carryHighPin ? 1'b1 : (noCarryPin | carryLowPin) ? 1'b0 : CarryHigh : 1'b0;
-end
+RsLatch carryLowLatch(
+	.Rst_n(Rst_n),
+	.S(carryLowSet),
+	.R(carryLowRst),
+	.Q(CarryLow)
+);
  
+RsLatch carryHighLatch(
+	.Rst_n(Rst_n),
+	.S(carryHighSet),
+	.R(carryHighRst),
+	.Q(CarryHigh)
+);
+
 endmodule
 
 
