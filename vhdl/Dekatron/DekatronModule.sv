@@ -1,4 +1,4 @@
-(* keep_hierarchy = "yes" *) module dekatronModule(
+(* keep_hierarchy = "yes" *) module DekatronModule(
     input wire Rst_n,
     input wire Clk,
     input wire hsClk,
@@ -20,9 +20,9 @@ BcdToBin bcdToBin(
     .Out(InPos)
 );
 
-wire[9:0] InPosDek = Set? InPos : 4'b0;
+wire[9:0] InPosDek = Set? InPos : 10'b0;
 
-dekatron dekatronV2(
+Dekatron dekatronV2(
     .hsClk(hsClk),
     .PulseRight(Pulse[0]),
     .PulseLeft(Pulse[1]),

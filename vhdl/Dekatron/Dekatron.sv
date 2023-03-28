@@ -1,4 +1,4 @@
-module dekatron(
+module Dekatron(
     input wire hsClk,
     input wire PulseRight,
 	input wire PulseLeft,

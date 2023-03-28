@@ -1,4 +1,4 @@
-module dekatronPulseAllow(
+module DekatronPulseAllow(
     input wire CarryLow,
     input wire CarryHigh,
     input wire Dec,//High if Dec
@@ -7,7 +7,4 @@ module dekatronPulseAllow(
     //Output pulses:
     output wire [1:0] PulsesOut
 );
-
-
-
 endmodule
