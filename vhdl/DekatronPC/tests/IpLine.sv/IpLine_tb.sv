@@ -9,7 +9,7 @@ initial begin
     hsClk = 1'b1;
     forever #1 hsClk = ~hsClk;
 end
-parameter TEST_NUM=2000;
+parameter TEST_NUM=20000;
 reg [$clog2(TEST_NUM):0] test_num=TEST_NUM;
 ClockDivider #(
     .DIVISOR(10)
@@ -46,6 +46,15 @@ reg [31:0] INSN_RETIRED;
 assign dataIsZeroed = (Data == 0);
 
 
+reg [31:0] CLOCK_TICK;
+
+always @(posedge Clk) begin
+  if (~Rst_n) begin
+    CLOCK_TICK <= 0;
+  end
+   else 
+    CLOCK_TICK <= CLOCK_TICK + 1;
+end
 initial begin 
 Rst_n <= 0;
 Data <= 0;
@@ -53,6 +62,7 @@ Busy <= 0;
 
 #5 
 Rst_n <= 1;
+
 
 for (integer i = 0; i < TEST_NUM; i++) begin
 
@@ -66,7 +76,7 @@ for (integer i = 0; i < TEST_NUM; i++) begin
   case (Insn)
   4'b0010: Data <= Data + 1;
   4'b0011: Data <= Data - 1;
-  4'b0001: $finish;
+  4'b0001: begin $display ("CLOCKTICK: %d", CLOCK_TICK); $finish; end
   endcase
 
 end

@@ -16,6 +16,7 @@
 wire [DATA_WIDTH-1:0] ActiveInsn;
 
 //`ifdef LOOP_TEST
+//    helloworld #(
     looptest #(
         .portSize(D_NUM*D_WIDTH)
         ) storage(

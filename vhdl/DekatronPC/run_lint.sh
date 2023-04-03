@@ -17,6 +17,7 @@ SourceFiles="IpLine/IpLine.sv \
 	Dekatron/DekatronPulseAllow.sv  \
 	Dekatron/DekatronPulseSender.sv \
 	../programs/looptest/looptest.sv \
+	../programs/helloworld/helloworld.sv \
 	../Logic/RsLatch.sv \
 	../Logic/ClockDivider.sv"
 
