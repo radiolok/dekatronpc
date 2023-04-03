@@ -27,6 +27,6 @@ echo "Dekatron Test"
 iverilog -g2012 -o DekatronUT -s Dekatron_tb tests/Dekatron.sv/Dekatron_tb.sv $SourceFiles
 ./DekatronUT
 
-exit
-echo "IpCounter Test"
-iverilog -g2012 -o IpCounter -s IpCounter_tb.sv tb/IpCounter_tb.sv $SourceFiles
+echo "Counter Test"
+iverilog -g2012 -o CounterUT -s Counter_tb tests/Counter.sv/Counter_tb.sv $SourceFiles
+./CounterUT

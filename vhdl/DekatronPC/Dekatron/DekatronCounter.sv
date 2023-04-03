@@ -1,9 +1,7 @@
 module DekatronCounter #(
 	parameter D_NUM = 6,
 	parameter D_WIDTH = 4, 
-	parameter WIDTH=D_NUM*D_WIDTH,
-
-	parameter COUNT_DELAY = 3//delay in clockticks between Req and Rdy
+	parameter WIDTH=D_NUM*D_WIDTH
 )(
 	input wire Rst_n,
 	input wire Clk,
@@ -34,14 +32,11 @@ assign Zero = & Zeroes;
 
 wire [1:0] Pulses;
 
-reg [COUNT_DELAY-1:0] delay_shifter;
-reg Busy;
-
-assign Ready = ~ Busy;
+assign Ready = ~Request & ~(&Pulses) & ((|Out) | Zero) ;
 
 DekatronPulseSender pulseSender(
 	.Clk(Clk),
-	.hsClk(Clk),
+	.hsClk(hsClk),
 	.Rst_n(Rst_n),
 	.En(Busy),
 	.Dec(Dec),
@@ -74,25 +69,15 @@ for (d = 0; d < D_NUM; d++) begin: dek
 	);
 
 	assign npulses = ((CarryHigh & !Dec) | (CarryLow & Dec)) ? pulses : 2'b0;
+end
+/* verilator lint_off UNOPTFLAT */
+reg Busy;
+/* verilator lint_on UNOPTFLAT */
 
+always_latch begin
+    if (Request) Busy = 1'b1;
+    if (Ready) Busy = 1'b0;
 end
 
-always @(posedge Clk, negedge Rst_n)
-    begin
-       if (~Rst_n) begin
-           delay_shifter <= {{(COUNT_DELAY-1){1'b0}}, 1'b1};
-           Busy <= 1'b0;
-       end
-       else begin
-           if (Busy) begin // Simulate internal logic delay.
-               delay_shifter <= {delay_shifter[0], delay_shifter[COUNT_DELAY-1:1]};
-               Busy <= ~delay_shifter[0];
-           end
-           if (~Busy & Request) begin
-               delay_shifter <= {delay_shifter[0], delay_shifter[COUNT_DELAY-1:1]};
-               Busy <= 1'b1;
-           end
-       end
-    end
 
 endmodule

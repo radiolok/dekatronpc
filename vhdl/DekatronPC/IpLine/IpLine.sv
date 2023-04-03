@@ -68,8 +68,7 @@ wire Loop_Zero;
 
 DekatronCounter  #(
             .D_NUM(LOOP_DEKATRON_NUM),
-            .D_WIDTH(DEKATRON_WIDTH),
-            .COUNT_DELAY(3)
+            .D_WIDTH(DEKATRON_WIDTH)
             )Loop_counter(
                 .Clk(Clk),
                 .hsClk(hsClk),

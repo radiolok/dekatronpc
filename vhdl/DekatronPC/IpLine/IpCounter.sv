@@ -1,7 +1,6 @@
 module IpCounter #(
     parameter DEKATRON_NUM = 6,
     parameter DEKATRON_WIDTH = 4,
-    parameter COUNT_DELAY = 3,//delay in clockticks between Req and Rdy
     parameter INSN_WIDTH = 4
 )(	
 	input wire Clk,
@@ -24,8 +23,7 @@ reg IP_Request;
 wire IP_Ready;
 
 DekatronCounter  #(
-            .D_NUM(DEKATRON_NUM),
-            .COUNT_DELAY(COUNT_DELAY)
+            .D_NUM(DEKATRON_NUM)
             )IP_counter(
                 .Clk(Clk),
                 .hsClk(hsClk),
