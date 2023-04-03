@@ -34,15 +34,21 @@ initial begin
     Dec <= 0;
     #2 
     In <= 10'b0;
-    #10 Rst_n <= 1;
+    #2 Rst_n <= 1;
     $display("Count Forward\n");
+    repeat(1) @(posedge Clk)
     for (integer i=0; i < test_num; i++) begin
     En <= 1 ;
     repeat(1) @(posedge Clk)
-    #1
 	$display("test %d: Out: %x", i, Out);
-
     end
+    Dec <= 1;
+    $display("Count Reverse\n");
+    for (integer i=0; i < test_num; i++) begin
+    repeat(1) @(posedge Clk)
+	$display("test %d: Out: %x", i, Out);
+    end
+    if (Out != data) $fatal;
     $finish;
 end
 ClockDivider #(
