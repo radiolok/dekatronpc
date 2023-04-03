@@ -1,44 +1,38 @@
 module DekatronPulseSender(
     //Each Step cause +1 or -1(if Dec) or storing In value(if Set)
+/* verilator lint_off UNUSEDSIGNAL */
     input wire Clk,    
-    input wire Rst_n,
-	input wire En,
+/* verilator lint_on UNUSEDSIGNAL */
+    input wire hsClk,    
+    input wire Rst_n,    
+    input wire En,
     input wire Dec,//1 for Dec
-    output wire [1:0 ]PulsesOut,
-    output wire Ready
+    output wire [1:0 ]PulsesOut
 );
 
-reg [1:0] Pulses;
+parameter HSCLK_DIV=10;
+reg [HSCLK_DIV-1:0] pulseA;
+reg [HSCLK_DIV-1:0] pulseB;
 
-parameter PULSE_FAIL = 2'b11;
-parameter PULSE_RIGHT = 2'b01;
-parameter PULSE_LEFT = 2'b10;
-parameter PULSE_NONE = 2'b00;
+always @(posedge hsClk, Rst_n) begin
+	if (~Rst_n) begin
+	pulseA <= 10'b0011100000;		
+	pulseB <= 10'b0000011100;		
+	end
+	else begin
+	pulseA <= {pulseA[HSCLK_DIV-2:0], pulseA[HSCLK_DIV-1]};	
+	pulseB <= {pulseB[HSCLK_DIV-2:0], pulseB[HSCLK_DIV-1]};	
+	end
 
-assign PulsesOut = En ? Pulses : PULSE_NONE;
 
-assign Ready = ~Pulses[0] & ~Pulses[1];
-
-always @(posedge Clk, negedge Rst_n) begin
-    if (~Rst_n) begin
-        Pulses <= PULSE_NONE;
-    end
-    else begin
-        case (Pulses)
-            PULSE_FAIL: begin 
-                //Prohibited state!
-                Pulses <= PULSE_NONE;
-            end
-            PULSE_RIGHT: begin
-                Pulses <= Dec ? PULSE_NONE : PULSE_LEFT;
-            end
-            PULSE_LEFT: begin
-                Pulses <= Dec ? PULSE_RIGHT : PULSE_NONE;
-            end
-            PULSE_NONE: begin
-                Pulses <= Dec ? PULSE_LEFT : PULSE_RIGHT;
-            end
-        endcase
-    end
 end
+
+wire pA = pulseA[HSCLK_DIV-1];
+wire pB = pulseB[HSCLK_DIV-1];
+
+wire PulseRight = Dec? pB : pA;
+wire PulseLeft = Dec? pA : pB;
+
+assign PulsesOut = En? {PulseRight, PulseLeft} : 2'b00;
+
 endmodule

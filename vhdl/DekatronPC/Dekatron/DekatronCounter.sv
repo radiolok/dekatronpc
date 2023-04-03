@@ -21,7 +21,7 @@ module DekatronCounter #(
 
     input wire [WIDTH-1:0] In,
 
-	output wire Ready,
+    output wire Ready,
     output wire Zero,
 	output reg [WIDTH-1:0] Out
 );
@@ -37,14 +37,15 @@ wire [1:0] Pulses;
 reg [COUNT_DELAY-1:0] delay_shifter;
 reg Busy;
 
+assign Ready = ~ Busy;
 
 DekatronPulseSender pulseSender(
 	.Clk(Clk),
+	.hsClk(Clk),
 	.Rst_n(Rst_n),
 	.En(Busy),
 	.Dec(Dec),
-	.PulsesOut(Pulses),
-	.Ready(Ready)
+	.PulsesOut(Pulses)
 );
 
 for (d = 0; d < D_NUM; d++) begin: dek

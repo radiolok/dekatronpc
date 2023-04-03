@@ -1,17 +1,51 @@
-module dekatron_tb(
+`timescale 100 ns / 100 ps
+module Dekatron_tb(
 );
 parameter WIDTH=10;
+parameter TEST_NUM=20;
+reg [$clog2(TEST_NUM):0] test_num=TEST_NUM;
+
 reg hsClk;
 reg Clk;
-reg PulseRight;
-reg PulseLeft;
-reg [WIDTH-1:0] In;
-wire[WIDTH-1:0] Out;
 reg Rst_n;
 
-wire Ready = |Out & ~PulseLeft & ~PulseRight;
+wire PulseRight;
+wire PulseLeft;
+reg [WIDTH-1:0] In;
+wire[WIDTH-1:0] Out;
 
-Clock_divider #(
+wire Ready = |Out & ~PulseLeft & ~PulseRight;
+reg En;
+reg Dec;
+reg [9:0] data = 10'b1;
+
+initial begin $dumpfile("dekatron_tb.vcd"); 
+$dumpvars(0,Dekatron_tb); end
+
+initial begin
+    hsClk = 1'b1;
+    forever #1 hsClk = ~hsClk;
+end
+
+initial begin
+    In <= 10'b1;
+    Rst_n <= 0;
+    En <= 0;
+    Dec <= 0;
+    #2 
+    In <= 10'b0;
+    #10 Rst_n <= 1;
+    $display("Count Forward\n");
+    for (integer i=0; i < test_num; i++) begin
+    En <= 1 ;
+    repeat(1) @(posedge Clk)
+    #1
+	$display("test %d: Out: %x", i, Out);
+
+    end
+    $finish;
+end
+ClockDivider #(
     .DIVISOR(10)
 ) clock_divider_ms(
     .Rst_n(Rst_n),
@@ -19,7 +53,16 @@ Clock_divider #(
 	.clock_out(Clk)
 );
 
-dekatron  dek(
+DekatronPulseSender dekatronPulseSender(
+    .Clk(Clk),
+    .hsClk(hsClk),
+    .Rst_n(Rst_n),
+    .En(En),
+    .PulsesOut({PulseRight, PulseLeft}),
+    .Dec(Dec)
+);
+
+Dekatron  dek(
     .hsClk(hsClk),
     .PulseRight(PulseRight),
     .PulseLeft(PulseLeft),
@@ -27,35 +70,5 @@ dekatron  dek(
     .Out(Out)
 );
 
-initial begin $dumpfile("dekatron_tb.vcd"); 
-$dumpvars(0,dekatron_tb); end
-
-initial begin
-    hsClk = 1'b0;
-    forever #1 hsClk = ~hsClk;
-end
-
-initial begin
-    PulseRight <= 0;
-    PulseLeft <= 0;
-    In <= 10'b0;
-    Rst_n <= 0;
-    #1  Rst_n <= 1;
-end
-
-reg [20:0]test_num=10;
-
-reg [9:0] data = 10'b1;
-
-always @(posedge Clk, Rst_n) begin
-    if (Rst_n) begin
-        test_num <=test_num-1;
-        if (test_num==0) $finish;
-        data <= {data[8:0], data[9]};
-        In <=  data;
-        #3 
-        In <= 10'b0;
-        end
-end
 
 endmodule
