@@ -112,15 +112,19 @@ def GenerateHeader(fileIn, fileName, fileSize, fileOut, width = 4):
         portSize = 24 - int(width /2)
     fileOut.write("parameter portSize = %d;\n" % (portSize))
     fileOut.write("parameter dataSize = %d;\n\n" % (width * 4))
+    fileOut.write("/* verilator lint_off UNUSEDSIGNAL */\n")
     fileOut.write("input logic [portSize-1:0] Address;\n")
+    fileOut.write("/* verilator lint_on UNUSEDSIGNAL */\n")
     fileOut.write("output logic [dataSize-1:0] Data;\n\n")
     fileOut.write("always_comb\n")
+    fileOut.write("/* verilator lint_off WIDTHEXPAND */\n")
     fileOut.write("  case(Address)\n")
     return portSize
 
 def GenerateFooter(fileIn, fileOut):
     fileOut.write("    default: Data = {dataSize{1'b0}};\n")
     fileOut.write("  endcase\n\n")
+    fileOut.write("/* verilator lint_on WIDTHEXPAND */\n")
     fileOut.write("endmodule\n")
     return 0
 
@@ -178,4 +182,4 @@ if __name__ == '__main__':
         print("Generate rom from: %s" %(filePath))        
         resultPath = os.path.splitext(filePath)[0] + ".sv"
         print("Generate file: %s" % (resultPath))
-        Generate(filePath, resultPath, args.width, args.radix)
+        Generate(filePath, resultPath, args.width, int(args.radix))

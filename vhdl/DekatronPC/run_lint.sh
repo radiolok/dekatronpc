@@ -30,3 +30,7 @@ iverilog -g2012 -o DekatronUT -s Dekatron_tb tests/Dekatron.sv/Dekatron_tb.sv $S
 echo "Counter Test"
 iverilog -g2012 -o CounterUT -s Counter_tb tests/Counter.sv/Counter_tb.sv $SourceFiles
 ./CounterUT
+
+echo "IpLine Test"
+iverilog -g2012 -o IpLineUT -s IpLine_tb tests/IpLine.sv/IpLine_tb.sv $SourceFiles
+./IpLineUT
