@@ -14,7 +14,7 @@ parameter HSCLK_DIV=10;
 reg [HSCLK_DIV-1:0] pulseA;
 reg [HSCLK_DIV-1:0] pulseB;
 
-always @(posedge hsClk, Rst_n) begin
+always @(posedge hsClk, negedge Rst_n) begin
 	if (~Rst_n) begin
 	pulseA <= 10'b0011100000;		
 	pulseB <= 10'b0000011100;		
