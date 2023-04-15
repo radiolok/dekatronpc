@@ -1,25 +1,37 @@
 module ApLine #(
     parameter AP_DEKATRON_NUM = 5,
     parameter DATA_DEKATRON_NUM = 3,
-    parameter DEKATRON_WIDTH = 4,
-    parameter INSN_WIDTH = 4
+    parameter DEKATRON_WIDTH = 4
 )(
     input wire Rst_n,
     input wire Clk,
     input wire hsClk,
 
-    output wire dataIsZeroed, 
+    output wire DataZero,
+    output wire ApZero,
 
-    input wire Request,
+    input wire ApRequest,
+    input wire DataRequest,
+    input wire Dec,
+    
     output wire Ready,
+
+    output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Address,
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data
 );
 
 reg AP_Request;
 wire AP_Ready;
-wire AP_Zero;
-reg AP_Dec;
-wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Address;
+reg WE;
+reg Data_Request;
+reg Data_Set;
+wire Data_Ready;
+reg MemLock;
+
+
+assign Ready = AP_Ready & Data_Ready;
+
+assign Data = MemLock? DataCntRoRam : DataRamToCnt;
 
 DekatronCounter  #(
             .D_NUM(AP_DEKATRON_NUM),
@@ -29,36 +41,30 @@ DekatronCounter  #(
                 .hsClk(hsClk),
                 .Rst_n(Rst_n),
                 .Request(AP_Request),
-                .Dec(AP_Dec),
+                .Dec(Dec),
                 .Set(1'b0),
                 .In({(AP_DEKATRON_NUM*DEKATRON_WIDTH){1'b0}}),
                 .Ready(AP_Ready),
                 .Out(Address),
-                .Zero(AP_Zero)
+                .Zero(ApZero)
             );
 
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DataCntRoRam;
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DataRamToCnt;
 
-reg WE_n;
-reg CS;
 
 RAM #(
-    .ROWS(30000),
-    .DATA_WIDTH(8)
+    .ROWS(170393),
+    .DATA_WIDTH(12)
 ) ram(
     .Clk(Clk),
     .Rst_n(Rst_n),
-    .Address(Address),
+    .Address(Address[17:0]),
     .In(DataCntRoRam),
     .Out(DataRamToCnt),
-    .WE_n(WE_n),
-    .CS(CS)
+    .WE(WE),
+    .CS(1'b1)
 );
-
-reg Data_Request;
-reg Data_Dec;
-wire Data_Ready;
 
 DekatronCounter  #(
             .D_NUM(DATA_DEKATRON_NUM),
@@ -68,27 +74,86 @@ DekatronCounter  #(
                 .hsClk(hsClk),
                 .Rst_n(Rst_n),
                 .Request(Data_Request),
-                .Dec(Data_Dec),
-                .Set(1'b0),
+                .Dec(Dec),
+                .Set(Data_Set),
                 .In(DataRamToCnt),
                 .Ready(Data_Ready),
-                /* verilator lint_off PINCONNECTEMPTY */
                 .Out(DataCntRoRam),
-                /* verilator lint_on PINCONNECTEMPTY */
-                .Zero(dataIsZeroed)
+                .Zero(DataZero)
             );
+
+
+
+parameter [3:0]
+    IDLE     =  4'b0001,
+    LOAD     =  4'b0010,
+    STORE    =  4'b0100,
+    COUNT     = 4'b1000;
+
+reg [3:0] currentState;
 
 always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
         AP_Request <= 1'b0;
         Data_Request <= 1'b0;
-        AP_Dec <= 1'b0;
-        Data_Dec <= 1'b0;
-        WE_n <= 1'b0;
-        CS <= 1'b0;
+        WE <= 1'b0;
+        MemLock <= 1'b0;
+        Data_Set <= 1'b0;
+        currentState <= IDLE;
     end
-
+    else begin
+        case (currentState)
+            IDLE: begin
+                if (ApRequest) begin
+                    if (MemLock) begin 
+                        currentState <= STORE;
+                        WE <= 1'b1;
+                    end
+                    else begin
+                        currentState <= COUNT;
+                        AP_Request <= 1'b1;
+                    end                    
+                end
+                if (DataRequest) begin
+                    if (~MemLock) begin
+                        currentState <= LOAD;
+                        Data_Set <= 1'b1;
+                        Data_Request <= 1'b1;
+                    end
+                    else begin
+                        currentState <= COUNT;
+                        Data_Request <= 1'b1;
+                    end 
+                end
+            end
+            LOAD: begin
+                MemLock <= 1'b1;
+                Data_Request <= 1'b0;
+                if (Data_Ready) begin
+                    Data_Set <= 1'b0;
+                    Data_Request <= 1'b1;
+                    currentState <= COUNT;
+                end
+            end
+            STORE: begin
+                WE <= 1'b0;
+                MemLock <= 1'b0;
+                currentState <= COUNT;
+                AP_Request <= 1'b1;
+            end
+            COUNT: begin
+                AP_Request <= 1'b0;
+                Data_Request <= 1'b0;
+                if (AP_Ready | Data_Ready) begin
+                    currentState <= IDLE;
+                end
+                end
+            default:
+                currentState <= IDLE;
+        endcase
+    end
 end
+
 
 
 endmodule

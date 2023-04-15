@@ -76,7 +76,7 @@ reg Busy;
 
 always_latch begin
     if (Request) Busy = 1'b1;
-    if (Ready) Busy = 1'b0;
+    if (Ready | ~Rst_n) Busy = 1'b0;
 end
 
 

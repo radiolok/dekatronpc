@@ -23,6 +23,7 @@ wire[9:0] InPosDek = Set? InPos : 10'b0;
 
 Dekatron dekatronV2(
     .hsClk(hsClk),
+    .Rst_n(Rst_n),
     .PulseRight(Pulse[1]),
     .PulseLeft(Pulse[0]),
     .In(InPosDek),

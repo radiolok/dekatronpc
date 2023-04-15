@@ -13,7 +13,7 @@ module IpLine #(
     input wire Request,
     output wire Ready,
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Address,
-    output reg[3:0] Insn
+    output reg[INSN_WIDTH-1:0] Insn
 );
 
 

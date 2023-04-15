@@ -60,6 +60,10 @@ echo "IpLine Test"
 iverilog -g2012 -o IpLineUT -s IpLine_tb tests/IpLine.sv/IpLine_tb.sv $SourceFiles
 ./IpLineUT
 
+echo "ApLine Test"
+iverilog -g2012 -o ApLineUT -s ApLine_tb tests/ApLine.sv/ApLine_tb.sv $SourceFiles
+./ApLineUT
+
 synt IpLine
 
 synt ApLine

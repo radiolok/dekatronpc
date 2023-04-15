@@ -1,5 +1,6 @@
 module Dekatron(
     input wire hsClk,
+    input wire Rst_n,
     input wire PulseRight,
 	input wire PulseLeft,
     input wire [9:0] In,
@@ -7,7 +8,7 @@ module Dekatron(
 );
 
 //Main wire state:
-reg [29:0] Cathodes=30'b1;
+reg [29:0] Cathodes;
 
 //Multiplexed state signals:
 
@@ -46,21 +47,25 @@ wire [29:0] InLong = {{2'b00}, In[9], 2'b00, In[8],
                     2'b00, In[3], 2'b00, In[2], 
                     2'b00, In[1], 2'b00, In[0]};
 
-always @(posedge hsClk)
+always @(posedge hsClk, negedge Rst_n)
  begin
-    if (PulseRight) begin
-        Cathodes <= (|In) ? InLong : 
-            CathodeGlow ? {Cathodes[28:0], Cathodes[29]} :
-                    GuideLeftGlow ? {Cathodes[0], Cathodes[29:1]} : Cathodes;
+    if (~Rst_n) begin
+        Cathodes <= 30'b1;
     end
-    else if (PulseLeft) begin
-        Cathodes <= (|In) ? InLong : 
-            CathodeGlow ? {Cathodes[0], Cathodes[29:1]}:
-            GuideRightGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
-    end
-    else begin
-        Cathodes <= (|In) ? InLong : GuideRightGlow ? {Cathodes[0], Cathodes[29:1]}:
-        GuideLeftGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
-    end
+    else
+        if (PulseRight) begin
+            Cathodes <= (|In) ? InLong : 
+                CathodeGlow ? {Cathodes[28:0], Cathodes[29]} :
+                        GuideLeftGlow ? {Cathodes[0], Cathodes[29:1]} : Cathodes;
+        end
+        else if (PulseLeft) begin
+            Cathodes <= (|In) ? InLong : 
+                CathodeGlow ? {Cathodes[0], Cathodes[29:1]}:
+                GuideRightGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
+        end
+        else begin
+            Cathodes <= (|In) ? InLong : GuideRightGlow ? {Cathodes[0], Cathodes[29:1]}:
+            GuideLeftGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
+        end
  end
 endmodule
