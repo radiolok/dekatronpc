@@ -12,12 +12,12 @@
     input wire Request,
     output reg DataReady
     );
-
+// synopsys translate_off
 wire [DATA_WIDTH-1:0] ActiveInsn;
 
 //`ifdef LOOP_TEST
-//    helloworld #(
-    looptest #(
+    helloworld #(
+//    looptest #(
         .portSize(D_NUM*D_WIDTH)
         ) storage(
             .Address(Address),
@@ -44,4 +44,5 @@ always @(negedge Clk, negedge Rst_n)
             DataReady <= 1'b1;
         end
     end
+// synopsys translate_on
 endmodule

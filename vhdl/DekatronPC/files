@@ -12,6 +12,7 @@ Dekatron/DekatronPulseAllow.sv
 Dekatron/DekatronPulseSender.sv
 IpLine/ROM.sv
 RAM.sv
+DekatronPC.sv
 ../programs/looptest/looptest.sv
 ../programs/helloworld/helloworld.sv
 ../Logic/RsLatch.sv

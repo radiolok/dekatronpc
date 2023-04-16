@@ -12,6 +12,7 @@
   input CS//CS==1 to do operations
 );
 
+// synopsys translate_off
 reg [DATA_WIDTH-1:0] Mem [0:ROWS-1];
 
 reg [DATA_WIDTH-1:0] Data;
@@ -20,6 +21,7 @@ assign Out = CS ? Data : {DATA_WIDTH{1'bz}};
 
 always @(posedge Clk, negedge Rst_n)
     if (~Rst_n) begin 
+
       integer  i;
       for (i=0; i < ROWS; i++) 
         Mem[i] <= {DATA_WIDTH{1'b0}};
@@ -27,5 +29,6 @@ always @(posedge Clk, negedge Rst_n)
     end
     else if (WE) Mem[Address] <= In;
       else Data <= Mem[Address];
+// synopsys translate_on
 
 endmodule

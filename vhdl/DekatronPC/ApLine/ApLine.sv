@@ -28,8 +28,15 @@ reg Data_Set;
 wire Data_Ready;
 reg MemLock;
 
+parameter [3:0]
+    IDLE     =  4'b0001,
+    LOAD     =  4'b0010,
+    STORE    =  4'b0100,
+    COUNT     = 4'b1000;
 
-assign Ready = AP_Ready & Data_Ready;
+reg [3:0] currentState;
+
+assign Ready = ~ApRequest & ~DataRequest & currentState[0] & AP_Ready & Data_Ready;
 
 assign Data = MemLock? DataCntRoRam : DataRamToCnt;
 
@@ -82,15 +89,6 @@ DekatronCounter  #(
                 .Zero(DataZero)
             );
 
-
-
-parameter [3:0]
-    IDLE     =  4'b0001,
-    LOAD     =  4'b0010,
-    STORE    =  4'b0100,
-    COUNT     = 4'b1000;
-
-reg [3:0] currentState;
 
 always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin

@@ -1,7 +1,12 @@
 `ifndef INSN_VALUES
    `define INSN_VALUES
 
-typedef enum   {
+typedef enum bit [0:0]{
+    INSN_DEBUG_MODE  = 1'b0,
+    INSN_BRAINFUCK_MODE = 1'b1
+} mode_t;
+
+typedef enum bit [4:0]  {
     INSN_NOP            = 5'hx0,//No operation - Must be in both ISA set
     INSN_HALT           = 5'hx1,//Stop machine - Must be in both ISA set
   //INSN_RES0           = 5'h02,

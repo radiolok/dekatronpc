@@ -12,6 +12,12 @@ cleanup() {
 
 }
 
+emul() {
+	echo "${1} Test"
+	iverilog -g2012 -o ${1}UT -s ${1}_tb tests/${1}.sv/${1}_tb.sv $SourceFiles
+	./${1}UT
+}
+
 synt() {
 	current_dir=$(pwd)
 	files_path=${current_dir}/files
@@ -32,6 +38,7 @@ SourceFiles="IpLine/IpLine.sv \
 	IpLine/InsnLoopDetector.sv \
 	IpLine/ROM.sv \
 	RAM.sv \
+	DekatronPC.sv \
 	Dekatron/BcdToBin.v \
     Dekatron/BinToBcd.v  \
 	Dekatron/Dekatron.sv  \
@@ -48,27 +55,23 @@ SourceFiles="IpLine/IpLine.sv \
 
 verilator --top-module IpLine --lint-only  -Wall ${SourceFiles}
 
-echo "Dekatron Test"
-iverilog -g2012 -o DekatronUT -s Dekatron_tb tests/Dekatron.sv/Dekatron_tb.sv $SourceFiles
-./DekatronUT
+emul Dekatron
 
-echo "Counter Test"
-iverilog -g2012 -o CounterUT -s Counter_tb tests/Counter.sv/Counter_tb.sv $SourceFiles
-./CounterUT
+emul Counter
 
-echo "IpLine Test"
-iverilog -g2012 -o IpLineUT -s IpLine_tb tests/IpLine.sv/IpLine_tb.sv $SourceFiles
-./IpLineUT
+#emul IpLine
 
-echo "ApLine Test"
-iverilog -g2012 -o ApLineUT -s ApLine_tb tests/ApLine.sv/ApLine_tb.sv $SourceFiles
-./ApLineUT
+emul ApLine
 
-synt IpLine
+emul DekatronPC
 
-synt ApLine
+#synt IpLine
 
+#synt ApLine
 
+synt DekatronPC
+
+exit
 for file in $(ls *.dot); do
 		gvpr -f $script_dir/split $file
 	done

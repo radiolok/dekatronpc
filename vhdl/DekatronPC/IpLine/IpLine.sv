@@ -91,7 +91,7 @@ parameter [3:0]
     READY     = 4'b1000;
 
 reg [3:0] currentState;
-assign Ready = currentState[3] | currentState[0];//READY | IDLE
+assign Ready = ~Request & (currentState[3] | currentState[0]);//READY | IDLE
 wire IP_backwardCount = (LoopInsnClose & ~dataIsZeroed); //backward direction for ']' & nonZero
 
 always @(posedge Clk, negedge Rst_n) begin
