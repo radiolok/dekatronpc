@@ -13,6 +13,7 @@ module IpLine #(
     input wire Request,
     output wire Ready,
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Address,
+    output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
     output reg[INSN_WIDTH-1:0] Insn
 );
 
@@ -79,7 +80,7 @@ DekatronCounter  #(
                 .In({(LOOP_DEKATRON_NUM*DEKATRON_WIDTH){1'b0}}),
                 .Ready(Loop_Ready),
                 /* verilator lint_off PINCONNECTEMPTY */
-                .Out(),
+                .Out(LoopCount),
                 /* verilator lint_on PINCONNECTEMPTY */
                 .Zero(Loop_Zero)
             );

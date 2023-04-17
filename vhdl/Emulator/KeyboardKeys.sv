@@ -1,7 +1,7 @@
 `ifndef KEYS_VALUES
    `define KEYS_VALUES
 
-typedef enum   {
+typedef enum  bit [5:0] {
     KEYBOARD_IRAM_KEY =  15,
     KEYBOARD_DRAM_KEY =  10,
     KEYBOARD_CIN_KEY =  5,

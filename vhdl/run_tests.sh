@@ -14,7 +14,7 @@ cleanup() {
 
 emul() {
 	echo "${1} Test"
-	iverilog -g2012 -o ${1}UT -s ${1}_tb DekatronPC/tests/${1}.sv/${1}_tb.sv $DPC_files
+	iverilog -g2012 -o ${1}UT -s ${1}_tb DekatronPC/tests/${1}.sv/${1}_tb.sv $DPCfiles
 	./${1}UT
 }
 
@@ -34,18 +34,9 @@ synt() {
 
 }
 
-DPC_files=$(cat DPC.files)
+DPCfiles=$(cat DPC.files)
 
-EmulFiles=
-
-verilator --top-module DekatronPC --lint-only  -Wall ${DPC_files}
-
-verilator -Wall --coverage --trace --top DekatronPC --cc ${DPC_files} \
---timescale 100ns/100ps \
---exe DekatronPC/tests/DekatronPC.sv/DekatronPC_tb.cpp \
-
-make -C obj_dir -f VDekatronPC.mk VDekatronPC
-./obj_dir/VDekatronPC
+EmulFiles=$(cat Emul.files)
 
 emul Dekatron
 
@@ -55,11 +46,20 @@ emul Counter
 
 emul ApLine
 
-emul DekatronPC
+echo ${DPCfiles}
 
-#synt IpLine
+echo EmulFiles ${EmulFiles}
 
-#synt ApLine
+verilator --top-module Emulator --lint-only -Wall ${EmulFiles} ${DPCfiles}
+
+verilator --top-module DekatronPC --lint-only  -Wall ${DPCfiles}
+
+verilator -Wall --coverage --trace --top DekatronPC --cc ${DPCfiles} \
+--timescale 100ns/100ps \
+--exe DekatronPC/tests/DekatronPC.sv/DekatronPC_tb.cpp \
+
+make -C obj_dir -f VDekatronPC.mk VDekatronPC
+./obj_dir/VDekatronPC
 
 synt DekatronPC
 

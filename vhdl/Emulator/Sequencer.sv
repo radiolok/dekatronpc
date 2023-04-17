@@ -15,8 +15,6 @@ module Sequencer(
 	output wire [2:0] state
 );
 
-
-
 reg ms6205_write_addr;
 reg ms6205_write_data;
 
@@ -27,16 +25,16 @@ assign ms6205_write_data_n = ~ms6205_write_data_imp;
 assign ms6205_write_addr_n = ~ms6205_write_addr_imp;
 
 Impulse impulse_addr(
-	.Clock(Clock_1us),
+	.Clk(Clock_1us),
 	.Rst_n(Rst_n),
-	.Enable(ms6205_write_addr),
+	.En(ms6205_write_addr),
 	.Impulse(ms6205_write_addr_imp)
 );
 
 Impulse impulse_data(
-	.Clock(Clock_1us),
+	.Clk(Clock_1us),
 	.Rst_n(Rst_n),
-	.Enable(ms6205_write_data),
+	.En(ms6205_write_data),
 	.Impulse(ms6205_write_data_imp)
 );
 

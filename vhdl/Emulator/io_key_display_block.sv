@@ -42,13 +42,13 @@ wire anodesClkTick;
 
 wire [7:0] cathodeData;
 
-in12_cathodeToPinConverter cathodeLowConvert
+In12CathodeToPin cathodeLowConvert
 (
     .in({1'b0, cathodeLow}),
     .out(cathodeData[7:4])
 );
 
-in12_cathodeToPinConverter cathodeHighConvert
+In12CathodeToPin cathodeHighConvert
 (
     .in({1'b0,cathodeHigh}),
     .out(cathodeData[3:0])
@@ -84,7 +84,7 @@ bn_mux_n_1_generate #(
 wire [9:0] anodeSel;
 
 wire Clock_4ms;
-Clock_divider #(
+ClockDivider #(
     .DIVISOR({DIVIDE_TO_4MS}),
     .DUTY_CYCLE(80)
 ) clock_divider_4ms(
@@ -94,9 +94,9 @@ Clock_divider #(
 );
 
 Impulse impulse(
-	.Clock(Clock_1us),
+	.Clk(Clock_1us),
 	.Rst_n(Rst_n),
-	.Enable(Clock_4ms),
+	.En(Clock_4ms),
 	.Impulse(anodesClkTick)
 );
 
@@ -156,7 +156,7 @@ wire ms6205_data_acq;
 
 assign ms6205_marker = ms6205_marker_en & Clock_1s;
 
-Ms6205 ms6205(
+MS6205 ms6205(
     .Rst_n(Rst_n),
     .Clock_1ms(Clock_1ms),
     .address(ms6205_addr),

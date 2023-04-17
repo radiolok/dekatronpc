@@ -1,4 +1,4 @@
-module Ms6205(
+module MS6205(
     input wire Rst_n,
     input wire Clock_1ms,
     output reg ms6205_addr_acq,
@@ -16,7 +16,7 @@ module Ms6205(
     output reg [2:0] ms6205_currentView
 );
 
-`include "keyboard_keys.sv" 
+`include "Emulator/KeyboardKeys.sv"
 
 parameter COLUMNS = 16;
 parameter ROWS = 10;

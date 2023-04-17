@@ -1,0 +1,17 @@
+Logic/UpCounter.sv
+Logic/Impulse.sv
+Logic/bn_mux_n_1_generate.sv
+Logic/RegisterFileSharedOut.sv
+Logic/RegisterFileFlatOut.sv
+Logic/Register.sv
+Emulator/segment7.sv
+Emulator/KeyboardKeys.sv
+Emulator/MS6205.sv
+Emulator/Emulator.sv
+Emulator/In12CathodeToPin.sv
+Emulator/Keyboard.sv
+Emulator/KeyToSymbol.sv
+Emulator/io_key_display_block.sv
+Emulator/io_register_block.sv
+Emulator/input_regs.sv
+Emulator/Sequencer.sv

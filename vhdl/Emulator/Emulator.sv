@@ -48,12 +48,13 @@ module Emulator #(
     inout wire [7:0] io_data
 );
 
-`include "keyboard_keys.sv" 
+`include "Emulator/KeyboardKeys.sv"
+`include "parameters.sv"
 
-wire  [17:0] ipCounter;
-wire [8:0] loopCounter;
-wire [14:0] apCounter;
-wire [8:0] dataCounter;
+wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress;
+wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress;
+wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data;
+wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount;
 
 wire [39:0] keyboard_keysCurrentState;
 
@@ -67,13 +68,13 @@ assign LED[0] = Clock_1s;
 
 wire [7:0] symbol;
 
-Clock_divider #(.DIVISOR({DIVIDE_TO_1US})) clock_divider_us(
+ClockDivider #(.DIVISOR({DIVIDE_TO_1US})) clock_divider_us(
     .Rst_n(Rst_n),
     .clock_in(FPGA_CLK_50),
     .clock_out(Clock_1us)
 );
 
-Clock_divider #(
+ClockDivider #(
     .DIVISOR({DIVIDE_TO_1MS}),
     .DUTY_CYCLE(80)
 ) clock_divider_ms(
@@ -82,7 +83,7 @@ Clock_divider #(
 	.clock_out(Clock_1ms)
 );
 
-Clock_divider #(
+ClockDivider #(
     .DIVISOR({DIVIDE_TO_1S})
 ) clock_divider_s(
     .Rst_n(Rst_n),
@@ -95,15 +96,12 @@ wire [2:0] DPC_currentState;
 wire [39:0] keyboard_keysCurrentState_added;
 
 DekatronPC dekatronPC(
-    .ipCounter(ipCounter),
-    .loopCounter(loopCounter),
-    .apCounter(apCounter),
-    .dataCounter(dataCounter),
-    .Clock_1ms(Clock_1ms),
-    .symbol(symbol),
-    .Rst_n(Rst_n),
-    .keysCurrentState(keyboard_keysCurrentState_added),
-    .DPC_currentState(DPC_currentState)
+    .IpAddress(IpAddress),
+    .ApAddress(ApAddress),
+    .Data(Data),
+    .LoopCount(LoopCount),
+    .hsClk(FPGA_CLK_50),
+    .Rst_n(Rst_n)
 );
 
 
@@ -122,10 +120,10 @@ io_key_display_block #(
     .keyboard_clear(keyboard_clear),
     .keyboard_keysCurrentState(keyboard_keysCurrentState),
     .emulData(emulData),
-    .ipCounter(ipCounter),
-    .loopCounter(loopCounter),
-    .apCounter(apCounter),
-    .dataCounter(dataCounter),
+    .ipCounter(IpAddress),
+    .loopCounter(LoopCount),
+    .apCounter(ApAddress),
+    .dataCounter(Data),
     .Clock_1s(Clock_1s),
     .Clock_1ms(Clock_1ms),
     .Clock_1us(Clock_1us),
@@ -145,7 +143,7 @@ wire [128:0] io_output_regs;
 
 wire Clock_10us;
 
-Clock_divider #(
+ClockDivider #(
     .DIVISOR(10)
 ) clock_divider_10us(
     .Rst_n(Rst_n),
@@ -188,7 +186,7 @@ wire dp;
 
 wire Clock_10ms;
 
-Clock_divider #(
+ClockDivider #(
     .DIVISOR(5)
 ) clock_divider_10ms(
     .Rst_n(Rst_n),
@@ -219,7 +217,7 @@ bn_mux_n_1_generate #(
 .SEL_WIDTH(2)
 ) muxOutput(
     .data(
-        ipCounter[11:0]),//NONE
+        IpAddress[11:0]),//NONE
     .sel(current_digit),
     .y(digit)
 );

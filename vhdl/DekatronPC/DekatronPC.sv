@@ -1,6 +1,6 @@
 module DekatronPC #(
     parameter IP_DEKATRON_NUM = 6,
-    //parameter LOOP_DEKATRON_NUM = 3,
+    parameter LOOP_DEKATRON_NUM = 3,
     parameter AP_DEKATRON_NUM = 5,
     parameter DATA_DEKATRON_NUM = 3,    
     parameter DEKATRON_WIDTH = 4,
@@ -10,7 +10,8 @@ module DekatronPC #(
     input Rst_n, 
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
     output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
-    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data
+    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data,
+    output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount
 );
 
 wire Clk;
@@ -51,6 +52,7 @@ IpLine ipLine(
     .Request(IpRequest),
 	.Ready(IpLineReady),
     .Address(IpAddress),
+    .LoopCount(LoopCount),
 	.Insn(Insn)
 );
 
