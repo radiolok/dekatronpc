@@ -22,10 +22,13 @@ assign Out = CS ? Data : {DATA_WIDTH{1'bz}};
 always @(posedge Clk, negedge Rst_n)
     if (~Rst_n) begin 
 
+//TODO:  Bootloader should cleanUp Memory itself
+/* verilator lint_off BLKSEQ */
       integer  i;
       for (i=0; i < ROWS; i++) 
-        Mem[i] <= {DATA_WIDTH{1'b0}};
+        Mem[i] = {DATA_WIDTH{1'b0}};
       Data <= {DATA_WIDTH{1'b0}};
+/* verilator lint_off BLKSEQ */
     end
     else if (WE) Mem[Address] <= In;
       else Data <= Mem[Address];

@@ -1,12 +1,11 @@
 module DekatronPC #(
     parameter IP_DEKATRON_NUM = 6,
-    parameter LOOP_DEKATRON_NUM = 3,
+    //parameter LOOP_DEKATRON_NUM = 3,
     parameter AP_DEKATRON_NUM = 5,
     parameter DATA_DEKATRON_NUM = 3,    
     parameter DEKATRON_WIDTH = 4,
     parameter INSN_WIDTH = 4
 )(
-    input Clk,
     input hsClk,
     input Rst_n, 
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
@@ -14,10 +13,20 @@ module DekatronPC #(
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data
 );
 
+wire Clk;
+
+ClockDivider #(
+    .DIVISOR(10)
+) clock_divider_ms(
+    .Rst_n(Rst_n),
+	.clock_in(hsClk),
+	.clock_out(Clk)
+);
+
 reg IpRequest;
 wire IpLineReady;
 
-wire [3:0] Insn;
+wire [INSN_WIDTH - 1:0] Insn;
 reg InsnMode;
 
 wire DataZero;
@@ -30,11 +39,15 @@ wire ApLineReady;
 
 reg ApLineDec;
 
+//If Debug mode {} check AP 
+//In brainfuck mode [] check *AP
+wire LoopValZero = InsnMode ? DataZero : ApZero;
+
 IpLine ipLine(
     .Rst_n(Rst_n),
     .Clk(Clk),
     .hsClk(hsClk),
-    .dataIsZeroed(DataZero),
+    .dataIsZeroed(LoopValZero),
     .Request(IpRequest),
 	.Ready(IpLineReady),
     .Address(IpAddress),
@@ -59,7 +72,7 @@ parameter [0:0]
     INSN_DEBUG_MODE  = 1'b0,
     INSN_BRAINFUCK_MODE = 1'b1;
 
-parameter [2:0]
+parameter [3:0]
     IDLE     =  4'b0001,
     FETCH     =  4'b0010,
     EXEC    =  4'b0100,
@@ -85,7 +98,7 @@ always @(posedge Clk, negedge Rst_n) begin
             FETCH: begin
                 IpRequest <= 1'b0;
                 if (IpLineReady) begin
-                    casex (Insn)
+                    casez (Insn)
                         4'b0000: begin//NOP
                             currentState <= FETCH;
                             IpRequest <= 1'b1;
@@ -93,7 +106,7 @@ always @(posedge Clk, negedge Rst_n) begin
                         4'b0001: begin//HALT
                             currentState <= HALT;
                         end
-                        4'b001x: begin
+                        4'b001?: begin
                             if (InsnMode == INSN_BRAINFUCK_MODE) begin
                                 currentState <= EXEC;
                                 DataRequest <= 1'b1;
@@ -101,7 +114,7 @@ always @(posedge Clk, negedge Rst_n) begin
                                 ApLineDec <= Insn[0];
                             end
                         end
-                        4'b010x: begin
+                        4'b010?: begin
                             if (InsnMode == INSN_BRAINFUCK_MODE) begin
                                 currentState <= EXEC;
                                 DataRequest <= 1'b0;
