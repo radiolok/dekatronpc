@@ -23,6 +23,25 @@ library(vtube_cells_lib) {
              driver_type : pull_up;
              function: "(A*B)'"; }
   }
+  cell(NAND3) {
+    area: 1.5;
+    pin(A) { direction: input; }
+    pin(B) { direction: input; }
+    pin(C) { direction: input; }
+    pin(Y) { direction: output;
+            driver_type : pull_up;
+             function: "(A*B*C)'"; }
+  }
+  cell(NAND4) {
+    area: 2;
+    pin(A) { direction: input; }
+    pin(B) { direction: input; }
+    pin(C) { direction: input; }
+    pin(D) { direction: input; }
+    pin(Y) { direction: output;
+            driver_type : pull_up;
+             function: "(A*B*C*D)'"; }
+  }
   cell(AND2) {
     area: 1;
     pin(A) { direction: input; }
@@ -30,6 +49,25 @@ library(vtube_cells_lib) {
     pin(Y) { direction: output;
             driver_type : pull_up;
              function: "(A*B)"; }
+  }
+  cell(AND3) {
+    area: 1.5;
+    pin(A) { direction: input; }
+    pin(B) { direction: input; }
+    pin(C) { direction: input; }
+    pin(Y) { direction: output;
+            driver_type : pull_up;
+             function: "(A*B*C)"; }
+  }
+  cell(AND4) {
+    area: 2;
+    pin(A) { direction: input; }
+    pin(B) { direction: input; }
+    pin(C) { direction: input; }
+    pin(D) { direction: input; }
+    pin(Y) { direction: output;
+            driver_type : pull_up;
+             function: "(A*B*C*D)"; }
   }
   cell(OR2) {
     area: 1;
@@ -39,6 +77,25 @@ library(vtube_cells_lib) {
             driver_type : pull_up;
              function: "(A+B)"; }
   }  
+  cell(OR3) {
+    area: 1.5;
+    pin(A) { direction: input; }
+    pin(B) { direction: input; }
+    pin(C) { direction: input; }
+    pin(Y) { direction: output;
+            driver_type : pull_up;
+             function: "(A+B+C)"; }
+  }
+  cell(OR4) {
+    area: 2;
+    pin(A) { direction: input; }
+    pin(B) { direction: input; }
+    pin(C) { direction: input; }
+    pin(D) { direction: input; }
+    pin(Y) { direction: output;
+            driver_type : pull_up;
+             function: "(A+B+C+D)"; }
+  }
   cell(MUX2) {
     area: 3.5;
     pin(A) { direction: input; }
@@ -56,10 +113,29 @@ library(vtube_cells_lib) {
             driver_type : pull_up;
              function: "(A+B)'"; }
   }
+  cell(NOR3) {
+    area: 1.5;
+    pin(A) { direction: input; }
+    pin(B) { direction: input; }
+    pin(C) { direction: input; }
+    pin(Y) { direction: output;
+            driver_type : pull_up;
+             function: "(A+B+C)'"; }
+  }
+  cell(NOR4) {
+    area: 2;
+    pin(A) { direction: input; }
+    pin(B) { direction: input; }
+    pin(C) { direction: input; }
+    pin(D) { direction: input; }
+    pin(Y) { direction: output;
+            driver_type : pull_up;
+             function: "(A+B+C+D)'"; }
+  }
   cell(LATCH) {
-    area: 7;
-    ff(IQ, IQN) { clocked_on: C;
-                  next_state: D; }
+    area: 2.5;
+    latch(IQ, IQN) { enable: C;
+                  data_in: D; }
     pin(C) { direction: input;
                  clock: true; }
     pin(D) { direction: input; }
@@ -68,7 +144,7 @@ library(vtube_cells_lib) {
               function: "IQ"; }
   }
   cell(DFF) {
-    area: 7;
+    area: 3.5;
     ff(IQ, IQN) { clocked_on: C;
                   next_state: D; }
     pin(C) { direction: input;
@@ -79,7 +155,7 @@ library(vtube_cells_lib) {
               function: "IQ"; }
   }
   cell(DFFSR) {
-    area: 7;
+    area: 3.5;
     ff("IQ", "IQN") { clocked_on: C;
                   next_state: D;
                       preset: S;
