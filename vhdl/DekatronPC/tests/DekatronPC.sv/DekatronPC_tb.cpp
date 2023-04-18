@@ -11,6 +11,8 @@ int main(int argc, char** argv, char** env) {
     VDekatronPC *dut = new VDekatronPC;
 
     Verilated::traceEverOn(true);
+    Verilated::mkdir("logs");
+    VerilatedCov::write("logs/coverage_DPC.dat");
     VerilatedVcdC *m_trace = new VerilatedVcdC;
     dut->trace(m_trace, 5);
     m_trace->open("waveform.vcd");

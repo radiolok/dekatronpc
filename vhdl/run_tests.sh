@@ -61,6 +61,10 @@ verilator -Wall --coverage --trace --top DekatronPC --cc ${DPCfiles} \
 make -C obj_dir -f VDekatronPC.mk VDekatronPC
 ./obj_dir/VDekatronPC
 
+verilator_coverage -write-info logs/DPC.info logs/coverage_DPC.dat
+
+genhtml logs/DPC.info --output-directory coverage
+
 synt DekatronPC
 
 exit
