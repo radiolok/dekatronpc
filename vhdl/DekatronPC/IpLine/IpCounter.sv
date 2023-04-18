@@ -1,8 +1,6 @@
-module IpCounter #(
-    parameter DEKATRON_NUM = 6,
-    parameter DEKATRON_WIDTH = 4,
-    parameter INSN_WIDTH = 4
-)(	
+`include "parameters.sv"
+
+module IpCounter(	
 	input wire Clk,
     input wire hsClk,
 	input wire Rst_n,
@@ -15,7 +13,7 @@ module IpCounter #(
     input wire Dec,
 
 	output wire Ready,
-    output wire [DEKATRON_NUM*DEKATRON_WIDTH-1:0] Address,
+    output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Address,
 	output wire[INSN_WIDTH-1:0] Insn
 );
 
@@ -23,7 +21,7 @@ reg IP_Request;
 wire IP_Ready;
 
 DekatronCounter  #(
-            .D_NUM(DEKATRON_NUM)
+            .D_NUM(IP_DEKATRON_NUM)
             )IP_counter(
                 .Clk(Clk),
                 .hsClk(hsClk),
@@ -31,7 +29,7 @@ DekatronCounter  #(
                 .Request(IP_Request),
                 .Dec(Dec),
                 .Set(1'b0),
-                .In({(DEKATRON_NUM*DEKATRON_WIDTH){1'b0}}),
+                .In({(IP_DEKATRON_NUM*DEKATRON_WIDTH){1'b0}}),
                 .Ready(IP_Ready),
                 .Out(Address),
                 /* verilator lint_off PINCONNECTEMPTY */
@@ -43,7 +41,7 @@ reg ROM_Request;
 wire ROM_DataReady;
 
 ROM #(
-        .D_NUM(DEKATRON_NUM),
+        .D_NUM(IP_DEKATRON_NUM),
         .DATA_WIDTH(INSN_WIDTH)
         )rom(
         .Rst_n(Rst_n),

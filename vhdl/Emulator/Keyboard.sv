@@ -1,17 +1,22 @@
+`include "parameters.sv"
+`include "Emulator/KeyboardKeys.sv"
+
 module Keyboard(
     input wire Rst_n,
     input wire Clk,
     input [7:0] kbCol,
-    input [6:0] kbRow,
-    input write,
+    /* verilator lint_off UNUSEDSIGNAL */
+    input [6:0] kbRow,//6-5 not used
+    /* verilator lint_on UNUSEDSIGNAL */
     input read,
+    /* verilator lint_off UNUSEDSIGNAL */
+    input write,
     input clear,
+    /* verilator lint_on UNUSEDSIGNAL */
     output wire [39:0] keysCurrentState,
     output wire [15:0] numericKey,
     output wire [7:0] symbol
 );
-
-`include "Emulator/KeyboardKeys.sv"
 
 wire readClk;
 
@@ -45,22 +50,19 @@ KeyToSymbol keyToSymbol(
 reg currentIsa;
 reg nextIsa;
 
-parameter 
-    MaintainanceIsa = 1'b0,
-    BrainfuckISA = 1'b1;
 
 always @* begin
     if (keysCurrentState[KEYBOARD_F_KEY])
-        nextIsa = BrainfuckISA;
+        nextIsa = BRAINFUCK_ISA;
     else if (keysCurrentState[KEYBOARD_E_KEY])
-        nextIsa = MaintainanceIsa;
+        nextIsa = DEBUG_ISA;
     else 
         nextIsa = currentIsa;
 end
 
 always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n)
-        currentIsa <= BrainfuckISA;
+        currentIsa <= BRAINFUCK_ISA;
     else 
         currentIsa <= nextIsa;
 end

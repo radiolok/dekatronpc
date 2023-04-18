@@ -1,8 +1,6 @@
-module ApLine #(
-    parameter AP_DEKATRON_NUM = 5,
-    parameter DATA_DEKATRON_NUM = 3,
-    parameter DEKATRON_WIDTH = 4
-)(
+`include "parameters.sv"
+
+module ApLine (
     input wire Rst_n,
     input wire Clk,
     input wire hsClk,

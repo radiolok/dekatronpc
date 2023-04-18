@@ -6,11 +6,11 @@ module UpCounter #(
     input wire Rst_n,
     output reg [WIDTH-1:0] Count
 );
-
+/* verilator lint_off WIDTHEXPAND */
 always @(posedge Tick, negedge Rst_n) begin
     Count <=  (!Rst_n) ? {WIDTH{1'b0}} :
             (Count == TOP) ? {WIDTH{1'b0}}:
             Count + 1;
 end
+/* verilator lint_on WIDTHEXPAND */
 endmodule
-

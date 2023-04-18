@@ -26,7 +26,7 @@ assign io_address = {channel_num[0], channel_num[3:1]};
 wire en_1_n = ~(~Clk & ~channel_num[4]);
 wire en_2_n = ~(~Clk & channel_num[4]);
 
-assign io_enable_n = {en_1_n, en_1_n};
+assign io_enable_n = {en_2_n, en_1_n};
 
 reg [7:0] current_out_reg;
 

@@ -1,9 +1,6 @@
-module IpLine #(
-    parameter IP_DEKATRON_NUM = 6,
-    parameter LOOP_DEKATRON_NUM = 3,
-    parameter DEKATRON_WIDTH = 4,
-    parameter INSN_WIDTH = 4
-)(
+`include "parameters.sv"
+
+module IpLine (
     input wire Rst_n,
     input wire Clk,
     input wire hsClk,

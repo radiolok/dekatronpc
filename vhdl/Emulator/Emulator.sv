@@ -1,3 +1,6 @@
+`include "Emulator/KeyboardKeys.sv"
+`include "parameters.sv"
+
 module Emulator #(
     parameter DIVIDE_TO_1US = 28'd50,
     parameter DIVIDE_TO_1MS = 28'd1000,
@@ -6,11 +9,17 @@ module Emulator #(
     parameter BOARDS = 16,
     parameter INSTALLED_BOARDS = 2
 )(
+    /* verilator lint_off UNUSEDSIGNAL */
 	//////////// CLOCK //////////
 	input 		          		FPGA_CLK_50,
 	input 		          		FPGA_CLK2_50,
 	input 		          		FPGA_CLK3_50,
-	
+	/* 3.3-V LVTTL */
+	input				[1:0]			KEY,	
+	output			    [7:0]			LED,
+	input				[3:0]			SW,
+    /* verilator lint_on UNUSEDSIGNAL */	
+
 	input [6:0] keyboard_data_in,
 
 	input ms6205_ready,
@@ -27,18 +36,6 @@ module Emulator #(
 
 	output [7:0] emulData,
 
-	//////////// KEY ////////////
-	/* 3.3-V LVTTL */
-	input				[1:0]			KEY,
-	
-	//////////// LED ////////////
-	/* 3.3-V LVTTL */
-	output			[7:0]			LED,
-	
-	//////////// SW ////////////
-	/* 3.3-V LVTTL */
-	input				[3:0]			SW,
-
     output wire Clock_1s,
     output wire Clock_1ms,
     output wire Clock_1us,
@@ -48,25 +45,24 @@ module Emulator #(
     inout wire [7:0] io_data
 );
 
-`include "Emulator/KeyboardKeys.sv"
-`include "parameters.sv"
+assign LED = 8'b0;
 
 wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress;
 wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress;
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data;
 wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount;
 
+/* verilator lint_off UNUSEDSIGNAL */
 wire [39:0] keyboard_keysCurrentState;
+/* verilator lint_on UNUSEDSIGNAL */
 
 wire Rst_n;
 
-wire hard_rst_key;
-
 assign Rst_n = KEY[0];
 
-assign LED[0] = Clock_1s;
-
+/* verilator lint_off UNUSEDSIGNAL */
 wire [7:0] symbol;
+/* verilator lint_on UNUSEDSIGNAL */
 
 ClockDivider #(.DIVISOR({DIVIDE_TO_1US})) clock_divider_us(
     .Rst_n(Rst_n),
@@ -93,15 +89,14 @@ ClockDivider #(
 
 wire [2:0] DPC_currentState;
 
-wire [39:0] keyboard_keysCurrentState_added;
-
 DekatronPC dekatronPC(
     .IpAddress(IpAddress),
     .ApAddress(ApAddress),
     .Data(Data),
     .LoopCount(LoopCount),
     .hsClk(FPGA_CLK_50),
-    .Rst_n(Rst_n)
+    .Rst_n(Rst_n),
+    .CurrentState(DPC_currentState)
 );
 
 
@@ -132,14 +127,11 @@ io_key_display_block #(
     .DPC_currentState(DPC_currentState)
 );
 
-/*
-yam430_core Yam430(
-    .Clk(Clock_1us),
-	.Rst_n(Rst_n)
-);*/
+/* verilator lint_off UNUSEDSIGNAL */
+wire [127:0] io_input_regs;
+/* verilator lint_on UNUSEDSIGNAL */
 
-wire [128:0] io_input_regs;
-wire [128:0] io_output_regs;
+wire [127:0] io_output_regs = 128'b0;
 
 wire Clock_10us;
 
@@ -163,87 +155,6 @@ io_register_block #(
     .inputs(io_input_regs),
     .outputs(io_output_regs)
 );
-
-
-wire start_button = ~io_input_regs[0] | keyboard_keysCurrentState[KEYBOARD_RUN_KEY];
-wire stop_button = ~io_input_regs[1] | keyboard_keysCurrentState[KEYBOARD_HALT_KEY];
-
-assign LED[1] = start_button;
-assign LED[2] = stop_button;
-
-assign keyboard_keysCurrentState_added = {keyboard_keysCurrentState[39:29], 
-                                    start_button, 
-                                    keyboard_keysCurrentState[27], 
-                                    stop_button, 
-                                    keyboard_keysCurrentState[25:0]};
-
-wire [3:0] digit;
-wire[7:0] seg;
-
-wire dp;
-
-
-
-wire Clock_10ms;
-
-ClockDivider #(
-    .DIVISOR(5)
-) clock_divider_10ms(
-    .Rst_n(Rst_n),
-	.clock_in(Clock_1ms),
-	.clock_out(Clock_10ms)
-);
-
-reg [3:0] current_digit_shift;
-reg [1:0] current_digit;
-
-always @(posedge Clock_10ms, negedge Rst_n) begin
-    if (~Rst_n) begin
-        current_digit_shift <= 4'b0001;
-        current_digit <= 2'b00;
-    end
-    else begin
-        current_digit_shift <= {current_digit_shift[2:0], current_digit_shift[3]};
-        current_digit <= current_digit + 2'b01;
-    end
-end
-
-
-wire [7:0] output_ch0;
-wire [7:0] output_ch1;
-
-bn_mux_n_1_generate #(
-.DATA_WIDTH(3), 
-.SEL_WIDTH(2)
-) muxOutput(
-    .data(
-        IpAddress[11:0]),//NONE
-    .sel(current_digit),
-    .y(digit)
-);
-
-segment7 segment7(
-    .hex(digit),
-    .seg(seg)
-);
-
-assign output_ch1 = {seg[1], seg[6], seg[2], seg[3], seg[4], seg[5], seg[0], 1'b0};
-/*
-bn_mux_n_1_generate #(
-.DATA_WIDTH(8), 
-.SEL_WIDTH(2)
-) muxOutput(
-    .data(
-        io_input_regs[31:0]),//NONE
-    .sel(output_ch1),
-    .y(digit)
-);*/
-
-assign output_ch0 = {4'b0, current_digit_shift[0], current_digit_shift[1], current_digit_shift[3], current_digit_shift[2]};
-
-assign io_output_regs = {112'b0, output_ch1, output_ch0};
-
-
 
 
 endmodule

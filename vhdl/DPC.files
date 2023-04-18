@@ -1,3 +1,4 @@
+parameters.sv
 DekatronPC/IpLine/IpLine.sv
 DekatronPC/IpLine/IpCounter.sv
 DekatronPC/ApLine/ApLine.sv

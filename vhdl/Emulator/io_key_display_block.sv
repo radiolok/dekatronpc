@@ -1,3 +1,5 @@
+`include "parameters.sv"
+
 module io_key_display_block #(
     parameter DIVIDE_TO_4MS = 28'd3000
 )(
@@ -23,10 +25,10 @@ module io_key_display_block #(
 
     output wire [7:0] symbol,
 
-    input wire  [17:0] ipCounter,
-    input wire [8:0] loopCounter,
-    input wire [14:0] apCounter,
-    input wire [8:0] dataCounter,
+    input wire  [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipCounter,
+    input wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] loopCounter,
+    input wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apCounter,
+    input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] dataCounter,
 
     input wire Clock_1s,
     input wire Clock_1ms,
@@ -35,8 +37,8 @@ module io_key_display_block #(
 
 wire [3:0] anodeCount;
 
-wire [2:0]cathodeLow;
-wire [2:0] cathodeHigh;
+wire [3:0]cathodeLow;
+wire [3:0] cathodeHigh;
 
 wire anodesClkTick;
 
@@ -44,23 +46,23 @@ wire [7:0] cathodeData;
 
 In12CathodeToPin cathodeLowConvert
 (
-    .in({1'b0, cathodeLow}),
+    .in(cathodeLow),
     .out(cathodeData[7:4])
 );
 
 In12CathodeToPin cathodeHighConvert
 (
-    .in({1'b0,cathodeHigh}),
+    .in(cathodeHigh),
     .out(cathodeData[3:0])
 );
 
 //This mux  compress IP and LOOP data into 3-bit interface
 bn_mux_n_1_generate #(
-.DATA_WIDTH(3), 
+.DATA_WIDTH(4), 
 .SEL_WIDTH(4)
 )  muxCathode1
         (  .data({
-            22'b0,
+            28'b0,
             ipCounter,
             loopCounter}),
             .sel(anodeCount),
@@ -69,19 +71,17 @@ bn_mux_n_1_generate #(
     
 //This mux  compress AP and DATA info into 3-bit interface
 bn_mux_n_1_generate #(
-.DATA_WIDTH(3), 
+.DATA_WIDTH(4), 
 .SEL_WIDTH(4)
 )  muxCathode2
         (  .data({
-            22'b0,
+            28'b0,
             apCounter,
-            3'b000,
+            4'b0,
             dataCounter}),
             .sel(anodeCount),
             .y(cathodeLow)
         );
-
-wire [9:0] anodeSel;
 
 wire Clock_4ms;
 ClockDivider #(
@@ -101,15 +101,26 @@ Impulse impulse(
 );
 
 //We do anodes inc only when we need it
-UpCounter #(.TOP(4'b1000)) anodesCounter(
+
+UpCounter #(.TOP(4'b1010)) anodesCounter(
             .Tick(anodesClkTick),
             .Rst_n(Rst_n),
             .Count(anodeCount)
 );
 
+UpCounter #(.TOP(4'b1000)) kbRowCounter(
+            .Tick(anodesClkTick),
+            .Rst_n(Rst_n),
+            .Count(anodeCount)
+);
+
+/* verilator lint_off UNUSEDSIGNAL */
+wire [9:0] kbColSel;
+/* verilator lint_on UNUSEDSIGNAL */
+
 BcdToBin  bcdToBin(
     .In(anodeCount),
-    .Out(anodeSel)
+    .Out(kbColSel)
 );
 
 wire [7:0] ms6205_addr;
@@ -126,7 +137,7 @@ bn_mux_n_1_generate #(
         8'b00001001,  //KEYBOARD_RD + IN TURN OF ANODES
         ms6205_data,  //MC_DATA
         ms6205_addr, //MC_ADDR
-        anodeSel[7:0], //KEYBOARD_WR
+        kbColSel[7:0], //KEYBOARD_WR
         {4'b0000, anodeCount}, //ANODES
         cathodeData, //CATHODES
         8'b00000000}),//NONE
@@ -135,12 +146,15 @@ bn_mux_n_1_generate #(
 );
 
 wire keyboard_read;
+
+/* verilator lint_off UNUSEDSIGNAL */
 wire [15:0] numericKey;
+/* verilator lint_on UNUSEDSIGNAL */
 
 Keyboard kb(
     .Rst_n(Rst_n),
     .Clk(Clock_1us),
-    .kbCol(anodeSel),
+    .kbCol(kbColSel[7:0]),
     .kbRow(keyboard_data_in),
     .write(keyboard_write),
 	.read(keyboard_read),

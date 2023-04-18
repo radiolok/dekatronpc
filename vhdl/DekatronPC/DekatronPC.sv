@@ -1,17 +1,13 @@
-module DekatronPC #(
-    parameter IP_DEKATRON_NUM = 6,
-    parameter LOOP_DEKATRON_NUM = 3,
-    parameter AP_DEKATRON_NUM = 5,
-    parameter DATA_DEKATRON_NUM = 3,    
-    parameter DEKATRON_WIDTH = 4,
-    parameter INSN_WIDTH = 4
-)(
+`include "parameters.sv"
+
+module DekatronPC (
     input hsClk,
     input Rst_n, 
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
     output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data,
-    output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount
+    output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
+    output reg [2:0] CurrentState
 );
 
 wire Clk;
@@ -74,13 +70,11 @@ parameter [0:0]
     INSN_DEBUG_MODE  = 1'b0,
     INSN_BRAINFUCK_MODE = 1'b1;
 
-parameter [3:0]
-    IDLE     =  4'b0001,
-    FETCH     =  4'b0010,
-    EXEC    =  4'b0100,
-    HALT    =  4'b1000;
-
-reg [3:0] currentState;
+parameter [2:0]
+    IDLE     =  3'b001,
+    FETCH     =  3'b0010,
+    EXEC    =  3'b011,
+    HALT    =  3'b100;
 
 always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
@@ -88,13 +82,13 @@ always @(posedge Clk, negedge Rst_n) begin
         ApLineDec <= 1'b0;
         ApRequest <= 1'b0;
         DataRequest <= 1'b0;
-        currentState <= IDLE;
+        CurrentState <= IDLE;
         InsnMode <= INSN_BRAINFUCK_MODE;//FIX: Debug mode must be by default.
     end
     else begin
-        case (currentState)
+        case (CurrentState)
             IDLE: begin
-                currentState <= FETCH;
+                CurrentState <= FETCH;
                 IpRequest <= 1'b1;
             end
             FETCH: begin
@@ -102,15 +96,15 @@ always @(posedge Clk, negedge Rst_n) begin
                 if (IpLineReady) begin
                     casez (Insn)
                         4'b0000: begin//NOP
-                            currentState <= FETCH;
+                            CurrentState <= FETCH;
                             IpRequest <= 1'b1;
                         end
                         4'b0001: begin//HALT
-                            currentState <= HALT;
+                            CurrentState <= HALT;
                         end
                         4'b001?: begin
                             if (InsnMode == INSN_BRAINFUCK_MODE) begin
-                                currentState <= EXEC;
+                                CurrentState <= EXEC;
                                 DataRequest <= 1'b1;
                                 ApRequest <= 1'b0;
                                 ApLineDec <= Insn[0];
@@ -118,7 +112,7 @@ always @(posedge Clk, negedge Rst_n) begin
                         end
                         4'b010?: begin
                             if (InsnMode == INSN_BRAINFUCK_MODE) begin
-                                currentState <= EXEC;
+                                CurrentState <= EXEC;
                                 DataRequest <= 1'b0;
                                 ApRequest <= 1'b1;
                                 ApLineDec <= Insn[0];
@@ -129,7 +123,7 @@ always @(posedge Clk, negedge Rst_n) begin
                             $display("COUT: %x", Data);
                             //Need to covert BCD to ASCII
                             // synopsys translate_on
-                            currentState <= FETCH;
+                            CurrentState <= FETCH;
                             IpRequest <= 1'b1;
                         end
                         4'b1110: begin
@@ -139,7 +133,7 @@ always @(posedge Clk, negedge Rst_n) begin
                             InsnMode <= INSN_BRAINFUCK_MODE;
                         end
                         default: begin
-                            currentState <= FETCH;
+                            CurrentState <= FETCH;
                             IpRequest <= 1'b1;
                         end
                     endcase
@@ -149,7 +143,7 @@ always @(posedge Clk, negedge Rst_n) begin
                 DataRequest <= 1'b0;
                 ApRequest <= 1'b0;
                 if (ApLineReady) begin
-                    currentState <= FETCH;
+                    CurrentState <= FETCH;
                     IpRequest <= 1'b1;
                 end
             end
@@ -159,7 +153,7 @@ always @(posedge Clk, negedge Rst_n) begin
                 // synopsys translate_on
             end
             default: begin
-                currentState <= IDLE;
+                CurrentState <= IDLE;
             end
         endcase
     end
