@@ -66,10 +66,6 @@ ApLine  apLine(
     .Data(Data)
 );
 
-parameter [0:0]
-    INSN_DEBUG_MODE  = 1'b0,
-    INSN_BRAINFUCK_MODE = 1'b1;
-
 parameter [2:0]
     IDLE     =  3'b001,
     FETCH     =  3'b0010,
@@ -83,7 +79,7 @@ always @(posedge Clk, negedge Rst_n) begin
         ApRequest <= 1'b0;
         DataRequest <= 1'b0;
         CurrentState <= IDLE;
-        InsnMode <= INSN_BRAINFUCK_MODE;//FIX: Debug mode must be by default.
+        InsnMode <= BRAINFUCK_ISA;//FIX: Debug mode must be by default.
     end
     else begin
         case (CurrentState)
@@ -103,20 +99,20 @@ always @(posedge Clk, negedge Rst_n) begin
                             CurrentState <= HALT;
                         end
                         4'b001?: begin
-                            if (InsnMode == INSN_BRAINFUCK_MODE) begin
+                            //if (InsnMode == BRAINFUCK_ISA) begin
                                 CurrentState <= EXEC;
                                 DataRequest <= 1'b1;
                                 ApRequest <= 1'b0;
                                 ApLineDec <= Insn[0];
-                            end
+                            //end
                         end
                         4'b010?: begin
-                            if (InsnMode == INSN_BRAINFUCK_MODE) begin
+                            //if (InsnMode == BRAINFUCK_ISA) begin
                                 CurrentState <= EXEC;
                                 DataRequest <= 1'b0;
                                 ApRequest <= 1'b1;
                                 ApLineDec <= Insn[0];
-                            end
+                            //end
                         end
                         4'b1000: begin
                             // synopsys translate_off
@@ -127,10 +123,10 @@ always @(posedge Clk, negedge Rst_n) begin
                             IpRequest <= 1'b1;
                         end
                         4'b1110: begin
-                            InsnMode <= INSN_DEBUG_MODE;
+                            InsnMode <= DEBUG_ISA;
                         end
                         4'b1111: begin
-                            InsnMode <= INSN_BRAINFUCK_MODE;
+                            InsnMode <= BRAINFUCK_ISA;
                         end
                         default: begin
                             CurrentState <= FETCH;

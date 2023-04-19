@@ -56,9 +56,9 @@ verilator --top-module DekatronPC --lint-only  -Wall ${DPCfiles}
 
 verilator -Wall --coverage --trace --top DekatronPC --cc ${DPCfiles} \
 --timescale 100ns/100ps \
---exe DekatronPC/tests/DekatronPC.sv/DekatronPC_tb.cpp \
+--exe DekatronPC/tests/DekatronPC.sv/DekatronPC_tb.cpp
 
-make -C obj_dir -f VDekatronPC.mk VDekatronPC
+make -j`nproc` -C obj_dir -f VDekatronPC.mk VDekatronPC
 ./obj_dir/VDekatronPC
 
 verilator_coverage -write-info logs/DPC.info logs/coverage_DPC.dat

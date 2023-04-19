@@ -64,11 +64,17 @@ assign Rst_n = KEY[0];
 wire [7:0] symbol;
 /* verilator lint_on UNUSEDSIGNAL */
 
+if (DIVIDE_TO_1US == 1) begin
+    assign Clock_1us = FPGA_CLK_50;
+end
+else begin
 ClockDivider #(.DIVISOR({DIVIDE_TO_1US})) clock_divider_us(
     .Rst_n(Rst_n),
     .clock_in(FPGA_CLK_50),
     .clock_out(Clock_1us)
 );
+end 
+
 
 ClockDivider #(
     .DIVISOR({DIVIDE_TO_1MS}),
