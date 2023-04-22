@@ -1,78 +1,133 @@
 #include <stdlib.h>
 #include <iostream>
 #include <verilated.h>
+#include "verilated_vpi.h"
 #include <verilated_vcd_c.h>
 #include "VEmulator.h"
 #include "curses.h"
+#include "iostream"
 
-#define MAX_SIM_TIME 600000
+#define MAX_SIM_TIME 60000000
+#define DIGITS 9
+
 vluint64_t sim_time = 0;
+
+uint8_t In12CathodeToPin[] = {1,0,2,3,6,8,9,7,5,4};
 
 class UI{
 public:
     UI() : KeyCurrentRows(0)
     {
-
+        in12High[DIGITS] = 0;
+        in12Low[DIGITS] = 0;
+        in12anodeWrOld = 0;
+        in12cathodeWrOld = 0;
+        ms6205addrOld = 0;
+        ms6205dataOld = 0;
+        in12AnodeCount =0;
+        in12AnodeNumOld = 0;
+        keyboardWrOld = 0;
+        for (uint8_t i = 0; i < 7; i++)
+        {
+            KeypadRaw[i] = 0x00;
+        }
     }
 
-void keyboardClear()
-{
-    KeyCurrentRows = 0;
-}
-
-uint8_t keyboardUpdate(uint8_t data)
-{
-    KeyCurrentRows = data;
-    if (KeyCurrentRows == 0)
-        return 0;
-    uint8_t tmp = KeyCurrentRows;
-    uint8_t idx = 0;
-    while (tmp)
+    ~UI()
     {
-        idx++;
-        tmp>>=1;
+
     }
-    if (idx < 7)
-        return KeypadRaw[7];
-    return 0;
-}
 
-void in12Clear()
-{
-    in12CathodesNum = 0;
-    in12AnodeNum = 0;
-}
-void in12CathodeUpdate(uint8_t data)
-{
-    in12CathodesNum = data;
-}
-void in12AnodeUpdate(uint8_t data)
-{
-    in12AnodeNum = data;
-}
+    void keyboardUpdate(bool state, uint8_t data, uint8_t& dataOut)
+    {
+        if (!keyboardWrOld & state){
+            KeyCurrentRows = data;
+            if (KeyCurrentRows == 0)
+                return;
+            if (KeyCurrentRows & (KeyCurrentRows-1))
+                return;
+            uint8_t tmp = KeyCurrentRows;
+            uint8_t idx = 0;
+            while (tmp>>=1)
+            {
+                idx++;
+            }
+            if (idx < 7)
+                dataOut = KeypadRaw[idx];
+        }
+        keyboardWrOld = state;
+    }
 
-uint8_t ms6205UpdateAddr(uint8_t data, uint8_t marker){
-    ms6205addr = data;
-    ms6205marker = marker;
-    return 1;
-}
+    void in12CathodeUpdate(bool state, uint8_t data)
+    {
+        if (state & !in12cathodeWrOld)
+        {
+            in12Low[DIGITS-in12AnodeNum-1]  = In12CathodeToPin[(data & 0x0F)] + 0x30;
+            in12High[DIGITS-in12AnodeNum-1] = In12CathodeToPin[((data >> 4) & 0x0F)] + 0x30;
+        }
+        in12cathodeWrOld = state;
+        
+    }
+    void in12AnodeUpdate(bool state, uint8_t data)
+    {
+        if (state & !in12anodeWrOld)
+        {
+            in12AnodeNum = data & 0x0F;
+            if (in12AnodeNumOld != in12AnodeNum)
+            {
+                if (in12AnodeNum == 0)
+                {
+                    printf("HIGH: ");
+                    for (uint8_t i = 0; i < DIGITS; i++)
+                        printf("%c", in12High[i]);
+                    printf("  LOW: ");
+                    for (uint8_t i = 0; i < DIGITS; i++)
+                        printf("%c", in12Low[i]);
+                    printf("\n");
+                }
+            }
+        }
+        in12anodeWrOld = state;
+        in12AnodeNumOld = in12AnodeNum;
+    }
 
-uint8_t ms6205UpdateData(uint8_t data, uint8_t marker){
-    ms6205ram[ms6205addr] = data;
-    ms6205marker = marker;
-    return 1;
-}
+    uint8_t ms6205UpdateAddr(bool state, uint8_t data, uint8_t marker){
+        if (!state & ms6205addrOld)
+        {
+            ms6205addr = data;
+            ms6205marker = marker;
+        }
+        ms6205addrOld = state;
+        return 1;
+    }
+
+    uint8_t ms6205UpdateData(bool state, uint8_t data, uint8_t marker){
+        if (ms6205dataOld & !state)
+        {
+            ms6205ram[ms6205addr] = data;
+            ms6205marker = marker;
+            }
+        ms6205dataOld = state;
+        return 1;
+    }
 
 private:
     uint8_t KeyCurrentRows;
     uint8_t KeypadRaw[7];
 
     uint8_t in12AnodeNum;
-    uint8_t in12CathodesNum;
+    char in12High[DIGITS+1];
+    char in12Low[DIGITS+1];
+    bool in12anodeWrOld;
+    bool in12cathodeWrOld;
 
     uint8_t ms6205ram[16*10];
     uint8_t ms6205addr;
     bool ms6205marker;
+    bool ms6205addrOld;
+    bool ms6205dataOld;
+    bool keyboardWrOld;
+    uint8_t in12AnodeNumOld;
 };
 
 
@@ -85,6 +140,8 @@ int main(int argc, char** argv, char** env) {
     VerilatedVcdC *m_trace = new VerilatedVcdC;
     dut->trace(m_trace, 5);
     m_trace->open("Emulator.vcd");
+    dut->KEY = 1;
+    dut->FPGA_CLK_50 = 0;
     while (sim_time < MAX_SIM_TIME) {
         dut->FPGA_CLK_50 ^= 1;
         if (sim_time == 1){
@@ -95,27 +152,17 @@ int main(int argc, char** argv, char** env) {
         }
         dut->eval();
         m_trace->dump(sim_time);
-        if (dut->keyboard_write == 1){
-            dut->keyboard_data_in = ui->keyboardUpdate(dut->emulData);
-        }
-        if (dut->keyboard_clear == 1){
-            ui->keyboardClear();
-        }
-        if (dut->in12_write_anode == 1){
-            ui->in12AnodeUpdate(dut->emulData);
-        }
-        if (dut->in12_write_cathode == 1){
-            ui->in12CathodeUpdate(dut->emulData);
-        }
-        if (dut->in12_clear == 1){
-            ui->in12Clear();
-        }
-        if (dut->ms6205_write_addr_n == 0){
-            dut->ms6205_ready = ui->ms6205UpdateAddr(dut->emulData, dut->ms6205_marker);
-        }
-        if (dut->ms6205_write_data_n == 0){
-            dut->ms6205_ready = ui->ms6205UpdateData(dut->emulData, dut->ms6205_marker);
-        }        
+
+        if (dut->DPC_currentState == 0x04)
+            break;//DPC HALTED
+
+        ui->keyboardUpdate(dut->keyboard_write, dut->emulData, dut->keyboard_data_in);
+        ui->in12AnodeUpdate(dut->in12_write_anode, dut->emulData);
+        ui->in12CathodeUpdate(dut->in12_write_cathode, dut->emulData);
+    
+        dut->ms6205_ready = ui->ms6205UpdateAddr(dut->ms6205_write_addr_n, dut->emulData, dut->ms6205_marker);
+        dut->ms6205_ready = ui->ms6205UpdateData(dut->ms6205_write_data_n, dut->emulData, dut->ms6205_marker);
+
         sim_time++;
     }
     std::cout << "Emulator Done. sim_time = " << sim_time << "\n";

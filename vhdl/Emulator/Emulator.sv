@@ -29,7 +29,7 @@ module Emulator #(
 
 	output in12_write_anode,
 	output in12_write_cathode,
-	output in12_clear,
+	output in12_clear_n,
 
 	output keyboard_write,
 	output keyboard_clear,
@@ -42,7 +42,9 @@ module Emulator #(
 
     output wire [3:0] io_address,
     output wire [1:0] io_enable_n,
-    inout wire [7:0] io_data
+    inout wire [7:0] io_data,
+
+    output wire [2:0] DPC_currentState
 );
 
 assign LED = 8'b0;
@@ -53,8 +55,12 @@ wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data;
 wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount;
 
 /* verilator lint_off UNUSEDSIGNAL */
-wire [39:0] keyboard_keysCurrentState;
+wire [39:0] keysCurrentState;
 /* verilator lint_on UNUSEDSIGNAL */
+
+wire keyHalt = keysCurrentState[KEYBOARD_HALT_KEY];
+wire keyRun = keysCurrentState[KEYBOARD_RUN_KEY];
+wire keyStep = keysCurrentState[KEYBOARD_STEP_KEY];
 
 wire Rst_n;
 
@@ -62,6 +68,7 @@ assign Rst_n = KEY[0];
 
 /* verilator lint_off UNUSEDSIGNAL */
 wire [7:0] symbol;
+wire hsClk;
 /* verilator lint_on UNUSEDSIGNAL */
 
 if (DIVIDE_TO_1US == 1) begin
@@ -75,6 +82,14 @@ ClockDivider #(.DIVISOR({DIVIDE_TO_1US})) clock_divider_us(
 );
 end 
 
+ClockDivider #(
+    .DIVISOR(8'd5),
+    .DUTY_CYCLE(50)
+) clock_divider_hsClk(
+    .Rst_n(Rst_n),
+	.clock_in(FPGA_CLK_50),
+	.clock_out(hsClk)
+);
 
 ClockDivider #(
     .DIVISOR({DIVIDE_TO_1MS}),
@@ -93,15 +108,16 @@ ClockDivider #(
 	.clock_out(Clock_1s)
 );
 
-wire [2:0] DPC_currentState;
-
 DekatronPC dekatronPC(
     .IpAddress(IpAddress),
     .ApAddress(ApAddress),
     .Data(Data),
     .LoopCount(LoopCount),
-    .hsClk(FPGA_CLK_50),
+    .hsClk(hsClk),
     .Rst_n(Rst_n),
+    .Halt(keyHalt),
+    .Run(keyRun),
+    .Step(keyStep),
     .CurrentState(DPC_currentState)
 );
 
@@ -116,10 +132,10 @@ io_key_display_block #(
     .ms6205_marker(ms6205_marker),
     .in12_write_anode(in12_write_anode),
     .in12_write_cathode(in12_write_cathode),
-    .in12_clear(in12_clear),
+    .in12_clear_n(in12_clear_n),
     .keyboard_write(keyboard_write),
     .keyboard_clear(keyboard_clear),
-    .keyboard_keysCurrentState(keyboard_keysCurrentState),
+    .keyboard_keysCurrentState(keysCurrentState),
     .emulData(emulData),
     .ipCounter(IpAddress),
     .loopCounter(LoopCount),

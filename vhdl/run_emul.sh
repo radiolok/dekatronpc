@@ -38,10 +38,11 @@ DPCfiles=$(cat DPC.files)
 
 EmulFiles=$(cat Emul.files)
 
-verilator -Wall --coverage --trace --top Emulator --cc ${EmulFiles} ${DPCfiles} \
--GDIVIDE_TO_1US=1 -GDIVIDE_TO_1MS=10 -GDIVIDE_TO_4MS=30 -GDIVIDE_TO_1S=1000  \
---timescale 100ns/100ps \
+verilator -Wall --coverage --trace --top Emulator --clk FPGA_CLK_50 --cc ${EmulFiles} ${DPCfiles} \
+-GDIVIDE_TO_1US=1 --timescale 1us/10ns  \
 --exe DekatronPC/tests/Emulator.sv/Emulator_tb.cpp
 
 make -j`nproc` -C obj_dir -f VEmulator.mk VEmulator
 ./obj_dir/VEmulator
+
+#  -GDIVIDE_TO_1MS=100 -GDIVIDE_TO_4MS=300 -GDIVIDE_TO_1S=1000  \

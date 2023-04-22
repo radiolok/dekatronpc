@@ -14,7 +14,7 @@ module io_key_display_block #(
 
 	output in12_write_anode,
 	output in12_write_cathode,
-	output in12_clear,
+	output in12_clear_n,
 
 	output keyboard_write,
 	output keyboard_clear,
@@ -197,7 +197,7 @@ Sequencer sequencer(
 	.ms6205_write_data_n(ms6205_write_data_n),
 	.in12_write_anode(in12_write_anode),
 	.in12_write_cathode(in12_write_cathode),
-	.in12_clear(in12_clear),
+	.in12_clear_n(in12_clear_n),
 	.keyboard_write(keyboard_write),
 	.keyboard_clear(keyboard_clear),
 	.keyboard_read(keyboard_read),

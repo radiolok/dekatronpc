@@ -8,7 +8,7 @@ module Sequencer(
     output wire ms6205_write_data_n,
     output reg in12_write_anode,
     output reg in12_write_cathode,
-    output reg in12_clear,
+    output reg in12_clear_n,
     output reg keyboard_write,
     output reg keyboard_read,
     output reg keyboard_clear,
@@ -57,7 +57,7 @@ Anodes write signal release
 Busy signal release
 */
 
-assign in12_clear = Rst_n;
+assign in12_clear_n = Rst_n;
 assign keyboard_clear = Rst_n;
 
 parameter [2:0] 
@@ -127,7 +127,7 @@ always @(posedge Clock_1us, negedge Rst_n) begin
 	end
 	else begin
 		in12_write_cathode <= (current_state==CATHODES) & Enable;
-        in12_write_anode <= ((current_state==ANODES) & Enable) | ((current_state == KEYBOARD_RD) & ~Enable);
+        in12_write_anode <= ((current_state==ANODES) & Enable);// | ((current_state == KEYBOARD_RD) & ~Enable);
         keyboard_write <= (current_state==KEYBOARD_WR) & Enable;
         keyboard_read <= (current_state==KEYBOARD_RD) & ~Enable;
         ms6205_write_addr <= ((current_state==MC_ADDR) & Enable);

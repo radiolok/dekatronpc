@@ -3,6 +3,9 @@
 module DekatronPC (
     input hsClk,
     input Rst_n, 
+    input Halt,
+    input Step,
+    input Run,
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
     output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data,
@@ -84,6 +87,9 @@ always @(posedge Clk, negedge Rst_n) begin
     else begin
         case (CurrentState)
             IDLE: begin
+                if (Halt) begin
+                    CurrentState <= HALT;
+                end
                 CurrentState <= FETCH;
                 IpRequest <= 1'b1;
             end
@@ -99,20 +105,20 @@ always @(posedge Clk, negedge Rst_n) begin
                             CurrentState <= HALT;
                         end
                         4'b001?: begin
-                            //if (InsnMode == BRAINFUCK_ISA) begin
+                            if (InsnMode == BRAINFUCK_ISA) begin
                                 CurrentState <= EXEC;
                                 DataRequest <= 1'b1;
                                 ApRequest <= 1'b0;
                                 ApLineDec <= Insn[0];
-                            //end
+                            end
                         end
                         4'b010?: begin
-                            //if (InsnMode == BRAINFUCK_ISA) begin
+                            if (InsnMode == BRAINFUCK_ISA) begin
                                 CurrentState <= EXEC;
                                 DataRequest <= 1'b0;
                                 ApRequest <= 1'b1;
                                 ApLineDec <= Insn[0];
-                            //end
+                            end
                         end
                         4'b1000: begin
                             // synopsys translate_off
@@ -129,7 +135,7 @@ always @(posedge Clk, negedge Rst_n) begin
                             InsnMode <= BRAINFUCK_ISA;
                         end
                         default: begin
-                            CurrentState <= FETCH;
+                            CurrentState <= IDLE;
                             IpRequest <= 1'b1;
                         end
                     endcase
@@ -139,14 +145,22 @@ always @(posedge Clk, negedge Rst_n) begin
                 DataRequest <= 1'b0;
                 ApRequest <= 1'b0;
                 if (ApLineReady) begin
-                    CurrentState <= FETCH;
-                    IpRequest <= 1'b1;
+                    if (Halt | Step) begin
+                        CurrentState <= HALT;
+                    end
+                    else begin
+                        CurrentState <= FETCH;
+                        IpRequest <= 1'b1;
+                    end
                 end
             end
             HALT: begin
-                // synopsys translate_off
-                $finish;
-                // synopsys translate_on
+                if (Step | Run) begin
+                    CurrentState <= IDLE;
+                end
+                else begin
+                    CurrentState <= HALT;
+                end
             end
             default: begin
                 CurrentState <= IDLE;
