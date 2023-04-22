@@ -41,7 +41,7 @@ public:
     {
         if (!CoutOld & state){
             uint16_t symbol = (data&0x0F) + ((data>>4) &0x0F)*10 + ((data>>8) &0x0F)*100;
-            printw("%x %x %x - %c\n", (data>>8)&0xf, (data>>4)&0xf, (data)&0xf, symbol);
+            coutSymbols.push_back(symbol);
         }
         CoutOld = state;
     }
@@ -62,6 +62,7 @@ public:
             }
             if (idx < 7)
                 dataOut = KeypadRaw[idx];
+                updateScreen();
         }
         keyboardWrOld = state;
     }
@@ -85,13 +86,7 @@ public:
             {
                 if (in12AnodeNum == 0)
                 {
-                    printw("HIGH: ");
-                    for (uint8_t i = 0; i < DIGITS; i++)
-                        printw("%c", in12High[i]);
-                    printw("  LOW: ");
-                    for (uint8_t i = 0; i < DIGITS; i++)
-                        printw("%c", in12Low[i]);
-                    printw("\n");
+                    updateScreen();
                 }
             }
         }
@@ -119,6 +114,30 @@ public:
         return 1;
     }
 
+    void updateScreen()
+    {
+        mvprintw(0,0, "DekatronPC Verilator-based Emulator");
+        mvprintw(5,2, "IP: ");
+        for (uint8_t i = 8; i > 2; i--)
+            printw("%c", in12High[i]);
+        mvprintw(7,2, "AP: ");
+        for (uint8_t i = 8; i > 3; i--)
+            printw("%c", in12Low[i]);
+        mvprintw(5,15, "Loop: ");
+        for (uint8_t i = 2; i < 10; i--)
+            printw("%c", in12High[i]);
+        mvprintw(7,15, "Data: ");
+        for (uint8_t i = 2; i < 10; i--)
+            printw("%c", in12Low[i]);
+
+        mvprintw(10,2, "COUT: ");
+        for (char c: coutSymbols)
+        {
+            printw("%c", c);
+        }
+        refresh();
+    }
+
 private:
     uint8_t KeyCurrentRows;
     uint8_t KeypadRaw[7];
@@ -137,8 +156,9 @@ private:
     bool keyboardWrOld;
     bool CoutOld;
     uint8_t in12AnodeNumOld;
-};
 
+    std::vector<char> coutSymbols;
+};
 
 int main(int argc, char** argv, char** env) {
     VEmulator *dut = new VEmulator;
@@ -151,9 +171,8 @@ int main(int argc, char** argv, char** env) {
     m_trace->open("Emulator.vcd");
     dut->KEY = 1;
     dut->FPGA_CLK_50 = 0;
-    initscr();                   // Переход в curses-режим
-    printw("Hello world!\n");  // Отображение приветствия в буфер
-    refresh();                   // Вывод приветствия на настоящий экран
+    initscr();
+    
     while (sim_time < MAX_SIM_TIME) {
         dut->FPGA_CLK_50 ^= 1;
         if (sim_time == 1){
@@ -168,7 +187,6 @@ int main(int argc, char** argv, char** env) {
         if (dut->DPC_currentState == 0x04)
             break;//DPC HALTED
 
-
         ui->Cout(dut->Cout, dut->Data);
         ui->keyboardUpdate(dut->keyboard_write, dut->emulData, dut->keyboard_data_in);
         ui->in12AnodeUpdate(dut->in12_write_anode, dut->emulData);
@@ -179,7 +197,7 @@ int main(int argc, char** argv, char** env) {
 
         sim_time++;
     }
-    printw("Emulator Done. sim_time = %d\n", sim_time);
+    mvprintw(20,0, "Emulator Done. sim_time = %d\n", sim_time);
     m_trace->close();
     getch();
     endwin();                    // Выход из curses-режима. Обязательная команда.
