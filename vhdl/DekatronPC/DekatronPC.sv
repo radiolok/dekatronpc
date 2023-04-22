@@ -6,6 +6,7 @@ module DekatronPC (
     input Halt,
     input Step,
     input Run,
+    output reg Cout,
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
     output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data,
@@ -77,6 +78,7 @@ parameter [2:0]
 
 always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
+        Cout <= 1'b0;
         IpRequest <= 1'b0;
         ApLineDec <= 1'b0;
         ApRequest <= 1'b0;
@@ -95,6 +97,7 @@ always @(posedge Clk, negedge Rst_n) begin
             end
             FETCH: begin
                 IpRequest <= 1'b0;
+                Cout <= 1'b0;
                 if (IpLineReady) begin
                     casez (Insn)
                         4'b0000: begin//NOP
@@ -121,10 +124,7 @@ always @(posedge Clk, negedge Rst_n) begin
                             end
                         end
                         4'b1000: begin
-                            // synopsys translate_off
-                            $display("COUT: %x", Data);
-                            //Need to covert BCD to ASCII
-                            // synopsys translate_on
+                            Cout <= 1'b1;
                             CurrentState <= FETCH;
                             IpRequest <= 1'b1;
                         end

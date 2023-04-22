@@ -24,7 +24,6 @@ public:
         in12cathodeWrOld = 0;
         ms6205addrOld = 0;
         ms6205dataOld = 0;
-        in12AnodeCount =0;
         in12AnodeNumOld = 0;
         keyboardWrOld = 0;
         for (uint8_t i = 0; i < 7; i++)
@@ -36,6 +35,15 @@ public:
     ~UI()
     {
 
+    }
+
+    void Cout(bool state, uint16_t data)
+    {
+        if (!CoutOld & state){
+            uint16_t symbol = (data&0x0F) + ((data>>4) &0x0F)*10 + ((data>>8) &0x0F)*100;
+            printw("%x %x %x - %c\n", (data>>8)&0xf, (data>>4)&0xf, (data)&0xf, symbol);
+        }
+        CoutOld = state;
     }
 
     void keyboardUpdate(bool state, uint8_t data, uint8_t& dataOut)
@@ -77,13 +85,13 @@ public:
             {
                 if (in12AnodeNum == 0)
                 {
-                    printf("HIGH: ");
+                    printw("HIGH: ");
                     for (uint8_t i = 0; i < DIGITS; i++)
-                        printf("%c", in12High[i]);
-                    printf("  LOW: ");
+                        printw("%c", in12High[i]);
+                    printw("  LOW: ");
                     for (uint8_t i = 0; i < DIGITS; i++)
-                        printf("%c", in12Low[i]);
-                    printf("\n");
+                        printw("%c", in12Low[i]);
+                    printw("\n");
                 }
             }
         }
@@ -127,6 +135,7 @@ private:
     bool ms6205addrOld;
     bool ms6205dataOld;
     bool keyboardWrOld;
+    bool CoutOld;
     uint8_t in12AnodeNumOld;
 };
 
@@ -142,6 +151,9 @@ int main(int argc, char** argv, char** env) {
     m_trace->open("Emulator.vcd");
     dut->KEY = 1;
     dut->FPGA_CLK_50 = 0;
+    initscr();                   // Переход в curses-режим
+    printw("Hello world!\n");  // Отображение приветствия в буфер
+    refresh();                   // Вывод приветствия на настоящий экран
     while (sim_time < MAX_SIM_TIME) {
         dut->FPGA_CLK_50 ^= 1;
         if (sim_time == 1){
@@ -156,6 +168,8 @@ int main(int argc, char** argv, char** env) {
         if (dut->DPC_currentState == 0x04)
             break;//DPC HALTED
 
+
+        ui->Cout(dut->Cout, dut->Data);
         ui->keyboardUpdate(dut->keyboard_write, dut->emulData, dut->keyboard_data_in);
         ui->in12AnodeUpdate(dut->in12_write_anode, dut->emulData);
         ui->in12CathodeUpdate(dut->in12_write_cathode, dut->emulData);
@@ -165,8 +179,10 @@ int main(int argc, char** argv, char** env) {
 
         sim_time++;
     }
-    std::cout << "Emulator Done. sim_time = " << sim_time << "\n";
+    printw("Emulator Done. sim_time = %d\n", sim_time);
     m_trace->close();
+    getch();
+    endwin();                    // Выход из curses-режима. Обязательная команда.
     delete dut;
     delete ui;
     exit(EXIT_SUCCESS);

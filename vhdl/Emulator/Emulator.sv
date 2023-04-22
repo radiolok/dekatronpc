@@ -40,6 +40,9 @@ module Emulator #(
     output wire Clock_1ms,
     output wire Clock_1us,
 
+    output wire Cout,
+    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data,
+
     output wire [3:0] io_address,
     output wire [1:0] io_enable_n,
     inout wire [7:0] io_data,
@@ -51,7 +54,6 @@ assign LED = 8'b0;
 
 wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress;
 wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress;
-wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data;
 wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount;
 
 /* verilator lint_off UNUSEDSIGNAL */
@@ -117,6 +119,7 @@ DekatronPC dekatronPC(
     .Rst_n(Rst_n),
     .Halt(keyHalt),
     .Run(keyRun),
+    .Cout(Cout),
     .Step(keyStep),
     .CurrentState(DPC_currentState)
 );
