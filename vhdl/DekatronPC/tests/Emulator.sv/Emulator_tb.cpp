@@ -139,9 +139,8 @@ public:
     void keyPressed(uint8_t keyCode)
     {
         std::lock_guard<std::mutex> lk(keyUpdateMutex);
-        uint8_t keyCol = (keyCode >> 5) & 0x0F;
-        uint8_t keyRow = keyCode & 0x01F;
-        KeypadRaw[keyCol] = keyRow;
+        uint8_t keyRow = 1<<(keyCode % 5);
+        KeypadRaw[keyCode / 5] = keyRow;
     }
 
     void keyControl()
