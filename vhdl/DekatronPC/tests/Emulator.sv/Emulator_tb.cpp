@@ -1,18 +1,27 @@
 #include <stdlib.h>
 #include <iostream>
+#include <stdio.h>
+#include <ctype.h>
+#include <mutex>
+#include <thread>
+#include <curses.h>
 #include <verilated.h>
 #include "verilated_vpi.h"
 #include <verilated_vcd_c.h>
 #include "VEmulator.h"
-#include "curses.h"
-#include "iostream"
+
 
 #define MAX_SIM_TIME 60000000
 #define DIGITS 9
 
+
+std::atomic<bool> toExit(false);
+std::mutex keyUpdateMutex;
 vluint64_t sim_time = 0;
 
 uint8_t In12CathodeToPin[] = {1,0,2,3,6,8,9,7,5,4};
+
+#define EXIT 0xFF
 
 class UI{
 public:
@@ -24,26 +33,32 @@ public:
         in12cathodeWrOld = 0;
         ms6205addrOld = 0;
         ms6205dataOld = 0;
-        in12AnodeNumOld = 0;
         keyboardWrOld = 0;
         for (uint8_t i = 0; i < 7; i++)
         {
             KeypadRaw[i] = 0x00;
         }
+        for (uint8_t i = 0; i < 160; i++)
+        {
+            ms6205ram[i] = ' ';
+        }
+        printInit();
     }
 
     ~UI()
     {
-
     }
 
-    void Cout(bool state, uint16_t data)
+    uint8_t Cout(bool state, uint16_t data)
     {
+        uint8_t update = 0;
         if (!CoutOld & state){
             uint16_t symbol = (data&0x0F) + ((data>>4) &0x0F)*10 + ((data>>8) &0x0F)*100;
             coutSymbols.push_back(symbol);
+            update = 1;
         }
         CoutOld = state;
+        return update;
     }
 
     void keyboardUpdate(bool state, uint8_t data, uint8_t& dataOut)
@@ -61,8 +76,11 @@ public:
                 idx++;
             }
             if (idx < 7)
+            {
+                std::lock_guard<std::mutex> lk(keyUpdateMutex);
                 dataOut = KeypadRaw[idx];
-                updateScreen();
+                KeypadRaw[idx] = 0;
+            }
         }
         keyboardWrOld = state;
     }
@@ -77,21 +95,17 @@ public:
         in12cathodeWrOld = state;
         
     }
-    void in12AnodeUpdate(bool state, uint8_t data)
+    uint8_t in12AnodeUpdate(bool state, uint8_t data)
     {
+        uint8_t status = 0;
         if (state & !in12anodeWrOld)
         {
             in12AnodeNum = data & 0x0F;
-            if (in12AnodeNumOld != in12AnodeNum)
-            {
-                if (in12AnodeNum == 0)
-                {
-                    updateScreen();
-                }
-            }
+            if (!in12AnodeNum)
+                status = 1;
         }
         in12anodeWrOld = state;
-        in12AnodeNumOld = in12AnodeNum;
+        return status;
     }
 
     uint8_t ms6205UpdateAddr(bool state, uint8_t data, uint8_t marker){
@@ -109,32 +123,107 @@ public:
         {
             ms6205ram[ms6205addr] = data;
             ms6205marker = marker;
-            }
+        }
         ms6205dataOld = state;
         return 1;
     }
 
-    void updateScreen()
+    void printInit()
     {
-        mvprintw(0,0, "DekatronPC Verilator-based Emulator");
-        mvprintw(5,2, "IP: ");
+        init_color(COLOR_WHITE, 190,190,190);
+        init_pair(1, COLOR_RED, COLOR_WHITE);
+        init_pair(2, COLOR_GREEN, COLOR_WHITE);
+        init_pair(3, COLOR_RED, COLOR_WHITE);
+    }
+
+    void keyPressed(uint8_t keyCode)
+    {
+        std::lock_guard<std::mutex> lk(keyUpdateMutex);
+        uint8_t keyCol = (keyCode >> 5) & 0x0F;
+        uint8_t keyRow = keyCode & 0x01F;
+        KeypadRaw[keyCol] = keyRow;
+    }
+
+    void keyControl()
+    {
+        while(true){
+            int ch = getch();
+            if (ch == 'q')
+            {
+                toExit = true;
+                break;
+            }
+            switch(ch){
+                case 'h'://step
+                    keyPressed(26);//KEYBOARD_HALT_KEY =  26,
+                    //KEYBOARD_HALT_KEY
+                break;
+                case 's'://KEYBOARD_STEP_KEY =  33,
+                    keyPressed(33);
+                break;
+                case 'r'://KEYBOARD_RUN_KEY =  28,
+                    keyPressed(28);
+                break;
+                default:
+                break;
+            }
+        }
+    }
+
+    void printHeader()
+    {
+        mvprintw(0,0, "DekatronPC Virtual HDL Emulator");
+    }
+
+    void printFooter(const VEmulator *dut)
+    {
+        std::string status = "RUN";
+        if (dut->DPC_currentState == 0x04)
+            status = "HALT";
+        mvprintw(LINES-1,0, "Quit, Halt, Run, Step. Status: %s", status.c_str());
+    }
+
+    void printMs6205()
+    {
+        for (uint8_t r = 0; r < 10; r++)
+        {
+            move(LINES/4-5+r, COLS/4-8);
+            for(uint8_t c = 0; c< 16; c++)
+            {
+                printw("%c", ms6205ram[r*16+c]);
+            }
+        }
+    }
+
+    void printIn12()
+    {
+        int row = LINES/4-1;
+        int col = COLS/2;
+        mvprintw(row,col+2, "IP: ");
         for (uint8_t i = 8; i > 2; i--)
             printw("%c", in12High[i]);
-        mvprintw(7,2, "AP: ");
+        mvprintw(row+1,col+2, "AP: ");
         for (uint8_t i = 8; i > 3; i--)
             printw("%c", in12Low[i]);
-        mvprintw(5,15, "Loop: ");
+        mvprintw(row,col+15, "Loop: ");
         for (uint8_t i = 2; i < 10; i--)
             printw("%c", in12High[i]);
-        mvprintw(7,15, "Data: ");
+        mvprintw(row+1,col+15, "Data: ");
         for (uint8_t i = 2; i < 10; i--)
             printw("%c", in12Low[i]);
+    }
+    void updateScreen(vluint64_t sim_time, const VEmulator *dut)
+    {
+	    printHeader();
+        printMs6205();
+        printIn12();
 
-        mvprintw(10,2, "COUT: ");
+        mvprintw(LINES/2,2, "COUT: ");
         for (char c: coutSymbols)
         {
             printw("%c", c);
         }
+        printFooter(dut);
         refresh();
     }
 
@@ -155,7 +244,6 @@ private:
     bool ms6205dataOld;
     bool keyboardWrOld;
     bool CoutOld;
-    uint8_t in12AnodeNumOld;
 
     std::vector<char> coutSymbols;
 };
@@ -172,8 +260,13 @@ int main(int argc, char** argv, char** env) {
     dut->KEY = 1;
     dut->FPGA_CLK_50 = 0;
     initscr();
+    start_color();   
+
+    std::thread keyControl(&UI::keyControl, ui);
     
     while (sim_time < MAX_SIM_TIME) {
+        if (toExit)
+            break;
         dut->FPGA_CLK_50 ^= 1;
         if (sim_time == 1){
             dut->KEY = 0;
@@ -184,14 +277,15 @@ int main(int argc, char** argv, char** env) {
         dut->eval();
         m_trace->dump(sim_time);
 
-        if (dut->DPC_currentState == 0x04)
-            break;//DPC HALTED
-
-        ui->Cout(dut->Cout, dut->Data);
+        uint8_t needUpdate = 0;
+        needUpdate += ui->Cout(dut->Cout, dut->Data);
         ui->keyboardUpdate(dut->keyboard_write, dut->emulData, dut->keyboard_data_in);
-        ui->in12AnodeUpdate(dut->in12_write_anode, dut->emulData);
+        needUpdate += ui->in12AnodeUpdate(dut->in12_write_anode, dut->emulData);
         ui->in12CathodeUpdate(dut->in12_write_cathode, dut->emulData);
-    
+        if (needUpdate)
+        {
+            ui->updateScreen(sim_time, dut);
+        }
         dut->ms6205_ready = ui->ms6205UpdateAddr(dut->ms6205_write_addr_n, dut->emulData, dut->ms6205_marker);
         dut->ms6205_ready = ui->ms6205UpdateData(dut->ms6205_write_data_n, dut->emulData, dut->ms6205_marker);
 
@@ -199,8 +293,8 @@ int main(int argc, char** argv, char** env) {
     }
     mvprintw(20,0, "Emulator Done. sim_time = %d\n", sim_time);
     m_trace->close();
-    getch();
-    endwin();                    // Выход из curses-режима. Обязательная команда.
+    keyControl.join();
+    endwin();
     delete dut;
     delete ui;
     exit(EXIT_SUCCESS);

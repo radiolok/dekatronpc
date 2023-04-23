@@ -3,132 +3,147 @@
 library(vtube_cells_lib) {
   cell(BUF) {
     area: 0.5;
-    pin(A) { direction: input; }
+    pin(A) { direction: input; fanout_load: 1.0;}
     pin(Y) { direction: output;
               driver_type : pull_up;
+               max_fanout : 10; 
               function: "A"; }
   }
   cell(NOT) {
     area: 0.5;
-    pin(A) { direction: input; }
+    pin(A) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
               driver_type : pull_up;
+               max_fanout : 10; 
               function: "A'"; }
   }
   cell(NAND2) {
     area: 1;
-    pin(A) { direction: input; }
-    pin(B) { direction: input; }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
              driver_type : pull_up;
+               max_fanout : 10; 
              function: "(A*B)'"; }
   }
   cell(NAND3) {
     area: 1.5;
-    pin(A) { direction: input; }
-    pin(B) { direction: input; }
-    pin(C) { direction: input; }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(C) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
             driver_type : pull_up;
+               max_fanout : 10; 
              function: "(A*B*C)'"; }
   }
   cell(NAND4) {
     area: 2;
-    pin(A) { direction: input; }
-    pin(B) { direction: input; }
-    pin(C) { direction: input; }
-    pin(D) { direction: input; }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(C) { direction: input; fanout_load: 1.0; }
+    pin(D) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
             driver_type : pull_up;
+               max_fanout : 10; 
              function: "(A*B*C*D)'"; }
   }
   cell(AND2) {
     area: 1;
-    pin(A) { direction: input; }
-    pin(B) { direction: input; }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
             driver_type : pull_up;
+               max_fanout : 10; 
              function: "(A*B)"; }
   }
   cell(AND3) {
     area: 1.5;
-    pin(A) { direction: input; }
-    pin(B) { direction: input; }
-    pin(C) { direction: input; }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(C) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
+               max_fanout : 10; 
             driver_type : pull_up;
              function: "(A*B*C)"; }
   }
   cell(AND4) {
     area: 2;
-    pin(A) { direction: input; }
-    pin(B) { direction: input; }
-    pin(C) { direction: input; }
-    pin(D) { direction: input; }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(C) { direction: input; fanout_load: 1.0; }
+    pin(D) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
+               max_fanout : 10; 
             driver_type : pull_up;
              function: "(A*B*C*D)"; }
   }
   cell(OR2) {
     area: 1;
-    pin(A) { direction: input; }
-    pin(B) { direction: input; }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
+               max_fanout : 10; 
             driver_type : pull_up;
              function: "(A+B)"; }
   }  
   cell(OR3) {
     area: 1.5;
-    pin(A) { direction: input; }
-    pin(B) { direction: input; }
-    pin(C) { direction: input; }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(C) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
+               max_fanout : 10; 
             driver_type : pull_up;
              function: "(A+B+C)"; }
   }
   cell(OR4) {
     area: 2;
-    pin(A) { direction: input; }
-    pin(B) { direction: input; }
-    pin(C) { direction: input; }
-    pin(D) { direction: input; }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(C) { direction: input; fanout_load: 1.0; }
+    pin(D) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
+               max_fanout : 10; 
             driver_type : pull_up;
              function: "(A+B+C+D)"; }
   }
   cell(MUX2) {
     area: 3.5;
-    pin(A) { direction: input; }
-    pin(B) { direction: input; }
-    pin(C) { direction: input; }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(C) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
+               max_fanout : 10; 
             driver_type : pull_up;
              function: "(A*C+B*C')"; }
   }
   cell(NOR2) {
     area: 1;
-    pin(A) { direction: input; }
-    pin(B) { direction: input; }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
+               max_fanout : 10; 
             driver_type : pull_up;
              function: "(A+B)'"; }
   }
   cell(NOR3) {
     area: 1.5;
-    pin(A) { direction: input; }
-    pin(B) { direction: input; }
-    pin(C) { direction: input; }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(C) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
+               max_fanout : 10; 
             driver_type : pull_up;
              function: "(A+B+C)'"; }
   }
   cell(NOR4) {
     area: 2;
-    pin(A) { direction: input; }
-    pin(B) { direction: input; }
-    pin(C) { direction: input; }
-    pin(D) { direction: input; }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(C) { direction: input; fanout_load: 1.0; }
+    pin(D) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
+               max_fanout : 10; 
             driver_type : pull_up;
              function: "(A+B+C+D)'"; }
   }
@@ -136,10 +151,11 @@ library(vtube_cells_lib) {
     area: 2.5;
     latch(IQ, IQN) { enable: C;
                   data_in: D; }
-    pin(C) { direction: input;
+    pin(C) { direction: input; fanout_load: 1.0;
                  clock: true; }
-    pin(D) { direction: input; }
+    pin(D) { direction: input; fanout_load: 1.0; }
     pin(Q) { direction: output;
+               max_fanout : 10; 
             driver_type : pull_up;
               function: "IQ"; }
   }
@@ -147,10 +163,11 @@ library(vtube_cells_lib) {
     area: 3.5;
     ff(IQ, IQN) { clocked_on: C;
                   next_state: D; }
-    pin(C) { direction: input;
+    pin(C) { direction: input; fanout_load: 1.0;
                  clock: true; }
-    pin(D) { direction: input; }
+    pin(D) { direction: input; fanout_load: 1.0; }
     pin(Q) { direction: output;
+               max_fanout : 10; 
             driver_type : pull_up;
               function: "IQ"; }
   }
@@ -160,14 +177,15 @@ library(vtube_cells_lib) {
                   next_state: D;
                       preset: S;
                        clear: R; }
-    pin(C) { direction: input;
+    pin(C) { direction: input; fanout_load: 1.0;
                  clock: true; }
-    pin(D) { direction: input; }
+    pin(D) { direction: input; fanout_load: 1.0; }
     pin(Q) { direction: output;
-            driver_type : pull_up;
+                max_fanout : 10; 
+           driver_type : pull_up;
               function: "IQ"; }
-    pin(S) { direction: input; }
-    pin(R) { direction: input; }
+    pin(S) { direction: input; fanout_load: 1.0; }
+    pin(R) { direction: input; fanout_load: 1.0; }
     ; // empty statement
   }
 }

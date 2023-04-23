@@ -70,6 +70,8 @@ ApLine  apLine(
     .Data(Data)
 );
 
+reg OneStep;
+
 parameter [2:0]
     IDLE     =  3'b001,
     FETCH     =  3'b0010,
@@ -83,7 +85,8 @@ always @(posedge Clk, negedge Rst_n) begin
         ApLineDec <= 1'b0;
         ApRequest <= 1'b0;
         DataRequest <= 1'b0;
-        CurrentState <= IDLE;
+        OneStep <= 1'b0;
+        CurrentState <= HALT;
         InsnMode <= BRAINFUCK_ISA;//FIX: Debug mode must be by default.
     end
     else begin
@@ -145,8 +148,9 @@ always @(posedge Clk, negedge Rst_n) begin
                 DataRequest <= 1'b0;
                 ApRequest <= 1'b0;
                 if (ApLineReady) begin
-                    if (Halt | Step) begin
+                    if (Halt | OneStep) begin
                         CurrentState <= HALT;
+                        OneStep <= 1'b0;
                     end
                     else begin
                         CurrentState <= FETCH;
@@ -157,6 +161,8 @@ always @(posedge Clk, negedge Rst_n) begin
             HALT: begin
                 if (Step | Run) begin
                     CurrentState <= IDLE;
+                    if (Step)
+                        OneStep <= 1'b1;
                 end
                 else begin
                     CurrentState <= HALT;
