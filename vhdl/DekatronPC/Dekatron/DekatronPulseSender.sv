@@ -10,6 +10,7 @@ module DekatronPulseSender(
     output wire [1:0 ]PulsesOut
 );
 
+// This model of pulse Sender not represent real hw area consumption
 parameter HSCLK_DIV=10;
 reg [HSCLK_DIV-1:0] pulseA;
 reg [HSCLK_DIV-1:0] pulseB;
@@ -23,8 +24,6 @@ always @(posedge hsClk, negedge Rst_n) begin
 	pulseA <= {pulseA[HSCLK_DIV-2:0], pulseA[HSCLK_DIV-1]};	
 	pulseB <= {pulseB[HSCLK_DIV-2:0], pulseB[HSCLK_DIV-1]};	
 	end
-
-
 end
 
 wire pA = pulseA[HSCLK_DIV-1];

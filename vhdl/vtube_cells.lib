@@ -1,5 +1,3 @@
-// test comment
-/* test comment */
 library(vtube_cells_lib) {
   cell(BUF) {
     area: 0.5;
@@ -186,6 +184,5 @@ library(vtube_cells_lib) {
               function: "IQ"; }
     pin(S) { direction: input; fanout_load: 1.0; }
     pin(R) { direction: input; fanout_load: 1.0; }
-    ; // empty statement
   }
 }

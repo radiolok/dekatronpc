@@ -1,7 +1,10 @@
+`include "parameters.sv"
+
 module DekatronCounter #(
-	parameter D_NUM = 6,
-	parameter D_WIDTH = 4, 
-	parameter WIDTH=D_NUM*D_WIDTH
+	parameter D_NUM = 1,
+	parameter WIDTH = D_NUM * DEKATRON_WIDTH,
+	parameter READ = 1'b1,
+    parameter WRITE = 1'b1
 )(
 	input wire Rst_n,
 	input wire Clk,
@@ -56,13 +59,16 @@ for (d = 0; d < D_NUM; d++) begin: dek
 	else begin
 		assign pulses = dek[d-1].npulses;
 	end
-	DekatronModule dModule (
+	DekatronModule #(
+		.READ(READ),
+		.WRITE(WRITE)
+	)dModule (
 		.Rst_n(Rst_n),
 		.hsClk(hsClk),
 		.Set(Set),
 		.Pulse(pulses),
-		.In(In[D_WIDTH*(d+1)-1:D_WIDTH*d]),
-		.Out(Out[D_WIDTH*(d+1)-1:D_WIDTH*d]),
+		.In(In[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),
+		.Out(Out[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),
 		.Zero(Zeroes[d]),
 		.CarryLow(CarryLow),
 		.CarryHigh(CarryHigh)

@@ -11,6 +11,12 @@ module IpLine (
     output wire Ready,
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Address,
     output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
+
+`ifdef RAM_TWO_PORT
+    input wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Address1,
+    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data1,
+`endif
+
     output reg[INSN_WIDTH-1:0] Insn
 );
 
@@ -41,17 +47,13 @@ wire LoopInsnCloseInternal;
 wire LoopInsnOpen;
 wire LoopInsnClose;
 
-InsnLoopDetector #(
-    .DATA_WIDTH(INSN_WIDTH)
-)insnLoopDetectorInternal(
+InsnLoopDetector insnLoopDetectorInternal(
     .Insn(TmpInsnReg),
     .LoopOpen(LoopInsnOpenInternal),
     .LoopClose(LoopInsnCloseInternal)
 );
 
-InsnLoopDetector #(
-    .DATA_WIDTH(INSN_WIDTH)
-    )insnLoopDetector(
+InsnLoopDetector insnLoopDetector(
     .Insn(Insn),
     .LoopOpen(LoopInsnOpen),
     .LoopClose(LoopInsnClose)
@@ -64,9 +66,16 @@ reg Loop_Dec;
 
 wire Loop_Zero;
 
+`ifdef EMULATOR
+    parameter LOOP_READ = 1'b1;
+`else
+    parameter LOOP_READ = 1'b0;
+`endif
+
 DekatronCounter  #(
             .D_NUM(LOOP_DEKATRON_NUM),
-            .D_WIDTH(DEKATRON_WIDTH)
+            .READ(LOOP_READ),
+		    .WRITE(1'b0)
             )Loop_counter(
                 .Clk(Clk),
                 .hsClk(hsClk),

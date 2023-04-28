@@ -155,7 +155,6 @@ public:
             switch(ch){
                 case 'h'://step
                     keyPressed(26);//KEYBOARD_HALT_KEY =  26,
-                    //KEYBOARD_HALT_KEY
                 break;
                 case 's'://KEYBOARD_STEP_KEY =  33,
                     keyPressed(33);
@@ -163,6 +162,8 @@ public:
                 case 'r'://KEYBOARD_RUN_KEY =  28,
                     keyPressed(28);
                 break;
+                case KEY_NPAGE: keyPressed(36); break;
+                case KEY_PPAGE: keyPressed(31); break;
                 default:
                 break;
             }

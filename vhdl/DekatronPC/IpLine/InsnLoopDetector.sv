@@ -1,7 +1,5 @@
-module InsnLoopDetector #(
-    parameter DATA_WIDTH = 4
-)(
-    input wire [DATA_WIDTH-1:0] Insn,
+module InsnLoopDetector(
+    input wire [INSN_WIDTH-1:0] Insn,
     output wire LoopOpen,
     output wire LoopClose
 );

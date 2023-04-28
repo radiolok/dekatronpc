@@ -21,7 +21,8 @@ reg IP_Request;
 wire IP_Ready;
 
 DekatronCounter  #(
-            .D_NUM(IP_DEKATRON_NUM)
+            .D_NUM(IP_DEKATRON_NUM),
+		    .WRITE(1'b0)
             )IP_counter(
                 .Clk(Clk),
                 .hsClk(hsClk),

@@ -2,6 +2,7 @@
 
 module DekatronPC (
     input hsClk,
+    input Clk,
     input Rst_n, 
     input Halt,
     input Step,
@@ -12,16 +13,6 @@ module DekatronPC (
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data,
     output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
     output reg [2:0] CurrentState
-);
-
-wire Clk;
-
-ClockDivider #(
-    .DIVISOR(10)
-) clock_divider_ms(
-    .Rst_n(Rst_n),
-	.clock_in(hsClk),
-	.clock_out(Clk)
 );
 
 reg IpRequest;

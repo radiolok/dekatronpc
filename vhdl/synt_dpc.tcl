@@ -36,8 +36,7 @@ yosys techmap
 yosys opt
 #
 
-set yosys_path "$::env(HOME)/yosys"
-set cell_lib "$::env(HOME)/dekatronpc/vhdl/vtube_cells.lib"
+set cell_lib "vtube_cells.lib"
 # # map to target architecture
 yosys read_liberty -lib $cell_lib 
 yosys dfflibmap -liberty $cell_lib 
@@ -53,12 +52,7 @@ yosys clean
 # # write synthesized design
 yosys write_verilog [lindex $argv 1]_synth.v
 #
-# # write intermediate language
-yosys write_ilang [lindex $argv 1]_ilang.txt
-#
 # # show
 yosys show -format dot -lib [lindex $argv 1]_synth.v -prefix [lindex $argv 1]
-yosys stat
-yosys stat -liberty $cell_lib 
-#exec dot -Tsvg [lindex $argv 1].dot > [lindex $argv 1].svg
+yosys tee -o vtube.json stat -liberty $cell_lib -json
 #yosys ltp

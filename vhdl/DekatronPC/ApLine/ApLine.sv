@@ -14,8 +14,14 @@ module ApLine (
     
     output wire Ready,
 
+    `ifdef EMULATOR
+    input wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Address1,
+    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data1,
+    `endif
+
     output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Address,
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data
+
 );
 
 reg AP_Request;
@@ -40,7 +46,7 @@ assign Data = MemLock? DataCntRoRam : DataRamToCnt;
 
 DekatronCounter  #(
             .D_NUM(AP_DEKATRON_NUM),
-            .D_WIDTH(DEKATRON_WIDTH)
+            .WRITE(1'b0)
             )AP_counter(
                 .Clk(Clk),
                 .hsClk(hsClk),
@@ -67,13 +73,16 @@ RAM #(
     .Address(Address[17:0]),
     .In(DataCntRoRam),
     .Out(DataRamToCnt),
+`ifdef EMULATOR
+    .Address1(Address1),
+    .Out1(Data1),
+`endif
     .WE(WE),
     .CS(1'b1)
 );
 
 DekatronCounter  #(
-            .D_NUM(DATA_DEKATRON_NUM),
-            .D_WIDTH(DEKATRON_WIDTH)
+            .D_NUM(DATA_DEKATRON_NUM)
             )Data_counter(
                 .Clk(Clk),
                 .hsClk(hsClk),

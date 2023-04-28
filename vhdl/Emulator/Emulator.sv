@@ -93,6 +93,16 @@ ClockDivider #(
 	.clock_out(hsClk)
 );
 
+wire Clk;
+
+ClockDivider #(
+    .DIVISOR(10)
+) clock_divider_Clk(
+    .Rst_n(Rst_n),
+	.clock_in(hsClk),
+	.clock_out(Clk)
+);
+
 ClockDivider #(
     .DIVISOR({DIVIDE_TO_1MS}),
     .DUTY_CYCLE(80)
@@ -116,6 +126,7 @@ DekatronPC dekatronPC(
     .Data(Data),
     .LoopCount(LoopCount),
     .hsClk(hsClk),
+    .Clk(Clk),
     .Rst_n(Rst_n),
     .Halt(keyHalt),
     .Run(keyRun),
