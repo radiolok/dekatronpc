@@ -22,6 +22,8 @@ def getModuleName(modules, moduleName):
         if mn == itemf:
             return item
 
+dpc_modules = {}
+
 def getModuleArea(modules, moduleName):
     area = 0
     found = getModuleName(modules,moduleName)
@@ -29,11 +31,16 @@ def getModuleArea(modules, moduleName):
         print(f"Warning! {moduleName} not found!")
         return 0
     module = modules[found]
+    dpc_modules[found] = {}
+    dpc_modules[found]['cells'] = {}
+    dpc_modules[found]['area'] = 0
     cells = module['num_cells_by_type']
     for cell in cells:
         count = cells[cell]
         cellArea = vtube_cells[cell] if cell in vtube_cells else known_modules[cell] if cell in known_modules else getModuleArea(modules, cell)
         area += count * cellArea
+        dpc_modules[found]['cells'][cell] = count
+        dpc_modules[found]['area'] += count * cellArea
     
     print(moduleName, area)
     return area
@@ -46,7 +53,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
 
-    dpc_modules = {}
+
     top_module = ""
 
     with open(args.lib, "r") as f:
@@ -66,9 +73,21 @@ if __name__ == "__main__":
                 for module in modules:
                     moduleName = re.sub('^.*?\\\\', '', module)
                     moduleName = re.sub('\\\\.*$', '', moduleName)
-                    dpc_modules[module] = {}
                     if args.top in module:
                         top_module = module
     area = getModuleArea(modules, top_module)
     print(area)
+
+    cells_total = {}
+
+    for module in dpc_modules:
+        print(module)
+        for cell in dpc_modules[module]['cells']:
+            if cell not in cells_total:
+                cells_total[cell] = 0
+            cells_total[cell] += dpc_modules[module]['cells'][cell]
+    print("Total cells usage")
+    for cell in cells_total:
+        if cell in vtube_cells:
+            print(cell, cells_total[cell], vtube_cells[cell]*cells_total[cell])
 

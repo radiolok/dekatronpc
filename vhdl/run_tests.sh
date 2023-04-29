@@ -36,7 +36,7 @@ parse_params() {
     case "${1-}" in
     -h | --help) usage ;;
     -v | --verbose) set -x ;;
-    -p | --png) no_png=1 ;;
+    -p | --png) png=1 ;;
 	-s | --synt) synt=1 ;;
 	-с | --coverage) cov=1 ;;
 	-t | --sim) sim=1 ;;
@@ -128,8 +128,11 @@ if [ ${png} -ne 0 ]; then
 		done
 		rm -f *.png
 
-		for file in $(ls *.dot); do 
-			echo $file; dot -Tpng $file -O
+		for file in $(ls *.dot); do
+			if [ $file == 'DekatronPC.dot' ]; then
+				continue
+			fi
+			#echo $file; dot -Tpng $file -O
 			echo $file; dot -Tsvg $file -O
 		done
 
@@ -142,6 +145,5 @@ if [ ${png} -ne 0 ]; then
 	fi
 
 	mv *.svg sch/
-	mv *.png sch/
 	mv *.dot sch/
 fi

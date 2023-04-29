@@ -105,15 +105,17 @@ library(vtube_cells_lib) {
             driver_type : pull_up;
              function: "(A+B+C+D)"; }
   }
-  cell(MUX2) {
-    area: 3.5;
+  cell(OR5) {
+    area: 2.5;
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(C) { direction: input; fanout_load: 1.0; }
+    pin(D) { direction: input; fanout_load: 1.0; }    
+    pin(E) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
                max_fanout : 10; 
             driver_type : pull_up;
-             function: "(A*C+B*C')"; }
+             function: "(A+B+C+D+E)"; }
   }
   cell(NOR2) {
     area: 1;

@@ -8,7 +8,8 @@
     input wire[3:0] In,
     input wire Set,
 /* verilator lint_on UNUSEDSIGNAL */
-    input wire[1:0] Pulse,
+    input wire PulseF,
+    input wire PulseR,
 /* verilator lint_off UNDRIVEN */
     output wire[3:0] Out,
 /* verilator lint_on UNDRIVEN */
@@ -16,7 +17,6 @@
     output wire CarryLow,
     output wire CarryHigh
 );
-
 
 wire[9:0] OutPos;
 wire[9:0] InPosDek;
@@ -34,11 +34,20 @@ else begin
     assign InPosDek = 10'b0;
 end
 
+wire [1:0] Pulses;
+
+DekatronPulseSender pulseSender(
+	.hsClk(hsClk),
+	.Rst_n(Rst_n),
+	.PulseF(PulseF),
+    .PulseR(PulseR),
+	.Pulses(Pulses)
+);
+
 Dekatron dekatronV2(
     .hsClk(hsClk),
     .Rst_n(Rst_n),
-    .PulseRight(Pulse[1]),
-    .PulseLeft(Pulse[0]),
+	.Pulses(Pulses),
     .In(InPosDek),
     .Out(OutPos)
 );

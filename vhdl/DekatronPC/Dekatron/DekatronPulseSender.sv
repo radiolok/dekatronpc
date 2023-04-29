@@ -1,37 +1,58 @@
+`include "parameters.sv"
+
 module DekatronPulseSender(
     //Each Step cause +1 or -1(if Dec) or storing In value(if Set)
-/* verilator lint_off UNUSEDSIGNAL */
-    input wire Clk,    
-/* verilator lint_on UNUSEDSIGNAL */
-    input wire hsClk,    
-    input wire Rst_n,    
-    input wire En,
-    input wire Dec,//1 for Dec
-    output wire [1:0 ]PulsesOut
+    input wire hsClk,
+    input wire Rst_n,
+    input wire PulseF,
+    input wire PulseR,
+    output wire [1:0]Pulses
 );
 
+reg Dec;
+reg En;
+
 // This model of pulse Sender not represent real hw area consumption
-parameter HSCLK_DIV=10;
-reg [HSCLK_DIV-1:0] pulseA;
-reg [HSCLK_DIV-1:0] pulseB;
+reg [3:0] Cnt;
 
 always @(posedge hsClk, negedge Rst_n) begin
 	if (~Rst_n) begin
-	pulseA <= 10'b0011100000;		
-	pulseB <= 10'b0000011100;		
+		Cnt <= 4'd0;
+		Dec <= 1'b0;
+		En <= 1'b0;
 	end
 	else begin
-	pulseA <= {pulseA[HSCLK_DIV-2:0], pulseA[HSCLK_DIV-1]};	
-	pulseB <= {pulseB[HSCLK_DIV-2:0], pulseB[HSCLK_DIV-1]};	
+		if (PulseR)
+			Dec <= 1'b1;
+		if (PulseF)
+			Dec <= 1'b0;
+		if (PulseF | PulseR) begin
+			En <= 1'b1;
+			Cnt <= Cnt + 4'b1;
+		end
+		if (En) begin
+			Cnt <= Cnt + 4'b1;
+			if (Cnt >=8) begin
+				Cnt <= 4'd0;
+				En <= 1'b0;
+			end
+		end
 	end
 end
+/* verilator lint_off UNUSEDSIGNAL */
+wire [9:0] CntPos;
+/* verilator lint_on UNUSEDSIGNAL */
+BcdToBin bcdToBin(
+	.In(Cnt),
+	.Out(CntPos)
+);
 
-wire pA = pulseA[HSCLK_DIV-1];
-wire pB = pulseB[HSCLK_DIV-1];
+wire pA = |CntPos[3:1];
+wire pB = |CntPos[6:4];
 
-wire PulseRight = Dec? pB : pA;
-wire PulseLeft = Dec? pA : pB;
+wire PulseRight = Dec? pA : pB;
+wire PulseLeft = Dec? pB : pA;
 
-assign PulsesOut = En? {PulseRight, PulseLeft} : 2'b00;
+assign Pulses = {PulseRight, PulseLeft};
 
 endmodule

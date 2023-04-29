@@ -59,19 +59,20 @@ ClockDivider #(
 	.clock_out(Clk)
 );
 
-DekatronPulseSender dekatronPulseSender(
-    .Clk(Clk),
-    .hsClk(hsClk),
-    .Rst_n(Rst_n),
-    .En(En),
-    .PulsesOut({PulseRight, PulseLeft}),
-    .Dec(Dec)
+wire [1:0] PulsesFR = {Clk & En & Dec, Clk & En & ~Dec};
+wire [1:0] PulsesRL;
+
+DekatronPulseSender pulseSender(
+	.hsClk(hsClk),
+	.Rst_n(Rst_n),
+	.PulseF(PulsesFR[0]),
+    .PulseR(PulsesFR[1]),
+	.Pulses(PulsesRL)
 );
 
 Dekatron  dek(
     .hsClk(hsClk),
-    .PulseRight(PulseRight),
-    .PulseLeft(PulseLeft),
+    .Pulses(PulsesRL),
     .In(In),
     .Out(Out)
 );

@@ -35,16 +35,13 @@ assign Zero = & Zeroes;
 
 wire [1:0] Pulses;
 
-assign Ready = ~Request & ~(&Pulses) & ((|Out) | Zero) ;
+assign Ready = ~Request & ~(&Pulses) & ((|Out) | Zero);
 
-DekatronPulseSender pulseSender(
-	.Clk(Clk),
-	.hsClk(hsClk),
-	.Rst_n(Rst_n),
-	.En(Busy),
-	.Dec(Dec),
-	.PulsesOut(Pulses)
-);
+/* verilator lint_off UNOPTFLAT */
+reg Busy;
+/* verilator lint_on UNOPTFLAT */
+
+assign Pulses = {Clk & Busy & Dec, Clk & Busy & ~Dec};
 
 for (d = 0; d < D_NUM; d++) begin: dek
 	wire CarryLow;
@@ -66,7 +63,8 @@ for (d = 0; d < D_NUM; d++) begin: dek
 		.Rst_n(Rst_n),
 		.hsClk(hsClk),
 		.Set(Set),
-		.Pulse(pulses),
+		.PulseR(pulses[1]),
+		.PulseF(pulses[0]),
 		.In(In[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),
 		.Out(Out[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),
 		.Zero(Zeroes[d]),
@@ -76,14 +74,20 @@ for (d = 0; d < D_NUM; d++) begin: dek
 
 	assign npulses = ((CarryHigh & !Dec) | (CarryLow & Dec)) ? pulses : 2'b0;
 end
-/* verilator lint_off UNOPTFLAT */
-reg Busy;
-/* verilator lint_on UNOPTFLAT */
 
-always_latch begin
-    if (Request) Busy = 1'b1;
-    if (Ready | ~Rst_n) Busy = 1'b0;
+always @(posedge hsClk, negedge Rst_n) begin
+	if (~Rst_n) begin
+		Busy <= 1'b0;
+	end
+	else begin
+		if (Request) 
+			Busy <= 1'b1;
+		if (Ready)
+			Busy <= 1'b0;
+	end
+
 end
+
 
 
 endmodule

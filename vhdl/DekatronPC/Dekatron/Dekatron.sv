@@ -1,8 +1,7 @@
 module Dekatron(
     input wire hsClk,
     input wire Rst_n,
-    input wire PulseRight,
-	input wire PulseLeft,
+    input wire [1:0] Pulses,
     input wire [9:0] In,
     output wire [9:0] Out
 );
@@ -52,12 +51,12 @@ always @(posedge hsClk, negedge Rst_n)
         Cathodes <= 30'b1;
     end
     else
-        if (PulseRight) begin
+        if (Pulses[0]) begin
             Cathodes <= (|In) ? InLong : 
                 CathodeGlow ? {Cathodes[28:0], Cathodes[29]} :
                         GuideLeftGlow ? {Cathodes[0], Cathodes[29:1]} : Cathodes;
         end
-        else if (PulseLeft) begin
+        else if (Pulses[1]) begin
             Cathodes <= (|In) ? InLong : 
                 CathodeGlow ? {Cathodes[0], Cathodes[29:1]}:
                 GuideRightGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;

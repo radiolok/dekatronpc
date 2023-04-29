@@ -11,6 +11,8 @@
     parameter DEBUG_ISA = 1'b0;
     parameter BRAINFUCK_ISA = 1'b1;
 
+    parameter HSCLK_DIV=10;
+
 /* verilator lint_on UNUSEDPARAM */
 
 `endif
