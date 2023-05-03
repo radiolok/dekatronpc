@@ -53,7 +53,12 @@ parse_params() {
 
 emul() {
 	echo "${1} Test"
-	iverilog -g2012 -o ${1}UT -s ${1}_tb DekatronPC/tests/${1}.sv/${1}_tb.sv $DPCfiles
+	DEF=""
+	if [ $# -ge 2 ]; then
+		DEF="-D${2}"
+	fi
+	echo $DEF
+	iverilog ${DEF} -g2012 -o ${1}UT -s ${1}_tb DekatronPC/tests/${1}.sv/${1}_tb.sv $DPCfiles
 	./${1}UT
 }
 
@@ -83,7 +88,7 @@ if [ ${sim} -ne 0 ]; then
 
 	emul Counter
 
-	#emul IpLine
+	emul IpLine LOOP_TEST
 
 	emul ApLine
 
@@ -108,8 +113,8 @@ if [ ${sim} -ne 0 ]; then
 		rm -f sch/*.vcd
 	fi
 
-	mv *.vcd vcd/
-	mv *UT  vcd/
+	mv -v *.vcd vcd/
+	mv -v *UT  vcd/
 fi
 
 if [ ${cov} -ne 0 ]; then

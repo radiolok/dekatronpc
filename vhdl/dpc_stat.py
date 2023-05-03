@@ -12,8 +12,10 @@ known_modules = {
     'DekatronCarrySignal' : 7.5,
     'DekatronPulseSender' : 1.5,
     '$_DLATCH_N_' : 2.5
-
 }
+
+statistics_modules = ['\\\\IpLine', '\\\\ApLine', '\\\\DekatronPC']
+
 
 def getModuleName(modules, moduleName):
     mn = re.sub('\\\\','', moduleName)
@@ -86,8 +88,8 @@ if __name__ == "__main__":
             if cell not in cells_total:
                 cells_total[cell] = 0
             cells_total[cell] += dpc_modules[module]['cells'][cell]
+
     print("Total cells usage")
     for cell in cells_total:
         if cell in vtube_cells:
             print(cell, cells_total[cell], vtube_cells[cell]*cells_total[cell])
-

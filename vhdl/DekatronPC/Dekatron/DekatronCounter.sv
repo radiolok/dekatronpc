@@ -30,18 +30,24 @@ module DekatronCounter #(
 genvar d;
 
 wire [D_NUM-1:0] Zeroes;
+wire [D_NUM-1:0] Busy;
 
 assign Zero = & Zeroes;
 
 wire [1:0] Pulses;
 
-assign Ready = ~Request & ~(&Pulses) & ((|Out) | Zero);
+wire _Request;
 
-/* verilator lint_off UNOPTFLAT */
-reg Busy;
-/* verilator lint_on UNOPTFLAT */
+Impulse impulse_addr(
+	.Clk(Clk),
+	.Rst_n(Rst_n),
+	.En(Request),
+	.Impulse(_Request)
+);
 
-assign Pulses = {Clk & Busy & Dec, Clk & Busy & ~Dec};
+assign Pulses = {_Request & Dec, _Request & !Dec};
+
+assign Ready = ~_Request & ~Set & ~(&Pulses) & ~(|Busy);
 
 for (d = 0; d < D_NUM; d++) begin: dek
 	wire CarryLow;
@@ -69,25 +75,11 @@ for (d = 0; d < D_NUM; d++) begin: dek
 		.Out(Out[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),
 		.Zero(Zeroes[d]),
 		.CarryLow(CarryLow),
-		.CarryHigh(CarryHigh)
+		.CarryHigh(CarryHigh),
+		.Busy(Busy[d])
 	);
 
 	assign npulses = ((CarryHigh & !Dec) | (CarryLow & Dec)) ? pulses : 2'b0;
 end
-
-always @(posedge hsClk, negedge Rst_n) begin
-	if (~Rst_n) begin
-		Busy <= 1'b0;
-	end
-	else begin
-		if (Request) 
-			Busy <= 1'b1;
-		if (Ready)
-			Busy <= 1'b0;
-	end
-
-end
-
-
 
 endmodule

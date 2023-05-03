@@ -15,7 +15,8 @@
 /* verilator lint_on UNDRIVEN */
     output wire Zero,
     output wire CarryLow,
-    output wire CarryHigh
+    output wire CarryHigh,
+    output wire Busy
 );
 
 wire[9:0] OutPos;
@@ -44,7 +45,7 @@ DekatronPulseSender pulseSender(
 	.Pulses(Pulses)
 );
 
-Dekatron dekatronV2(
+Dekatron dekatron(
     .hsClk(hsClk),
     .Rst_n(Rst_n),
 	.Pulses(Pulses),
@@ -63,7 +64,8 @@ DekatronCarrySignal  dekatronCarrySignal(
     .Rst_n(Rst_n),
     .In(OutPos),
     .CarryLow(CarryLow),
-    .CarryHigh(CarryHigh)
+    .CarryHigh(CarryHigh),
+    .Busy(Busy)
 ); 
 
 endmodule

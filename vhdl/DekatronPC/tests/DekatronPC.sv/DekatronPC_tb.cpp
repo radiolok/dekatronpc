@@ -7,6 +7,19 @@
 #define MAX_SIM_TIME 601000
 vluint64_t sim_time = 0;
 
+uint8_t Cout(bool state, uint16_t data)
+{
+    static bool CoutOld = false;
+    uint8_t update = 0;
+    if (!CoutOld & state){
+        uint16_t symbol = (data&0x0F) + ((data>>4) &0x0F)*10 + ((data>>8) &0x0F)*100;
+        printf("COUT: %c\n", symbol);
+        update = 1;
+    }
+    CoutOld = state;
+    return update;
+}
+
 int main(int argc, char** argv, char** env) {
     VDekatronPC *dut = new VDekatronPC;
 
@@ -18,6 +31,7 @@ int main(int argc, char** argv, char** env) {
     m_trace->open("VDekatronPC.vcd");
     dut->Rst_n = 1;
     int count = 0;
+
     while (sim_time < MAX_SIM_TIME) {
         if (sim_time == 1){
             dut->Rst_n = 0;
@@ -45,6 +59,7 @@ int main(int argc, char** argv, char** env) {
             dut->Clk = 0;
             count = 0;
         }
+        Cout(dut->Cout, dut->Data);
         count++;
         dut->eval();
         m_trace->dump(sim_time);

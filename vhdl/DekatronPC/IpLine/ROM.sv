@@ -15,17 +15,16 @@
 // synopsys translate_off
 wire [DATA_WIDTH-1:0] ActiveInsn;
 
-//`ifdef LOOP_TEST
+`ifdef LOOP_TEST
+    looptest #(
+`else
     helloworld #(
-//    looptest #(
-        .portSize(D_NUM*D_WIDTH)
-        ) storage(
-            .Address(Address),
-            .Data(ActiveInsn));
-//`else
-//    helloworld storage(.Address(Address),
-//                        .Data(ActiveInsn));
-//`endif
+`endif
+            .portSize(D_NUM*D_WIDTH)
+            )storage(
+                .Address(Address),
+                .Data(ActiveInsn));
+
 reg Busy;
 always @(negedge Clk, negedge Rst_n)
     if (~Rst_n) begin

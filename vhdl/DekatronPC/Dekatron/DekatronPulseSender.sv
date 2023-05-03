@@ -9,32 +9,25 @@ module DekatronPulseSender(
     output wire [1:0]Pulses
 );
 
-reg Dec;
-reg En;
-
 // This model of pulse Sender not represent real hw area consumption
 reg [3:0] Cnt;
+reg Dec;
+wire En = |Cnt;
 
 always @(posedge hsClk, negedge Rst_n) begin
 	if (~Rst_n) begin
 		Cnt <= 4'd0;
 		Dec <= 1'b0;
-		En <= 1'b0;
 	end
 	else begin
 		if (PulseR)
 			Dec <= 1'b1;
 		if (PulseF)
 			Dec <= 1'b0;
-		if (PulseF | PulseR) begin
-			En <= 1'b1;
+		if (PulseF | PulseR | En) begin
 			Cnt <= Cnt + 4'b1;
-		end
-		if (En) begin
-			Cnt <= Cnt + 4'b1;
-			if (Cnt >=8) begin
+			if (Cnt >=7) begin
 				Cnt <= 4'd0;
-				En <= 1'b0;
 			end
 		end
 	end

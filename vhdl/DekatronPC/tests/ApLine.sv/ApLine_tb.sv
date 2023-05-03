@@ -51,12 +51,17 @@ initial begin $dumpfile("ApLine_tb.vcd"); $dumpvars(0,ApLine_tb); end
 
 reg [31:0] CLOCK_TICK;
 
+parameter MAX_TICK = 31'd10000;
+
 always @(posedge Clk) begin
   if (~Rst_n) begin
     CLOCK_TICK <= 0;
   end
-   else 
+   else begin
     CLOCK_TICK <= CLOCK_TICK + 1;
+    if (CLOCK_TICK > MAX_TICK)
+      $fatal;
+   end
 end
 initial begin 
 Rst_n <= 0;

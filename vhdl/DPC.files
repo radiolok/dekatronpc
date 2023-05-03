@@ -17,4 +17,5 @@ DekatronPC/DekatronPC.sv
 programs/looptest/looptest.sv
 programs/helloworld/helloworld.sv
 Logic/RsLatch.sv
+Logic/Impulse.sv
 Logic/ClockDivider.sv

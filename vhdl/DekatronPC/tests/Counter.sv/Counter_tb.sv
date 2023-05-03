@@ -69,11 +69,14 @@ initial begin
     $finish;
 end
 
-always @(negedge Clk, Rst_n) begin
+always @(posedge Clk, Rst_n) begin
     if (~Rst_n)
         Request <= 0;
     else
-        Request <= Ready;
+        if (Ready)
+            Request <= 1'b1;
+        if (Request)
+            Request <= 1'b0;
 end
 
 endmodule

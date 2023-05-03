@@ -133,9 +133,9 @@ always @(posedge Clk, negedge Rst_n) begin
             end
             LOAD: begin
                 MemLock <= 1'b1;
-                Data_Request <= 1'b0;
+                Data_Request <= 1'b0;                
+                Data_Set <= 1'b0;
                 if (Data_Ready) begin
-                    Data_Set <= 1'b0;
                     Data_Request <= 1'b1;
                     currentState <= COUNT;
                 end
