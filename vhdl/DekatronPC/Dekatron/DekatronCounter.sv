@@ -1,10 +1,12 @@
 `include "parameters.sv"
 
 module DekatronCounter #(
-	parameter D_NUM = 1,
+	parameter D_NUM = 3,
 	parameter WIDTH = D_NUM * DEKATRON_WIDTH,
 	parameter READ = 1'b1,
-    parameter WRITE = 1'b1
+    parameter WRITE = 1'b1,
+	parameter TOP_LIMIT_MODE = 1'b0,
+	parameter [WIDTH-1:0] TOP_VALUE  = {4'd2, 4'd5, 4'd5}
 )(
 	input wire Rst_n,
 	input wire Clk,
@@ -27,12 +29,13 @@ module DekatronCounter #(
 	output reg [WIDTH-1:0] Out
 );
 
-genvar d;
-
 wire [D_NUM-1:0] Zeroes;
+wire [D_NUM-1:0] TopOut;
 wire [D_NUM-1:0] Busy;
 
 assign Zero = & Zeroes;
+
+wire Top = &TopOut;
 
 wire [1:0] Pulses;
 
@@ -49,6 +52,7 @@ assign Pulses = {_Request & Dec, _Request & !Dec};
 
 assign Ready = ~_Request & ~Set & ~(&Pulses) & ~(|Busy);
 
+genvar d;
 for (d = 0; d < D_NUM; d++) begin: dek
 	wire CarryLow;
 	wire CarryHigh;
@@ -64,7 +68,8 @@ for (d = 0; d < D_NUM; d++) begin: dek
 	end
 	DekatronModule #(
 		.READ(READ),
-		.WRITE(WRITE)
+		.WRITE(WRITE),
+		.TOP_PIN_OUT(TOP_VALUE[(d+1)*DEKATRON_WIDTH-1:d*DEKATRON_WIDTH])
 	)dModule (
 		.Rst_n(Rst_n),
 		.hsClk(hsClk),
@@ -74,6 +79,7 @@ for (d = 0; d < D_NUM; d++) begin: dek
 		.In(In[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),
 		.Out(Out[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),
 		.Zero(Zeroes[d]),
+		.TopPin(TopOut[d]),
 		.CarryLow(CarryLow),
 		.CarryHigh(CarryHigh),
 		.Busy(Busy[d])

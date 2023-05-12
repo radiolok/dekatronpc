@@ -1,6 +1,7 @@
 (* keep_hierarchy = "yes" *) module DekatronModule #(
     parameter READ = 1'b1,
-    parameter WRITE = 1'b1
+    parameter WRITE = 1'b1,
+    parameter TOP_PIN_OUT = 4'd9
 )(
     input wire Rst_n,
     input wire hsClk,
@@ -14,6 +15,7 @@
     output wire[3:0] Out,
 /* verilator lint_on UNDRIVEN */
     output wire Zero,
+    output wire TopPin,
     output wire CarryLow,
     output wire CarryHigh,
     output wire Busy
@@ -36,6 +38,8 @@ else begin
 end
 
 wire [1:0] Pulses;
+
+assign TopPin = OutPos[TOP_PIN_OUT];
 
 DekatronPulseSender pulseSender(
 	.hsClk(hsClk),

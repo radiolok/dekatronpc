@@ -55,16 +55,29 @@ initial begin
     #1  Rst_n <= 1;
     $display("Increment test");
     for (integer i=0; i < TEST_NUM; i++) begin
-    repeat(1) @(posedge Clk) 
-	$display("test %d: Out: %x", i, Out);
+        repeat(2) @(posedge Clk) 
+        $display("test %d: Out: %x", i, Out);
     end
     $display("Decrement test");
     Dec <= 1;
     for (integer i=0; i < TEST_NUM; i++) begin
-    repeat(1) @(posedge Clk) 
-	$display("test %d: Out: %x", i, Out);
+        repeat(2) @(posedge Clk) 
+        $display("test %d: Out: %x", i, Out);
     end
-    if (Out == 0) $display($time, "Counter Up/Down Test Sussess!");
+    if (Out == 0) 
+        $display($time, "Counter Up/Down Test Sussess!");
+    else 
+        $fatal(1, "Must be zero!");
+    Dec <= 1'b0;
+    for (integer i=0; i < 256; i++) begin
+        repeat(1) @(posedge Clk)
+        repeat(1) @(posedge Clk)
+        $display("test %d: Out: %x", i, Out);
+    end
+    if (Out == 0) 
+        $display($time, "Counter RollUp Test Sussess!");
+    else 
+        $fatal(1, "Must be zero!");
     $display($time, "<< Simulation Complete >>");
     $finish;
 end
