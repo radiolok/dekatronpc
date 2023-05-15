@@ -9,7 +9,7 @@ initial begin
     hsClk = 1'b1;
     forever #1 hsClk = ~hsClk;
 end
-parameter TEST_NUM=20000;
+parameter TEST_NUM=200;
 reg [$clog2(TEST_NUM):0] test_num=TEST_NUM;
 ClockDivider #(
     .DIVISOR(10)

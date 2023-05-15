@@ -78,12 +78,11 @@ if __name__ == "__main__":
                     if args.top in module:
                         top_module = module
     area = getModuleArea(modules, top_module)
-    print(area)
+    
 
     cells_total = {}
 
     for module in dpc_modules:
-        print(module)
         for cell in dpc_modules[module]['cells']:
             if cell not in cells_total:
                 cells_total[cell] = 0
@@ -93,3 +92,5 @@ if __name__ == "__main__":
     for cell in cells_total:
         if cell in vtube_cells:
             print(cell, cells_total[cell], vtube_cells[cell]*cells_total[cell])
+
+    print("Total number of vacuum tubes:", area)
