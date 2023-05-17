@@ -31,7 +31,7 @@ if (WRITE == 1) begin
         .In(In),
         .Out(InPos)
     );
-    assign InPosDek = Set? InPos : 10'b0;
+    assign InPosDek = Set ? InPos : 10'b0;
 end
 else begin
     assign InPosDek = 10'b0;

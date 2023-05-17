@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 module Counter_tb #(
     parameter DEKATRON_NUM = 3
 );
@@ -9,12 +11,12 @@ reg Clk;
 reg hsClk;
 initial begin
     hsClk = 1'b1;
-    forever #1 hsClk = ~hsClk;
+    forever #50 hsClk = ~hsClk;
 end
 ClockDivider #(
     .DIVISOR(10)
 ) clock_divider_ms(
-    .Rst_n(Rst_n),
+    .Rst_n(1'b1),
 	.clock_in(hsClk),
 	.clock_out(Clk)
 );
@@ -53,15 +55,15 @@ initial begin
     Set <= 1;
     In <= 0;
     REF <= 24'd0;
-    #3
+    #500
     Set <= 0;
     Rst_n <= 0;
-    #1  Rst_n <= 1;
+    #2000  Rst_n <= 1;
     $display("Increment test");
     for (integer i=0; i < TEST_NUM; i++) begin
         REF <= REF + 1;
-        repeat(1) @(posedge Clk)
-        repeat(1) @(posedge Clk)
+        repeat(1) @(posedge Request)
+        repeat(1) @(posedge Ready)
         $display("test %d: Out: %x. REF: %d", i, Out, REF);
         if (REF % 10 != Out[3:0]) begin
             $fatal(1, "Counter0 Up Failure REF: %d Out: %d", REF % 10, Out[3:0]);
@@ -77,9 +79,8 @@ initial begin
     for (integer i=0; i < TEST_NUM; i++) begin
         REF <= REF - 1;
         Dec <= 1;
-        repeat(1) @(posedge Clk)
-        Dec <= 1'b0;
-        repeat(1) @(posedge Clk)
+        repeat(1) @(posedge Request)
+        repeat(1) @(posedge Ready)
         $display("test %d: Out: %x. REF: %d", i, Out, REF);
         if (REF % 10 != Out[3:0]) begin
             $fatal(1, "Counter0 Down Failure REF: %d Out: %d", REF % 10, Out[3:0]);
@@ -95,11 +96,11 @@ initial begin
         $display($time, "Counter Up/Down Test Sussess!");
     else 
         $fatal(1, "Must be zero!");
-    
+    Dec <= 0;
     for (integer i=0; i < 256; i++) begin
         REF <= REF + 1;
-        repeat(1) @(posedge Clk)
-        repeat(1) @(posedge Clk)
+        repeat(1) @(posedge Request)
+        repeat(1) @(posedge Ready)
         $display("test %d: Out: %x. REF: %d", i, Out, REF);
     end
     if (Out == 0) 
@@ -110,14 +111,14 @@ initial begin
     $finish;
 end
 
-always @(posedge Clk, Rst_n) begin
+always @(posedge Clk) begin
     if (~Rst_n)
         Request <= 0;
     else
         if (Ready)
-            Request <= 1'b1;
+            #150 Request <= 1'b1;
         if (Request)
-            Request <= 1'b0;
+            #150 Request <= 1'b0;
 end
 
 endmodule

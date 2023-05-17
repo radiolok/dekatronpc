@@ -39,53 +39,54 @@ wire [D_NUM-1:0] DekatronBusy;
 
 assign Zero = & Zeroes;
 
-
-
-wire [WIDTH-1:0] _In;
+wire [WIDTH-1:0] DataToDeks;
 
 wire SetAny;
-
-reg Write = SetAny & _Request;
-
-always @(posedge hsClk, negedge Rst_n) begin
-	if (~Rst_n)
-		Write <= 1'b0;
-	else
-		if (SetAny & _Request)
-			Write <= 1'b1;
-		if (~_Request)
-			Write <= 1'b0;
-end
 
 if (WRITE & (TOP_LIMIT_MODE > 0)) begin
 	wire Top = &TopOut;
 	wire SetZero = Top & ~Dec;
 	wire SetTop = Zero & Dec;
 	assign SetAny = Set | SetTop | SetZero;
-	assign _In = Set ? In : 
+	assign DataToDeks = Set ? In : 
 				SetTop ? TOP_VALUE : 
 				SetZero ? {WIDTH{1'b0}} : In;
 end
 else begin
 	assign SetAny = Set;
-	assign _In = In;
+	assign DataToDeks = In;
 end
 
 wire [1:0] Pulses;
 
-wire _Request;
+reg Count;
+reg Write;
 
-Impulse impulse_addr(
-	.Clk(Clk),
-	.Rst_n(Rst_n),
-	.En(Request),
-	.Impulse(_Request)
-);
+always @(posedge Clk) begin
+	if (~Rst_n) begin
+		Count <= 1'b0;
+		Write <= 1'b0;
+	end
+	else begin
+		if (Request) begin
+			if (SetAny) begin
+				Write <= 1'b1;
+				Count <= 1'b0;
+			end
+			else begin
+				Write <= 1'b0;
+				Count <= 1'b1;
+			end
+		end
+		if (Write | Count) begin
+			Count <= 1'b0;
+			Write <= 1'b0;
+		end
+	end
+end
 
-wire PulsesEn = (~SetAny | ~Write) & _Request;
-assign Pulses = {PulsesEn & Dec, PulsesEn & !Dec};
-
-assign Ready = ~_Request & ~Write & ~(|DekatronBusy);
+assign Ready = ~(|DekatronBusy) & ~(Write | Count);
+assign Pulses = {Count & Clk & Dec, Count & Clk & !Dec};
 
 genvar d;
 for (d = 0; d < D_NUM; d++) begin: dek
@@ -111,7 +112,7 @@ for (d = 0; d < D_NUM; d++) begin: dek
 		.Set(Write),
 		.PulseR(pulses[1]),
 		.PulseF(pulses[0]),
-		.In(_In[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),
+		.In(DataToDeks[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),
 		.Out(Out[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),
 		.Zero(Zeroes[d]),
 		.TopPin(TopOut[d]),
