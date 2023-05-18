@@ -97,11 +97,28 @@ initial begin
     else 
         $fatal(1, "Must be zero!");
     Dec <= 0;
-    for (integer i=0; i < 256; i++) begin
+    for (integer i=0; i < 512; i++) begin
         REF <= REF + 1;
         repeat(1) @(posedge Request)
         repeat(1) @(posedge Ready)
         $display("test %d: Out: %x. REF: %d", i, Out, REF);
+        if (REF % 10 != Out[3:0]) begin
+            $fatal(1, "Counter0 Down Failure REF: %d Out: %d", REF % 10, Out[3:0]);
+        end
+    end
+    if (Out == 0) 
+        $display($time, "Counter RollUp Test Sussess!");
+    else 
+        $fatal(1, "Must be zero!");
+    Dec <= 1;
+    for (integer i=0; i < 512; i++) begin
+        REF <= REF - 1;
+        repeat(1) @(posedge Request)
+        repeat(1) @(posedge Ready)
+        $display("test %d: Out: %x. REF: %d", i, Out, REF);
+        if (REF % 10 != Out[3:0]) begin
+            $fatal(1, "Counter0 Down Failure REF: %d Out: %d", REF % 10, Out[3:0]);
+        end
     end
     if (Out == 0) 
         $display($time, "Counter RollUp Test Sussess!");
@@ -116,9 +133,9 @@ always @(posedge Clk) begin
         Request <= 0;
     else
         if (Ready)
-            #150 Request <= 1'b1;
+            Request <= 1'b1;
         if (Request)
-            #150 Request <= 1'b0;
+            Request <= 1'b0;
 end
 
 endmodule

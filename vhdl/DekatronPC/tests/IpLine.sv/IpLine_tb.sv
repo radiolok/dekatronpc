@@ -1,4 +1,4 @@
-`timescale 100 ns / 100 ps
+`timescale 1ns/1ps
 
 module IpLine_tb (
 );
@@ -7,7 +7,7 @@ reg Clk;
 reg hsClk;
 initial begin
     hsClk = 1'b1;
-    forever #1 hsClk = ~hsClk;
+    forever #50 hsClk = ~hsClk;
 end
 parameter TEST_NUM=200;
 reg [$clog2(TEST_NUM):0] test_num=TEST_NUM;
@@ -66,10 +66,7 @@ Rst_n <= 1;
 
 for (integer i = 0; i < TEST_NUM; i++) begin
 
-  repeat(1) @(posedge Clk)
-  Request <= 1;
-  repeat(1) @(posedge Clk)
-  Request <= 0;
+  repeat(1) @(posedge Request)
   repeat(1) @(posedge Ready)
   $display("IRET:%d Time: %d Addr: %h Insn: %b, Data: %d(%b)", i, $time, Address, Insn, Data, dataIsZeroed);
   
@@ -82,6 +79,16 @@ for (integer i = 0; i < TEST_NUM; i++) begin
 end
 $fatal;
 
+end
+
+always @(posedge Clk) begin
+    if (~Rst_n)
+        Request <= 0;
+    else
+        if (Ready)
+            Request <= 1'b1;
+        if (Request)
+            Request <= 1'b0;
 end
 
 endmodule

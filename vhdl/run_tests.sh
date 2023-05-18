@@ -27,6 +27,15 @@ die() {
   exit "$code"
 }
 
+usage() {
+	 msg "-h help"
+	 msg "-v verbose"
+	 msg "-p png"
+	 msg "-s synt"
+	 msg "-c coverage"
+	 msg "-t sim"
+}
+
 parse_params() {
   # default values of variables set from params
   flag=0
@@ -38,7 +47,7 @@ parse_params() {
     -v | --verbose) set -x ;;
     -p | --png) png=1 ;;
 	-s | --synt) synt=1 ;;
-	-с | --coverage) cov=1 ;;
+	-c | --coverage) cov=1 ;;
 	-t | --sim) sim=1 ;;
     -?*) die "Unknown option: $1" ;;
     *) break ;;

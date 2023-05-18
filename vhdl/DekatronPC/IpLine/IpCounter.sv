@@ -53,53 +53,68 @@ ROM #(
         .DataReady(ROM_DataReady)
         );
 
-parameter [3:0]
-    IDLE     =  4'b0001,
-    IP_COUNT =  4'b0010,
-    ROM_COUNT = 4'b0100,
-    READY     = 4'b1000;
+parameter [1:0]
+    IDLE     =  2'b00,
+    IP_COUNT =  2'b01,
+    ROM_COUNT = 2'b10,
+    READY     = 2'b11;
 
-reg [3:0] currentState;
-assign Ready = ~Request & (currentState[3] | currentState[0]);//READY | IDLE
+reg [1:0] state, next;
+assign Ready = ~Request & ~(^state);//READY | IDLE
+
+
+always @(posedge Clk or negedge Rst_n) begin
+    if (~Rst_n)  state <= IDLE;
+    else state <= next;
+end
+
+always_comb begin
+    case (state)
+        IDLE: begin
+            if (Request) next <= (ROM_DataReady)? IP_COUNT : ROM_COUNT;
+            else next <= IDLE;
+        end
+        IP_COUNT: begin
+            if (IP_Ready) next <= ROM_COUNT;
+            else next <= IP_COUNT;
+        end
+        ROM_COUNT: begin
+            if (ROM_DataReady) next <= READY;
+            else next <= ROM_COUNT;
+        end
+        READY: begin
+            next <= IDLE;
+        end
+    endcase
+end
 
 always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
         IP_Request <= 1'b0;
         ROM_Request <= 1'b0;
-        currentState <= IDLE;
     end
     else begin
-        case (currentState)
-            IDLE:
-                if (Request) begin
-                    if (ROM_DataReady) begin
-                        IP_Request <= 1'b1;
-                        currentState <= IP_COUNT;
-                    end
-                    else begin
-                        ROM_Request <= 1'b1;
-                        currentState <= ROM_COUNT;
-                    end
-                end
-            IP_COUNT: begin
+        case (state)
+            IDLE: begin
                 IP_Request <= 1'b0;
-                if (IP_Ready & Clk) begin
-                    ROM_Request <= 1'b1;
-                    currentState <= ROM_COUNT;
-                end
-            end
-            ROM_COUNT: begin                
                 ROM_Request <= 1'b0;
-                if (ROM_DataReady & Clk) begin
-                    currentState <= READY;
-                end
             end
-            READY:
-                if (~Request) begin
-                    currentState <= IDLE;
-                end
-            default:
-                currentState <=IDLE;
+            IP_COUNT: begin
+                IP_Request <= 1'b1;
+                ROM_Request <= 1'b0;
+            end
+            ROM_COUNT: begin    
+                IP_Request <= 1'b0;
+                ROM_Request <= 1'b1;
+            end
+            READY: begin
+                IP_Request <= 1'b0;
+                ROM_Request <= 1'b0;
+            end
+            default: begin
+                IP_Request <= 1'b0;
+                ROM_Request <= 1'b0;
+            end
         endcase        
     end    
 end

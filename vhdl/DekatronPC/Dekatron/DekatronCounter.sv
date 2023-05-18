@@ -109,7 +109,7 @@ for (d = 0; d < D_NUM; d++) begin: dek
 	)dModule (
 		.Rst_n(Rst_n),
 		.hsClk(hsClk),
-		.Set(Write),
+		.Set(Write & SetAny),
 		.PulseR(pulses[1]),
 		.PulseF(pulses[0]),
 		.In(DataToDeks[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),
