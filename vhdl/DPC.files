@@ -1,6 +1,5 @@
 parameters.sv
 DekatronPC/IpLine/IpLine.sv
-DekatronPC/IpLine/IpCounter.sv
 DekatronPC/ApLine/ApLine.sv
 DekatronPC/IpLine/InsnLoopDetector.sv
 DekatronPC/Dekatron/BcdToBin.v

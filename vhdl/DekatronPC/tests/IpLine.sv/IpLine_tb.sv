@@ -53,7 +53,9 @@ always @(posedge Clk) begin
     CLOCK_TICK <= 0;
   end
    else 
-    CLOCK_TICK <= CLOCK_TICK + 1;
+       CLOCK_TICK <= CLOCK_TICK + 1;
+       if (CLOCK_TICK > 2000)
+          $fatal(1, "Timeout");
 end
 initial begin 
 Rst_n <= 0;
@@ -73,9 +75,17 @@ for (integer i = 0; i < TEST_NUM; i++) begin
   case (Insn)
   4'b0010: Data <= Data + 1;
   4'b0011: Data <= Data - 1;
-  4'b0001: begin $display ("CLOCKTICK: %d", CLOCK_TICK); $finish; end
+  4'b0001: begin 
+        $display ("CLOCKTICK: %dns", CLOCK_TICK/1000); 
+        if (Data) 
+          $fatal(1, "Data not zero");
+        else
+          $finish; 
+  end
   endcase
 
+  if ((Address > 8'b00010111) | (Address[23:20]))
+    $fatal(1, "Address is out of scope");
 end
 $fatal;
 

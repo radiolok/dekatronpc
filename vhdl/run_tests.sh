@@ -93,6 +93,10 @@ if [ ${sim} -ne 0 ]; then
 
 	EmulFiles=$(cat Emul.files)
 
+	verilator --top-module Emulator --lint-only -Wall ${EmulFiles} ${DPCfiles}
+
+	verilator --top-module DekatronPC --lint-only  -Wall ${DPCfiles}
+	
 	emul Dekatron
 
 	emul Counter
@@ -104,10 +108,6 @@ if [ ${sim} -ne 0 ]; then
 	echo ${DPCfiles}
 
 	echo EmulFiles ${EmulFiles}
-
-	verilator --top-module Emulator --lint-only -Wall ${EmulFiles} ${DPCfiles}
-
-	verilator --top-module DekatronPC --lint-only  -Wall ${DPCfiles}
 
 	verilator -Wall --coverage --trace --top DekatronPC --cc ${DPCfiles} \
 	--timescale 100ns/100ps \

@@ -46,7 +46,7 @@ int main(int argc, char** argv, char** env) {
             dut->Run = 0;
         }
         if (sim_time > 1000){
-            if (dut->CurrentState == 0x04)
+            if (dut->state == 0x04)
                 break;
         }
         dut->hsClk ^= 1;

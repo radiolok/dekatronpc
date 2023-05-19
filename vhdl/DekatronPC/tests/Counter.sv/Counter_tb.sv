@@ -93,7 +93,7 @@ initial begin
         end
     end
     if (Out == 0) 
-        $display($time, "Counter Up/Down Test Sussess!");
+        $display($time/1000, "ns Counter Up/Down Test Sussess!");
     else 
         $fatal(1, "Must be zero!");
     Dec <= 0;
@@ -107,7 +107,7 @@ initial begin
         end
     end
     if (Out == 0) 
-        $display($time, "Counter RollUp Test Sussess!");
+        $display($time/1000, "ns Counter RollUp Test Sussess!");
     else 
         $fatal(1, "Must be zero!");
     Dec <= 1;
@@ -121,10 +121,10 @@ initial begin
         end
     end
     if (Out == 0) 
-        $display($time, "Counter RollUp Test Sussess!");
+        $display($time/1000, "ns Counter RollUp Test Sussess!");
     else 
         $fatal(1, "Must be zero!");
-    $display($time, "<< Simulation Complete >>");
+    $display($time/1000, "ns << Simulation Complete >>");
     $finish;
 end
 

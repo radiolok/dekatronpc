@@ -37,56 +37,63 @@ wire [D_NUM-1:0] TopOut;
 /* verilator lint_on UNUSEDSIGNAL */
 wire [D_NUM-1:0] DekatronBusy;
 
-assign Zero = & Zeroes;
+assign Zero = &Zeroes;
 
 wire [WIDTH-1:0] DataToDeks;
 
+parameter [2:0] 
+		IDLE = 3'b000,
+		INC = 3'b010,
+		DEC = 3'b011,
+		SET_ZERO = 3'b101,
+		SET_TOP = 3'b110,
+		SET = 3'b111;
+//state[2] - SET
+
+reg [2:0] state, next;
+
+always @(posedge Clk, negedge Rst_n) begin
+	if (~Rst_n) state <= 0;
+	else state <= next;
+end
+
+wire SetTop = Zero & Dec;
+wire SetZero = &TopOut & ~Dec;
 wire SetAny;
 
 if (WRITE & (TOP_LIMIT_MODE > 0)) begin
-	wire Top = &TopOut;
-	wire SetZero = Top & ~Dec;
-	wire SetTop = Zero & Dec;
 	assign SetAny = Set | SetTop | SetZero;
-	assign DataToDeks = Set ? In : 
-				SetTop ? TOP_VALUE : 
-				SetZero ? {WIDTH{1'b0}} : In;
+	assign DataToDeks = (state == SET) ? In : 
+						(state == SET_TOP) ? TOP_VALUE : 
+						(state == SET_ZERO) ? {WIDTH{1'b0}} : In;
 end
 else begin
 	assign SetAny = Set;
 	assign DataToDeks = In;
 end
 
-wire [1:0] Pulses;
-
-reg Count;
-reg Write;
-
-always @(posedge Clk) begin
-	if (~Rst_n) begin
-		Count <= 1'b0;
-		Write <= 1'b0;
-	end
-	else begin
-		if (Request) begin
-			if (SetAny) begin
-				Write <= 1'b1;
-				Count <= 1'b0;
+always_comb begin
+	case(state)
+		IDLE: begin
+			if (Request & ~SetAny) begin
+				if (Dec)
+					next = DEC;
+				else
+					next = INC;
 			end
-			else begin
-				Write <= 1'b0;
-				Count <= 1'b1;
-			end
+			else if (Request & Set) next = SET;
+			else if (Request & TOP_LIMIT_MODE & SetTop) next = SET_TOP;
+			else if (Request & TOP_LIMIT_MODE & SetZero) next = SET_ZERO;
+			else next = IDLE;
 		end
-		if (Write | Count) begin
-			Count <= 1'b0;
-			Write <= 1'b0;
-		end
-	end
+		default:
+			next = IDLE;
+	endcase
 end
 
-assign Ready = ~(|DekatronBusy) & ~(Write | Count);
-assign Pulses = {Count & Clk & Dec, Count & Clk & !Dec};
+assign Ready = ~(&DekatronBusy) & (state == IDLE);
+
+wire [1:0] Pulses = {(state == DEC) & Clk , (state == INC) & Clk};
 
 genvar d;
 for (d = 0; d < D_NUM; d++) begin: dek
@@ -109,7 +116,7 @@ for (d = 0; d < D_NUM; d++) begin: dek
 	)dModule (
 		.Rst_n(Rst_n),
 		.hsClk(hsClk),
-		.Set(Write & SetAny),
+		.Set(state[2]),
 		.PulseR(pulses[1]),
 		.PulseF(pulses[0]),
 		.In(DataToDeks[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),
@@ -121,7 +128,7 @@ for (d = 0; d < D_NUM; d++) begin: dek
 		.Busy(DekatronBusy[d])
 	);
 
-	assign npulses = ((CarryHigh & !Dec) | (CarryLow & Dec)) ? pulses : 2'b0;
+	assign npulses = ((CarryHigh & (state == INC)) | (CarryLow & (state == DEC))) ? pulses : 2'b0;
 end
 
 endmodule

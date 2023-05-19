@@ -132,7 +132,7 @@ DekatronPC dekatronPC(
     .Run(keyRun),
     .Cout(Cout),
     .Step(keyStep),
-    .CurrentState(DPC_currentState)
+    .state(DPC_currentState)
 );
 
 
