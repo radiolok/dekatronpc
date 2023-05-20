@@ -64,12 +64,16 @@ if (READ == 1) begin
     );
 end
 
+wire BusyDec;
+
 DekatronCarrySignal  dekatronCarrySignal(
     .Rst_n(Rst_n),
     .In(OutPos),
     .CarryLow(CarryLow),
     .CarryHigh(CarryHigh),
-    .Busy(Busy)
+    .Busy(BusyDec)
 ); 
+
+assign Busy = BusyDec | |Pulses;
 
 endmodule

@@ -23,8 +23,8 @@ module IpLine (
 
 wire [INSN_WIDTH-1:0] TmpInsnReg;
 
-wire IP_Request;
-wire IP_Dec;
+reg IP_Request;
+reg IP_Dec;
 wire IP_Ready;
 
 DekatronCounter  #(
@@ -45,7 +45,7 @@ DekatronCounter  #(
                 /* verilator lint_on PINCONNECTEMPTY */
             );
 
-wire ROM_Request;
+reg ROM_Request;
 wire ROM_DataReady;
 
 ROM #(
@@ -80,9 +80,10 @@ InsnLoopDetector insnLoopDetector(
     .LoopClose(LoopInsnClose)
 );
 
-wire Loop_Request;
-wire Loop_Dec;
+reg Loop_Request;
+reg Loop_Dec;
 wire Loop_Zero;
+wire Loop_Ready;
 
 `ifdef EMULATOR
     parameter LOOP_READ = 1'b1;
@@ -103,11 +104,15 @@ DekatronCounter  #(
                 .Set(1'b0),
                 .In({(LOOP_DEKATRON_NUM*DEKATRON_WIDTH){1'b0}}),
                 /* verilator lint_off PINCONNECTEMPTY */
-                .Ready(),
+                .Ready(Loop_Ready),
                 .Out(LoopCount),
                 /* verilator lint_on PINCONNECTEMPTY */
                 .Zero(Loop_Zero)
             );
+
+assign Ready = ~Request & (state == IDLE);//READY | IDLE
+wire IP_backwardCount = (LoopInsnClose & ~dataIsZeroed); //backward direction for ']' & nonZero
+
 
 parameter [2:0]
     IDLE      =  3'd0,
@@ -117,89 +122,94 @@ parameter [2:0]
     READY     =  3'd4,
     HALT      =  3'd7;
 
-reg [2:0] state, next;
-
-always @(posedge Clk, negedge Rst_n) begin
-	if (~Rst_n) state <= 0;
-	else state <= next;
-end
-
-always_comb begin
-    case (state)
-    IDLE: begin
-        if (HaltRq) next = HALT;
-        else begin
-            if (Request) begin
-                if ((LoopInsnOpen & dataIsZeroed) | 
-                    (LoopInsnClose & ~dataIsZeroed)) next = LOOP_COUNT;
-                else 
-                    if (ROM_DataReady)
-                        next = IP_COUNT;
-                    else//Only for IP=0
-                        next = ROM_READ;
-            end
-            else next = IDLE;
-        end
-    end
-    IP_COUNT: begin
-        if (IP_Ready) next = ROM_READ;
-        else next = IP_COUNT;
-    end
-    ROM_READ: begin
-        if (HaltRq) next = HALT;
-        else begin
-            if (ROM_DataReady) begin
-                if (Loop_Zero) 
-                    next = READY;
-                else begin
-                    if (LoopInsnOpenInternal | LoopInsnCloseInternal)
-                        next = LOOP_COUNT;
-                    else
-                        next = IP_COUNT;
-                end
-            end
-            else
-                next = ROM_READ;
-        end
-    end
-    LOOP_COUNT: begin
-        if (IP_Ready)
-            next = ROM_READ;
-        else
-            next = IP_COUNT;
-    end
-    HALT: begin
-        if (HaltRq)
-            next = HALT;
-        else
-            next = IDLE;
-    end
-    READY:
-        next = IDLE;
-    default:
-        next = IDLE;
-    endcase
-end
-
-assign Ready = ~Request & (state == IDLE);//READY | IDLE
-wire IP_backwardCount = (LoopInsnClose & ~dataIsZeroed); //backward direction for ']' & nonZero
-
-
-assign IP_Request = (state == IP_COUNT) | (state == LOOP_COUNT);
-assign IP_Dec = IP_backwardCount & ((state == IP_COUNT)& (~Loop_Zero) | (state == LOOP_COUNT));
-
-assign ROM_Request = (state == ROM_READ);
-
-assign Loop_Request = (state == LOOP_COUNT);
-assign Loop_Dec = Loop_Request & ((IP_backwardCount & LoopInsnOpenInternal)|
-                                (~IP_backwardCount & LoopInsnCloseInternal));
+reg [2:0] state;
 
 always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
         Insn <= {(INSN_WIDTH){1'b0}};
+        IP_Dec <= 1'b0;
+        IP_Request <= 1'b0;
+        Loop_Request <= 1'b0;
+        Loop_Dec <= 1'b0;
+        state <= IDLE;
     end
     else begin
-        if (state == READY) Insn <= TmpInsnReg;
+        case (state)
+            IDLE:
+                if (HaltRq) state <= HALT;
+                else if (Request) begin
+                    if (ROM_DataReady) begin
+                        IP_Dec <= IP_backwardCount; //backward direction for ']' & nonZero
+                        IP_Request <= 1'b1;
+                        if ((LoopInsnOpen & dataIsZeroed) | 
+                            (LoopInsnClose & ~dataIsZeroed)) begin
+                            //Let's run loopLookup
+                            Loop_Dec <= 1'b0;
+                            Loop_Request <= 1'b1;
+                            state <= LOOP_COUNT;
+                        end
+                        else 
+                            state <= IP_COUNT;
+                    end
+                    else begin//Only for IP=0
+                        state <= ROM_READ;
+                        ROM_Request <= 1'b1;
+                    end
+                end
+            IP_COUNT: begin
+                IP_Request <= 1'b0;
+                if (IP_Ready) begin
+                    state <= ROM_READ;
+                    ROM_Request <= 1'b1;
+                end
+            end
+            ROM_READ: begin
+                    ROM_Request <= 1'b0;
+                    if (ROM_DataReady) begin
+                        if (Loop_Zero) begin
+                            state <= READY;
+                        end
+                        else begin
+                            if (LoopInsnOpenInternal | LoopInsnCloseInternal) begin
+                                Loop_Dec <= ((IP_backwardCount & LoopInsnOpenInternal)|
+                                            (~IP_backwardCount & LoopInsnCloseInternal));
+                                Loop_Request <= 1'b1;
+                                state <= LOOP_COUNT;
+                            end
+                            else begin
+                                state <= IP_COUNT;  
+                                IP_Dec <= IP_backwardCount; //backward direction for ']' & nonZero
+                                IP_Request <= 1'b1;                         
+                            end
+                        end
+                    end
+                end
+            LOOP_COUNT: begin
+                Loop_Request <= 1'b0;
+                if (Loop_Ready) begin
+                    if ((LoopInsnOpenInternal | LoopInsnCloseInternal)) begin
+                        IP_Dec <= IP_backwardCount & ~Loop_Zero; //backward direction for ']' & nonZero
+                        IP_Request <= 1'b1;    
+                    end
+                    state <= IP_COUNT;
+                end
+            end
+            READY: begin
+                Insn <= TmpInsnReg;
+                if (~Request) begin
+                    state <= IDLE;
+                end
+            end
+            HALT: begin
+                if (HaltRq)
+                    state <= HALT;
+                else
+                    state <= IDLE;
+            end
+            default:
+                state <= IDLE;
+        endcase
     end
 end
+
 endmodule

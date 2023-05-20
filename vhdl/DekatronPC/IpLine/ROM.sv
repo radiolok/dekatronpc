@@ -52,7 +52,7 @@ case (state)
 endcase
 end
 
-assign Ready = (state == READY);
+assign Ready = ~Request & (state == READY);
 
 wire [DATA_WIDTH-1:0] Data;
 
@@ -61,10 +61,10 @@ wire [DATA_WIDTH-1:0] Data;
 `else
     helloworld #(
 `endif
-            .portSize(D_NUM*D_WIDTH)
-            )storage(
-                .Address(Address),
-                .Data(Data));
+    .portSize(D_NUM*D_WIDTH)
+    )storage(
+        .Address(Address),
+        .Data(Data));
 
 always @(negedge Clk, negedge Rst_n)
     if (~Rst_n) begin

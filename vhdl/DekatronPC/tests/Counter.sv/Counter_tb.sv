@@ -93,7 +93,7 @@ initial begin
         end
     end
     if (Out == 0) 
-        $display($time/1000, "ns Counter Up/Down Test Sussess!");
+        $display($time/1000, "us Counter Up/Down Test Sussess!");
     else 
         $fatal(1, "Must be zero!");
     Dec <= 0;
@@ -107,7 +107,7 @@ initial begin
         end
     end
     if (Out == 0) 
-        $display($time/1000, "ns Counter RollUp Test Sussess!");
+        $display($time/1000, "us Counter RollUp Test Sussess!");
     else 
         $fatal(1, "Must be zero!");
     Dec <= 1;
@@ -121,10 +121,10 @@ initial begin
         end
     end
     if (Out == 0) 
-        $display($time/1000, "ns Counter RollUp Test Sussess!");
+        $display($time/1000, "us Counter RollUp Test Sussess!");
     else 
         $fatal(1, "Must be zero!");
-    $display($time/1000, "ns << Simulation Complete >>");
+    $display($time/1000, "us << Simulation Complete >>");
     $finish;
 end
 
@@ -136,6 +136,18 @@ always @(posedge Clk) begin
             Request <= 1'b1;
         if (Request)
             Request <= 1'b0;
+end
+
+reg [31:0] CLOCK_TICK;
+
+always @(posedge Clk) begin
+  if (~Rst_n) begin
+    CLOCK_TICK <= 0;
+  end
+   else 
+       CLOCK_TICK <= CLOCK_TICK + 1;
+       if (CLOCK_TICK > 3500)
+          $fatal(1, "Timeout");
 end
 
 endmodule

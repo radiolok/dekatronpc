@@ -31,6 +31,15 @@ module DekatronCounter #(
 	output wire [WIDTH-1:0] Out
 );
 
+wire _Request;
+
+Impulse #(.EDGE(1'b1)) reqPulse(
+	.Rst_n(Rst_n),
+	.Clk(Clk),
+	.En(Request),
+	.Impulse(_Request)
+);
+
 wire [D_NUM-1:0] Zeroes;
 /* verilator lint_off UNUSEDSIGNAL */
 wire [D_NUM-1:0] TopOut;
@@ -75,15 +84,15 @@ end
 always_comb begin
 	case(state)
 		IDLE: begin
-			if (Request & ~SetAny) begin
+			if (_Request & ~SetAny) begin
 				if (Dec)
 					next = DEC;
 				else
 					next = INC;
 			end
-			else if (Request & Set) next = SET;
-			else if (Request & TOP_LIMIT_MODE & SetTop) next = SET_TOP;
-			else if (Request & TOP_LIMIT_MODE & SetZero) next = SET_ZERO;
+			else if (_Request & Set) next = SET;
+			else if (_Request & TOP_LIMIT_MODE & SetTop) next = SET_TOP;
+			else if (_Request & TOP_LIMIT_MODE & SetZero) next = SET_ZERO;
 			else next = IDLE;
 		end
 		default:
@@ -91,7 +100,7 @@ always_comb begin
 	endcase
 end
 
-assign Ready = ~(&DekatronBusy) & (state == IDLE);
+assign Ready = ~Request & ~(|DekatronBusy) & (state == IDLE);
 
 wire [1:0] Pulses = {(state == DEC) & Clk , (state == INC) & Clk};
 
@@ -128,7 +137,8 @@ for (d = 0; d < D_NUM; d++) begin: dek
 		.Busy(DekatronBusy[d])
 	);
 
-	assign npulses = ((CarryHigh & (state == INC)) | (CarryLow & (state == DEC))) ? pulses : 2'b0;
+	assign npulses = ((CarryHigh & (state == INC)) | (CarryLow & (state == DEC))) ? 
+						pulses : 2'b0;
 end
 
 endmodule

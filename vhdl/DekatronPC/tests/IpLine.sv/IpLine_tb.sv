@@ -70,13 +70,13 @@ for (integer i = 0; i < TEST_NUM; i++) begin
 
   repeat(1) @(posedge Request)
   repeat(1) @(posedge Ready)
-  $display("IRET:%d Time: %d Addr: %h Insn: %b, Data: %d(%b)", i, $time, Address, Insn, Data, dataIsZeroed);
+  $display("IRET:%d Time: %dus Addr: %h Insn: %b, Data: %d(%b)", i, $time/1000, Address, Insn, Data, dataIsZeroed);
   
   case (Insn)
   4'b0010: Data <= Data + 1;
   4'b0011: Data <= Data - 1;
   4'b0001: begin 
-        $display ("CLOCKTICK: %dns", CLOCK_TICK/1000); 
+        $display ("CLOCKTICK: %dus", CLOCK_TICK); 
         if (Data) 
           $fatal(1, "Data not zero");
         else
