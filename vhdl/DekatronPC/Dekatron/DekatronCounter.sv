@@ -102,7 +102,26 @@ end
 
 assign Ready = ~Request & ~(|DekatronBusy) & (state == IDLE);
 
-wire [1:0] Pulses = {(state == DEC) & Clk , (state == INC) & Clk};
+wire PulseR = (state == DEC);
+wire PulseF = (state == INC);
+wire [1:0] Pulses;
+
+Impulse #(.EDGE(0)
+)pulsesImpDec(
+		.Clk(Clk),
+		.Rst_n(Rst_n),
+		.En(PulseR),
+		.Impulse(Pulses[1])
+	);
+
+Impulse #(.EDGE(0)
+	)pulsesImpInc(
+		.Clk(Clk),
+		.Rst_n(Rst_n),
+		.En(PulseF),
+		.Impulse(Pulses[0])
+	);
+//wire [1:0] Pulses = {(state == DEC) & Clk , (state == INC) & Clk};
 
 genvar d;
 for (d = 0; d < D_NUM; d++) begin: dek

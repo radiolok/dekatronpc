@@ -27,26 +27,38 @@ initial begin
     forever #1 hsClk = ~hsClk;
 end
 
+reg [7:0] REF;
+wire [3:0] OutBCD;
+
 initial begin
     In <= 10'b1;
     Rst_n <= 0;
     En <= 0;
     Dec <= 0;
+    REF <= 24'd0;
     #2 
     In <= 10'b0;
     #2 Rst_n <= 1;
     $display("Count Forward\n");
     repeat(1) @(posedge Clk)
     for (integer i=0; i < test_num; i++) begin
-    En <= 1 ;
-    repeat(1) @(posedge Clk)
-	$display("test %d: Out: %x", i, Out);
+        En <= 1;
+        REF <= REF + 1;
+        repeat(1) @(posedge Clk)
+        if (REF % 10 != OutBCD) begin
+            $fatal(1, "Counter Up Failure REF: %d Out: %d", REF % 10, OutBCD);
+        end
+        $display("test %d: Out: %x", i, Out);
     end
     Dec <= 1;
     $display("Count Reverse\n");
     for (integer i=0; i < test_num; i++) begin
-    repeat(1) @(posedge Clk)
-	$display("test %d: Out: %x", i, Out);
+        REF <= REF - 1;
+        repeat(1) @(posedge Clk)
+        if (REF % 10 != OutBCD) begin
+            $fatal(1, "Counter Down Failure REF: %d Out: %d", REF % 10, OutBCD);
+        end
+        $display("test %d: Out: %x", i, Out);
     end
     if (Out != data) $fatal;
     $finish;
@@ -76,6 +88,13 @@ Dekatron  dek(
     .In(In),
     .Out(Out)
 );
+
+
+
+BinToBcd binToDbc(
+        .In(Out),
+        .Out(OutBCD)
+    );
 
 
 endmodule
