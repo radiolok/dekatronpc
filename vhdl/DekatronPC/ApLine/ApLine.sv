@@ -14,23 +14,24 @@ module ApLine (
     
     output wire Ready,
 
-    `ifdef EMULATOR
-    input wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Address1,
-    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data1,
-    `endif
-
     output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Address,
+
+    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] RamDataIn,
+    input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] RamDataOut,
+    output reg RamWE,
+    output wire RamCS,
+
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data
 
 );
 
 reg AP_Request;
 wire AP_Ready;
-reg WE;
 reg Data_Request;
 reg Data_Set;
 wire Data_Ready;
 reg MemLock;
+assign RamCS = 1'b1;
 
 parameter [3:0]
     IDLE     =  4'b0001,
@@ -42,7 +43,7 @@ reg [3:0] currentState;
 
 assign Ready = ~ApRequest & ~DataRequest & currentState[0] & AP_Ready & Data_Ready;
 
-assign Data = MemLock? DataCntRoRam : DataRamToCnt;
+assign Data = MemLock? RamDataIn : RamDataOut;
 
 DekatronCounter  #(
             .D_NUM(AP_DEKATRON_NUM),
@@ -61,27 +62,6 @@ DekatronCounter  #(
                 .Zero(ApZero)
             );
 
-wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DataCntRoRam;
-wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DataRamToCnt;
-
-
-RAM #(
-    .ROWS(170393),
-    .DATA_WIDTH(12)
-) ram(
-    .Clk(Clk),
-    .Rst_n(Rst_n),
-    .Address(Address[17:0]),
-    .In(DataCntRoRam),
-    .Out(DataRamToCnt),
-`ifdef EMULATOR
-    .Address1(Address1),
-    .Out1(Data1),
-`endif
-    .WE(WE),
-    .CS(1'b1)
-);
-
 DekatronCounter  #(
             .D_NUM(DATA_DEKATRON_NUM)
             )Data_counter(
@@ -92,9 +72,9 @@ DekatronCounter  #(
                 .Dec(Dec),
                 .Set(Data_Set),
                 .SetZero(1'b0),
-                .In(DataRamToCnt),
+                .In(RamDataOut),
                 .Ready(Data_Ready),
-                .Out(DataCntRoRam),
+                .Out(RamDataIn),
                 .Zero(DataZero)
             );
 
@@ -103,7 +83,7 @@ always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
         AP_Request <= 1'b0;
         Data_Request <= 1'b0;
-        WE <= 1'b0;
+        RamWE <= 1'b0;
         MemLock <= 1'b0;
         Data_Set <= 1'b0;
         currentState <= IDLE;
@@ -114,7 +94,7 @@ always @(posedge Clk, negedge Rst_n) begin
                 if (ApRequest) begin
                     if (MemLock) begin 
                         currentState <= STORE;
-                        WE <= 1'b1;
+                        RamWE <= 1'b1;
                     end
                     else begin
                         currentState <= COUNT;
@@ -143,7 +123,7 @@ always @(posedge Clk, negedge Rst_n) begin
                 end
             end
             STORE: begin
-                WE <= 1'b0;
+                RamWE <= 1'b0;
                 MemLock <= 1'b0;
                 currentState <= COUNT;
                 AP_Request <= 1'b1;

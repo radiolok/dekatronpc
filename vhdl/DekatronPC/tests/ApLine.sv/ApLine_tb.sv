@@ -24,14 +24,32 @@ wire ApZero;
 reg ApRequest = 1'b0;
 reg DataRequest = 1'b0;
 
-wire Ready;
+wire ApLineReady;
 
 wire [3:0] Insn;
 
-wire [5*4-1:0] Address;
+wire [5*4-1:0] ApAddress;
 wire [3*4-1:0] Data;
 
-reg Dec;
+reg ApLineDec;
+
+wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] RamDataIn;
+wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] RamDataOut;
+wire RamCS;
+wire RamWE;
+
+RAM #(
+    .ROWS(170393),
+    .DATA_WIDTH(12)
+) ram(
+    .Clk(Clk),
+    .Rst_n(Rst_n),
+    .Address(ApAddress[17:0]),
+    .In(RamDataIn),
+    .Out(RamDataOut),
+    .WE(RamWE),
+    .CS(RamCS)
+);
 
 ApLine  apLine(
     .Rst_n(Rst_n),
@@ -41,9 +59,13 @@ ApLine  apLine(
     .ApZero(ApZero),
     .ApRequest(ApRequest),
     .DataRequest(DataRequest),
-    .Dec(Dec),
-    .Ready(Ready),
-    .Address(Address),
+    .Dec(ApLineDec),
+    .Ready(ApLineReady),
+    .Address(ApAddress),
+    .RamDataIn(RamDataIn),
+    .RamDataOut(RamDataOut),
+    .RamCS(RamCS),
+    .RamWE(RamWE),
     .Data(Data)
 );
 
@@ -63,67 +85,119 @@ always @(posedge Clk) begin
       $fatal;
    end
 end
+
+reg [7:0] REFADDR;
+reg [7:0] REFD0;
+reg [7:0] REFD155;
 initial begin 
 Rst_n <= 0;
-Dec <= 0;
+ApLineDec <= 0;
 #5 
 Rst_n <= 1;
+REFADDR <= 0;
+REFD0 <= 0;
+REFD155 <= 0;
 
-Dec <= 1'b0;
+ApLineDec <= 1'b0;
 //Addr = 0, Result Data + 15
-for (integer i = 0; i < 15; i++) begin
+for (integer i = 0; i < 155; i++) begin
 
   repeat(1) @(posedge Clk)
   DataRequest <= 1;
+  REFD0 <= REFD0 + 1;
   repeat(1) @(posedge Clk)
   DataRequest <= 0;
-  repeat(1) @(posedge Ready)
+  repeat(1) @(posedge ApLineReady)
   DataRequest <= 0;
+  if (REFD0 % 10 != Data[3:0]) begin
+    $fatal(1, "Counter0 Failure REF: %d Out: %d", REFD0 % 10, Data[3:0]);
+  end
+  if ((REFD0/10) % 10 != Data[7:4]) begin
+    $fatal(1, "Counter1 Failure REF: %d Out: %d", (REFD0/10) % 10, Data[7:4]);
+  end
+  if ((REFD0/100) % 10 != Data[11:8]) begin
+    $fatal(1, "Counter2 Failure REF: %d Out: %d", (REFD0/100) % 10, Data[11:8]);
+  end 
 end
-
-//Addr = 10
-for (integer i = 0; i < 10; i++) begin
-
+//Addr = 155
+for (integer i = 0; i < 155; i++) begin
+  REFADDR <= REFADDR + 1;
   repeat(1) @(posedge Clk)
   ApRequest <= 1;
   repeat(1) @(posedge Clk)
   ApRequest <= 0;
-  repeat(1) @(posedge Ready)
+  repeat(1) @(posedge ApLineReady)
   ApRequest <= 0;
+  if (REFADDR % 10 != ApAddress[3:0]) begin
+    $fatal(1, "Counter0 Failure REF: %d Out: %d", REFADDR % 10, ApAddress[3:0]);
+  end
+  if ((REFADDR/10) % 10 != ApAddress[7:4]) begin
+    $fatal(1, "Counter1 Failure REF: %d Out: %d", (REFADDR/10) % 10, ApAddress[7:4]);
+  end
+  if ((REFADDR/100) % 10 != ApAddress[11:8]) begin
+    $fatal(1, "Counter2 Failure REF: %d Out: %d", (REFADDR/100) % 10, ApAddress[11:8]);
+  end 
 end
-
 //Addr 10 - Data + 17
 for (integer i = 0; i < 17; i++) begin
-
+  REFD155 <= REFD155 + 1;
   repeat(1) @(posedge Clk)
   DataRequest <= 1;
   repeat(1) @(posedge Clk)
   DataRequest <= 0;
-  repeat(1) @(posedge Ready)
+  repeat(1) @(posedge ApLineReady)
   DataRequest <= 0;
+  if (REFD155 % 10 != Data[3:0]) begin
+    $fatal(1, "Counter0 Failure REF: %d Out: %d", REFD155 % 10, Data[3:0]);
+  end
+  if ((REFD155/10) % 10 != Data[7:4]) begin
+    $fatal(1, "Counter1 Failure REF: %d Out: %d", (REFD155/10) % 10, Data[7:4]);
+  end
+  if ((REFD155/100) % 10 != Data[11:8]) begin
+    $fatal(1, "Counter2 Failure REF: %d Out: %d", (REFD155/100) % 10, Data[11:8]);
+  end   
 end
 
-Dec <= 1'b1;
+ApLineDec <= 1'b1;
 //Addr 0 
-for (integer i = 0; i < 10; i++) begin
+for (integer i = 0; i < 155; i++) begin
 
   repeat(1) @(posedge Clk)
+  REFADDR <= REFADDR - 1;
   ApRequest <= 1;
   repeat(1) @(posedge Clk)
   ApRequest <= 0;
-  repeat(1) @(posedge Ready)
+  repeat(1) @(posedge ApLineReady)
   ApRequest <= 0;
+  if (REFADDR % 10 != ApAddress[3:0]) begin
+    $fatal(1, "Counter0 Failure REF: %d Out: %d", REFADDR % 10, ApAddress[3:0]);
+  end
+  if ((REFADDR/10) % 10 != ApAddress[7:4]) begin
+    $fatal(1, "Counter1 Failure REF: %d Out: %d", (REFADDR/10) % 10, ApAddress[7:4]);
+  end
+  if ((REFADDR/100) % 10 != ApAddress[11:8]) begin
+    $fatal(1, "Counter2 Failure REF: %d Out: %d", (REFADDR/100) % 10, ApAddress[11:8]);
+  end 
 end
 
 //Data -15 - Must be 0
 for (integer i = 0; i < 15; i++) begin
-
+  REFD0 <= REFD0 - 1;
   repeat(1) @(posedge Clk)
   DataRequest <= 1;
   repeat(1) @(posedge Clk)
   DataRequest <= 0;
-  repeat(1) @(posedge Ready)
+  repeat(1) @(posedge ApLineReady)
   DataRequest <= 0;
+  if (REFD0 % 10 != Data[3:0]) begin
+    $fatal(1, "Counter0 Failure REF: %d Out: %d", REFD0 % 10, Data[3:0]);
+  end
+  if ((REFD0/10) % 10 != Data[7:4]) begin
+    $fatal(1, "Counter1 Failure REF: %d Out: %d", (REFD0/10) % 10, Data[7:4]);
+  end
+  if ((REFD0/100) % 10 != Data[11:8]) begin
+    $fatal(1, "Counter2 Failure REF: %d Out: %d", (REFD0/100) % 10, Data[11:8]);
+  end 
 end
 
 $finish;

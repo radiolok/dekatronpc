@@ -53,6 +53,24 @@ ROM #(
         .Ready(RomReady)
         );
 
+wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] RamDataIn;
+wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] RamDataOut;
+wire RamCS;
+wire RamWE;
+
+RAM #(
+    .ROWS(170393),
+    .DATA_WIDTH(12)
+) ram(
+    .Clk(Clk),
+    .Rst_n(Rst_n),
+    .Address(ApAddress[17:0]),
+    .In(RamDataIn),
+    .Out(RamDataOut),
+    .WE(RamWE),
+    .CS(RamCS)
+);
+
 IpLine ipLine(
     .Rst_n(Rst_n),
     .Clk(Clk),
@@ -80,6 +98,10 @@ ApLine  apLine(
     .Dec(ApLineDec),
     .Ready(ApLineReady),
     .Address(ApAddress),
+    .RamDataIn(RamDataIn),
+    .RamDataOut(RamDataOut),
+    .RamCS(RamCS),
+    .RamWE(RamWE),
     .Data(Data)
 );
 

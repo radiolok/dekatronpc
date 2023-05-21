@@ -13,11 +13,6 @@ module IpLine (
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
     output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
 
-`ifdef RAM_TWO_PORT
-    input wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Address1,
-    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data1,
-`endif
-
     output reg RomRequest,
     input wire RomReady,
     input wire [INSN_WIDTH-1:0] RomData,
