@@ -1,5 +1,5 @@
 module Impulse #(
-    parameter EDGE = 0//0 for negedge, 1 for posedge
+    parameter EDGE = 1'b0//0 for negedge, 1 for posedge
 )(
     input Clk,
     input En,

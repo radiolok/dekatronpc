@@ -23,6 +23,7 @@ module DekatronCounter #(
 	input wire Request,
     input wire Dec,
     input wire Set,
+	input wire SetZero,
 
     input wire [WIDTH-1:0] In,
 
@@ -67,18 +68,18 @@ always @(posedge Clk, negedge Rst_n) begin
 end
 
 wire SetTop = Zero & Dec;
-wire SetZero = &TopOut & ~Dec;
+wire SetZeroInt = (&TopOut & ~Dec);
 wire SetAny;
 
 if (WRITE & (TOP_LIMIT_MODE > 0)) begin
-	assign SetAny = Set | SetTop | SetZero;
+	assign SetAny = Set | SetTop | SetZeroInt | SetZero;
 	assign DataToDeks = (state == SET) ? In : 
 						(state == SET_TOP) ? TOP_VALUE : 
 						(state == SET_ZERO) ? {WIDTH{1'b0}} : In;
 end
 else begin
-	assign SetAny = Set;
-	assign DataToDeks = In;
+	assign SetAny = Set | SetZero;
+	assign DataToDeks = (state == SET_ZERO) ? {WIDTH{1'b0}} : In;
 end
 
 always_comb begin
@@ -92,7 +93,7 @@ always_comb begin
 			end
 			else if (_Request & Set) next = SET;
 			else if (_Request & TOP_LIMIT_MODE & SetTop) next = SET_TOP;
-			else if (_Request & TOP_LIMIT_MODE & SetZero) next = SET_ZERO;
+			else if (_Request & (TOP_LIMIT_MODE & SetZeroInt | SetZero)) next = SET_ZERO;
 			else next = IDLE;
 		end
 		default:
@@ -106,22 +107,19 @@ wire PulseR = (state == DEC);
 wire PulseF = (state == INC);
 wire [1:0] Pulses;
 
-Impulse #(.EDGE(0)
-)pulsesImpDec(
+Impulse pulsesImpDec(
 		.Clk(Clk),
 		.Rst_n(Rst_n),
 		.En(PulseR),
 		.Impulse(Pulses[1])
 	);
 
-Impulse #(.EDGE(0)
-	)pulsesImpInc(
+Impulse pulsesImpInc(
 		.Clk(Clk),
 		.Rst_n(Rst_n),
 		.En(PulseF),
 		.Impulse(Pulses[0])
 	);
-//wire [1:0] Pulses = {(state == DEC) & Clk , (state == INC) & Clk};
 
 genvar d;
 for (d = 0; d < D_NUM; d++) begin: dek

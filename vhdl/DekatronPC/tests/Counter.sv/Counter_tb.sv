@@ -42,6 +42,7 @@ DekatronCounter  #(.D_NUM(DEKATRON_NUM),
                 .Request(Request),
                 .Dec(Dec),
                 .Set(Set),
+                .SetZero(1'b0),
                 .In(In),
                 .Ready(Ready),
                 .Out(Out)

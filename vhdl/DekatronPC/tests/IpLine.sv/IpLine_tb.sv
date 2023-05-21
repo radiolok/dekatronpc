@@ -27,6 +27,23 @@ wire [3:0] Insn;
 
 wire [6*4-1:0] Address;
 
+
+wire RomRequest;
+wire RomReady;
+wire [INSN_WIDTH-1:0] RomData;
+
+ROM #(
+        .D_NUM(IP_DEKATRON_NUM),
+        .DATA_WIDTH(INSN_WIDTH)
+        )rom(
+        .Rst_n(Rst_n),
+        .Clk(Clk), 
+        .Address(Address),
+        .Insn(RomData),
+        .Request(RomRequest),
+        .Ready(RomReady)
+        );
+
 IpLine  ipLine(
     .Rst_n(Rst_n),
     .Clk(Clk),
@@ -34,7 +51,10 @@ IpLine  ipLine(
     .dataIsZeroed(dataIsZeroed),
     .Request(Request),
     .Ready(Ready),
-    .Address(Address),
+    .IpAddress(Address),
+    .RomRequest(RomRequest),
+    .RomReady(RomReady),
+    .RomData(RomData),
     .Insn(Insn)
 );
 initial begin $dumpfile("IpLine_tb.vcd"); $dumpvars(0,IpLine_tb); end

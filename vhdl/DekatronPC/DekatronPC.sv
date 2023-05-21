@@ -37,6 +37,22 @@ wire LoopValZero = InsnMode ? DataZero : ApZero;
 
 wire IsHalted;
 
+wire RomRequest;
+wire RomReady;
+wire [INSN_WIDTH-1:0] RomData;
+
+ROM #(
+        .D_NUM(IP_DEKATRON_NUM),
+        .DATA_WIDTH(INSN_WIDTH)
+        )rom(
+        .Rst_n(Rst_n),
+        .Clk(Clk), 
+        .Address(IpAddress),
+        .Insn(RomData),
+        .Request(RomRequest),
+        .Ready(RomReady)
+        );
+
 IpLine ipLine(
     .Rst_n(Rst_n),
     .Clk(Clk),
@@ -45,8 +61,11 @@ IpLine ipLine(
     .dataIsZeroed(LoopValZero),
     .Request(IpRequest),
 	.Ready(IpLineReady),
-    .Address(IpAddress),
+    .IpAddress(IpAddress),
     .LoopCount(LoopCount),
+    .RomRequest(RomRequest),
+    .RomReady(RomReady),
+    .RomData(RomData),
 	.Insn(Insn)
 );
 

@@ -10,7 +10,7 @@ module IpLine (
 
     input wire Request,
     output wire Ready,
-    output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Address,
+    output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
     output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
 
 `ifdef RAM_TWO_PORT
@@ -18,10 +18,12 @@ module IpLine (
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data1,
 `endif
 
+    output reg RomRequest,
+    input wire RomReady,
+    input wire [INSN_WIDTH-1:0] RomData,
+
     output reg[INSN_WIDTH-1:0] Insn
 );
-
-wire [INSN_WIDTH-1:0] TmpInsnReg;
 
 reg IP_Request;
 reg IP_Dec;
@@ -37,35 +39,21 @@ DekatronCounter  #(
                 .Request(IP_Request),
                 .Dec(IP_Dec),
                 .Set(1'b0),
+                .SetZero(1'b0),
                 .In({(IP_DEKATRON_NUM*DEKATRON_WIDTH){1'b0}}),
                 .Ready(IP_Ready),
-                .Out(Address),
+                .Out(IpAddress),
                 /* verilator lint_off PINCONNECTEMPTY */
                 .Zero()
                 /* verilator lint_on PINCONNECTEMPTY */
             );
-
-reg ROM_Request;
-wire ROM_DataReady;
-
-ROM #(
-        .D_NUM(IP_DEKATRON_NUM),
-        .DATA_WIDTH(INSN_WIDTH)
-        )rom(
-        .Rst_n(Rst_n),
-        .Clk(Clk), 
-        .Address(Address),
-        .Insn(TmpInsnReg),
-        .Request(ROM_Request),
-        .Ready(ROM_DataReady)
-        );
 
 //This two highligh loop insn on the ROM output to control loopLookup
 wire LoopInsnOpenInternal;
 wire LoopInsnCloseInternal;
 
 InsnLoopDetector insnLoopDetectorInternal(
-    .Insn(TmpInsnReg),
+    .Insn(RomData),
     .LoopOpen(LoopInsnOpenInternal),
     .LoopClose(LoopInsnCloseInternal)
 );
@@ -102,6 +90,7 @@ DekatronCounter  #(
                 .Request(Loop_Request),
                 .Dec(Loop_Dec),
                 .Set(1'b0),
+                .SetZero(1'b0),
                 .In({(LOOP_DEKATRON_NUM*DEKATRON_WIDTH){1'b0}}),
                 /* verilator lint_off PINCONNECTEMPTY */
                 .Ready(Loop_Ready),
@@ -138,7 +127,7 @@ always @(posedge Clk, negedge Rst_n) begin
             IDLE:
                 if (HaltRq) state <= HALT;
                 else if (Request) begin
-                    if (ROM_DataReady) begin
+                    if (RomReady) begin
                         IP_Dec <= IP_backwardCount; //backward direction for ']' & nonZero
                         IP_Request <= 1'b1;
                         if ((LoopInsnOpen & dataIsZeroed) | 
@@ -153,19 +142,19 @@ always @(posedge Clk, negedge Rst_n) begin
                     end
                     else begin//Only for IP=0
                         state <= ROM_READ;
-                        ROM_Request <= 1'b1;
+                        RomRequest <= 1'b1;
                     end
                 end
             IP_COUNT: begin
                 IP_Request <= 1'b0;
                 if (IP_Ready) begin
                     state <= ROM_READ;
-                    ROM_Request <= 1'b1;
+                    RomRequest <= 1'b1;
                 end
             end
             ROM_READ: begin
-                    ROM_Request <= 1'b0;
-                    if (ROM_DataReady) begin
+                    RomRequest <= 1'b0;
+                    if (RomReady) begin
                         if (Loop_Zero) begin
                             state <= READY;
                         end
@@ -195,7 +184,7 @@ always @(posedge Clk, negedge Rst_n) begin
                 end
             end
             READY: begin
-                Insn <= TmpInsnReg;
+                Insn <= RomData;
                 if (~Request) begin
                     state <= IDLE;
                 end
