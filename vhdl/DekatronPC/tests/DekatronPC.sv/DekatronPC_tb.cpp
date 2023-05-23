@@ -101,7 +101,7 @@ int stepVerilog(VerilogMachine &state){
         state.trace->dump(state.PLL_CLK*MUL);
         state.PLL_CLK++;
         if ((state.PLL_CLK % 100000) == 0)
-            printf("Time: %ldus, IRET: %ld\n", state.PLL_CLK/1000, state.dut->IRET);
+            printf("Time: %ldus, IRET: %d\n", state.PLL_CLK/1000, state.dut->IRET);
         if ((state.dut->state == 0x02) & (prev_state == 0x03))
         {
             prev_state = state.dut->state;
@@ -125,7 +125,7 @@ int BcdToInt(int bcd, int groups)
 int compareStates(const VerilogMachine& state, const CppMachine& cppMachine)
 {
     if (state.dut->IRET != cppMachine.IRET){
-        printf("FATAL: state.IRET(%ld) != cppMachine.IRET(%ld)\n",
+        printf("FATAL: state.IRET(%d) != cppMachine.IRET(%ld)\n",
                 state.dut->IRET, cppMachine.IRET);
         return -1;
     }
@@ -139,6 +139,18 @@ int compareStates(const VerilogMachine& state, const CppMachine& cppMachine)
     {
         printf("FATAL: state.dut->ApAddress(%d) != CppMachine.dataRAM.pos(%ld)\n",
         BcdToInt(state.dut->ApAddress, 5), cppMachine.dataRAM.pos());
+        return -1;
+    }
+    if (BcdToInt(state.dut->Data, 3) != *cppMachine.dataRAM)
+    {
+        printf("FATAL: state.dut->Data(%d) != *CppMachine.dataRAM(%d)\n",
+        BcdToInt(state.dut->Data, 3), *cppMachine.dataRAM);
+        return -1;
+    }
+    if (BcdToInt(state.dut->LoopCount, 3) != cppMachine.loopCounter.pos())
+    {
+        printf("FATAL: state.dut->LoopCount(%d) != cppMachine.loopCounter.pos(%ld)\n",
+        BcdToInt(state.dut->LoopCount, 3), cppMachine.loopCounter.pos());
         return -1;
     }
     return 0;
@@ -204,7 +216,7 @@ int main(int argc, char** argv, char** env) {
         if (stepVerilog(state) == 0x04){
             break;
         }
-        printf("IRET:%ld(%ld) IP: %x(%ld) LOOP:%x(%ld) - INSN: %c(%c) AP: %x(%ld) DATA: %x(%d)\n",
+        printf("IRET:%d(%ld) IP: %x(%ld) LOOP:%x(%ld) - INSN: %c(%c) AP: %x(%ld) DATA: %x(%d)\n",
             state.dut->IRET,
             cppMachine.IRET,
             state.dut->IpAddress,
@@ -223,7 +235,7 @@ int main(int argc, char** argv, char** env) {
             return -1;
         }
     }
-    printf("VDekatronPC Done. state.CPU_CLK_UNHALTED = %ld, state.IRET=%ld\n", 
+    printf("VDekatronPC Done. state.CPU_CLK_UNHALTED = %ld, state.IRET=%d\n", 
                 state.CPU_CLK_UNHALTED,
                 state.dut->IRET);
     exit(EXIT_SUCCESS);
