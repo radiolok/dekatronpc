@@ -1,6 +1,9 @@
 `include "parameters.sv"
 
 module DekatronPC (
+`ifdef EMULATOR
+    output reg [31:0] IRET,
+`endif
     input hsClk,
     input Clk,
     input Rst_n, 
@@ -108,10 +111,6 @@ ApLine  apLine(
 
 reg OneStep;
 
-`ifdef EMULATOR
-    reg [31:0] IRET;
-`endif
-
 parameter [2:0]
     IDLE     =  3'b001,
     FETCH     =  3'b0010,
@@ -147,17 +146,13 @@ always @(posedge Clk, negedge Rst_n) begin
                 IpRequest <= 1'b0;
                 Cout <= 1'b0;
                 if (IpLineReady) begin
+                    state <= EXEC;
                     casez (Insn)
-                        4'b0000: begin//NOP
-                            state <= FETCH;
-                            IpRequest <= 1'b1;
-                        end
                         4'b0001: begin//HALT
                             state <= HALT;
                         end
                         4'b001?: begin
                             if (InsnMode == BRAINFUCK_ISA) begin
-                                state <= EXEC;
                                 DataRequest <= 1'b1;
                                 ApRequest <= 1'b0;
                                 ApLineDec <= Insn[0];
@@ -165,16 +160,13 @@ always @(posedge Clk, negedge Rst_n) begin
                         end
                         4'b010?: begin
                             if (InsnMode == BRAINFUCK_ISA) begin
-                                state <= EXEC;
                                 DataRequest <= 1'b0;
                                 ApRequest <= 1'b1;
                                 ApLineDec <= Insn[0];
                             end
                         end
-                        4'b1000: begin
+                        4'b1000: begin //cout
                             Cout <= 1'b1;
-                            state <= FETCH;
-                            IpRequest <= 1'b1;
                         end
                         4'b1110: begin
                             InsnMode <= DEBUG_ISA;
@@ -183,8 +175,7 @@ always @(posedge Clk, negedge Rst_n) begin
                             InsnMode <= BRAINFUCK_ISA;
                         end
                         default: begin
-                            state <= IDLE;
-                            IpRequest <= 1'b1;
+                            state <= EXEC;
                         end
                     endcase
                 end
@@ -201,12 +192,12 @@ always @(posedge Clk, negedge Rst_n) begin
                         state <= FETCH;
                         IpRequest <= 1'b1;
                     end
+                    `ifdef EMULATOR
+                        IRET <= IRET + 1;
+                    `endif 
                 end
             end
             HALT: begin
-                `ifdef EMULATOR
-                      $display("HALT. IRET: %d\n", IRET);
-                `endif
                 if (Step | Run) begin
                     state <= IDLE;
                     if (Step)

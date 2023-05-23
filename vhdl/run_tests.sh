@@ -113,7 +113,7 @@ if [ ${sim} -ne 0 ]; then
 	ar rvs libdpcrun.a dpcrun.o
 
 	verilator -Wall --coverage --trace --top DekatronPC --cc ${DPCfiles} \
-	../libdpcrun.a \
+	../libdpcrun.a   -DEMULATOR=1\
 	--timescale 1us/1ns \
 	--exe DekatronPC/tests/DekatronPC.sv/DekatronPC_tb.cpp
 
