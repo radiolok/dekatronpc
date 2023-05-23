@@ -42,8 +42,6 @@ yosys read_liberty -lib $cell_lib
 yosys dfflibmap -liberty $cell_lib 
 yosys abc -liberty $cell_lib 
 #
-# # split larger signals
-yosys splitnets -ports
 yosys opt
 #
 # # cleanup

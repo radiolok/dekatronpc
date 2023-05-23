@@ -12,7 +12,7 @@ always_comb
 /* verilator lint_off WIDTHEXPAND */
   case(Address)
     8'b0000: Data = {4'b0010}; //+
-    8'b0001: Data = {4'b0010}; //+
+    8'b0001: Data = {4'b0011}; //+
     8'b0010: Data = {4'b0010}; //+
     8'b0011: Data = {4'b0010}; //+
     8'b0100: Data = {4'b0010}; //+
@@ -29,7 +29,7 @@ always_comb
     8'b00010101: Data = {4'b0111}; //]
     8'b00010110: Data = {4'b0001}; //H
     8'b00010111: Data = {4'b0000}; // 
-    default: Data = {dataSize{1'b0}};
+    default: Data = {dataSize{1'bx}};
   endcase
 
 /* verilator lint_on WIDTHEXPAND */

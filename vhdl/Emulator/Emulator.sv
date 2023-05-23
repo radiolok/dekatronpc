@@ -71,6 +71,7 @@ assign Rst_n = KEY[0];
 /* verilator lint_off UNUSEDSIGNAL */
 wire [7:0] symbol;
 wire hsClk;
+wire [INSN_WIDTH - 1:0] Insn;
 /* verilator lint_on UNUSEDSIGNAL */
 
 if (DIVIDE_TO_1US == 1) begin
@@ -132,7 +133,8 @@ DekatronPC dekatronPC(
     .Run(keyRun),
     .Cout(Cout),
     .Step(keyStep),
-    .state(DPC_currentState)
+    .state(DPC_currentState),
+    .Insn(Insn)
 );
 
 

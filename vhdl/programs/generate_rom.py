@@ -122,7 +122,7 @@ def GenerateHeader(fileIn, fileName, fileSize, fileOut, width = 4):
     return portSize
 
 def GenerateFooter(fileIn, fileOut):
-    fileOut.write("    default: Data = {dataSize{1'b0}};\n")
+    fileOut.write("    default: Data = {dataSize{1'bx}};\n")
     fileOut.write("  endcase\n\n")
     fileOut.write("/* verilator lint_on WIDTHEXPAND */\n")
     fileOut.write("endmodule\n")
@@ -169,7 +169,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--file', nargs='+')
     parser.add_argument('-w', '--width', default=1)
-    parser.add_argument('-r', '--radix', default=16)
+    parser.add_argument('-r', '--radix', default=10)
 
     args = parser.parse_args()
 

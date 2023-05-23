@@ -7,7 +7,7 @@ module DekatronCounter #(
     parameter WRITE = 1'b1,
 	parameter TOP_LIMIT_MODE = 1'b0,
 	/* verilator lint_off WIDTHEXPAND */
-	parameter [WIDTH-1:0] TOP_VALUE  = {4'd2, 4'd5, 4'd5}
+	parameter [WIDTH-1:0] TOP_VALUE  = {4'd5, 4'd5, 4'd5}
 	/* verilator lint_on WIDTHEXPAND */
 )(
 	input wire Rst_n,

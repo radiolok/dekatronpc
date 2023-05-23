@@ -8,10 +8,7 @@
   input wire [ADDR_WIDTH-1:0] Address,
   input wire [DATA_WIDTH-1:0] In,
   output wire [DATA_WIDTH-1:0] Out,
-`ifdef EMULATOR
-  input wire [ADDR_WIDTH-1:0] Address1,
-  output wire [DATA_WIDTH-1:0] Out1,
-`endif
+
   input WE,//if 1 We do write, else read
   input CS//CS==1 to do all operations
 );

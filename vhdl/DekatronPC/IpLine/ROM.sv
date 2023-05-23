@@ -58,6 +58,8 @@ wire [DATA_WIDTH-1:0] Data;
 
 `ifdef LOOP_TEST
     looptest #(
+`elsif PI_TEST
+    pi #(
 `else
     helloworld #(
 `endif

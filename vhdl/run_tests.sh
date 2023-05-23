@@ -105,12 +105,25 @@ if [ ${sim} -ne 0 ]; then
 
 	emul ApLine
 
-	echo ${DPCfiles}
+	bf_file=programs/helloworld/helloworld.bfk
 
-	echo EmulFiles ${EmulFiles}
+	g++ -o dpcrun -DEXEC DekatronPC/tests/DekatronPC.sv/dpcrun.cpp
+	./dpcrun -f ${bf_file}
+	g++ -c DekatronPC/tests/DekatronPC.sv/dpcrun.cpp
+	ar rvs libdpcrun.a dpcrun.o
 
 	verilator -Wall --coverage --trace --top DekatronPC --cc ${DPCfiles} \
-	--timescale 100ns/100ps \
+	../libdpcrun.a \
+	--timescale 1us/1ns \
+	--exe DekatronPC/tests/DekatronPC.sv/DekatronPC_tb.cpp
+
+	make -j`nproc` -C obj_dir -f VDekatronPC.mk VDekatronPC
+	./obj_dir/VDekatronPC -f ${bf_file}
+
+	exit
+
+	verilator -Wall --coverage --trace --top DekatronPC --cc ${DPCfiles} \
+	--timescale 1us/1ns -DPI_TEST=1  -DEMULATOR=1\
 	--exe DekatronPC/tests/DekatronPC.sv/DekatronPC_tb.cpp
 
 	make -j`nproc` -C obj_dir -f VDekatronPC.mk VDekatronPC

@@ -15,6 +15,7 @@ DekatronPC/RAM.sv
 DekatronPC/DekatronPC.sv
 programs/looptest/looptest.sv
 programs/helloworld/helloworld.sv
+programs/pi/pi.sv
 Logic/RsLatch.sv
 Logic/Impulse.sv
 Logic/ClockDivider.sv

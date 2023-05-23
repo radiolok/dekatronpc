@@ -12,13 +12,14 @@ module DekatronPC (
     output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data,
     output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
-    output reg [2:0] state
+    output reg [2:0] state,
+    output wire [INSN_WIDTH - 1:0] Insn
 );
 
 reg IpRequest;
 wire IpLineReady;
 
-wire [INSN_WIDTH - 1:0] Insn;
+
 reg InsnMode;
 
 wire DataZero;
@@ -107,6 +108,10 @@ ApLine  apLine(
 
 reg OneStep;
 
+`ifdef EMULATOR
+    reg [31:0] IRET;
+`endif
+
 parameter [2:0]
     IDLE     =  3'b001,
     FETCH     =  3'b0010,
@@ -125,6 +130,9 @@ always @(posedge Clk, negedge Rst_n) begin
         OneStep <= 1'b0;
         state <= HALT;
         InsnMode <= BRAINFUCK_ISA;//FIX: Debug mode must be by default.
+`ifdef EMULATOR        
+        IRET <= 0;
+`endif
     end
     else begin
         case (state)
@@ -196,6 +204,9 @@ always @(posedge Clk, negedge Rst_n) begin
                 end
             end
             HALT: begin
+                `ifdef EMULATOR
+                      $display("HALT. IRET: %d\n", IRET);
+                `endif
                 if (Step | Run) begin
                     state <= IDLE;
                     if (Step)
