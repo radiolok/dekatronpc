@@ -120,14 +120,14 @@ if [ ${sim} -ne 0 ]; then
 	make -j`nproc` -C obj_dir -f VDekatronPC.mk VDekatronPC
 	./obj_dir/VDekatronPC -f ${bf_file} -s
 
-	exit
-
+	bf_file=programs/pi/pi.bfk
 	verilator -Wall --coverage --trace --top DekatronPC --cc ${DPCfiles} \
-	--timescale 1us/1ns -DPI_TEST=1  -DEMULATOR=1\
+	../libdpcrun.a   -DEMULATOR=1\
+	--timescale 1us/1ns -DPI_TEST=1\
 	--exe DekatronPC/tests/DekatronPC.sv/DekatronPC_tb.cpp
 
 	make -j`nproc` -C obj_dir -f VDekatronPC.mk VDekatronPC
-	./obj_dir/VDekatronPC
+	./obj_dir/VDekatronPC -f ${bf_file} -s
 
 	if [ ! -d vcd ]; then
 		mkdir vcd

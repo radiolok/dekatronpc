@@ -45,7 +45,8 @@ assign Data = MemLock? RamDataIn : RamDataOut;
 
 DekatronCounter  #(
             .D_NUM(AP_DEKATRON_NUM),
-            .WRITE(1'b0)
+            .TOP_LIMIT_MODE(1'b1),
+            .TOP_VALUE({4'd2, 4'd9, 4'd9, 4'd9, 4'd9})
             )AP_counter(
                 .Clk(Clk),
                 .hsClk(hsClk),
@@ -61,7 +62,9 @@ DekatronCounter  #(
             );
 
 DekatronCounter  #(
-            .D_NUM(DATA_DEKATRON_NUM)
+            .D_NUM(DATA_DEKATRON_NUM), 
+            .TOP_LIMIT_MODE(1'b1),
+            .TOP_VALUE({4'd2, 4'd5, 4'd5})
             )Data_counter(
                 .Clk(Clk),
                 .hsClk(hsClk),

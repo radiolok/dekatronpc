@@ -198,7 +198,7 @@ int main(int argc, char** argv, char** env) {
 
     VerilogMachine state;
     Memory<char, size_t> codeRAM(0, size + 1, &buffer.front());
-	Memory<char, size_t> dataRAM(0, 30000);
+	Memory<char, size_t> dataRAM(0, 30000 - 1);
 	Counter<size_t> loopCounter(0,999);
 	CppMachine cppMachine(codeRAM, dataRAM, loopCounter);
     Verilated::traceEverOn(true);
