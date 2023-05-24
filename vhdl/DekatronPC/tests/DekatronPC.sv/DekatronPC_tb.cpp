@@ -216,23 +216,25 @@ int main(int argc, char** argv, char** env) {
         if (stepVerilog(state) == 0x04){
             break;
         }
-        printf("IRET:%d(%ld) IP: %x(%ld) LOOP:%x(%ld) - INSN: %c(%c) AP: %x(%ld) DATA: %x(%d)\n",
-            state.dut->IRET,
-            cppMachine.IRET,
-            state.dut->IpAddress,
-            cppMachine.codeRAM.pos(),
-            state.dut->LoopCount,
-            cppMachine.loopCounter.pos(),
-            InsnToSymbol(state.dut->Insn),
-            *(cppMachine.codeRAM),
-            state.dut->ApAddress,
-            cppMachine.dataRAM.pos(),
-            state.dut->Data,
-            *(cppMachine.dataRAM)
-            );
-        if (compareStates(state, cppMachine))
-        {
-            return -1;
+        if (stepMode){
+            printf("IRET:%d(%ld) IP: %x(%ld) LOOP:%x(%ld) - INSN: %c(%c) AP: %x(%ld) DATA: %x(%d)\n",
+                state.dut->IRET,
+                cppMachine.IRET,
+                state.dut->IpAddress,
+                cppMachine.codeRAM.pos(),
+                state.dut->LoopCount,
+                cppMachine.loopCounter.pos(),
+                InsnToSymbol(state.dut->Insn),
+                *(cppMachine.codeRAM),
+                state.dut->ApAddress,
+                cppMachine.dataRAM.pos(),
+                state.dut->Data,
+                *(cppMachine.dataRAM)
+                );
+            if (compareStates(state, cppMachine))
+            {
+                return -1;
+            }
         }
     }
     printf("VDekatronPC Done. state.CPU_CLK_UNHALTED = %ld, state.IRET=%d\n", 

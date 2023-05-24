@@ -1,5 +1,3 @@
-
-
 module DekatronPC (
 `ifdef EMULATOR
     output reg [31:0] IRET,

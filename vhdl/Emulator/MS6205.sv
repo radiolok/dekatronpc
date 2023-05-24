@@ -17,7 +17,6 @@ module MS6205(
     input wire [2:0] DPC_State
 );
 
-
 reg [2:0] ms6205_currentView;
 
 parameter COLUMNS = 16;

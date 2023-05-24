@@ -1,4 +1,3 @@
-
 module DekatronCounter #(
 	parameter D_NUM = 3,
 	parameter WIDTH = D_NUM * DEKATRON_WIDTH,
@@ -160,4 +159,8 @@ for (d = 0; d < D_NUM; d++) begin: dek
 						pulses : 2'b0;
 end
 endgenerate
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 endmodule

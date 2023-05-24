@@ -1,4 +1,3 @@
-
 module Emulator #(
     parameter DIVIDE_TO_1US = 28'd50,
     parameter DIVIDE_TO_1MS = 28'd1000,
@@ -73,16 +72,16 @@ wire [INSN_WIDTH - 1:0] Insn;
 /* verilator lint_on UNUSEDSIGNAL */
 
 generate
-if (DIVIDE_TO_1US == 1) begin
-    assign Clock_1us = FPGA_CLK_50;
-end
-else begin
-ClockDivider #(.DIVISOR({DIVIDE_TO_1US})) clock_divider_us(
-    .Rst_n(Rst_n),
-    .clock_in(FPGA_CLK_50),
-    .clock_out(Clock_1us)
-);
-end
+    if (DIVIDE_TO_1US == 1) begin
+        assign Clock_1us = FPGA_CLK_50;
+    end
+    else begin
+    ClockDivider #(.DIVISOR({DIVIDE_TO_1US})) clock_divider_us(
+        .Rst_n(Rst_n),
+        .clock_in(FPGA_CLK_50),
+        .clock_out(Clock_1us)
+    );
+    end
 endgenerate
 
 ClockDivider #(

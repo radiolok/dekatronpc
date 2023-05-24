@@ -1,4 +1,3 @@
-
 module io_key_display_block #(
     parameter DIVIDE_TO_4MS = 28'd3000
 )(

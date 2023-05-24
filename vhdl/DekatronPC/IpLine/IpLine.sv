@@ -1,5 +1,3 @@
-
-
 module IpLine (
     input wire Rst_n,
     input wire Clk,
