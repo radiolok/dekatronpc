@@ -13,10 +13,13 @@ assign Impulse = En & ~D_state;
 
 wire Edge;
 
+generate
 if (EDGE)
     assign Edge = Clk;
 else
     assign Edge = ~Clk;
+endgenerate
+
 
 always @(posedge Edge, negedge Rst_n) begin
     if (~Rst_n) begin

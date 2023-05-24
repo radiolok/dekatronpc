@@ -1,5 +1,3 @@
-`include "parameters.sv"
-`include "Emulator/KeyboardKeys.sv"
 
 module Keyboard(
     input wire Rst_n,

@@ -1,4 +1,4 @@
-`include "parameters.sv"
+
 
 module ApLine (
     input wire Rst_n,

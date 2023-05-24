@@ -1,4 +1,4 @@
-`include "parameters.sv"
+
 
 module DekatronPulseSender(
     //Each Step cause +1 or -1(if Dec) or storing In value(if Set)

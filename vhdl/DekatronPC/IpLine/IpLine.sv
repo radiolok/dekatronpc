@@ -1,4 +1,4 @@
-`include "parameters.sv"
+
 
 module IpLine (
     input wire Rst_n,

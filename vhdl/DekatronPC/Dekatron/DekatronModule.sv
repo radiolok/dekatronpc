@@ -25,6 +25,7 @@ wire[9:0] OutPos;
 wire[9:0] InPosDek;
 assign Zero = OutPos[0];
 
+generate
 if (WRITE == 1) begin
     wire [9:0] InPos;
     BcdToBin bcdToBin(
@@ -36,6 +37,7 @@ end
 else begin
     assign InPosDek = 10'b0;
 end
+endgenerate
 
 wire [1:0] Pulses;
 
@@ -57,12 +59,14 @@ Dekatron dekatron(
     .Out(OutPos)
 );
 
+generate
 if (READ == 1) begin
     BinToBcd binToDbc(
         .In(OutPos),
         .Out(Out)
     );
 end
+endgenerate
 
 wire BusyDec;
 

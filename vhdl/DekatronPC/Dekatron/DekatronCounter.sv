@@ -1,4 +1,3 @@
-`include "parameters.sv"
 
 module DekatronCounter #(
 	parameter D_NUM = 3,
@@ -71,6 +70,7 @@ wire SetTop = Zero & Dec;
 wire SetZeroInt = (&TopOut & ~Dec);
 wire SetAny;
 
+generate
 if (WRITE & (TOP_LIMIT_MODE > 0)) begin
 	assign SetAny = Set | SetTop | SetZeroInt | SetZero;
 	assign DataToDeks = (state == SET) ? In : 
@@ -81,6 +81,7 @@ else begin
 	assign SetAny = Set | SetZero;
 	assign DataToDeks = (state == SET_ZERO) ? {WIDTH{1'b0}} : In;
 end
+endgenerate
 
 always_comb begin
 	case(state)
@@ -121,6 +122,7 @@ Impulse pulsesImpInc(
 		.Impulse(Pulses[0])
 	);
 
+generate
 genvar d;
 for (d = 0; d < D_NUM; d++) begin: dek
 	wire CarryLow;
@@ -157,5 +159,5 @@ for (d = 0; d < D_NUM; d++) begin: dek
 	assign npulses = ((CarryHigh & (state == INC)) | (CarryLow & (state == DEC))) ? 
 						pulses : 2'b0;
 end
-
+endgenerate
 endmodule

@@ -1,4 +1,3 @@
-`include "parameters.sv"
 
 module io_key_display_block #(
     parameter DIVIDE_TO_4MS = 28'd3000
@@ -111,7 +110,7 @@ UpCounter #(.TOP(4'b1010)) anodesCounter(
 UpCounter #(.TOP(4'b1000)) kbRowCounter(
             .Tick(anodesClkTick),
             .Rst_n(Rst_n),
-            .Count(anodeCount)
+            .Count(kbRowCount)
 );
 
 /* verilator lint_off UNUSEDSIGNAL */
@@ -119,7 +118,7 @@ wire [9:0] kbColSel;
 /* verilator lint_on UNUSEDSIGNAL */
 
 BcdToBin  bcdToBin(
-    .In(anodeCount),
+    .In(kbRowCount),
     .Out(kbColSel)
 );
 

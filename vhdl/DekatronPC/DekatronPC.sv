@@ -1,4 +1,4 @@
-`include "parameters.sv"
+
 
 module DekatronPC (
 `ifdef EMULATOR
