@@ -144,33 +144,49 @@ always @(posedge Clk, negedge Rst_n) begin
                 IpRequest <= 1'b0;
                 Cout <= 1'b0;
                 if (IpLineReady) begin
-                    state <= EXEC;
                     casez (Insn)
                         4'b0001: begin//HALT
                             state <= HALT;
                         end
-                        4'b001?: begin
+                        4'b001?: begin//+-
                             if (InsnMode == BRAINFUCK_ISA) begin
                                 DataRequest <= 1'b1;
                                 ApRequest <= 1'b0;
                                 ApLineDec <= Insn[0];
+                                state <= EXEC;
                             end
                         end
-                        4'b010?: begin
+                        4'b010?: begin//<>
                             if (InsnMode == BRAINFUCK_ISA) begin
                                 DataRequest <= 1'b0;
                                 ApRequest <= 1'b1;
                                 ApLineDec <= Insn[0];
+                                state <= EXEC;
                             end
                         end
-                        4'b1000: begin //cout
-                            Cout <= 1'b1;
+                        4'b0110: begin //[
+                            if (LoopValZero) begin
+                                IpRequest <= 1'b1;
+                            end
+                            else begin
+                                state <= EXEC;
+                            end
+                        end
+                        4'b0111: begin //]
+                            if (~LoopValZero) begin
+                                IpRequest <= 1'b1;
+                            end
+                            else begin
+                                state <= EXEC;
+                            end
                         end
                         4'b1110: begin
                             InsnMode <= DEBUG_ISA;
+                            state <= EXEC;
                         end
                         4'b1111: begin
                             InsnMode <= BRAINFUCK_ISA;
+                            state <= EXEC;
                         end
                         default: begin
                             state <= EXEC;

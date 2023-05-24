@@ -217,7 +217,7 @@ int main(int argc, char** argv, char** env) {
             break;
         }
         if (stepMode){
-            printf("IRET:%d(%ld) IP: %x(%ld) LOOP:%x(%ld) - INSN: %c(%c) AP: %x(%ld) DATA: %x(%d)\n",
+            fprintf(stderr,"IRET:%d(%ld) IP: %x(%ld) LOOP:%x(%ld) - INSN: %c(%c) AP: %x(%ld) DATA: %x(%d)\n",
                 state.dut->IRET,
                 cppMachine.IRET,
                 state.dut->IpAddress,

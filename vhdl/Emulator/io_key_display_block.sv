@@ -106,6 +106,7 @@ UpCounter #(.TOP(4'b1010)) anodesCounter(
             .Count(anodeCount)
 );
 
+wire [3:0] kbRowCount;
 UpCounter #(.TOP(4'b1000)) kbRowCounter(
             .Tick(anodesClkTick),
             .Rst_n(Rst_n),

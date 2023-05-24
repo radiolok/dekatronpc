@@ -169,7 +169,7 @@ always @(posedge Clk, negedge Rst_n) begin
             LOOP_COUNT: begin
                 Loop_Request <= 1'b0;
                 if (Loop_Ready) begin
-                    if ((LoopInsnOpenInternal | LoopInsnCloseInternal)) begin
+                    if ((LoopInsnOpenInternal | LoopInsnCloseInternal) & ~Loop_Zero) begin
                         IP_Dec <= IP_backwardCount & ~Loop_Zero; //backward direction for ']' & nonZero
                         IP_Request <= 1'b1;    
                     end

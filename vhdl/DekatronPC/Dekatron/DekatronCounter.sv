@@ -159,8 +159,5 @@ for (d = 0; d < D_NUM; d++) begin: dek
 						pulses : 2'b0;
 end
 endgenerate
-<<<<<<< Updated upstream
-=======
 
->>>>>>> Stashed changes
 endmodule
