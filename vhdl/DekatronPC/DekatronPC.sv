@@ -61,7 +61,8 @@ wire RamCS;
 wire RamWE;
 
 RAM #(
-    .ROWS(170393),
+    .ROWS(196608),
+    .ADDR_WIDTH(18),
     .DATA_WIDTH(12)
 ) ram(
     .Clk(Clk),

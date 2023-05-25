@@ -127,7 +127,7 @@ if [ ${sim} -ne 0 ]; then
 	--exe DekatronPC/tests/DekatronPC.sv/DekatronPC_tb.cpp
 
 	make -j`nproc` -C obj_dir -f VDekatronPC.mk VDekatronPC
-	./obj_dir/VDekatronPC -f ${bf_file} -s
+	./obj_dir/VDekatronPC -f ${bf_file}
 
 	if [ ! -d vcd ]; then
 		mkdir vcd

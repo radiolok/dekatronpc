@@ -100,8 +100,6 @@ int stepVerilog(VerilogMachine &state){
         state.dut->eval();
         state.trace->dump(state.PLL_CLK*MUL);
         state.PLL_CLK++;
-        if ((state.PLL_CLK % 100000) == 0)
-            printf("Time: %ldus, IRET: %d\n", state.PLL_CLK/1000, state.dut->IRET);
         if ((state.dut->state == 0x02) & (prev_state == 0x03))
         {
             prev_state = state.dut->state;
@@ -236,6 +234,8 @@ int main(int argc, char** argv, char** env) {
                 return -1;
             }
         }
+        if ((state.dut->IRET % 10000) == 0)
+            printf("Time: %ldus, IRET: %d\n", state.CPU_CLK_UNHALTED, state.dut->IRET);
     }
     printf("VDekatronPC Done. state.CPU_CLK_UNHALTED = %ld, state.IRET=%d\n", 
                 state.CPU_CLK_UNHALTED,
