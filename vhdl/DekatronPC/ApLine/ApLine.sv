@@ -42,6 +42,10 @@ reg [3:0] currentState;
 assign Ready = ~ApRequest & ~DataRequest & currentState[0] & AP_Ready & Data_Ready;
 
 assign Data = MemLock? RamDataIn : RamDataOut;
+wire DataCtrZero;
+wire DataMemZero;
+assign DataMemZero = ~(|RamDataOut);
+assign DataZero = MemLock ? DataCtrZero : DataMemZero;
 
 DekatronCounter  #(
             .D_NUM(AP_DEKATRON_NUM),
@@ -76,7 +80,7 @@ DekatronCounter  #(
                 .In(RamDataOut),
                 .Ready(Data_Ready),
                 .Out(RamDataIn),
-                .Zero(DataZero)
+                .Zero(DataCtrZero)
             );
 
 

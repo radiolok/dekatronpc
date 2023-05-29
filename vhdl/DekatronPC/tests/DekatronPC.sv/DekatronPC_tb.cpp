@@ -139,7 +139,7 @@ int compareStates(const VerilogMachine& state, const CppMachine& cppMachine)
         BcdToInt(state.dut->ApAddress, 5), cppMachine.dataRAM.pos());
         return -1;
     }
-    if (BcdToInt(state.dut->Data, 3) != *cppMachine.dataRAM)
+    if (BcdToInt(state.dut->Data, 3) != static_cast<uint8_t>(*cppMachine.dataRAM))
     {
         printf("FATAL: state.dut->Data(%d) != *CppMachine.dataRAM(%d)\n",
         BcdToInt(state.dut->Data, 3), *cppMachine.dataRAM);
@@ -227,7 +227,7 @@ int main(int argc, char** argv, char** env) {
                 state.dut->ApAddress,
                 cppMachine.dataRAM.pos(),
                 state.dut->Data,
-                *(cppMachine.dataRAM)
+                static_cast<uint8_t>(*(cppMachine.dataRAM))
                 );
             if (compareStates(state, cppMachine))
             {
