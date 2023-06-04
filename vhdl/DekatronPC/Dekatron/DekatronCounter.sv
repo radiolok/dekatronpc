@@ -47,7 +47,7 @@ wire [D_NUM-1:0] DekatronBusy;
 
 assign Zero = &Zeroes;
 
-wire [WIDTH-1:0] DataToDeks;
+reg [WIDTH-1:0] DataToDeks;
 
 parameter [2:0] 
 		IDLE = 3'b000,
@@ -65,36 +65,52 @@ always @(posedge Clk, negedge Rst_n) begin
 	else state <= next;
 end
 
-wire SetTop = Zero & Dec;
-wire SetZeroInt = (&TopOut & ~Dec);
+wire SetTop;
+wire SetZeroInt;
 wire SetAny;
 
 generate
-if (WRITE & (TOP_LIMIT_MODE > 0)) begin
-	assign SetAny = Set | SetTop | SetZeroInt | SetZero;
-	assign DataToDeks = (state == SET) ? In : 
-						(state == SET_TOP) ? TOP_VALUE : 
-						(state == SET_ZERO) ? {WIDTH{1'b0}} : In;
+if (TOP_LIMIT_MODE > 0) begin
+	assign SetTop = Zero & Dec;
+	assign SetZeroInt = (&TopOut & ~Dec);
 end
 else begin
-	assign SetAny = Set | SetZero;
-	assign DataToDeks = (state == SET_ZERO) ? {WIDTH{1'b0}} : In;
+	assign SetTop = 1'b0;
+	assign SetZeroInt = 1'b0;
 end
+
+assign SetAny = Set | SetTop | SetZeroInt | SetZero;
+
 endgenerate
 
 always_comb begin
+	case (state)
+		SET_TOP: DataToDeks = TOP_VALUE;
+		SET_ZERO: DataToDeks = {WIDTH{1'b0}};
+		default: DataToDeks = In;
+	endcase
+end
+
+always_comb begin
+	next = IDLE;
 	case(state)
 		IDLE: begin
-			if (_Request & ~SetAny) begin
-				if (Dec)
-					next = DEC;
-				else
-					next = INC;
+			if (_Request) begin
+				if (~SetAny) begin
+					if (Dec)
+						next = DEC;
+					else
+						next = INC;
+				end
+				else if (Set) next = SET;
+				else if (SetZero) next = SET_ZERO;
+				else if (TOP_LIMIT_MODE) begin
+					if (SetTop) next = SET_TOP;
+					else if (SetZeroInt) next = SET_ZERO;
+					else next = IDLE;
+				end
+				else next = IDLE;
 			end
-			else if (_Request & Set) next = SET;
-			else if (_Request & TOP_LIMIT_MODE & SetTop) next = SET_TOP;
-			else if (_Request & (TOP_LIMIT_MODE & SetZeroInt | SetZero)) next = SET_ZERO;
-			else next = IDLE;
 		end
 		default:
 			next = IDLE;

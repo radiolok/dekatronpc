@@ -49,6 +49,7 @@ assign DataZero = MemLock ? DataCtrZero : DataMemZero;
 
 DekatronCounter  #(
             .D_NUM(AP_DEKATRON_NUM),
+            .WRITE(1'b0),
             .TOP_LIMIT_MODE(1'b1),
             .TOP_VALUE({4'd2, 4'd9, 4'd9, 4'd9, 4'd9})
             )AP_counter(
@@ -66,7 +67,8 @@ DekatronCounter  #(
             );
 
 DekatronCounter  #(
-            .D_NUM(DATA_DEKATRON_NUM), 
+            .D_NUM(DATA_DEKATRON_NUM),
+            .WRITE(1'b1),
             .TOP_LIMIT_MODE(1'b1),
             .TOP_VALUE({4'd2, 4'd5, 4'd5})
             )Data_counter(
@@ -82,7 +84,6 @@ DekatronCounter  #(
                 .Out(RamDataIn),
                 .Zero(DataCtrZero)
             );
-
 
 always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
