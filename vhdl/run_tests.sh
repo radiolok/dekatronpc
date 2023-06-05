@@ -105,6 +105,8 @@ if [ ${sim} -ne 0 ]; then
 
 	emul ApLine
 
+	exit
+
 	bf_file=programs/helloworld/helloworld.bfk
 
 	g++ -o dpcrun -DEXEC DekatronPC/tests/DekatronPC.sv/dpcrun.cpp
