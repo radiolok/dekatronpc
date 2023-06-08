@@ -61,6 +61,7 @@ ApLine  apLine(
     .DataRequest(DataRequest),
     .Dec(ApLineDec),
     .Ready(ApLineReady),
+    .Zero(1'b0),
     .Address(ApAddress),
     .RamDataIn(RamDataIn),
     .RamDataOut(RamDataOut),

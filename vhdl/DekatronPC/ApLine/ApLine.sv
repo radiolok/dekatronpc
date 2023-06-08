@@ -9,6 +9,7 @@ module ApLine (
     input wire ApRequest,
     input wire DataRequest,
     input wire Dec,
+    input wire Zero,
     
     output wire Ready,
 
@@ -39,9 +40,9 @@ parameter [3:0]
 
 reg [3:0] currentState;
 
-assign Ready = ~ApRequest & ~DataRequest & currentState[0] & AP_Ready & Data_Ready;
+assign Ready = ~ApRequest & ~DataRequest & (currentState == IDLE) & AP_Ready & Data_Ready;
 
-assign Data = MemLock? RamDataIn : RamDataOut;
+assign Data = MemLock ? RamDataIn : RamDataOut;
 wire DataCtrZero;
 wire DataMemZero;
 assign DataMemZero = ~(|RamDataOut);
@@ -49,9 +50,7 @@ assign DataZero = MemLock ? DataCtrZero : DataMemZero;
 
 DekatronCounter  #(
             .D_NUM(AP_DEKATRON_NUM),
-            .WRITE(1'b0),
-            .TOP_LIMIT_MODE(1'b1),
-            .TOP_VALUE({4'd2, 4'd9, 4'd9, 4'd9, 4'd9})
+            .WRITE(1'b0)
             )AP_counter(
                 .Clk(Clk),
                 .hsClk(hsClk),
@@ -59,7 +58,7 @@ DekatronCounter  #(
                 .Request(AP_Request),
                 .Dec(Dec),
                 .Set(1'b0),
-                .SetZero(1'b0),
+                .SetZero(Zero),
                 .In({(AP_DEKATRON_NUM*DEKATRON_WIDTH){1'b0}}),
                 .Ready(AP_Ready),
                 .Out(Address),
@@ -78,7 +77,7 @@ DekatronCounter  #(
                 .Request(Data_Request),
                 .Dec(Dec),
                 .Set(Data_Set),
-                .SetZero(1'b0),
+                .SetZero(Zero),
                 .In(RamDataOut),
                 .Ready(Data_Ready),
                 .Out(RamDataIn),

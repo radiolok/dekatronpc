@@ -112,22 +112,30 @@ if [ ${sim} -ne 0 ]; then
 	g++ -c DekatronPC/tests/DekatronPC.sv/dpcrun.cpp
 	ar rvs libdpcrun.a dpcrun.o
 
-	verilator -Wall --coverage --trace --top DekatronPC --cc ${DPCfiles} \
+	#Warning: trace gives ~10% slowdown
+	TRACE="--trace -DSIM_TRACE"
+	#TRACE=""
+
+	#Warning: coverage gives 10x slowdown!
+	#COVERAGE="--coverage -DSIM_COV"
+	COVERAGE=""
+
+	verilator -Wall ${COVERAGE} ${TRACE} --top DekatronPC --cc ${DPCfiles} \
 	../libdpcrun.a   -DEMULATOR=1\
 	--timescale 1us/1ns \
 	--exe DekatronPC/tests/DekatronPC.sv/DekatronPC_tb.cpp
 
 	make -j`nproc` -C obj_dir -f VDekatronPC.mk VDekatronPC
-	./obj_dir/VDekatronPC -f ${bf_file} -s
+	./obj_dir/VDekatronPC -f ${bf_file}
 
 	bf_file=programs/pi/pi.bfk
-	verilator -Wall --coverage --trace --top DekatronPC --cc ${DPCfiles} \
+	verilator -Wall ${COVERAGE} ${TRACE} --top DekatronPC --cc ${DPCfiles} \
 	../libdpcrun.a   -DEMULATOR=1\
 	--timescale 1us/1ns -DPI_TEST=1\
 	--exe DekatronPC/tests/DekatronPC.sv/DekatronPC_tb.cpp
 
 	make -j`nproc` -C obj_dir -f VDekatronPC.mk VDekatronPC
-	./obj_dir/VDekatronPC -f ${bf_file} -s
+	./obj_dir/VDekatronPC -f ${bf_file}
 
 	if [ ! -d vcd ]; then
 		mkdir vcd

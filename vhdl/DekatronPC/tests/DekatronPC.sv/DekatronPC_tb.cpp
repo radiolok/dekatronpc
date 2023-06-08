@@ -4,6 +4,8 @@
 #include <verilated_vcd_c.h>
 #include "VDekatronPC.h"
 #include "dpcrun.h"
+#include <chrono>
+using namespace std::chrono;
 
 #define MUL (50)
 #define HALF_HIGH_P (1)
@@ -19,22 +21,29 @@ public:
     vluint64_t PLL_CLK;
     vluint64_t CPU_CLK_UNHALTED;
     VDekatronPC *dut;
+
+#ifdef SIM_TRACE
     VerilatedVcdC *trace;
+#endif
 
     VerilogMachine(){
         PLL_CLK = 0;
         CPU_CLK_UNHALTED = 0;
         dut = new VDekatronPC;
+#ifdef SIM_TRACE
         trace = new VerilatedVcdC;
+#endif
         dut->Rst_n = 1;
         dut->hsClk = 0;
         dut->Clk = 0;  
     }
 
     ~VerilogMachine(){
+#ifdef SIM_TRACE      
         trace->close();
-        delete dut;
         delete trace;
+#endif
+        delete dut;
     }
 };
 
@@ -98,7 +107,9 @@ int stepVerilog(VerilogMachine &state){
         }
         Cout(state.dut->Cout, state.dut->Data);
         state.dut->eval();
+#ifdef SIM_TRACE
         state.trace->dump(state.PLL_CLK*MUL);
+#endif
         state.PLL_CLK++;
         if ((state.dut->state == 0x02) & (prev_state == 0x03))
         {
@@ -159,7 +170,7 @@ int main(int argc, char** argv, char** env) {
 	int c = 0;
     int stepMode = 0;
 	char *filePath = NULL;
-	while((c = getopt(argc, argv, "f:sh")) != -1){
+	while((c = getopt(argc, argv, "f:sth")) != -1){
 		switch(c)
 		{
 		case 'h':
@@ -169,7 +180,7 @@ int main(int argc, char** argv, char** env) {
         return 0;
 			break;
 		case 's':
-                stepMode = 1;
+            stepMode = 1;
 			break;
 		case 'f':
 			filePath = optarg;
@@ -196,15 +207,20 @@ int main(int argc, char** argv, char** env) {
 
     VerilogMachine state;
     Memory<char, size_t> codeRAM(0, size + 1, &buffer.front());
-	Memory<char, size_t> dataRAM(0, 30000 - 1);
+	Memory<char, size_t> dataRAM(0, 100000 - 1);
 	Counter<size_t> loopCounter(0,999);
 	CppMachine cppMachine(codeRAM, dataRAM, loopCounter);
-    Verilated::traceEverOn(true);
+#ifdef SIM_COV
     Verilated::mkdir("logs");
     VerilatedCov::write("logs/coverage_DPC.dat");
+#endif
+#ifdef SIM_TRACE
+    Verilated::traceEverOn(true);
     state.dut->trace(state.trace, 5);
     state.trace->open("VDekatronPC.vcd");
-  
+#endif
+      
+    auto start = high_resolution_clock::now();
     while (state.PLL_CLK < MAX_SIM_TIME) {
         if (cppMachine.codeRAM.pos() == size)
         {
@@ -237,8 +253,12 @@ int main(int argc, char** argv, char** env) {
         if ((state.dut->IRET % 10000) == 0)
             printf("Time: %ldus, IRET: %d\n", state.CPU_CLK_UNHALTED, state.dut->IRET);
     }
+    auto stop = high_resolution_clock::now();
+    auto duration = duration_cast<microseconds>(stop - start);
     printf("VDekatronPC Done. state.CPU_CLK_UNHALTED = %ld, state.IRET=%d\n", 
                 state.CPU_CLK_UNHALTED,
                 state.dut->IRET);
+    std::cout << "Time taken by function: "
+         << duration.count() << " microseconds" << std::endl;
     exit(EXIT_SUCCESS);
 }
