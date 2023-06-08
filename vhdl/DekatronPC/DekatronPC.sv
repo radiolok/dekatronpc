@@ -174,7 +174,8 @@ always @(posedge Clk, negedge Rst_n) begin
                         end
                         //5'h08:  //INSN_CLRL
                         //5'h09:  //INSN_CLRI
-                        5'h0A: begin//INSN_CLRD
+                        5'h?A: begin//INSN_CLRD
+                                ApRequest <= 1'b0;
                                 DataRequest <= 1'b1;
                                 ApLineZero <= 1'b1;
                                 state <= EXEC;
@@ -182,21 +183,27 @@ always @(posedge Clk, negedge Rst_n) begin
                         5'h0B:  begin//INSN_CLRA
                                 ApRequest <= 1'b1;
                                 ApLineZero <= 1'b1;
+                                DataRequest <= 1'b0;
                                 state <= EXEC;
                             end 
                         //5'h0C:  //INSN_RES4
                         //5'h0D:  //INSN_RST
                         5'b1001?: begin//+ -
+                                ApRequest <= 1'b0;
                                 DataRequest <= 1'b1;
                                 ApLineDec <= Insn[0];
                                 state <= EXEC;
                             end
                         5'b1010?:  begin//< > 
                                 ApRequest <= 1'b1;
+                                DataRequest <= 1'b0;
                                 ApLineDec <= Insn[0];
                                 state <= EXEC;
                             end
-                        //5'h18:   //INSN_COUT
+                        5'h18:   begin //INSN_COUT
+                            Cout <= 1'b1;
+                            state <= EXEC;
+                        end
                         //5'h19:   //INSN_CIN
                         //5'h1A:   //INSN_CLRD?
                         //5'h1B:   //INSN_CLRML

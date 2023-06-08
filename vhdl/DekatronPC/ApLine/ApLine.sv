@@ -50,9 +50,7 @@ assign DataZero = MemLock ? DataCtrZero : DataMemZero;
 
 DekatronCounter  #(
             .D_NUM(AP_DEKATRON_NUM),
-            .WRITE(1'b0),
-            .TOP_LIMIT_MODE(1'b1),
-            .TOP_VALUE({4'd2, 4'd9, 4'd9, 4'd9, 4'd9})
+            .WRITE(1'b0)
             )AP_counter(
                 .Clk(Clk),
                 .hsClk(hsClk),
