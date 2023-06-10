@@ -9,8 +9,12 @@ module DekatronPC (
     input Step,
     input Run,
     output reg Cout,
+    input wire CioAcq,
+    output reg CinReq,
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
     output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
+
+    input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DataCin,
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data,
     output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
     output reg [2:0] state,
@@ -34,6 +38,7 @@ reg ApLineZero;
 wire ApLineReady;
 
 reg ApLineDec;
+reg ApLineCin;
 
 //If Debug mode {} check AP 
 //In brainfuck mode [] check *AP
@@ -102,6 +107,8 @@ ApLine  apLine(
     .DataRequest(DataRequest),
     .Dec(ApLineDec),
     .Zero(ApLineZero),
+    .Cin(ApLineCin),
+    .DataCin(DataCin),
     .Ready(ApLineReady),
     .Address(ApAddress),
     .RamDataIn(RamDataIn),
@@ -117,7 +124,9 @@ parameter [2:0]
     IDLE     =  3'b001,
     FETCH     =  3'b0010,
     EXEC    =  3'b011,
-    HALT    =  3'b100;
+    HALT    =  3'b100,
+    CIN     =  3'b101,
+    COUT    =  3'b110;
 
 assign IsHalted = (state == HALT);
 
@@ -126,6 +135,7 @@ always @(posedge Clk, negedge Rst_n) begin
         Cout <= 1'b0;
         IpRequest <= 1'b0;
         ApLineDec <= 1'b0;
+        ApLineCin <= 1'b0;
         ApRequest <= 1'b0;
         DataRequest <= 1'b0;
         ApLineZero <= 1'b0; 
@@ -202,9 +212,12 @@ always @(posedge Clk, negedge Rst_n) begin
                             end
                         5'h18:   begin //INSN_COUT
                             Cout <= 1'b1;
-                            state <= EXEC;
+                            state <= COUT;
                         end
-                        //5'h19:   //INSN_CIN
+                        5'h19:  begin //INSN_CIN
+                            CinReq <= 1'b1;
+                            state <= CIN;
+                        end
                         //5'h1A:   //INSN_CLRD?
                         //5'h1B:   //INSN_CLRML
                         //5'h1C:   //INSN_LOAD
@@ -226,7 +239,8 @@ always @(posedge Clk, negedge Rst_n) begin
             EXEC: begin
                 DataRequest <= 1'b0;
                 ApRequest <= 1'b0;
-                ApLineZero <= 1'b0; 
+                ApLineZero <= 1'b0;
+                ApLineCin <= 1'b0;
                 if (ApLineReady) begin
                     if (Halt | OneStep) begin
                         state <= HALT;
@@ -239,6 +253,20 @@ always @(posedge Clk, negedge Rst_n) begin
                     `ifdef EMULATOR
                         IRET <= IRET + 1;
                     `endif 
+                end
+            end
+            CIN: begin
+                if (CioAcq) begin;
+                    ApRequest <= 1'b1;
+                    ApLineCin <= 1'b1;
+                    CinReq <= 1'b0;
+                    state <= EXEC;
+                end
+            end
+            COUT: begin
+                if (CioAcq) begin//TODO: Block CioAcq until release.
+                    Cout <= 1'b0;
+                    state <= EXEC;
                 end
             end
             HALT: begin

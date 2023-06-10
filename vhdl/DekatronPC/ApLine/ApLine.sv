@@ -10,6 +10,7 @@ module ApLine (
     input wire DataRequest,
     input wire Dec,
     input wire Zero,
+    input wire Cin,
     
     output wire Ready,
 
@@ -20,6 +21,7 @@ module ApLine (
     output reg RamWE,
     output wire RamCS,
 
+    input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DataCin,
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data
 
 );
@@ -27,7 +29,7 @@ module ApLine (
 reg AP_Request;
 wire AP_Ready;
 reg Data_Request;
-reg Data_Set;
+reg DataCounterSet;
 wire Data_Ready;
 reg MemLock;
 assign RamCS = 1'b1;
@@ -42,7 +44,7 @@ reg [3:0] currentState;
 
 assign Ready = ~ApRequest & ~DataRequest & (currentState == IDLE) & AP_Ready & Data_Ready;
 
-assign Data = MemLock ? RamDataIn : RamDataOut;
+
 wire DataCtrZero;
 wire DataMemZero;
 assign DataMemZero = ~(|RamDataOut);
@@ -65,6 +67,16 @@ DekatronCounter  #(
                 .Zero(ApZero)
             );
 
+
+wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DataCounterIn;
+assign DataCounterIn = (Cin) ? DataCin : RamDataOut;
+
+wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DataCounterOut;
+//COUT data
+assign Data = MemLock ? DataCounterOut : RamDataOut;
+
+assign RamDataIn = ( Cin ) ? DataCin : DataCounterOut;
+
 DekatronCounter  #(
             .D_NUM(DATA_DEKATRON_NUM),
             .WRITE(1'b1),
@@ -76,11 +88,11 @@ DekatronCounter  #(
                 .Rst_n(Rst_n),
                 .Request(Data_Request),
                 .Dec(Dec),
-                .Set(Data_Set),
+                .Set(DataCounterSet),
                 .SetZero(Zero),
-                .In(RamDataOut),
+                .In(DataCounterIn),
                 .Ready(Data_Ready),
-                .Out(RamDataIn),
+                .Out(DataCounterOut),
                 .Zero(DataCtrZero)
             );
 
@@ -90,7 +102,7 @@ always @(posedge Clk, negedge Rst_n) begin
         Data_Request <= 1'b0;
         RamWE <= 1'b0;
         MemLock <= 1'b0;
-        Data_Set <= 1'b0;
+        DataCounterSet <= 1'b0;
         currentState <= IDLE;
     end
     else begin
@@ -109,7 +121,7 @@ always @(posedge Clk, negedge Rst_n) begin
                 if (DataRequest) begin
                     if (~MemLock) begin
                         currentState <= LOAD;
-                        Data_Set <= 1'b1;
+                        DataCounterSet <= 1'b1;
                         Data_Request <= 1'b1;
                     end
                     else begin
@@ -121,7 +133,7 @@ always @(posedge Clk, negedge Rst_n) begin
             LOAD: begin
                 MemLock <= 1'b1;
                 Data_Request <= 1'b0;                
-                Data_Set <= 1'b0;
+                DataCounterSet <= 1'b0;
                 if (Data_Ready) begin
                     Data_Request <= 1'b1;
                     currentState <= COUNT;

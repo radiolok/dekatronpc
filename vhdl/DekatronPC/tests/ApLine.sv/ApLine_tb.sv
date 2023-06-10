@@ -83,7 +83,7 @@ always @(posedge Clk) begin
    else begin
     CLOCK_TICK <= CLOCK_TICK + 1;
     if (CLOCK_TICK > MAX_TICK)
-      $fatal;
+      $fatal(1, "Timeout");
    end
 end
 
