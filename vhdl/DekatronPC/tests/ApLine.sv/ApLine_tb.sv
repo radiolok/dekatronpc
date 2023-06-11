@@ -62,6 +62,7 @@ ApLine  apLine(
     .Dec(ApLineDec),
     .Ready(ApLineReady),
     .Zero(1'b0),
+    .Cin(1'b0),
     .Address(ApAddress),
     .RamDataIn(RamDataIn),
     .RamDataOut(RamDataOut),

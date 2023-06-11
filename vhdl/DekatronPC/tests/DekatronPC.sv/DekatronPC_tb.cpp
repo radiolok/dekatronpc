@@ -16,6 +16,8 @@ using namespace std::chrono;
 #define INSN_EXEC_TIME (SLOW_P*20)
 #define MAX_SIM_TIME (INSN_EXEC_TIME*MAX_INSN_COUNT)
 
+#define SIM_TRACE 1
+
 class VerilogMachine{
 public:
     vluint64_t PLL_CLK;
@@ -105,7 +107,13 @@ int stepVerilog(VerilogMachine &state){
                 state.CPU_CLK_UNHALTED++;
             }
         }
-        Cout(state.dut->Cout, state.dut->Data);
+        if (Cout(state.dut->Cout, state.dut->Data))
+        {
+            state.dut->CioAcq = 1;
+        }
+        if (! state.dut->Cout){
+            state.dut->CioAcq = 0;
+        }
         state.dut->eval();
 #ifdef SIM_TRACE
         state.trace->dump(state.PLL_CLK*MUL);
