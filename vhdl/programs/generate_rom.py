@@ -68,22 +68,18 @@ def encodeAddress(address, radix = 10):
         address  = address//radix
     return addressStr
 
-def Generate(filePath, resultPath, width = None, radix = 10):
+def Generate(filePath, resultPath, args):
     fileIn = open(filePath,'r')
     fileOut = open(resultPath, 'w')
     fileSize = os.path.getsize(filePath)
-    fileName = os.path.splitext(os.path.basename(resultPath))[0]
     if fileSize == 0:
         return -1
-    widthBits = int(4)
-    if width != None:
-        widthBits = int(width)
-    portSize = GenerateHeader(fileIn, fileName, fileSize, fileOut, widthBits)
+    portSize = GenerateHeader(fileIn, fileSize, fileOut, args)
     if portSize == 0:
         return -1        
-    if GenerateBody(fileIn, fileOut, portSize, widthBits, radix) != 0:
+    if GenerateBody(fileIn, fileOut, portSize, args) != 0:
         return -1
-    if GenerateFooter(fileIn, fileOut) != 0:
+    if GenerateFooter(fileOut) != 0:
         return -1
     fileIn.close()
     fileOut.close()
@@ -91,11 +87,12 @@ def Generate(filePath, resultPath, width = None, radix = 10):
 
 
 
-def GenerateHeader(fileIn, fileName, fileSize, fileOut, width = 4):
-    fileOut.write("module %s(Address, Data);\n\n" %(fileName))
-    fileOut.write("")
+def GenerateHeader(fileIn, fileSize, fileOut, args):
+    fileOut.write("module firmware #(\n")
+    fileOut.write(f"//{fileIn.name}\n")
     portSize = 0
     codeSize = fileSize
+    width = args.width
     if fileSize % int(width):
         codeSize += 1
     if codeSize > 0:
@@ -110,25 +107,25 @@ def GenerateHeader(fileIn, fileName, fileSize, fileOut, width = 4):
         portSize = 20 - int(width /2)
     if codeSize > 100000:
         portSize = 24 - int(width /2)
-    fileOut.write("parameter portSize = %d;\n" % (portSize))
-    fileOut.write("parameter dataSize = %d;\n\n" % (width * 4))
+    fileOut.write("parameter portSize = %d,\n" % (portSize))
+    fileOut.write("parameter dataSize = %d)(\n" % (width * 4))
     fileOut.write("/* verilator lint_off UNUSEDSIGNAL */\n")
-    fileOut.write("input logic [portSize-1:0] Address;\n")
+    fileOut.write("input wire [portSize-1:0] Address,\n")
     fileOut.write("/* verilator lint_on UNUSEDSIGNAL */\n")
-    fileOut.write("output logic [dataSize-1:0] Data;\n\n")
+    fileOut.write("output reg [dataSize-1:0] Data\n);\n")
     fileOut.write("always_comb\n")
     fileOut.write("/* verilator lint_off WIDTHEXPAND */\n")
     fileOut.write("  case(Address)\n")
     return portSize
 
-def GenerateFooter(fileIn, fileOut):
+def GenerateFooter(fileOut):
     fileOut.write("    default: Data = {dataSize{1'bx}};\n")
     fileOut.write("  endcase\n\n")
     fileOut.write("/* verilator lint_on WIDTHEXPAND */\n")
     fileOut.write("endmodule\n")
     return 0
 
-def GenerateBody(fileIn, fileOut, portSize, widthBits, radix = 10):
+def GenerateBody(fileIn, fileOut, portSize, args):
     caseNumber = 0
     while 1:
         count = 0
@@ -136,6 +133,8 @@ def GenerateBody(fileIn, fileOut, portSize, widthBits, radix = 10):
         symbols_enc = ["0000", "0000", "0000", "0000"]
         addressStr = ""
         addressStrCut = ""
+        widthBits = args.width
+        radix = args.radix
         while count < widthBits:
             symbol = fileIn.read(1)
             if not symbol:  
@@ -168,8 +167,9 @@ def GenerateBody(fileIn, fileOut, portSize, widthBits, radix = 10):
 if __name__ == '__main__':    
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--file', nargs='+')
-    parser.add_argument('-w', '--width', default=1)
-    parser.add_argument('-r', '--radix', default=10)
+    parser.add_argument('-o', '--outfile')
+    parser.add_argument('-w', '--width', type=int, default=1)
+    parser.add_argument('-r', '--radix', type=int, default=10)
 
     args = parser.parse_args()
 
@@ -179,7 +179,7 @@ if __name__ == '__main__':
     
     for file in args.file:
         filePath = os.path.abspath(file)
-        print("Generate rom from: %s" %(filePath))        
-        resultPath = os.path.splitext(filePath)[0] + ".sv"
+        print("Generate rom from: %s" %(filePath))
+        resultPath = args.outfile if args.outfile else os.path.splitext(filePath)[0] + ".sv"
         print("Generate file: %s" % (resultPath))
-        Generate(filePath, resultPath, args.width, int(args.radix))
+        Generate(filePath, resultPath, args)

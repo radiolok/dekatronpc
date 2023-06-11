@@ -34,13 +34,14 @@ wire Data_Ready;
 reg MemLock;
 assign RamCS = 1'b1;
 
-parameter [3:0]
-    IDLE     =  4'b0001,
-    LOAD     =  4'b0010,
-    STORE    =  4'b0100,
-    COUNT     = 4'b1000;
+parameter [4:0]
+    IDLE     =  5'b00001,
+    LOAD     =  5'b00010,
+    STORE    =  5'b00100,
+    CIN      =  5'b01000,
+    COUNT     = 5'b10000;
 
-reg [3:0] currentState;
+reg [4:0] currentState;
 
 assign Ready = ~ApRequest & ~DataRequest & (currentState == IDLE) & AP_Ready & Data_Ready;
 
@@ -69,13 +70,13 @@ DekatronCounter  #(
 
 
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DataCounterIn;
-assign DataCounterIn = (Cin) ? DataCin : RamDataOut;
+assign DataCounterIn = (currentState == CIN) ? DataCin : RamDataOut;
 
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DataCounterOut;
 //COUT data
 assign Data = MemLock ? DataCounterOut : RamDataOut;
 
-assign RamDataIn = ( Cin ) ? DataCin : DataCounterOut;
+assign RamDataIn = ( currentState == CIN ) ? DataCin : DataCounterOut;
 
 DekatronCounter  #(
             .D_NUM(DATA_DEKATRON_NUM),
@@ -119,15 +120,28 @@ always @(posedge Clk, negedge Rst_n) begin
                     end                    
                 end
                 if (DataRequest) begin
-                    if (~MemLock) begin
-                        currentState <= LOAD;
+                    if (Cin) begin
+                        currentState <= CIN;
                         DataCounterSet <= 1'b1;
                         Data_Request <= 1'b1;
                     end
-                    else begin
-                        currentState <= COUNT;
-                        Data_Request <= 1'b1;
-                    end 
+                    else
+                        if (~MemLock) begin
+                            currentState <= LOAD;
+                            DataCounterSet <= 1'b1;
+                            Data_Request <= 1'b1;
+                        end
+                        else begin
+                            currentState <= COUNT;
+                            Data_Request <= 1'b1;
+                        end 
+                end
+            end
+            CIN: begin
+                Data_Request <= 1'b0;                
+                DataCounterSet <= 1'b0;
+                if (Data_Ready) begin
+                    currentState <= IDLE;
                 end
             end
             LOAD: begin

@@ -5,6 +5,7 @@
 #include "VDekatronPC.h"
 #include "dpcrun.h"
 #include <chrono>
+#include <curses.h>
 using namespace std::chrono;
 
 #define MUL (50)
@@ -37,7 +38,7 @@ public:
 #endif
         dut->Rst_n = 1;
         dut->hsClk = 0;
-        dut->Clk = 0;  
+        dut->Clk = 0;
     }
 
     ~VerilogMachine(){
@@ -59,6 +60,24 @@ uint8_t Cout(bool state, uint16_t data)
         update = 1;
     }
     CoutOld = state;
+    return update;
+}
+
+uint8_t Cin(bool state, uint16_t& symbol)
+{
+    static bool CinOld = false;
+    uint8_t update = 0;
+    if (!CinOld & state){
+        char c;
+        std::cin >> c;
+        uint8_t high = c / 100;
+        uint8_t med = (c % 100) / 10;
+        uint8_t low = c % 10;
+        symbol = (high << 8) + (med << 4) + low;
+        printf("CIN: %c %x\n", c, symbol);
+        update = 1;
+    }
+    CinOld = state;
     return update;
 }
 
@@ -111,8 +130,11 @@ int stepVerilog(VerilogMachine &state){
         {
             state.dut->CioAcq = 1;
         }
-        if (! state.dut->Cout){
+        if (!(state.dut->Cout | state.dut->CinReq)){
             state.dut->CioAcq = 0;
+        }
+        if (Cin(state.dut->CinReq, state.dut->DataCin)){
+            state.dut->CioAcq = 1;
         }
         state.dut->eval();
 #ifdef SIM_TRACE
@@ -234,7 +256,9 @@ int main(int argc, char** argv, char** env) {
         {
             break;
         }
-        stepCpp(cppMachine);
+        if (stepMode){
+            stepCpp(cppMachine);
+        }
         if (stepVerilog(state) == 0x04){
             break;
         }

@@ -257,7 +257,7 @@ always @(posedge Clk, negedge Rst_n) begin
             end
             CIN: begin
                 if (CioAcq) begin;
-                    ApRequest <= 1'b1;
+                    DataRequest <= 1'b1;
                     ApLineCin <= 1'b1;
                     CinReq <= 1'b0;
                     state <= EXEC;
