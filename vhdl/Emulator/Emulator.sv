@@ -38,11 +38,20 @@ module Emulator #(
     output wire Clock_1us,
 
     output wire Cout,
+    output wire CinReq,
+    input wire CioAcq,
+
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data,
 
+    input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DataCin,
+    
     output wire [3:0] io_address,
     output wire [1:0] io_enable_n,
     inout wire [7:0] io_data,
+
+`ifdef EMULATOR
+    output wire [31:0] IRET,
+`endif
 
     output wire [2:0] DPC_currentState
 );
@@ -131,11 +140,16 @@ DekatronPC dekatronPC(
     .Halt(keyHalt),
     .Run(keyRun),
     .Cout(Cout),
+    .DataCin(DataCin),
+    .CioAcq(CioAcq),
+    .CinReq(CinReq),
     .Step(keyStep),
+`ifdef EMULATOR
+    .IRET(IRET),
+`endif
     .state(DPC_currentState),
     .Insn(Insn)
 );
-
 
 io_key_display_block #(
     .DIVIDE_TO_4MS(DIVIDE_TO_4MS)

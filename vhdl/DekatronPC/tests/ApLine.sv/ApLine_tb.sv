@@ -62,6 +62,7 @@ ApLine  apLine(
     .Dec(ApLineDec),
     .Ready(ApLineReady),
     .Zero(1'b0),
+    .Cin(1'b0),
     .Address(ApAddress),
     .RamDataIn(RamDataIn),
     .RamDataOut(RamDataOut),
@@ -83,7 +84,7 @@ always @(posedge Clk) begin
    else begin
     CLOCK_TICK <= CLOCK_TICK + 1;
     if (CLOCK_TICK > MAX_TICK)
-      $fatal;
+      $fatal(1, "Timeout");
    end
 end
 

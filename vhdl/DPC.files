@@ -13,9 +13,7 @@ DekatronPC/Dekatron/DekatronPulseSender.sv
 DekatronPC/IpLine/ROM.sv
 DekatronPC/RAM.sv
 DekatronPC/DekatronPC.sv
-programs/looptest/looptest.sv
-programs/helloworld/helloworld.sv
-programs/pi/pi.sv
+programs/firmware.sv
 Logic/RsLatch.sv
 Logic/Impulse.sv
 Logic/ClockDivider.sv

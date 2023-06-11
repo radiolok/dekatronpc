@@ -279,6 +279,13 @@ int main(int argc, char** argv, char** env) {
 
         uint8_t needUpdate = 0;
         needUpdate += ui->Cout(dut->Cout, dut->Data);
+        if (needUpdate)
+        {
+            dut->CioAcq = 1;
+        }
+        if (!dut->Cout){
+            dut->CioAcq = 0;
+        }
         ui->keyboardUpdate(dut->keyboard_write, dut->emulData, dut->keyboard_data_in);
         needUpdate += ui->in12AnodeUpdate(dut->in12_write_anode, dut->emulData);
         ui->in12CathodeUpdate(dut->in12_write_cathode, dut->emulData);

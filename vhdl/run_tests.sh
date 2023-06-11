@@ -61,14 +61,36 @@ parse_params() {
 }
 
 emul() {
+	current_dir=$(pwd)
 	echo "${1} Test"
-	DEF=""
 	if [ $# -ge 2 ]; then
-		DEF="-D${2}"
+		file=${2}
+		python ${script_dir}/programs/generate_rom.py -f ${file} -o ${script_dir}/programs/firmware.sv
 	fi
-	echo $DEF
-	iverilog ${DEF} -g2012 -o ${1}UT -s ${1}_tb DekatronPC/tests/${1}.sv/${1}_tb.sv $DPCfiles
+	iverilog -g2012 -o ${1}UT -s ${1}_tb DekatronPC/tests/${1}.sv/${1}_tb.sv $DPCfiles
 	./${1}UT
+}
+
+veremul() {
+	#Warning: trace gives ~10% slowdown
+	TRACE="--trace -DSIM_TRACE"
+	#TRACE=""
+
+	#Warning: coverage gives 10x slowdown!
+	#COVERAGE="--coverage -DSIM_COV"
+	COVERAGE=""
+
+	files=$(cat ${1})
+	bf_file=${2}
+
+	python ${script_dir}/programs/generate_rom.py -f ${bf_file} -o ${script_dir}/programs/firmware.sv
+	verilator -Wall ${COVERAGE} ${TRACE} --top DekatronPC --cc ${files} \
+	../libdpcrun.a  -DEMULATOR=1\
+	--timescale 1us/1ns \
+	--exe DekatronPC/tests/DekatronPC.sv/DekatronPC_tb.cpp  -LDFLAGS -lncurses
+
+	make -j`nproc` -C obj_dir -f VDekatronPC.mk VDekatronPC
+	./obj_dir/VDekatronPC -f ${bf_file}
 }
 
 synt() {
@@ -89,6 +111,9 @@ synt() {
 parse_params "$@"
 
 if [ ${sim} -ne 0 ]; then
+
+	python ${script_dir}/programs/generate_rom.py -f programs/looptest/looptest.bfk -o ${script_dir}/programs/firmware.sv
+
 	DPCfiles=$(cat DPC.files)
 
 	EmulFiles=$(cat Emul.files)
@@ -101,7 +126,7 @@ if [ ${sim} -ne 0 ]; then
 
 	emul Counter
 
-	emul IpLine LOOP_TEST
+	emul IpLine programs/looptest/looptest.bfk
 
 	emul ApLine
 
@@ -112,30 +137,11 @@ if [ ${sim} -ne 0 ]; then
 	g++ -c DekatronPC/tests/DekatronPC.sv/dpcrun.cpp
 	ar rvs libdpcrun.a dpcrun.o
 
-	#Warning: trace gives ~10% slowdown
-	TRACE="--trace -DSIM_TRACE"
-	#TRACE=""
+	veremul DPC.files ${bf_file}
+	
+	#veremul DPC.files programs/pi/pi.bfk
 
-	#Warning: coverage gives 10x slowdown!
-	#COVERAGE="--coverage -DSIM_COV"
-	COVERAGE=""
-
-	verilator -Wall ${COVERAGE} ${TRACE} --top DekatronPC --cc ${DPCfiles} \
-	../libdpcrun.a   -DEMULATOR=1\
-	--timescale 1us/1ns \
-	--exe DekatronPC/tests/DekatronPC.sv/DekatronPC_tb.cpp
-
-	make -j`nproc` -C obj_dir -f VDekatronPC.mk VDekatronPC
-	./obj_dir/VDekatronPC -f ${bf_file}
-
-	bf_file=programs/pi/pi.bfk
-	verilator -Wall ${COVERAGE} ${TRACE} --top DekatronPC --cc ${DPCfiles} \
-	../libdpcrun.a   -DEMULATOR=1\
-	--timescale 1us/1ns -DPI_TEST=1\
-	--exe DekatronPC/tests/DekatronPC.sv/DekatronPC_tb.cpp
-
-	make -j`nproc` -C obj_dir -f VDekatronPC.mk VDekatronPC
-	./obj_dir/VDekatronPC -f ${bf_file}
+	veremul DPC.files programs/rot13/rot13.bfk
 
 	if [ ! -d vcd ]; then
 		mkdir vcd
