@@ -49,6 +49,10 @@ module Emulator #(
     output wire [1:0] io_enable_n,
     inout wire [7:0] io_data,
 
+`ifdef EMULATOR
+    output wire [31:0] IRET,
+`endif
+
     output wire [2:0] DPC_currentState
 );
 
@@ -140,6 +144,9 @@ DekatronPC dekatronPC(
     .CioAcq(CioAcq),
     .CinReq(CinReq),
     .Step(keyStep),
+`ifdef EMULATOR
+    .IRET(IRET),
+`endif
     .state(DPC_currentState),
     .Insn(Insn)
 );
