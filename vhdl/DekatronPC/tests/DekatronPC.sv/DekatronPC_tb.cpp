@@ -56,7 +56,7 @@ uint8_t Cout(bool state, uint16_t data)
     uint8_t update = 0;
     if (!CoutOld & state){
         uint16_t symbol = (data&0x0F) + ((data>>4) &0x0F)*10 + ((data>>8) &0x0F)*100;
-        printf("COUT: %c\n", symbol);
+        printf("%c\n", symbol);
         update = 1;
     }
     CoutOld = state;
@@ -74,7 +74,6 @@ uint8_t Cin(bool state, uint16_t& symbol)
         uint8_t med = (c % 100) / 10;
         uint8_t low = c % 10;
         symbol = (high << 8) + (med << 4) + low;
-        printf("CIN: %c %x\n", c, symbol);
         update = 1;
     }
     CinOld = state;

@@ -14,6 +14,7 @@
 #define MAX_SIM_TIME 60000000
 #define DIGITS 9
 
+#define SIM_TRACE
 
 std::atomic<bool> toExit(false);
 std::mutex keyUpdateMutex;
@@ -252,11 +253,15 @@ int main(int argc, char** argv, char** env) {
     VEmulator *dut = new VEmulator;
     UI *ui = new UI;
     Verilated::traceEverOn(true);
+#ifdef SIM_COV
     Verilated::mkdir("logs");
     VerilatedCov::write("logs/Emulator.dat");
+#endif
+#ifdef SIM_TRACE
     VerilatedVcdC *m_trace = new VerilatedVcdC;
     dut->trace(m_trace, 5);
     m_trace->open("Emulator.vcd");
+#endif
     dut->KEY = 1;
     dut->FPGA_CLK_50 = 0;
     initscr();
@@ -275,7 +280,9 @@ int main(int argc, char** argv, char** env) {
             dut->KEY = 1;
         }
         dut->eval();
+    #ifdef SIM_TRACE
         m_trace->dump(sim_time);
+    #endif
 
         uint8_t needUpdate = 0;
         needUpdate += ui->Cout(dut->Cout, dut->Data);
@@ -299,7 +306,9 @@ int main(int argc, char** argv, char** env) {
         sim_time++;
     }
     mvprintw(20,0, "Emulator Done. sim_time = %d\n", sim_time);
+#ifdef SIM_TRACE
     m_trace->close();
+#endif
     keyControl.join();
     endwin();
     delete dut;

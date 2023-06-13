@@ -38,7 +38,9 @@ DPCfiles=$(cat DPC.files)
 
 EmulFiles=$(cat Emul.files)
 
-verilator -Wall --coverage --trace --top Emulator --clk FPGA_CLK_50 --cc ${EmulFiles} ${DPCfiles} \
+bf_file=programs/helloworld/helloworld.bfk
+python ${script_dir}/programs/generate_rom.py -f ${bf_file} -o ${script_dir}/programs/firmware.sv
+verilator -Wall --trace --top Emulator --clk FPGA_CLK_50 --cc ${EmulFiles} ${DPCfiles} \
 -GDIVIDE_TO_1US=1 --timescale 1us/10ns  +define+EMULATOR \
 --exe DekatronPC/tests/Emulator.sv/Emulator_tb.cpp -LDFLAGS -lncurses
 
