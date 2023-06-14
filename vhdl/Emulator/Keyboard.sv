@@ -48,7 +48,7 @@ reg currentIsa;
 reg nextIsa;
 
 
-always @* begin
+always_comb begin
     if (keysCurrentState[KEYBOARD_F_KEY])
         nextIsa = BRAINFUCK_ISA;
     else if (keysCurrentState[KEYBOARD_E_KEY])
@@ -57,7 +57,7 @@ always @* begin
         nextIsa = currentIsa;
 end
 
-always @(posedge Clk, negedge Rst_n) begin
+always @(negedge Clk, negedge Rst_n) begin
     if (~Rst_n)
         currentIsa <= BRAINFUCK_ISA;
     else 

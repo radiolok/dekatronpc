@@ -5,17 +5,17 @@ module In12CathodeToPin(
 
 always @(*)
 case (in)
-    4'b0000: out = 4'b0001;
-    4'b0001: out = 4'b0000;
-    4'b0010: out = 4'b0010;
-    4'b0011: out = 4'b0011;
-    4'b0100: out = 4'b0110;
-    4'b0101: out = 4'b1000;
-    4'b0110: out = 4'b1001;
-    4'b0111: out = 4'b0111;
-    4'b1000: out = 4'b0101;
-    4'b1001: out = 4'b0100;
-    default: out = 4'b1010;
+    4'd0: out = 4'd1;
+    4'd1: out = 4'd0;
+    4'd2: out = 4'd2;
+    4'd3: out = 4'd3;
+    4'd4: out = 4'd6;
+    4'd5: out = 4'd8;
+    4'd6: out = 4'd9;
+    4'd7: out = 4'd7;
+    4'd8: out = 4'd5;
+    4'd9: out = 4'd4;
+    default: out = 4'hA;
 endcase
 
 endmodule

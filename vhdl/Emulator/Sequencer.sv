@@ -74,7 +74,7 @@ reg [2:0] next_state;
 
 assign state = current_state;
 
-always @(*) begin
+always_comb begin
 	case (state)
 	NONE:
 		next_state = (Enable)? CATHODES : NONE;
@@ -107,7 +107,7 @@ always @(*) begin
 	endcase
 end
 
-always @(posedge Clock_1us, negedge Rst_n) begin
+always @(negedge Clock_1us, negedge Rst_n) begin
 	if (~Rst_n) begin
 		current_state <= NONE;
 	end
@@ -116,7 +116,7 @@ always @(posedge Clock_1us, negedge Rst_n) begin
 	end
 end
 
-always @(posedge Clock_1us, negedge Rst_n) begin
+always @(negedge Clock_1us, negedge Rst_n) begin
 	if (!Rst_n) begin
 	 	in12_write_cathode <= 1'b0;
 		in12_write_anode <= 1'b0;

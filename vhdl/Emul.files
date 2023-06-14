@@ -1,3 +1,6 @@
+Functions/OpcodeToSymbol.sv
+Functions/SymbolToOpcode.sv
+Functions/BinaryToHex.sv
 Logic/UpCounter.sv
 Logic/bn_mux_n_1_generate.sv
 Logic/RegisterFileSharedOut.sv

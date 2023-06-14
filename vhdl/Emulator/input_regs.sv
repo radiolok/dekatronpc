@@ -17,7 +17,7 @@ assign  outputs = { regs[15],  regs[14],  regs[13],  regs[12],
                 regs[3],   regs[2],   regs[1],   regs[0]};    
 
 
-always @(posedge Clk) begin
+always @(negedge Clk) begin
     if (ReadEnable)
         regs[reg_num] <= data;
 end

@@ -38,7 +38,7 @@ reg [2:0] ms6205_nextView;
 
 assign marker = (ms6205_currentView == MS6205_IRAM) & (DPC_State == 2);
 
-always @(*) begin
+always_comb begin
     if (ms6205_currentView == MS6205_RESTART) begin
         ms6205_nextView = (address < MAX_POS)? MS6205_RESTART : MS6205_IRAM;
     end
@@ -58,7 +58,7 @@ always @(*) begin
     end
 end
 
-always @(posedge Clock_1ms, negedge Rst_n) begin
+always @(negedge Clock_1ms, negedge Rst_n) begin
     if (!Rst_n)
         ms6205_currentView <= MS6205_RESTART;
     else begin
@@ -66,11 +66,9 @@ always @(posedge Clock_1ms, negedge Rst_n) begin
     end
 end
 
-wire PressedKey;
+wire PressedKey= |symbol;
 
-assign PressedKey = symbol[7] | symbol[6] | symbol[5] | symbol[4] | symbol[3] | symbol[2] | symbol[1] | symbol[0];
-
-always @(posedge Clock_1ms, negedge Rst_n) begin
+always @(negedge Clock_1ms, negedge Rst_n) begin
     if (!Rst_n) begin
         address <= 8'h00;
         data_n <= 7'h00;
