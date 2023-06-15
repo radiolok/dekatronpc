@@ -83,7 +83,7 @@ always @(negedge Clock_1ms, negedge Rst_n) begin
         else begin            
             address <= ipAddress;
             data_n <= (PressedKey)? symbol[6:0] : 7'h20;
-        end        
+        end
     end
 end
 

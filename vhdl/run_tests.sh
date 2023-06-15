@@ -112,6 +112,7 @@ parse_params "$@"
 
 if [ ${sim} -ne 0 ]; then
 
+	python ${script_dir}/Functions/TableGenerate.py -d ${script_dir}/Functions
 	python ${script_dir}/programs/generate_rom.py -f programs/looptest/looptest.bfk -o ${script_dir}/programs/firmware.sv
 
 	DPCfiles=$(cat DPC.files)
