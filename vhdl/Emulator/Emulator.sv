@@ -49,8 +49,11 @@ module Emulator #(
     output wire [1:0] io_enable_n,
     inout wire [7:0] io_data,
 
+    output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
+    output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
 `ifdef EMULATOR
     output wire [31:0] IRET,
+
 `endif
 
     output wire [2:0] DPC_currentState
@@ -58,8 +61,7 @@ module Emulator #(
 
 assign LED = 8'b0;
 
-wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress;
-wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress;
+
 wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount;
 
 /* verilator lint_off UNUSEDSIGNAL */

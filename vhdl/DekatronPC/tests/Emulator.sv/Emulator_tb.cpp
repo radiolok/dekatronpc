@@ -17,6 +17,7 @@
 #define SIM_TRACE
 
 std::atomic<bool> toExit(false);
+std::atomic<bool> toUpdate(false);
 std::mutex keyUpdateMutex;
 vluint64_t sim_time = 0;
 
@@ -148,6 +149,7 @@ public:
     {
         while(true){
             int ch = getch();
+            toUpdate = true;
             if (ch == 'q')
             {
                 toExit = true;
@@ -163,11 +165,12 @@ public:
                 case 'r'://KEYBOARD_RUN_KEY =  28,
                     keyPressed(28);
                 break;
-                case KEY_NPAGE: keyPressed(36); break;
-                case KEY_PPAGE: keyPressed(31); break;
+                case KEY_NPAGE: keyPressed(36); break;//KEYBOARD_INC_KEY
+                case KEY_PPAGE: keyPressed(31); break;//KEYBOARD_DEC_KEY
                 default:
                 break;
             }
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     }
 
@@ -182,6 +185,7 @@ public:
         if (dut->DPC_currentState == 0x04)
             status = "HALT";
         mvprintw(LINES-1,0, "Quit, Halt, Run, Step. Status: %s", status.c_str());
+        mvprintw(LINES-2,0, "IpAddr: %x  ApAddr: %x", dut->IpAddress, dut->ApAddress);
     }
 
     void printMs6205()
@@ -213,7 +217,7 @@ public:
         for (uint8_t i = 2; i < 10; i--)
             printw("%c", in12Low[i]);
     }
-    void updateScreen(vluint64_t sim_time, const VEmulator *dut)
+    void updateScreen(const VEmulator *dut)
     {
 	    printHeader();
         printMs6205();
@@ -269,7 +273,7 @@ int main(int argc, char** argv, char** env) {
 
     std::thread keyControl(&UI::keyControl, ui);
     
-    while (sim_time < MAX_SIM_TIME) {
+    while (true) {
         if (toExit)
             break;
         dut->FPGA_CLK_50 ^= 1;
@@ -296,9 +300,10 @@ int main(int argc, char** argv, char** env) {
         ui->keyboardUpdate(dut->keyboard_write, dut->emulData, dut->keyboard_data_in);
         needUpdate += ui->in12AnodeUpdate(dut->in12_write_anode, dut->emulData);
         ui->in12CathodeUpdate(dut->in12_write_cathode, dut->emulData);
-        if (needUpdate)
+        if (needUpdate | toUpdate)
         {
-            ui->updateScreen(sim_time, dut);
+            ui->updateScreen(dut);
+            toUpdate = false;
         }
         dut->ms6205_ready = ui->ms6205UpdateAddr(dut->ms6205_write_addr_n, dut->emulData, dut->ms6205_marker);
         dut->ms6205_ready = ui->ms6205UpdateData(dut->ms6205_write_data_n, dut->emulData, dut->ms6205_marker);

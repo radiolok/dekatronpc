@@ -67,16 +67,29 @@ wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] RamDataOut;
 wire RamCS;
 wire RamWE;
 
+`ifdef EMULATOR
+/* verilator lint_off UNDRIVEN */
+    wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress1;
+/* verilator lint_on UNDRIVEN */
+/* verilator lint_off UNUSEDSIGNAL */
+    wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApData1;
+/* verilator lint_on UNUSEDSIGNAL */
+`endif
+
 RAM #(
-    .ROWS(196608),
-    .ADDR_WIDTH(18),
-    .DATA_WIDTH(12)
+    .ROWS(21'h100000),
+    .ADDR_WIDTH(AP_DEKATRON_NUM*DEKATRON_WIDTH),
+    .DATA_WIDTH(DATA_DEKATRON_NUM*DEKATRON_WIDTH)
 ) ram(
     .Clk(Clk),
     .Rst_n(Rst_n),
-    .Address(ApAddress[17:0]),
+    .Address(ApAddress),
     .In(RamDataIn),
     .Out(RamDataOut),
+`ifdef EMULATOR
+    .Address1(ApAddress1),
+    .Out1(ApData1),
+`endif
     .WE(RamWE),
     .CS(RamCS)
 );
