@@ -8,9 +8,9 @@ def AsciiToBcd(dir):
     sv.write("   input [7:0] ascii\n);\n")
     sv.write("  case(ascii)\n")
     for i in range(256):
-        generatedCase = "    8'h%d: AsciiToBcd = 12'h%x; //%c \n" % (i, i, i if i > 32 else 0x20)
+        generatedCase = "    8'h%x: AsciiToBcd = 12'h%d; //%c \n" % (i, i, i if i > 32 else 0x20)
         sv.write(generatedCase)
-    sv.write("    default: AsciiToBcd = {12'bx};n")
+    sv.write("    default: AsciiToBcd = {12'bx};\n")
     sv.write("  endcase\nendfunction\n")
     sv.close()
     return 0
@@ -18,12 +18,12 @@ def AsciiToBcd(dir):
 def BcdToAscii(dir):
     sv = open(f"{dir}/BcdToAscii.sv", 'w')
     sv.write("function [7:0] BcdToAscii(\n")
-    sv.write("   input [12:0] Bcd\n);\n")
-    sv.write("  case(Bdc)\n")
+    sv.write("   input [11:0] Bcd\n);\n")
+    sv.write("  case(Bcd)\n")
     for i in range(256):
-        generatedCase = "    12'h%x: BcdToAscii = 8'h%d; //%c \n" % (i, i, i if i > 32 else 0x20)
+        generatedCase = "    12'h%d: BcdToAscii = 8'h%x; //%c \n" % (i, i, i if i > 32 else 0x20)
         sv.write(generatedCase)
-    sv.write("    default: BcdToAscii = {8'bx};n")
+    sv.write("    default: BcdToAscii = {8'bx};\n")
     sv.write("  endcase\nendfunction\n")
     sv.close()
     return 0

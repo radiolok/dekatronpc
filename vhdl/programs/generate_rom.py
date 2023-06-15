@@ -21,7 +21,7 @@ def encodeSymbol(symbol):
         return symbolToOpcode[symbol]
     return None
 
-def Generate(filePath, resultPath):
+def Generate(filePath, resultPath, args):
     bfk = open(filePath,'r')
     sv = open(resultPath, 'w')
     fileSize = os.path.getsize(filePath)
@@ -49,7 +49,8 @@ def Generate(filePath, resultPath):
         if not encoded:
             continue
         generatedCase = "    %d'h%d: Data = 4'h%x; //%c \n" % (portSize, address, encoded, symbol)
-        sys.stdout.write(generatedCase)
+        if (args.verbose):
+            sys.stdout.write(generatedCase)
         sv.write(generatedCase)
         address += 1 
     sv.write("    default: Data = {dataSize{1'bx}};\n")
@@ -64,6 +65,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--file', nargs='+')
     parser.add_argument('-o', '--outfile')
+    parser.add_argument('-v', '--verbose', action='store_true')
 
     args = parser.parse_args()
 
@@ -76,4 +78,4 @@ if __name__ == '__main__':
         print("Generate rom from: %s" %(filePath))
         resultPath = args.outfile if args.outfile else os.path.splitext(filePath)[0] + ".sv"
         print("Generate file: %s" % (resultPath))
-        Generate(filePath, resultPath)
+        Generate(filePath, resultPath, args)
