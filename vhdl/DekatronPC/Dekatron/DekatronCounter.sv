@@ -49,7 +49,7 @@ assign Zero = &Zeroes;
 
 reg [WIDTH-1:0] DataToDeks;
 
-parameter [2:0] 
+localparam [2:0] 
 		IDLE = 3'b000,
 		INC = 3'b010,
 		DEC = 3'b011,

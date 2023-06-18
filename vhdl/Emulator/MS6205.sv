@@ -3,11 +3,13 @@ module MS6205(
     input wire Clock_1ms,
     output reg ms6205_addr_acq,
 	output reg ms6205_data_acq,
-    input wire [7:0] ipAddress,
     input wire [7:0] symbol,
+    input wire Cout,
+    output reg CioAcq,
     output reg [7:0] address,
-    output wire [7:0] data,
+    output wire [7:0] data_n,
     /* verilator lint_off UNUSEDSIGNAL */
+    input wire [7:0] ipAddress,
     input wire write_addr,
     input wire write_data,
     input wire ready,
@@ -30,9 +32,9 @@ parameter [2:0]
     MS6205_CIN = 3'b011,
     MS6205_COUT = 3'b100;
 
-reg [6:0] data_n;
+reg [7:0] data;
 
-assign data[7:0] = {1'b0, ~data_n[6:0]};
+assign data_n = ~data;
 
 reg [2:0] ms6205_nextView;
 
@@ -66,23 +68,29 @@ always @(negedge Clock_1ms, negedge Rst_n) begin
     end
 end
 
-wire PressedKey= |symbol;
+//wire PressedKey = |symbol;
+
+
 
 always @(negedge Clock_1ms, negedge Rst_n) begin
     if (!Rst_n) begin
         address <= 8'h00;
-        data_n <= 7'h00;
+        data <= 8'h00;
         ms6205_addr_acq <= 1'b1;
         ms6205_data_acq <= 1'b1;
     end
     else begin
         if (ms6205_currentView == MS6205_RESTART) begin
             address <= address  + 1;
-            data_n <= 7'h20;
+            data <= 8'h20;
         end
         else begin            
-            address <= ipAddress;
-            data_n <= (PressedKey)? symbol[6:0] : 7'h20;
+            address <= 8'h0;
+            if (Cout) begin
+                CioAcq <= 1'b1;
+                data <= symbol;
+                address <= address + 1;
+            end
         end
     end
 end

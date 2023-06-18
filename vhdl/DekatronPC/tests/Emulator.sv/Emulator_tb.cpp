@@ -91,8 +91,8 @@ public:
     {
         if (state & !in12cathodeWrOld)
         {
-            in12Low[DIGITS-in12AnodeNum-1]  = In12CathodeToPin[(data & 0x0F)] + 0x30;
-            in12High[DIGITS-in12AnodeNum-1] = In12CathodeToPin[((data >> 4) & 0x0F)] + 0x30;
+            in12Low[in12AnodeNum]  = In12CathodeToPin[(data & 0x0F)] + 0x30;
+            in12High[in12AnodeNum] = In12CathodeToPin[((data >> 4) & 0x0F)] + 0x30;
         }
         in12cathodeWrOld = state;
         
@@ -103,7 +103,7 @@ public:
         if (state & !in12anodeWrOld)
         {
             in12AnodeNum = data & 0x0F;
-            if (!in12AnodeNum)
+            //if (!in12AnodeNum)
                 status = 1;
         }
         in12anodeWrOld = state;
@@ -123,7 +123,7 @@ public:
     uint8_t ms6205UpdateData(bool state, uint8_t data, uint8_t marker){
         if (ms6205dataOld & !state)
         {
-            ms6205ram[ms6205addr] = data;
+            ms6205ram[ms6205addr] = (0xFF - data) & 0x7F;
             ms6205marker = marker;
         }
         ms6205dataOld = state;
@@ -143,13 +143,15 @@ public:
         std::lock_guard<std::mutex> lk(keyUpdateMutex);
         uint8_t keyRow = 1<<(keyCode % 5);
         KeypadRaw[keyCode / 5] = keyRow;
+        toUpdate = true;
     }
 
     void keyControl()
     {
+        static int ch_old;
         while(true){
-            int ch = getch();
-            toUpdate = true;
+            
+            int ch = getch();              
             if (ch == 'q')
             {
                 toExit = true;
@@ -170,7 +172,6 @@ public:
                 default:
                 break;
             }
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
     }
 
@@ -269,8 +270,7 @@ int main(int argc, char** argv, char** env) {
     dut->KEY = 1;
     dut->FPGA_CLK_50 = 0;
     initscr();
-    start_color();   
-
+    start_color();
     std::thread keyControl(&UI::keyControl, ui);
     
     while (true) {
@@ -290,20 +290,22 @@ int main(int argc, char** argv, char** env) {
 
         uint8_t needUpdate = 0;
         needUpdate += ui->Cout(dut->Cout, dut->Data);
-        if (needUpdate)
+        /*if (needUpdate)
         {
             dut->CioAcq = 1;
         }
         if (!dut->Cout){
             dut->CioAcq = 0;
-        }
+        }*/
         ui->keyboardUpdate(dut->keyboard_write, dut->emulData, dut->keyboard_data_in);
         needUpdate += ui->in12AnodeUpdate(dut->in12_write_anode, dut->emulData);
         ui->in12CathodeUpdate(dut->in12_write_cathode, dut->emulData);
         if (needUpdate | toUpdate)
         {
             ui->updateScreen(dut);
-            toUpdate = false;
+            if (toUpdate){
+                toUpdate = false;
+            }
         }
         dut->ms6205_ready = ui->ms6205UpdateAddr(dut->ms6205_write_addr_n, dut->emulData, dut->ms6205_marker);
         dut->ms6205_ready = ui->ms6205UpdateData(dut->ms6205_write_data_n, dut->emulData, dut->ms6205_marker);

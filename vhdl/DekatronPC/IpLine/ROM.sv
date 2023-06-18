@@ -12,7 +12,6 @@
     input wire Request,
     output wire Ready
     );
-// synopsys translate_off
 
 parameter [1:0]
     INIT      = 2'd0,
@@ -70,5 +69,4 @@ always @(negedge Clk, negedge Rst_n)
         if (state == BUSY)
             Insn <= Data;
     end
-// synopsys translate_on
 endmodule

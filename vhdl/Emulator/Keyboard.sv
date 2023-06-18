@@ -38,15 +38,10 @@ assign numericKey = {
     keysCurrentState[KEYBOARD_0_KEY]
 };
 
-KeyToSymbol keyToSymbol(
-    .numericKey(numericKey),
-    .symbol(symbol),
-    .BFISA(currentIsa)
-);
-
 reg currentIsa;
 reg nextIsa;
 
+assign symbol = (|numericKey)? OpcodeToSymbol({currentIsa, BinaryToHex(numericKey)}) : 8'h0;
 
 always_comb begin
     if (keysCurrentState[KEYBOARD_F_KEY])

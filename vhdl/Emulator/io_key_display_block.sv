@@ -21,12 +21,15 @@ module io_key_display_block #(
 	output [7:0] emulData,
     input wire [2:0] DPC_currentState,
 
-    output wire [7:0] symbol,
+    input wire [7:0] stdout,
 
     input wire  [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipCounter,
     input wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] loopCounter,
     input wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apCounter,
     input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] dataCounter,
+
+    input wire Cout,
+    output wire CioAcq,
 
     input wire Clock_1s,
     input wire Clock_1ms,
@@ -42,17 +45,7 @@ wire anodesClkTick;
 
 wire [7:0] cathodeData;
 
-In12CathodeToPin cathodeLowConvert
-(
-    .in(cathodeLow),
-    .out(cathodeData[7:4])
-);
-
-In12CathodeToPin cathodeHighConvert
-(
-    .in(cathodeHigh),
-    .out(cathodeData[3:0])
-);
+assign cathodeData = {In12CathodeToPin(cathodeHigh), In12CathodeToPin(cathodeLow)};
 
 //This mux  compress IP and LOOP data into 3-bit interface
 bn_mux_n_1_generate #(
@@ -148,7 +141,10 @@ wire keyboard_read;
 
 /* verilator lint_off UNUSEDSIGNAL */
 wire [15:0] numericKey;
+wire [7:0] symbol;
 /* verilator lint_on UNUSEDSIGNAL */
+
+
 
 Keyboard kb(
     .Rst_n(Rst_n),
@@ -173,9 +169,11 @@ MS6205 ms6205(
     .Rst_n(Rst_n),
     .Clock_1ms(Clock_1ms),
     .address(ms6205_addr),
-    .data(ms6205_data),
+    .data_n(ms6205_data),
     .ipAddress(ipCounter[7:0]),
-    .symbol(symbol),
+    .symbol(stdout),
+    .Cout(Cout),
+    .CioAcq(CioAcq),
     .ms6205_addr_acq(ms6205_addr_acq),
 	.ms6205_data_acq(ms6205_data_acq),
     .write_addr(ms6205_write_addr_n),

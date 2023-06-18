@@ -39,7 +39,6 @@ module Emulator #(
 
     output wire Cout,
     output wire CinReq,
-    input wire CioAcq,
 
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data,
 
@@ -61,6 +60,7 @@ module Emulator #(
 
 assign LED = 8'b0;
 
+wire CioAcq;
 
 wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount;
 
@@ -76,9 +76,8 @@ wire Rst_n;
 
 assign Rst_n = KEY[0];
 
-/* verilator lint_off UNUSEDSIGNAL */
-wire [7:0] symbol;
 wire hsClk;
+/* verilator lint_off UNUSEDSIGNAL */
 wire [INSN_WIDTH - 1:0] Insn;
 /* verilator lint_on UNUSEDSIGNAL */
 
@@ -176,7 +175,9 @@ io_key_display_block #(
     .Clock_1ms(Clock_1ms),
     .Clock_1us(Clock_1us),
     .Rst_n(Rst_n),
-    .symbol(symbol),
+    .stdout(BcdToAscii(Data)),
+    .Cout(Cout),
+    .CioAcq(CioAcq),
     .DPC_currentState(DPC_currentState)
 );
 
