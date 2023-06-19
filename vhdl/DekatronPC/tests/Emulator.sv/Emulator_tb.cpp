@@ -11,7 +11,7 @@
 #include "VEmulator.h"
 
 
-#define MAX_SIM_TIME 60000000
+#define MAX_SIM_TIME 6000000
 #define DIGITS 9
 
 #define SIM_TRACE
@@ -49,18 +49,6 @@ public:
 
     ~UI()
     {
-    }
-
-    uint8_t Cout(bool state, uint16_t data)
-    {
-        uint8_t update = 0;
-        if (!CoutOld & state){
-            uint16_t symbol = (data&0x0F) + ((data>>4) &0x0F)*10 + ((data>>8) &0x0F)*100;
-            coutSymbols.push_back(symbol);
-            update = 1;
-        }
-        CoutOld = state;
-        return update;
     }
 
     void keyboardUpdate(bool state, uint8_t data, uint8_t& dataOut)
@@ -189,6 +177,18 @@ public:
         mvprintw(LINES-2,0, "IpAddr: %x  ApAddr: %x", dut->IpAddress, dut->ApAddress);
     }
 
+    void rectangle(int y1, int x1, int y2, int x2)
+    {
+        mvhline(y1, x1, 0, x2-x1);
+        mvhline(y2, x1, 0, x2-x1);
+        mvvline(y1, x1, 0, y2-y1);
+        mvvline(y1, x2, 0, y2-y1);
+        mvaddch(y1, x1, ACS_ULCORNER);
+        mvaddch(y2, x1, ACS_LLCORNER);
+        mvaddch(y1, x2, ACS_URCORNER);
+        mvaddch(y2, x2, ACS_LRCORNER);
+    }
+
     void printMs6205()
     {
         for (uint8_t r = 0; r < 10; r++)
@@ -199,6 +199,7 @@ public:
                 printw("%c", ms6205ram[r*16+c]);
             }
         }
+        rectangle(LINES/4-6, COLS/4-9, LINES/4+6, COLS/4+9);
     }
 
     void printIn12()
@@ -224,11 +225,6 @@ public:
         printMs6205();
         printIn12();
 
-        mvprintw(LINES/2,2, "COUT: ");
-        for (char c: coutSymbols)
-        {
-            printw("%c", c);
-        }
         printFooter(dut);
         refresh();
     }
@@ -249,9 +245,6 @@ private:
     bool ms6205addrOld;
     bool ms6205dataOld;
     bool keyboardWrOld;
-    bool CoutOld;
-
-    std::vector<char> coutSymbols;
 };
 
 int main(int argc, char** argv, char** env) {
@@ -285,18 +278,11 @@ int main(int argc, char** argv, char** env) {
         }
         dut->eval();
     #ifdef SIM_TRACE
-        m_trace->dump(sim_time);
+        if (sim_time < MAX_SIM_TIME)
+            m_trace->dump(sim_time);
     #endif
 
         uint8_t needUpdate = 0;
-        needUpdate += ui->Cout(dut->Cout, dut->Data);
-        /*if (needUpdate)
-        {
-            dut->CioAcq = 1;
-        }
-        if (!dut->Cout){
-            dut->CioAcq = 0;
-        }*/
         ui->keyboardUpdate(dut->keyboard_write, dut->emulData, dut->keyboard_data_in);
         needUpdate += ui->in12AnodeUpdate(dut->in12_write_anode, dut->emulData);
         ui->in12CathodeUpdate(dut->in12_write_cathode, dut->emulData);

@@ -1,4 +1,5 @@
 module MS6205(
+    input wire Clk,
     input wire Rst_n,
     input wire Clock_1ms,
     output reg ms6205_addr_acq,
@@ -31,10 +32,6 @@ parameter [2:0]
     MS6205_DRAM = 3'b010,
     MS6205_CIN = 3'b011,
     MS6205_COUT = 3'b100;
-
-reg [7:0] data;
-
-assign data_n = ~data;
 
 reg [2:0] ms6205_nextView;
 
@@ -70,29 +67,49 @@ end
 
 //wire PressedKey = |symbol;
 
+reg [7:0] stdioRam [0: MAX_POS-1];
+reg [7:0] stdioAddr;
 
+initial begin
+    $readmemh("MSmemZero.hex", stdioRam);
+end
 
-always @(negedge Clock_1ms, negedge Rst_n) begin
-    if (!Rst_n) begin
-        address <= 8'h00;
-        data <= 8'h00;
-        ms6205_addr_acq <= 1'b1;
-        ms6205_data_acq <= 1'b1;
+always @(negedge Clk, negedge Rst_n) begin
+    if (~Rst_n) begin
+        stdioAddr <= 8'h0;
     end
     else begin
-        if (ms6205_currentView == MS6205_RESTART) begin
-            address <= address  + 1;
-            data <= 8'h20;
+        if (Cout & ~CioAcq) begin
+            CioAcq <= 1'b1;
+            stdioRam[stdioAddr] <= symbol;
+            stdioAddr <= stdioAddr + 1;
         end
-        else begin            
-            address <= 8'h0;
-            if (Cout) begin
-                CioAcq <= 1'b1;
-                data <= symbol;
-                address <= address + 1;
-            end
+        if (~Cout & CioAcq) begin
+            CioAcq <= 1'b0;
         end
     end
 end
 
+reg [7:0] stdioData;
+wire [7:0] data;
+
+assign data_n = ~data;
+
+assign data = stdioData;
+
+always @(negedge Clock_1ms, negedge Rst_n) begin
+    if (~Rst_n) begin
+        address <= 8'h00;
+        stdioData <= 8'h00;
+        ms6205_addr_acq <= 1'b1;
+        ms6205_data_acq <= 1'b1;
+    end
+    else begin
+        address <= address  + 8'h1;
+        if (address == MAX_POS -1) begin
+            address <= 8'h0;
+        end
+        stdioData <= stdioRam[address];        
+    end
+end
 endmodule
