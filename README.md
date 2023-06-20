@@ -18,3 +18,11 @@ As a next generation of BrainfuckPC, DekatronPC should have next characteristics
 ![DekatronPC arch](https://github.com/radiolok/dekatronpc/blob/master/img/DPC_Arch.jpg)
 
 Architecture of the machine
+
+```
+$ git clone https://github.com/radiolok/dekatronpc.git
+$ cd dekatronpc/vhdl
+$ sudo docker build -t emulator .
+$ sudo docker run --rm -it --entrypoint bash dpc_emul
+# ./run_emul.sh
+```
