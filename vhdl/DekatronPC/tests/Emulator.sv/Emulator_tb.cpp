@@ -298,7 +298,7 @@ int main(int argc, char** argv, char** env) {
 
         sim_time++;
     }
-    mvprintw(20,0, "Emulator Done. sim_time = %d\n", sim_time);
+    mvprintw(20,0, "Emulator Done. sim_time = %ld\n", sim_time);
 #ifdef SIM_TRACE
     m_trace->close();
 #endif
