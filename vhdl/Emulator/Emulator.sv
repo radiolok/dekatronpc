@@ -155,6 +155,7 @@ DekatronPC dekatronPC(
 io_key_display_block #(
     .DIVIDE_TO_4MS(DIVIDE_TO_4MS)
 )ioKeyDisplayBlock(
+    .Clk(Clk),
     .keyboard_data_in(keyboard_data_in),
     .ms6205_ready(ms6205_ready),
     .ms6205_write_addr_n(ms6205_write_addr_n),
