@@ -34,9 +34,10 @@ RUN apt-get update -y && \
     python3-pip \
     python3-venv \
     libtool \
-    wget
+    wget && \
+    rm -rf /var/lib/apt/lists
 
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
+RUN apt-get update -y &&  DEBIAN_FRONTEND=noninteractive apt-get install -y \
     gperf g++ bison ccache \
     libgoogle-perftools-dev numactl perl-doc help2man \
     libfl2 libfl-dev \
@@ -45,7 +46,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get install -y \
 
 RUN git clone https://github.com/verilator/verilator && \
     cd verilator && git checkout v5.010 && \
-    autoconf && ./configure && make -j `nproc` && make install
+    autoconf && ./configure && make -j `nproc` && make install && rm -rf /verilator
 
 RUN apt-get update -y &&  DEBIAN_FRONTEND=noninteractive apt-get install -y \
     clang  libreadline-dev gawk tcl-dev libffi-dev \
@@ -55,13 +56,11 @@ RUN apt-get update -y &&  DEBIAN_FRONTEND=noninteractive apt-get install -y \
 
 RUN git clone https://github.com/YosysHQ/yosys.git && \
     pip install liberty-parser && \
-    cd yosys && make config-clang && make && make install 
+    cd yosys && make config-clang && make && make install && rm -rf /yosys
 
 RUN apt-get update -y && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     iverilog && \
     rm -rf /var/lib/apt/lists
-
-RUN rm -rf /yosys && rm -rf /verilator
 
 RUN mkdir -p /var/vhdl
 
