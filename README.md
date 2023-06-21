@@ -23,5 +23,5 @@ Architecture of the machine
 $ git clone https://github.com/radiolok/dekatronpc.git
 $ cd dekatronpc
 $ sudo docker build -t emulator .
-$ sudo docker run --rm -it -v ./vhdl:/var/vhdl --entrypoint /var/vhdl/run_emul.sh dpc_emul
+$ sudo docker run --rm -it -v ./vhdl:/var/vhdl --entrypoint /var/vhdl/run_emul.sh emulator
 ```
