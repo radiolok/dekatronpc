@@ -61,7 +61,8 @@ RUN apt-get update -y && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     iverilog && \
     rm -rf /var/lib/apt/lists
 
-RUN mkdir -p /var/tmp && cd /var/tmp && \
-git clone https://github.com/radiolok/dekatronpc.git dekatronpc
+RUN rm -rf /yosys && rm -rf /verilator
 
-WORKDIR /var/tmp/dekatronpc/vhdl
+RUN mkdir -p /var/vhdl
+
+WORKDIR /var/vhdl
