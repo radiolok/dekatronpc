@@ -11,6 +11,7 @@ module DekatronPC (
     output reg Cout,
     input wire CioAcq,
     output reg CinReq,
+
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
     output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
 
@@ -18,7 +19,13 @@ module DekatronPC (
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data,
     output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
     output reg [2:0] state,
-    output wire [INSN_WIDTH - 1:0] Insn
+    output wire [INSN_WIDTH - 1:0] Insn,
+
+//==========================================================================
+//         Switch panel section
+//==========================================================================
+    input wire EchoMode//When turned on, Symbol from CIN is printed to Cout
+
 );
 
 reg IpRequest;
@@ -132,6 +139,7 @@ ApLine  apLine(
 );
 
 reg OneStep;
+reg Echo;
 
 parameter [2:0]
     IDLE     =  3'b001,
@@ -139,7 +147,8 @@ parameter [2:0]
     EXEC    =  3'b011,
     HALT    =  3'b100,
     CIN     =  3'b101,
-    COUT    =  3'b110;
+    COUT    =  3'b110,
+    CIO_ACQ    =  3'b111;
 
 assign IsHalted = (state == HALT);
 
@@ -273,13 +282,29 @@ always @(posedge Clk, negedge Rst_n) begin
                     DataRequest <= 1'b1;
                     ApLineCin <= 1'b1;
                     CinReq <= 1'b0;
-                    state <= EXEC;
+                    state <= CIO_ACQ;
+                    if (EchoMode)
+                        Echo <= 1'b1;
                 end
             end
             COUT: begin
-                if (CioAcq) begin//TODO: Block CioAcq until release.
+                if (CioAcq) begin
                     Cout <= 1'b0;
-                    state <= EXEC;
+                    state <= CIO_ACQ;
+                end
+            end
+            CIO_ACQ: begin
+                DataRequest <= 1'b0;
+                ApLineCin <= 1'b0;
+                if (ApLineReady & ~CioAcq) begin
+                    if (Echo) begin
+                        Echo <= 1'b0;
+                        Cout <= 1'b1;
+                        state <= COUT;
+                    end
+                    else begin
+                        state <= EXEC;
+                    end
                 end
             end
             HALT: begin

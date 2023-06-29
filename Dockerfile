@@ -44,19 +44,23 @@ RUN apt-get update -y &&  DEBIAN_FRONTEND=noninteractive apt-get install -y \
     libncursesw5-dev && \
     rm -rf /var/lib/apt/lists
 
-RUN git clone https://github.com/verilator/verilator && \
-    cd verilator && git checkout v5.010 && \
-    autoconf && ./configure && make -j `nproc` && make install && rm -rf /verilator
+RUN wget https://github.com/verilator/verilator/archive/refs/tags/v5.012.tar.gz && \
+    tar -xvf v5.012.tar.gz && cd verilator-5.012 && \
+    autoconf && ./configure && make -j `nproc` && make install && \
+    cd / && rm -rf /verilator-5.012 && rm -rf v5.012.tar.gz
+
 
 RUN apt-get update -y &&  DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    clang  libreadline-dev gawk tcl-dev libffi-dev \
-	graphviz xdot pkg-config python3 libboost-system-dev \
+    libreadline-dev gawk tcl-dev libffi-dev \
+	graphviz xdot pkg-config libboost-system-dev \
 	libboost-python-dev libboost-filesystem-dev && \
     rm -rf /var/lib/apt/lists
 
-RUN git clone https://github.com/YosysHQ/yosys.git && \
+RUN wget https://github.com/YosysHQ/yosys/archive/refs/tags/yosys-0.30.tar.gz && \
+    tar -xvf yosys-0.30.tar.gz && cd yosys-yosys-0.30 && \
     pip install liberty-parser && \
-    cd yosys && make config-clang && make && make install && rm -rf /yosys
+    make config-gcc && make -j `nproc` && make install && \
+    cd / && rm -rf /yosys-yosys-0.30 && rm -rf yosys-0.30.tar.gz
 
 RUN apt-get update -y && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     iverilog && \

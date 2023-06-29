@@ -39,6 +39,7 @@ public:
         dut->Rst_n = 1;
         dut->hsClk = 0;
         dut->Clk = 0;
+        dut->EchoMode = 1;
     }
 
     ~VerilogMachine(){
