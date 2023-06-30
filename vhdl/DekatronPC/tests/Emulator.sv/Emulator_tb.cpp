@@ -18,10 +18,17 @@
 
 std::atomic<bool> toExit(false);
 std::atomic<bool> toUpdate(false);
+
+std::atomic<bool> cinReq(false);
+std::atomic<bool> cioAcq(false);
+std::atomic<char> cinSymbol(0);
+
 std::mutex keyUpdateMutex;
 vluint64_t sim_time = 0;
 
 uint8_t In12CathodeToPin[] = {1,0,2,3,6,8,9,7,5,4};
+
+const char* dpcStatus[] = {"NONE", "IDLE", "RUN", "RUN", "HALT", "CIN", "COUT", "CIO_ACQ"};
 
 #define EXIT 0xFF
 
@@ -133,26 +140,25 @@ public:
         KeypadRaw[keyCode / 5] = keyRow;
         toUpdate = true;
     }
-
     void keyControl()
     {
         static int ch_old;
         while(true){
             
-            int ch = getch();              
-            if (ch == 'q')
+            int ch = getch();
+            if (ch == KEY_END)
             {
                 toExit = true;
                 break;
             }
             switch(ch){
-                case 'h'://step
+                case KEY_F(1)://step
                     keyPressed(26);//KEYBOARD_HALT_KEY =  26,
                 break;
-                case 's'://KEYBOARD_STEP_KEY =  33,
+                case KEY_F(2)://KEYBOARD_STEP_KEY =  33,
                     keyPressed(33);
                 break;
-                case 'r'://KEYBOARD_RUN_KEY =  28,
+                case KEY_F(3)://KEYBOARD_RUN_KEY =  28,
                     keyPressed(28);
                 break;
                 case KEY_NPAGE: keyPressed(36); break;//KEYBOARD_INC_KEY
@@ -160,12 +166,17 @@ public:
                 default:
                 break;
             }
+            if (ch < 256 & cinReq){
+                cioAcq = true;
+                cinSymbol = ch;
+            }
         }
     }
 
-    void printHeader()
+    void printHeader(const VEmulator *dut)
     {
         mvprintw(0,0, "DekatronPC Virtual HDL Emulator");
+        mvprintw(1,0, "Status: %s      ", dpcStatus[dut->DPC_currentState]);
     }
 
     void printFooter(const VEmulator *dut)
@@ -173,8 +184,8 @@ public:
         std::string status = "RUN";
         if (dut->DPC_currentState == 0x04)
             status = "HALT";
-        mvprintw(LINES-1,0, "Quit, Halt, Run, Step. Status: %s", status.c_str());
-        mvprintw(LINES-2,0, "IpAddr: %x  ApAddr: %x", dut->IpAddress, dut->ApAddress);
+        mvprintw(LINES-1,0, "Quit(END), F1: HALT F2: STEP: F3: RUN");
+        mvprintw(LINES-2,0, "StatIpAddr: %x  ApAddr: %x", dut->IpAddress, dut->ApAddress);
     }
 
     void rectangle(int y1, int x1, int y2, int x2)
@@ -221,7 +232,7 @@ public:
     }
     void updateScreen(const VEmulator *dut)
     {
-	    printHeader();
+	    printHeader(dut);
         printMs6205();
         printIn12();
 
@@ -247,6 +258,23 @@ private:
     bool keyboardWrOld;
 };
 
+uint8_t Cin(bool state, uint8_t& symbol)
+{
+    static bool CinOld = false;
+    uint8_t update = 0;
+    if (!CinOld & state){
+        cinReq = true;
+    }
+    if (cioAcq){
+        cinReq = false;
+        cioAcq = false;
+        update = 1;
+        symbol = cinSymbol;
+    }
+    CinOld = state;
+    return update;
+}
+
 int main(int argc, char** argv, char** env) {
     VEmulator *dut = new VEmulator;
     UI *ui = new UI;
@@ -263,6 +291,7 @@ int main(int argc, char** argv, char** env) {
     dut->KEY = 1;
     dut->FPGA_CLK_50 = 0;
     initscr();
+    keypad(stdscr, TRUE);
     start_color();
     std::thread keyControl(&UI::keyControl, ui);
     
@@ -281,7 +310,12 @@ int main(int argc, char** argv, char** env) {
         if (sim_time < MAX_SIM_TIME)
             m_trace->dump(sim_time);
     #endif
-
+        if (!(dut->Cout | dut->CinReq)){
+            dut->CioAcq = 0;
+        }
+        if (Cin(dut->CinReq, dut->stdin)){
+            dut->CioAcq = 1;
+        }
         uint8_t needUpdate = 0;
         ui->keyboardUpdate(dut->keyboard_write, dut->emulData, dut->keyboard_data_in);
         needUpdate += ui->in12AnodeUpdate(dut->in12_write_anode, dut->emulData);

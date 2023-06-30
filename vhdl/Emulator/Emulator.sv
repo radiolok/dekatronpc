@@ -40,9 +40,9 @@ module Emulator #(
     output wire Cout,
     output wire CinReq,
 
-    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data,
+    output wire [7:0] stdout,
 
-    input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DataCin,
+    input wire [7:0] stdin,
     
     output wire [3:0] io_address,
     output wire [1:0] io_enable_n,
@@ -55,12 +55,14 @@ module Emulator #(
 
 `endif
 
+    input wire CioAcq,
+    
     output wire [2:0] DPC_currentState
 );
 
 assign LED = 8'b0;
 
-wire CioAcq;
+wire CoutAcq;
 
 wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount;
 
@@ -130,10 +132,21 @@ ClockDivider #(
 	.clock_out(Clock_1s)
 );
 
+wire EchoMode = 1'b1;
+
+wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DPC_DataOut;
+wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DPC_DataIn;
+
+assign stdout = BcdToAscii(DPC_DataOut);
+
+assign DPC_DataIn = AsciiToBcd(stdin);
+
+wire Acq = CioAcq | CoutAcq;
+
 DekatronPC dekatronPC(
     .IpAddress(IpAddress),
     .ApAddress(ApAddress),
-    .Data(Data),
+    .Data(DPC_DataOut),
     .LoopCount(LoopCount),
     .hsClk(hsClk),
     .Clk(Clk),
@@ -141,8 +154,9 @@ DekatronPC dekatronPC(
     .Halt(keyHalt),
     .Run(keyRun),
     .Cout(Cout),
-    .DataCin(DataCin),
-    .CioAcq(CioAcq),
+    .EchoMode(EchoMode),
+    .DataCin(DPC_DataIn),
+    .CioAcq(Acq),
     .CinReq(CinReq),
     .Step(keyStep),
 `ifdef EMULATOR
@@ -171,14 +185,14 @@ io_key_display_block #(
     .ipCounter(IpAddress),
     .loopCounter(LoopCount),
     .apCounter(ApAddress),
-    .dataCounter(Data),
+    .dataCounter(DPC_DataOut),
     .Clock_1s(Clock_1s),
     .Clock_1ms(Clock_1ms),
     .Clock_1us(Clock_1us),
     .Rst_n(Rst_n),
-    .stdout(BcdToAscii(Data)),
+    .stdout(stdout),
     .Cout(Cout),
-    .CioAcq(CioAcq),
+    .CioAcq(CoutAcq),
     .DPC_currentState(DPC_currentState)
 );
 

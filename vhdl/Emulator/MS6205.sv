@@ -20,6 +20,10 @@ module MS6205(
     input wire [2:0] DPC_State
 );
 
+    /* verilator lint_off UNUSEDSIGNAL */
+    wire Cin=1'b0;
+    /* verilator lint_on UNUSEDSIGNAL */
+
 reg [2:0] ms6205_currentView;
 
 parameter COLUMNS = 16;
@@ -79,12 +83,12 @@ always @(negedge Clk, negedge Rst_n) begin
         stdioAddr <= 8'h0;
     end
     else begin
-        if (Cout & ~CioAcq) begin
+        if ((Cout| Cin) & ~CioAcq) begin
             CioAcq <= 1'b1;
             stdioRam[stdioAddr] <= symbol;
             stdioAddr <= stdioAddr + 1;
         end
-        if (~Cout & CioAcq) begin
+        if (~Cout & ~Cin & CioAcq) begin
             CioAcq <= 1'b0;
         end
     end

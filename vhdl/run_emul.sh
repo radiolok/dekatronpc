@@ -38,7 +38,8 @@ DPCfiles=$(cat DPC.files)
 
 EmulFiles=$(cat Emul.files)
 
-bf_file=programs/helloworld/helloworld.bfk
+#bf_file=programs/helloworld/helloworld.bfk
+bf_file=programs/rot13/rot13.bfk
 python ${script_dir}/programs/generate_rom.py -f ${bf_file} -o ${script_dir}/programs/firmware.sv
 verilator -Wall --trace --top Emulator --clk FPGA_CLK_50 --cc ${EmulFiles} ${DPCfiles} \
 -GDIVIDE_TO_1US=1 --timescale 1us/10ns  +define+EMULATOR \
