@@ -65,7 +65,7 @@ emul() {
 	echo "${1} Test"
 	if [ $# -ge 2 ]; then
 		file=${2}
-		python ${script_dir}/programs/generate_rom.py -f ${file} -o ${script_dir}/programs/firmware.sv
+		python3 ${script_dir}/programs/generate_rom.py -f ${file} -o ${script_dir}/programs/firmware.sv
 	fi
 	iverilog -g2012 -o ${1}UT -s ${1}_tb DekatronPC/tests/${1}.sv/${1}_tb.sv $DPCfiles
 	./${1}UT
@@ -83,7 +83,7 @@ veremul() {
 	files=$(cat ${1})
 	bf_file=${2}
 
-	python ${script_dir}/programs/generate_rom.py -f ${bf_file} -o ${script_dir}/programs/firmware.sv
+	python3 ${script_dir}/programs/generate_rom.py -f ${bf_file} -o ${script_dir}/programs/firmware.sv
 	verilator -Wall ${COVERAGE} ${TRACE} --top DekatronPC --cc ${files} \
 	../libdpcrun.a  -DEMULATOR=1\
 	--timescale 1us/1ns \
@@ -110,8 +110,8 @@ synt() {
 
 parse_params "$@"
 
-python ${script_dir}/Functions/TableGenerate.py -d ${script_dir}/Functions
-python ${script_dir}/programs/generate_rom.py -f programs/looptest/looptest.bfk -o ${script_dir}/programs/firmware.sv
+python3 ${script_dir}/Functions/TableGenerate.py -d ${script_dir}/Functions
+python3 ${script_dir}/programs/generate_rom.py -f programs/looptest/looptest.bfk -o ${script_dir}/programs/firmware.sv
 
 if [ ${sim} -ne 0 ]; then	
 
@@ -142,7 +142,9 @@ if [ ${sim} -ne 0 ]; then
 	
 	#veremul DPC.files programs/pi/pi.bfk
 
-	veremul DPC.files programs/rot13/rot13.bfk
+	veremul DPC.files programs/fractal.bfk
+
+	#veremul DPC.files programs/rot13/rot13.bfk
 
 	if [ ! -d vcd ]; then
 		mkdir vcd

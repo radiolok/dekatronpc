@@ -1,5 +1,5 @@
 {
-   "creator": "Yosys 0.29+42 (git sha1 43b807fe6, clang 14.0.0-1ubuntu1 -fPIC -Os)",
+   "creator": "Yosys 0.27+30 (git sha1 101075611, gcc 9.4.0-1ubuntu1~20.04.1 -fPIC -Os)",
    "invocation": "stat -liberty vtube_cells.lib -json ",
    "modules": {
       "$paramod$1a1eb2ccf25cb6dbc46f6c871807a872b8f2c260\\DekatronCounter": {
