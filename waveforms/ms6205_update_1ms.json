@@ -1,0 +1,36 @@
+{signal: [
+  {name : 'clk', wave: 'p............'},
+  {name : 'AnodeNum++', wave: '010..........'},
+  ['Demux lines',
+   {name : 'Cathodes', wave: '01.0.........'},
+  {name : 'Anodes', wave: '0..1.0.......'},  
+  {name : 'Keyboard', wave: '0....1.0.....'},
+   {name : 'MS6205_Address', wave: '0......1.0...'},
+   {name : 'MS6205_data', wave: '0........1.0.'},
+ 	],
+   {name : 'Data', wave: 'x3.4.5.7.8.x.', data : ["Cathode X2", "Anode", "Kb Line", "MsAddress", "MsData"]},
+  ['IN12',
+   {name : 'CathodeWrite', wave: '0.10.........'},
+  {name : 'AnodeWrite', wave: '0...10.......'},
+   ],
+     ['Keyboard',
+  {name : 'KbRead', wave: '010..........'},
+  {name : 'KbWrite', wave: '0.....10.....'},
+   ],
+   ['MS6205',
+  {name : 'MsWriteAddr', wave: '1.......01...'},
+  {name : 'MsWriteData', wave: '1.........01.'},
+   ],
+],
+   
+  head:{
+   text:'MS6205 demux diagram'
+ },
+ foot:{
+   text:'1ms Update cycle begin',
+   tock:0
+ },
+  
+  }
+
+
