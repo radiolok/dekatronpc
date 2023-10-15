@@ -21,3 +21,5 @@ vhdl/share/
 *_ilang.txt
 *.svg
 *.txt
+*.o
+*.a

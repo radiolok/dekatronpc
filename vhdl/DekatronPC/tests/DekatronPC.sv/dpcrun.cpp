@@ -82,7 +82,10 @@ int stepCpp(CppMachine& machine){
 			--(*(machine.dataRAM));
 			break;
 		case '.':
-			std::cerr << *(machine.dataRAM) << std::endl;
+			std::cerr << *(machine.dataRAM);
+			break;
+		case '0':
+			(*(machine.dataRAM)) = 0;
 			break;
 		case ',':
 			std::cin >> *(machine.dataRAM);
@@ -119,7 +122,9 @@ int ExecCode(char* code, size_t size, int stepMode)
     {
 		stepCpp(machine);
     }
+#ifdef EXEC
     std::cout << "IRET:" << machine.IRET << std::endl;
+#endif
     return 0;
 }
 

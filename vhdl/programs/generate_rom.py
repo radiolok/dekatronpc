@@ -28,7 +28,7 @@ def Generate(filePath, resultPath, args):
     if fileSize == 0:
         return -1
     sv.write("module firmware #(\n")
-    sv.write(f"//{bfk.name}\n")
+    sv.write("//%s\n" % (bfk.name))
     codeSize = int(str(int(fileSize)), base=16)
     portSize = codeSize.bit_length()
     sv.write("parameter portSize = %d,\n" % (portSize))
