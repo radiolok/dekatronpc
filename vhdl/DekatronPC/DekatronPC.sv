@@ -155,6 +155,8 @@ assign IsHalted = (state == HALT);
 always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
         Cout <= 1'b0;
+        CinReq <= 1'b0;
+        Echo <= 1'b0;
         IpRequest <= 1'b0;
         ApLineDec <= 1'b0;
         ApLineCin <= 1'b0;

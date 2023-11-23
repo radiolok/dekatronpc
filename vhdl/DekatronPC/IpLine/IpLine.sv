@@ -113,6 +113,7 @@ always @(posedge Clk, negedge Rst_n) begin
         IP_Request <= 1'b0;
         Loop_Request <= 1'b0;
         Loop_Dec <= 1'b0;
+        RomRequest <= 1'b0;
         state <= IDLE;
     end
     else begin

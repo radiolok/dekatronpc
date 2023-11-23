@@ -89,8 +89,9 @@ if __name__ == "__main__":
             cells_total[cell] += dpc_modules[module]['cells'][cell]
 
     print("Total cells usage")
+    print(f"Cell\tCount\tTubes")
     for cell in cells_total:
         if cell in vtube_cells:
-            print(cell, cells_total[cell], vtube_cells[cell]*cells_total[cell])
+            print(f"{cell}\t{cells_total[cell]}\t{vtube_cells[cell]*cells_total[cell]}")
 
-    print("Total number of vacuum tubes:", area)
+    print(f"Total\t\t{area}")
