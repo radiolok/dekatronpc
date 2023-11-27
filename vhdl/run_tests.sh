@@ -140,9 +140,9 @@ if [ ${sim} -ne 0 ]; then
 
 	veremul DPC.files ${bf_file}
 	
-	#veremul DPC.files programs/pi/pi.bfk
+	veremul DPC.files programs/pi/pi.bfk
 
-	veremul DPC.files programs/fractal.bfk
+	#veremul DPC.files programs/fractal.bfk
 
 	#veremul DPC.files programs/rot13/rot13.bfk
 
@@ -162,8 +162,12 @@ if [ ${cov} -ne 0 ]; then
 fi
 
 if [ ${synt} -ne 0 ]; then
-	synt DekatronPC
-	python3 dpc_stat.py -j vtube.json -t DekatronPC -l vtube_cells.lib
+	synt IpLine
+	synt ApLine
+	synt InsnDecoder
+	python3 dpc_stat.py -j IpLine.json -t IpLine -l vtube_cells.lib
+	python3 dpc_stat.py -j ApLine.json -t ApLine -l vtube_cells.lib
+	python3 dpc_stat.py -j InsnDecoder.json -t InsnDecoder -l vtube_cells.lib
 fi
 
 if [ ${png} -ne 0 ]; then

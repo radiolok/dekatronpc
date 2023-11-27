@@ -93,6 +93,17 @@ library(vtube_cells_lib) {
             driver_type : pull_up;
              function: "(A+B)'"; }
   }
+  cell(NOR4) {
+    area: 2.5;
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(C) { direction: input; fanout_load: 1.0; }
+    pin(D) { direction: input; fanout_load: 1.0; }
+    pin(Y) { direction: output;
+               max_fanout : 10; 
+            driver_type : pull_up;
+             function: "(A+B+C+D)'"; }
+  }
   cell(LATCH) {
     area: 2.5;
     latch(IQ, IQN) { enable: C;

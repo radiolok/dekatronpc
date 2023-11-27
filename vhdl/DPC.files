@@ -1,4 +1,5 @@
 parameters.sv
+DekatronPC/InsnDecoder.sv
 DekatronPC/IpLine/IpLine.sv
 DekatronPC/ApLine/ApLine.sv
 DekatronPC/IpLine/InsnLoopDetector.sv

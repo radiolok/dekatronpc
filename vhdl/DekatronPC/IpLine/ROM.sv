@@ -55,11 +55,13 @@ assign Ready = ~Request & (state == READY);
 
 wire [DATA_WIDTH-1:0] Data;
 
+// synopsys translate_off
 firmware #(
     .portSize(D_NUM*D_WIDTH)
     )storage(
         .Address(Address),
         .Data(Data));
+// synopsys translate_on
 
 always @(negedge Clk, negedge Rst_n)
     if (~Rst_n) begin

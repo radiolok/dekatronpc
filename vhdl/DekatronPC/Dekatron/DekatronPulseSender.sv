@@ -12,6 +12,7 @@ reg [3:0] Cnt;
 reg Dec;
 wire En = |Cnt;
 
+// synopsys translate_off
 always @(posedge hsClk, negedge Rst_n) begin
 	if (~Rst_n) begin
 		Cnt <= 4'd0;
@@ -43,7 +44,7 @@ wire pB = |CntPos[6:4];
 
 wire PulseRight = Dec? pA : pB;
 wire PulseLeft = Dec? pB : pA;
-
+// synopsys translate_on
 assign Pulses = {PulseRight, PulseLeft};
 
 endmodule

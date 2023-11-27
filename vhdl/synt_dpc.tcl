@@ -18,39 +18,20 @@ foreach line $data {
     }
   }
 }
-# read design
 hierarchy -check
 yosys synth -top [lindex $argv 1]
-#
-# # high-level synthesis
-yosys proc 
-yosys opt 
-yosys memory
-yosys opt
-yosys fsm
-#yosys flatten
-yosys opt
-#
-# # low-level synthesis
-yosys techmap
-yosys opt
-#
 
+yosys proc
+yosys flatten
 set cell_lib "vtube_cells.lib"
-# # map to target architecture
 yosys read_liberty -lib $cell_lib 
 yosys dfflibmap -liberty $cell_lib 
-yosys abc -liberty $cell_lib 
-#
+yosys abc -liberty $cell_lib
 yosys opt
-#
-# # cleanup
 yosys clean
-#
-# # write synthesized design
 yosys write_verilog [lindex $argv 1]_synth.v
 #
 # # show
 yosys show -format dot -lib [lindex $argv 1]_synth.v -prefix [lindex $argv 1]
-yosys tee -o vtube.json stat -liberty $cell_lib -json
+yosys tee -o  [lindex $argv 1].json stat -liberty $cell_lib -json
 #yosys ltp
