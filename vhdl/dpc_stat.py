@@ -2,6 +2,7 @@ import sys
 import json
 import argparse
 import re
+import math
 from liberty.parser import parse_liberty
 
 vtube_cells = {}
@@ -94,4 +95,4 @@ if __name__ == "__main__":
         if cell in vtube_cells:
             print(f"{cell}\t{cells_total[cell]}\t{vtube_cells[cell]*cells_total[cell]}")
 
-    print(f"Total\t\t{area}")
+    print(f"Total\t\t{area} - {math.ceil(area/16)} modules")

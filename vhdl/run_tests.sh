@@ -98,7 +98,6 @@ synt() {
 
 	files_path=${current_dir}/DPC.files
 
-	rm -f *.dot
 	touch ${1}.txt
 	chmod 777 ${1}.txt
 	echo 'tcl '${script_dir}'/synt_dpc.tcl '${files_path}' '${1}'' > ${1}.txt
@@ -162,6 +161,8 @@ if [ ${cov} -ne 0 ]; then
 fi
 
 if [ ${synt} -ne 0 ]; then
+
+	rm -f *.dot
 	synt IpLine
 	synt ApLine
 	synt InsnDecoder
