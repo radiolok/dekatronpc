@@ -1,6 +1,8 @@
 library(vtube_cells_lib) {
   cell(BUF_6N16B) {
     area: 0.5;
+    current_unit : "1mA";
+    heat_current: 200;
     pin(A) { direction: input; fanout_load: 1.0;}
     pin(Y) { direction: output;
               driver_type : pull_up;
@@ -9,6 +11,8 @@ library(vtube_cells_lib) {
   }
   cell(BUF_6J2B) {
     area: 1;
+    current_unit : "1mA";
+    heat_current: 200;
     pin(A) { direction: input; fanout_load: 1.0;}
     pin(Y) { direction: output;
               driver_type : pull_up;
@@ -17,6 +21,8 @@ library(vtube_cells_lib) {
   }
   cell(NOT_6N16B) {
     area: 0.5;
+    current_unit : "1mA";
+    heat_current: 200;
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
               driver_type : pull_up;
@@ -25,6 +31,8 @@ library(vtube_cells_lib) {
   }
   cell(NOT_6J2B) {
     area: 1;
+    current_unit : "1mA";
+    heat_current: 200;
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
               driver_type : pull_up;
@@ -33,6 +41,8 @@ library(vtube_cells_lib) {
   }
   cell(NAND2_N16X7) {
     area: 1.5;
+    current_unit : "1mA";
+    heat_current: 500;
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
@@ -42,6 +52,8 @@ library(vtube_cells_lib) {
   }
   cell(AND4_N16X7) {
     area: 2.5;
+    current_unit : "1mA";
+    heat_current: 800;
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(C) { direction: input; fanout_load: 1.0; }
@@ -53,6 +65,8 @@ library(vtube_cells_lib) {
   }
   cell(AND2_N16X7) {
     area: 1.5;
+    current_unit : "1mA";
+    heat_current: 500;
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
@@ -63,6 +77,8 @@ library(vtube_cells_lib) {
   }
   cell(NAND4_N16X7) {
     area: 2.5;
+    current_unit : "1mA";
+    heat_current: 800;
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(C) { direction: input; fanout_load: 1.0; }
@@ -74,6 +90,8 @@ library(vtube_cells_lib) {
   }
   cell(A1OOI_N16X7){
     area: 2;
+    current_unit : "1mA";
+    heat_current: 700;
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(C) { direction: input; fanout_load: 1.0; }
@@ -84,6 +102,8 @@ library(vtube_cells_lib) {
   }
   cell(A2OOI_N16X7){
     area: 3;
+    current_unit : "1mA";
+    heat_current: 1000; 
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(C) { direction: input; fanout_load: 1.0; }
@@ -95,6 +115,8 @@ library(vtube_cells_lib) {
   }
   cell(OR2_N16) {
     area: 1;
+    current_unit : "1mA";
+    heat_current: 400;
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
@@ -104,6 +126,8 @@ library(vtube_cells_lib) {
   }
   cell(OR2_N16X7) {
     area: 1.5;
+    current_unit : "1mA";
+    heat_current: 500;
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
@@ -113,6 +137,8 @@ library(vtube_cells_lib) {
   }
   cell(OR4_N16X7) {
     area: 2.5;
+    current_unit : "1mA";
+    heat_current: 800;
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(C) { direction: input; fanout_load: 1.0; }
@@ -124,6 +150,8 @@ library(vtube_cells_lib) {
   }
   cell(NOR2_N16) {
     area: 1;
+    current_unit : "1mA";
+    heat_current: 400;
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
@@ -133,6 +161,8 @@ library(vtube_cells_lib) {
   }
   cell(NOR2_N16X7) {
     area: 1.5;
+    current_unit : "1mA";
+    heat_current: 500;
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
@@ -142,6 +172,8 @@ library(vtube_cells_lib) {
   }
   cell(NOR4_N16X7) {
     area: 2.5;
+    current_unit : "1mA";
+    heat_current: 800;
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(C) { direction: input; fanout_load: 1.0; }
@@ -153,6 +185,8 @@ library(vtube_cells_lib) {
   }
   cell(LATCH) {
     area: 2.5;
+    current_unit : "1mA";
+    heat_current: 500;
     latch(IQ, IQN) { enable: C;
                   data_in: D; }
     pin(C) { direction: input; fanout_load: 1.0;
@@ -165,6 +199,8 @@ library(vtube_cells_lib) {
   }
   cell(DFF) {
     area: 3.5;
+    current_unit : "1mA";
+    heat_current: 1200;
     ff(IQ, IQN) { clocked_on: C;
                   next_state: D; }
     pin(C) { direction: input; fanout_load: 1.0;
@@ -177,6 +213,8 @@ library(vtube_cells_lib) {
   }
   cell(DFFSR) {
     area: 3.5;
+    current_unit : "1mA";
+    heat_current: 1500;
     ff(IQ, IQN) {
     next_state : "D" ;
     clocked_on : "C" ;
@@ -194,6 +232,8 @@ library(vtube_cells_lib) {
 
   cell(DFFSR_n) {
     area: 3.5;
+    current_unit : "1mA";
+    heat_current: 1500;
     ff(IQ, IQN) {
     next_state : "D" ;
     clocked_on : "C" ;

@@ -22,7 +22,7 @@ hierarchy -check
 yosys synth -top [lindex $argv 1]
 
 yosys proc
-yosys flatten
+#yosys flatten
 set cell_lib "vtube_cells.lib"
 yosys read_liberty -lib $cell_lib 
 yosys dfflibmap -liberty $cell_lib 

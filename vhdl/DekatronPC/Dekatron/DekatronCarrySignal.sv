@@ -1,5 +1,4 @@
 module DekatronCarrySignal(
-    input wire Rst_n,
     input wire [9:0] In,
     output wire CarryLow,
     output wire CarryHigh,
@@ -18,14 +17,12 @@ wire carryLowRst = carryHighSet | noCarrySet;
 wire carryHighRst = carryLowSet | noCarrySet;
 
 RsLatch carryLowLatch(
-	.Rst_n(Rst_n),
 	.S(carryLowSet),
 	.R(carryLowRst),
 	.Q(CarryLow)
 );
  
 RsLatch carryHighLatch(
-	.Rst_n(Rst_n),
 	.S(carryHighSet),
 	.R(carryHighRst),
 	.Q(CarryHigh)
