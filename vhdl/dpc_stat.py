@@ -100,4 +100,4 @@ if __name__ == "__main__":
             print(f"{cell}\t{cells_total[cell]}\t{vtube_cells[cell][0]*cells_total[cell]}\t{vtube_cells[cell][1]*cells_total[cell]/1000}A")
     current = heat_current/1000
     power = current * 6.3 /1000
-    print(f"Total\t\t{area} - {math.ceil(area/16)} modules, Heat: {current}A ({power:.02f}kW)")
+    print(f"{args.json}:\nTotal\t\t{area} - {math.ceil(area/16)} modules, Heat: {current}A ({power:.02f}kW)")

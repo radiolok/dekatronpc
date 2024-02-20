@@ -22,6 +22,11 @@
 );
 
 wire[9:0] OutPos;
+/* verilator lint_off UNDRIVEN */
+wire[3:0] _Out;
+/* verilator lint_on UNDRIVEN */
+wire writed_n;
+assign Out = Busy ? 4'bX : _Out;
 wire[9:0] InPosDek;
 assign Zero = OutPos[0];
 
@@ -51,6 +56,14 @@ DekatronPulseSender pulseSender(
 	.Pulses(Pulses)
 );
 
+OneShot #(.DELAY(100)
+)oneshot(
+    .Clk(hsClk),
+    .Rst_n(Rst_n),
+    .En(Set),
+    .Impulse(writed_n)
+);
+
 Dekatron dekatron(
     .hsClk(hsClk),
     .Rst_n(Rst_n),
@@ -63,7 +76,7 @@ generate
 if (READ == 1) begin
     BinToBcd binToDbc(
         .In(OutPos),
-        .Out(Out)
+        .Out(_Out)
     );
 end
 endgenerate
@@ -77,6 +90,6 @@ DekatronCarrySignal  dekatronCarrySignal(
     .Busy(BusyDec)
 ); 
 
-assign Busy = BusyDec | |Pulses;
+assign Busy = BusyDec | |Pulses | writed_n;
 
 endmodule

@@ -17,4 +17,5 @@ DekatronPC/DekatronPC.sv
 programs/firmware.sv
 Logic/RsLatch.sv
 Logic/Impulse.sv
+Logic/OneShot.sv
 Logic/ClockDivider.sv
