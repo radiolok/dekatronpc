@@ -18,4 +18,5 @@ programs/firmware.sv
 Logic/RsLatch.sv
 Logic/Impulse.sv
 Logic/OneShot.sv
+Logic/Compare.sv
 Logic/ClockDivider.sv

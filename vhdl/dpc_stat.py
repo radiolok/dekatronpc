@@ -11,7 +11,8 @@ vtube_cells = {}
 known_modules = {
     'Dekatron' : (1, 0),
     'DekatronCarrySignal' : (7.5, 2400),
-    'DekatronPulseSender' : (1.5, 400)
+    'DekatronPulseSender' : (1.5, 400),
+    'OneShot': (1, 400)
 }
 
 statistics_modules = ['\\\\IpLine', '\\\\ApLine', '\\\\DekatronPC']

@@ -50,23 +50,22 @@ library(vtube_cells_lib) {
                max_fanout : 10; 
              function: "(A*B)'"; }
   }
-  cell(AND4_N16X7) {
-    area: 2.5;
-    current_unit : "1mA";
-    heat_current: 800;
-    pin(A) { direction: input; fanout_load: 1.0; }
-    pin(B) { direction: input; fanout_load: 1.0; }
-    pin(C) { direction: input; fanout_load: 1.0; }
-    pin(D) { direction: input; fanout_load: 1.0; }
-    pin(Y) { direction: output;
-               max_fanout : 10; 
-            driver_type : pull_up;
-             function: "(A*B*C*D)"; }
-  }
   cell(AND2_N16X7) {
     area: 1.5;
     current_unit : "1mA";
     heat_current: 500;
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(Y) { direction: output;
+            driver_type : pull_up;
+               max_fanout : 10; 
+             function: "(A*B)"; }
+
+  }
+  cell(AND2_J2) {
+    area: 1;
+    current_unit : "1mA";
+    heat_current: 200;
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
@@ -158,6 +157,19 @@ library(vtube_cells_lib) {
                max_fanout : 10; 
             driver_type : pull_up;
              function: "(A+B)'"; }
+  }
+  cell(NOR4_N16) {
+    area: 2;
+    current_unit : "1mA";
+    heat_current: 800;
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(C) { direction: input; fanout_load: 1.0; }
+    pin(D) { direction: input; fanout_load: 1.0; }
+    pin(Y) { direction: output;
+               max_fanout : 10; 
+            driver_type : pull_up;
+             function: "(A+B+C+D)'"; }
   }
   cell(NOR2_N16X7) {
     area: 1.5;
