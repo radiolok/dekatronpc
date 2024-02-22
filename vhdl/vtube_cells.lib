@@ -62,7 +62,7 @@ library(vtube_cells_lib) {
              function: "(A*B)"; }
 
   }
-  cell(AND2_J2) {
+  cell(NAND2_J2) {
     area: 1;
     current_unit : "1mA";
     heat_current: 200;
@@ -71,7 +71,7 @@ library(vtube_cells_lib) {
     pin(Y) { direction: output;
             driver_type : pull_up;
                max_fanout : 10; 
-             function: "(A*B)"; }
+             function: "(A*B)'"; }
 
   }
   cell(NAND4_N16X7) {
@@ -212,7 +212,7 @@ library(vtube_cells_lib) {
   cell(DFF) {
     area: 3.5;
     current_unit : "1mA";
-    heat_current: 1200;
+    heat_current: 8500;
     ff(IQ, IQN) { clocked_on: C;
                   next_state: D; }
     pin(C) { direction: input; fanout_load: 1.0;
@@ -226,7 +226,7 @@ library(vtube_cells_lib) {
   cell(DFFSR) {
     area: 3.5;
     current_unit : "1mA";
-    heat_current: 1500;
+    heat_current: 850;
     ff(IQ, IQN) {
     next_state : "D" ;
     clocked_on : "C" ;
@@ -245,7 +245,7 @@ library(vtube_cells_lib) {
   cell(DFFSR_n) {
     area: 3.5;
     current_unit : "1mA";
-    heat_current: 1500;
+    heat_current: 850;
     ff(IQ, IQN) {
     next_state : "D" ;
     clocked_on : "C" ;

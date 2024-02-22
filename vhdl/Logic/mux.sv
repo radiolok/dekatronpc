@@ -1,13 +1,15 @@
+/* verilator lint_off DECLFILENAME */
 module mux_2w 
 #(
     parameter WIDTH=1
 )(
-    input [WIDTH-1:0] d0, d1,
-    input sel,
-    output [WIDTH-1:0] y
+    output [WIDTH-1:0] y,
+    input sel, 
+    input [WIDTH-1:0] t, 
+    input [WIDTH-1:0] f
 );
 
-assign y = sel ? d1 : d0;
+assign y = sel ? t : f;
 
 endmodule
 
@@ -172,6 +174,5 @@ generate
     assign out[((i+1)*DATA_WIDTH)-1: (i*DATA_WIDTH)] = sel==i ? in : {DATA_WIDTH{1'bZ}};
   end
 endgenerate
-
-
 endmodule
+/* verilator lint_on DECLFILENAME */

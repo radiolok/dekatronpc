@@ -163,12 +163,11 @@ fi
 if [ ${synt} -ne 0 ]; then
 
 	rm -f *.dot
+	synt Compare
 	synt IpLine
 	synt ApLine
 	synt InsnDecoder
-	python3 dpc_stat.py -j IpLine.json -t IpLine -l vtube_cells.lib
-	python3 dpc_stat.py -j ApLine.json -t ApLine -l vtube_cells.lib
-	python3 dpc_stat.py -j InsnDecoder.json -t InsnDecoder -l vtube_cells.lib
+	python3 dpc_stat.py -j IpLine.json,ApLine.json,InsnDecoder.json -l vtube_cells.lib
 fi
 
 if [ ${png} -ne 0 ]; then
