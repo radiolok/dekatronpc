@@ -1,8 +1,7 @@
 module DekatronCarrySignal(
     input wire [9:0] In,
     output wire CarryLow,
-    output wire CarryHigh,
-	output wire Busy
+    output wire CarryHigh
 ); 
 /*This module generates carry signal for full 10-position width dekatron*/
 
@@ -10,8 +9,6 @@ module DekatronCarrySignal(
 wire carryLowSet = In[0];
 wire noCarrySet = |In[8:1];
 wire carryHighSet = In[9];
-
-assign Busy = ~(carryLowSet | noCarrySet | carryHighSet);
 
 wire carryLowRst = carryHighSet | noCarrySet;
 wire carryHighRst = carryLowSet | noCarrySet;

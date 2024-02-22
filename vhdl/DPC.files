@@ -6,6 +6,7 @@ DekatronPC/IpLine/InsnLoopDetector.sv
 DekatronPC/Dekatron/BcdToBin.v
 DekatronPC/Dekatron/BinToBcd.v
 DekatronPC/Dekatron/Dekatron.sv
+DekatronPC/Dekatron/DekatronWriteAmp.sv
 DekatronPC/Dekatron/DekatronCarrySignal.sv
 DekatronPC/Dekatron/DekatronCounter.sv
 DekatronPC/Dekatron/DekatronModule.sv

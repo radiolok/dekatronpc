@@ -112,6 +112,18 @@ always_comb begin
 				else next = IDLE;
 			end
 		end
+		SET_TOP: begin
+			if ( writed_n)
+				next = SET_TOP;
+		end
+		SET_ZERO: begin
+			if (writed_n)
+				next = SET_ZERO;
+		end
+		SET: begin
+			if (writed_n)
+				next = SET;
+		end
 		default:
 			next = IDLE;
 	endcase
@@ -137,6 +149,23 @@ Impulse pulsesImpInc(
 		.Impulse(Pulses[0])
 	);
 
+wire write_set;
+Impulse writeimpulse(
+		.Clk(Clk),
+		.Rst_n(Rst_n),
+		.En(state[2]),
+		.Impulse(write_set)
+	);
+
+wire writed_n;
+OneShot #(.DELAY(100)
+)writeOneShot(
+    .Clk(hsClk),
+    .Rst_n(Rst_n),
+    .En(write_set),
+    .Impulse(writed_n)
+);
+
 generate
 genvar d;
 for (d = 0; d < D_NUM; d++) begin: dek
@@ -159,7 +188,7 @@ for (d = 0; d < D_NUM; d++) begin: dek
 	)dModule (
 		.Rst_n(Rst_n),
 		.hsClk(hsClk),
-		.Set(state[2]),
+		.Set(writed_n),
 		.PulseR(pulses[1]),
 		.PulseF(pulses[0]),
 		.In(DataToDeks[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),

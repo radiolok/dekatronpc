@@ -1,0 +1,14 @@
+#!/bin/bash
+set -Eeuo pipefail
+
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
+
+current_dir=$(realpath $(pwd))
+
+files_path=${script_dir}/DPC.files
+
+touch ${1}.txt
+chmod 777 ${1}.txt
+echo 'tcl '${script_dir}'/synt_dpc.tcl '${files_path}' '${1}'' > ${1}.txt
+cat ${1}.txt
+yosys < ${1}.txt

@@ -60,17 +60,6 @@ parse_params() {
   return 0
 }
 
-emul() {
-	current_dir=$(pwd)
-	echo "${1} Test"
-	if [ $# -ge 2 ]; then
-		file=${2}
-		python3 ${script_dir}/programs/generate_rom.py -f ${file} -o ${script_dir}/programs/firmware.sv
-	fi
-	iverilog -g2012 -o ${1}UT -s ${1}_tb DekatronPC/tests/${1}.sv/${1}_tb.sv $DPCfiles
-	./${1}UT
-}
-
 veremul() {
 	#Warning: trace gives ~10% slowdown
 	TRACE="--trace -DSIM_TRACE"
@@ -93,20 +82,6 @@ veremul() {
 	./obj_dir/VDekatronPC -f ${bf_file}
 }
 
-synt() {
-	current_dir=$(pwd)
-
-	files_path=${current_dir}/DPC.files
-
-	touch ${1}.txt
-	chmod 777 ${1}.txt
-	echo 'tcl '${script_dir}'/synt_dpc.tcl '${files_path}' '${1}'' > ${1}.txt
-	cat ${1}.txt
-	yosys < ${1}.txt
-	cd ${current_dir}
-
-}
-
 parse_params "$@"
 
 python3 ${script_dir}/Functions/TableGenerate.py -d ${script_dir}/Functions
@@ -122,13 +97,13 @@ if [ ${sim} -ne 0 ]; then
 
 	verilator --top-module DekatronPC --lint-only  -Wall ${DPCfiles}
 	
-	emul Dekatron
+	./emul Dekatron
 
-	emul Counter
+	./emul Counter
 
-	emul IpLine programs/looptest/looptest.bfk
+	./emul IpLine programs/looptest/looptest.bfk
 
-	emul ApLine
+	./emul ApLine
 
 	bf_file=programs/helloworld/helloworld.bfk
 
@@ -163,10 +138,9 @@ fi
 if [ ${synt} -ne 0 ]; then
 
 	rm -f *.dot
-	synt Compare
-	synt IpLine
-	synt ApLine
-	synt InsnDecoder
+	./synth IpLine
+	./synth ApLine
+	./synth InsnDecoder
 	python3 dpc_stat.py -j IpLine.json,ApLine.json,InsnDecoder.json -l vtube_cells.lib
 fi
 

@@ -12,6 +12,7 @@ reg Rst_n;
 wire PulseRight;
 wire PulseLeft;
 reg [WIDTH-1:0] In;
+wire [WIDTH-1:0] In_n = ~In;
 wire[WIDTH-1:0] Out;
 
 wire Ready = |Out & ~PulseLeft & ~PulseRight;
@@ -85,7 +86,7 @@ DekatronPulseSender pulseSender(
 Dekatron  dek(
     .hsClk(hsClk),
     .Pulses(PulsesRL),
-    .In(In),
+    .In_n(In_n),
     .Out(Out)
 );
 

@@ -2,13 +2,15 @@ module Dekatron(
     input wire hsClk,
     input wire Rst_n,
     input wire [1:0] Pulses,
-    input wire [9:0] In,
+    input wire [9:0] In_n,
     output wire [9:0] Out
 );
 
 // synopsys translate_off
 //Main wire state:
 reg [29:0] Cathodes;
+
+wire [9:0] In = ~In_n;
 
 //Multiplexed state signals:
 
