@@ -124,7 +124,6 @@ assign Ready = ~Request & ~(|DekatronBusy) & (state == IDLE);
 wire PulseR = (state == DEC);
 wire PulseF = (state == INC);
 wire [1:0] Pulses;
-
 Impulse pulsesImpDec(
 		.Clk(Clk),
 		.Rst_n(Rst_n),
@@ -143,7 +142,7 @@ wire write_set;
 Impulse writeimpulse(
 		.Clk(Clk),
 		.Rst_n(Rst_n),
-		.En(SetAny),
+		.En(state[2]),
 		.Impulse(write_set)
 	);
 
