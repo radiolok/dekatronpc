@@ -32,7 +32,7 @@ module DekatronCounter #(
 
 wire _Request;
 
-Impulse #(.EDGE(1'b1)) reqPulse(
+Impulse reqPulse(
 	.Rst_n(Rst_n),
 	.Clk(Clk),
 	.En(Request),
@@ -46,8 +46,6 @@ wire [D_NUM-1:0] TopOut;
 wire [D_NUM-1:0] DekatronBusy;
 
 assign Zero = &Zeroes;
-
-reg [WIDTH-1:0] DataToDeks;
 
 localparam [2:0] 
 		IDLE = 3'b000,
@@ -82,14 +80,6 @@ end
 assign SetAny = Set | SetTop | SetZeroInt | SetZero;
 
 endgenerate
-
-always_comb begin
-	case (state)
-		SET_TOP: DataToDeks = TOP_VALUE;
-		SET_ZERO: DataToDeks = {WIDTH{1'b0}};
-		default: DataToDeks = In;
-	endcase
-end
 
 always_comb begin
 	next = IDLE;
@@ -153,7 +143,7 @@ wire write_set;
 Impulse writeimpulse(
 		.Clk(Clk),
 		.Rst_n(Rst_n),
-		.En(state[2]),
+		.En(SetAny),
 		.Impulse(write_set)
 	);
 
@@ -166,11 +156,20 @@ OneShot #(.DELAY(100)
     .Impulse(writed_n)
 );
 
+wire [2:0] SetTopZero;
+
+assign SetTopZero[0] = ((state == SET_ZERO) & writed_n);
+assign SetTopZero[1] = ((state == SET_TOP) & writed_n);
+assign SetTopZero[2] = ((state == SET) & writed_n);
+
+
 generate
 genvar d;
 for (d = 0; d < D_NUM; d++) begin: dek
 	wire CarryLow;
 	wire CarryHigh;
+	reg CarryLowReg;
+	reg CarryHighReg;
 	wire [1:0] pulses;
 	/* verilator lint_off UNUSEDSIGNAL */
 	wire [1:0] npulses;
@@ -181,26 +180,39 @@ for (d = 0; d < D_NUM; d++) begin: dek
 	else begin
 		assign pulses = dek[d-1].npulses;
 	end
+
 	DekatronModule #(
 		.READ(READ),
 		.WRITE(WRITE),
+		.TOP_LIMIT_MODE(TOP_LIMIT_MODE),
 		.TOP_PIN_OUT(TOP_VALUE[(d+1)*DEKATRON_WIDTH-1:d*DEKATRON_WIDTH])
 	)dModule (
 		.Rst_n(Rst_n),
 		.hsClk(hsClk),
-		.Set(writed_n),
+		.Set(SetTopZero),
 		.PulseR(pulses[1]),
 		.PulseF(pulses[0]),
-		.In(DataToDeks[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),
+		.In(In[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),
 		.Out(Out[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),
 		.Zero(Zeroes[d]),
 		.TopPin(TopOut[d]),
 		.CarryLow(CarryLow),
-		.CarryHigh(CarryHigh),
-		.Busy(DekatronBusy[d])
+		.CarryHigh(CarryHigh)
 	);
+	assign DekatronBusy[d] = |pulses |  |SetTopZero;
 
-	assign npulses = ((CarryHigh & (state == INC)) | (CarryLow & (state == DEC))) ? 
+	always @(posedge Clk, negedge Rst_n) begin
+		if (~Rst_n) begin
+			CarryLowReg <= 1'b0;
+			CarryHighReg <= 1'b0;
+		end
+		else begin
+			CarryLowReg <= CarryLow;
+			CarryHighReg <= CarryHigh;
+		end
+	end
+
+	assign npulses = ((CarryHighReg & (state == INC)) | (CarryLowReg & (state == DEC))) ? 
 						pulses : 2'b0;
 end
 endgenerate

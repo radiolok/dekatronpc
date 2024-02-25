@@ -1,13 +1,14 @@
 (* keep_hierarchy = "yes" *) module DekatronModule #(
     parameter READ = 1'b1,
-    parameter WRITE = 1'b1,
+    parameter WRITE = 1'd1,
+    parameter TOP_LIMIT_MODE=1'd1,
     parameter TOP_PIN_OUT = 4'd9
 )(
     input wire Rst_n,
     input wire hsClk,
 /* verilator lint_off UNUSEDSIGNAL */
     input wire[3:0] In,
-    input wire Set,
+    input wire [2:0] Set,//{Set, SetTop, SetZero}
 /* verilator lint_on UNUSEDSIGNAL */
     input wire PulseF,
     input wire PulseR,
@@ -17,25 +18,40 @@
     output wire Zero,
     output wire TopPin,
     output wire CarryLow,
-    output wire CarryHigh,
-    output wire Busy
+    output wire CarryHigh
 );
 
 wire[9:0] OutPos;
+wire[9:0] _OutPos;
 wire[9:0] InPosDek_n;
 assign Zero = OutPos[0];
 
 generate
-if (WRITE == 1) begin
+    genvar idx;
+if (WRITE == 1) begin : Writing
     wire [9:0] InPos;
-    BcdToBin bcdToBin(
+    BcdToBin_n bcdToBin(
         .In(In),
-        .Out(InPos)
+        .Out_n(InPos)
     );
-    assign InPosDek_n = Set ? ~InPos : {(10){1'b1}};
+    for (idx = 0; idx < 10; idx += 1) begin
+        if (idx == 0)
+            assign InPosDek_n[idx] = ~((Set[2] & ~InPos[idx]) | Set[0]);
+        else if ((TOP_LIMIT_MODE == 1) & (idx == TOP_PIN_OUT))
+            assign InPosDek_n[idx] = ~((Set[2] & ~InPos[idx]) | Set[1]);
+        else
+            assign InPosDek_n[idx] = ~(Set[2] & ~InPos[idx]);
+    end
 end
 else begin
-    assign InPosDek_n = {(10){1'b1}};
+    for (idx = 0; idx < 10; idx += 1) begin
+        if (idx == 0)
+            assign InPosDek_n[idx] = ~Set[0];
+        else if ((TOP_LIMIT_MODE == 1) & (idx == TOP_PIN_OUT))
+            assign InPosDek_n[idx] = ~Set[1];
+        else
+            assign InPosDek_n[idx] = 1'b1;
+    end
 end
 endgenerate
 
@@ -56,24 +72,30 @@ Dekatron dekatron(
     .Rst_n(Rst_n),
 	.Pulses(Pulses),
     .In_n(InPosDek_n),
-    .Out(OutPos)
+    .Out(_OutPos)
 );
 
+assign OutPos = (~(|_OutPos) | (|Pulses)) ? 10'bx : _OutPos;
 generate
-if (READ == 1) begin
+if (READ == 1) begin : Reading
     BinToBcd binToDbc(
         .In(OutPos),
         .Out(Out)
     );
+    if (WRITE == 1) begin : Equalty
+    /* verilator lint_off UNUSEDSIGNAL */
+        wire Equal;
+    /* verilator lint_on UNUSEDSIGNAL */
+        Compare compare(
+            .a(Out),
+            .b(In),
+            .eq(Equal)
+        );
+    end
 end
 endgenerate
 
-DekatronCarrySignal  dekatronCarrySignal(
-    .In(OutPos),
-    .CarryLow(CarryLow),
-    .CarryHigh(CarryHigh)
-); 
-
-assign Busy = PulseF | PulseR | Set;
+assign CarryLow = OutPos[0];
+assign CarryHigh = OutPos[9];
 
 endmodule

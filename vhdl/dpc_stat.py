@@ -121,9 +121,9 @@ if __name__ == "__main__":
         if len(_item) < 10:
             _item += "\t"
         print(f"{_item}\t\t{_area}\
-          {math.ceil(_area/16)}\t{_heat}A ({_power:.02f}kW)")
+          {math.ceil(_area/16)}\t{_heat}A ({_power/1000:.02f}kW)")
 
     print(f"=======================================================================")
     print(f"Total\t\t\t{AREA}\
-          {math.ceil(AREA/16)}\t{HEAT_CURRENT:.02f}A ({(HEAT_CURRENT*6.3):.02f}kW)")
+          {math.ceil(AREA/16)}\t{HEAT_CURRENT:.02f}A ({(HEAT_CURRENT*6.3/1000):.02f}kW)")
     

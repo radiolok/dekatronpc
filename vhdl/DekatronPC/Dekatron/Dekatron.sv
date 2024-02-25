@@ -10,7 +10,8 @@ module Dekatron(
 //Main wire state:
 reg [29:0] Cathodes;
 
-wire [9:0] In = ~In_n;
+wire [9:0] In = ~In_n;//3FF if not write
+wire toWrite = |In;
 
 //Multiplexed state signals:
 
@@ -56,19 +57,60 @@ always @(posedge hsClk, negedge Rst_n)
     end
     else
         if (Pulses[0]) begin
-            Cathodes <= (|In) ? InLong : 
+            Cathodes <= (toWrite) ? InLong : 
                 CathodeGlow ? {Cathodes[28:0], Cathodes[29]} :
                         GuideLeftGlow ? {Cathodes[0], Cathodes[29:1]} : Cathodes;
         end
         else if (Pulses[1]) begin
-            Cathodes <= (|In) ? InLong : 
+            Cathodes <= (toWrite) ? InLong : 
                 CathodeGlow ? {Cathodes[0], Cathodes[29:1]}:
                 GuideRightGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
         end
         else begin
-            Cathodes <= (|In) ? InLong : GuideRightGlow ? {Cathodes[0], Cathodes[29:1]}:
+            Cathodes <= (toWrite) ? InLong : GuideRightGlow ? {Cathodes[0], Cathodes[29:1]}:
             GuideLeftGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
         end
  end
 // synopsys translate_on
 endmodule
+
+/* verilator lint_off DECLFILENAME */
+module DekatronWr#(
+    parameter TOP_WR = 1'b1,
+    parameter TOP_PIN_OUT = 4'd5
+)(
+    input wire hsClk,
+    input wire Rst_n,
+    input wire [1:0] Pulses,
+    input wire [TOP_WR:0] Set,
+    output wire [9:0] Out
+);
+wire [9:0] InPosDek_n;
+
+generate
+genvar idx;
+for (idx = 0; idx < 10; idx += 1) begin
+    if (idx == 0) begin
+        if (TOP_WR == 1) 
+            assign InPosDek_n[idx] = Set[1];
+        else
+            assign InPosDek_n[idx] = ~Set[0];
+    end
+    else if ((TOP_WR == 1) & (idx == TOP_PIN_OUT)) begin
+        assign InPosDek_n[idx] = Set[0];
+    end
+    else begin
+        assign InPosDek_n[idx] = |Set;
+    end
+end
+endgenerate
+
+Dekatron dekatron(
+    .hsClk(hsClk),
+    .Rst_n(Rst_n),
+	.Pulses(Pulses),
+    .In_n(InPosDek_n),
+    .Out(Out)
+);
+endmodule
+/* verilator lint_on DECLFILENAME */

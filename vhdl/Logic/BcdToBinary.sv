@@ -31,6 +31,31 @@ always @(*)
     endcase
 endmodule
 
+module BcdToBinEn(
+    input wire [3:0] In,//8-4-2-1
+    input wire En,
+    output wire [9:0] Out//position
+);
+
+output reg [9:0] _Out//position
+assign Out = En ? _Out : 10'd0;
+
+always @(*)
+    case (In)
+        4'b0000: _Out = 10'b0000000001;
+        4'b0001: _Out = 10'b0000000010;
+        4'b0010: _Out = 10'b0000000100;
+        4'b0011: _Out = 10'b0000001000;
+        4'b0100: _Out = 10'b0000010000;
+        4'b0101: _Out = 10'b0000100000;
+        4'b0110: _Out = 10'b0001000000;
+        4'b0111: _Out = 10'b0010000000;
+        4'b1000: _Out = 10'b0100000000;
+        4'b1001: _Out = 10'b1000000000;
+        default: _Out = 10'b0000000000;
+    endcase
+endmodule
+
 module BcdToBinV2(
     input wire [3:0] In,//8-4-2-1
     output wire [9:0] Out//position

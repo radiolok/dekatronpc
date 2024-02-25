@@ -50,7 +50,6 @@ DekatronCounter  #(.D_NUM(DEKATRON_NUM),
 
 initial begin $dumpfile("Counter_tb.vcd"); 
 $dumpvars(0, Counter_tb); end
-
 initial begin
     Dec <= 0;
     Set <= 1;
@@ -66,13 +65,13 @@ initial begin
         repeat(1) @(posedge Request)
         repeat(1) @(posedge Ready)
         $display("test %d: Out: %x. REF: %d", i, Out, REF);
-        if (REF % 10 != Out[3:0]) begin
+        if ((REF % 10 != Out[3:0])|(^Out[3:0] === 1'bx)) begin
             $fatal(1, "Counter0 Up Failure REF: %d Out: %d", REF % 10, Out[3:0]);
         end
-        if ((REF/10) % 10 != Out[7:4]) begin
+        if (((REF/10) % 10 != Out[7:4])|(^Out[7:4] === 1'bx)) begin
             $fatal(1, "Counter1 Up Failure REF: %d Out: %d", (REF/10) % 10, Out[7:4]);
         end
-        if ((REF/100) % 10 != Out[11:8]) begin
+        if (((REF/100) % 10 != Out[11:8])|(^Out[11:8] === 1'bx)) begin
             $fatal(1, "Counter2 Up Failure REF: %d Out: %d", (REF/100) % 10, Out[11:8]);
         end        
     end
@@ -83,13 +82,13 @@ initial begin
         repeat(1) @(posedge Request)
         repeat(1) @(posedge Ready)
         $display("test %d: Out: %x. REF: %d", i, Out, REF);
-        if (REF % 10 != Out[3:0]) begin
+        if ((REF % 10 != Out[3:0])|(^Out[3:0] === 1'bx)) begin
             $fatal(1, "Counter0 Down Failure REF: %d Out: %d", REF % 10, Out[3:0]);
         end
-        if ((REF/10) % 10 != Out[7:4]) begin
+        if (((REF/10) % 10 != Out[7:4])|(^Out[7:4] === 1'bx)) begin
             $fatal(1, "Counter1 Down Failure REF: %d Out: %d", (REF/10) % 10, Out[7:4]);
         end
-        if ((REF/100) % 10 != Out[11:8]) begin
+        if (((REF/100) % 10 != Out[11:8])|(^Out[11:8] === 1'bx)) begin
             $fatal(1, "Counter2 Down Failure REF: %d Out: %d", (REF/100) % 10, Out[11:8]);
         end
     end

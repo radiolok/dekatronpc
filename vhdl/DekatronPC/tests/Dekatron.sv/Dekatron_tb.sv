@@ -12,7 +12,7 @@ reg Rst_n;
 wire PulseRight;
 wire PulseLeft;
 reg [WIDTH-1:0] In;
-wire [WIDTH-1:0] In_n = ~In;
+wire [WIDTH-1:0] In_n = (|In) ? ~In : {10{1'b1}};
 wire[WIDTH-1:0] Out;
 
 wire Ready = |Out & ~PulseLeft & ~PulseRight;

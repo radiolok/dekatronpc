@@ -112,13 +112,13 @@ for (integer i = 0; i < 155; i++) begin
   repeat(1) @(posedge ApLineReady)
   DataRequest <= 0;
   if (REFD0 % 10 != Data[3:0]) begin
-    $fatal(1, "Counter0 Failure REF: %d Out: %d", REFD0 % 10, Data[3:0]);
+    $fatal(1, "DataCounter0 Failure REF: %d Out: %d", REFD0 % 10, Data[3:0]);
   end
   if ((REFD0/10) % 10 != Data[7:4]) begin
-    $fatal(1, "Counter1 Failure REF: %d Out: %d", (REFD0/10) % 10, Data[7:4]);
+    $fatal(1, "DataCounter1 Failure REF: %d Out: %d", (REFD0/10) % 10, Data[7:4]);
   end
   if ((REFD0/100) % 10 != Data[11:8]) begin
-    $fatal(1, "Counter2 Failure REF: %d Out: %d", (REFD0/100) % 10, Data[11:8]);
+    $fatal(1, "DataCounter2 Failure REF: %d Out: %d", (REFD0/100) % 10, Data[11:8]);
   end 
 end
 //Addr = 155
@@ -131,13 +131,13 @@ for (integer i = 0; i < 155; i++) begin
   repeat(1) @(posedge ApLineReady)
   ApRequest <= 0;
   if (REFADDR % 10 != ApAddress[3:0]) begin
-    $fatal(1, "Counter0 Failure REF: %d Out: %d", REFADDR % 10, ApAddress[3:0]);
+    $fatal(1, "APCounter0 Failure REF: %d Out: %d", REFADDR % 10, ApAddress[3:0]);
   end
   if ((REFADDR/10) % 10 != ApAddress[7:4]) begin
-    $fatal(1, "Counter1 Failure REF: %d Out: %d", (REFADDR/10) % 10, ApAddress[7:4]);
+    $fatal(1, "APCounter1 Failure REF: %d Out: %d", (REFADDR/10) % 10, ApAddress[7:4]);
   end
   if ((REFADDR/100) % 10 != ApAddress[11:8]) begin
-    $fatal(1, "Counter2 Failure REF: %d Out: %d", (REFADDR/100) % 10, ApAddress[11:8]);
+    $fatal(1, "APCounter2 Failure REF: %d Out: %d", (REFADDR/100) % 10, ApAddress[11:8]);
   end 
 end
 //Addr 10 - Data + 17
@@ -150,13 +150,13 @@ for (integer i = 0; i < 17; i++) begin
   repeat(1) @(posedge ApLineReady)
   DataRequest <= 0;
   if (REFD155 % 10 != Data[3:0]) begin
-    $fatal(1, "Counter0 Failure REF: %d Out: %d", REFD155 % 10, Data[3:0]);
+    $fatal(1, "DataCounter0 Failure REF: %d Out: %d", REFD155 % 10, Data[3:0]);
   end
   if ((REFD155/10) % 10 != Data[7:4]) begin
-    $fatal(1, "Counter1 Failure REF: %d Out: %d", (REFD155/10) % 10, Data[7:4]);
+    $fatal(1, "DataCounter1 Failure REF: %d Out: %d", (REFD155/10) % 10, Data[7:4]);
   end
   if ((REFD155/100) % 10 != Data[11:8]) begin
-    $fatal(1, "Counter2 Failure REF: %d Out: %d", (REFD155/100) % 10, Data[11:8]);
+    $fatal(1, "DataCounter2 Failure REF: %d Out: %d", (REFD155/100) % 10, Data[11:8]);
   end   
 end
 
@@ -172,13 +172,13 @@ for (integer i = 0; i < 155; i++) begin
   repeat(1) @(posedge ApLineReady)
   ApRequest <= 0;
   if (REFADDR % 10 != ApAddress[3:0]) begin
-    $fatal(1, "Counter0 Failure REF: %d Out: %d", REFADDR % 10, ApAddress[3:0]);
+    $fatal(1, "APCounter0 Failure REF: %d Out: %d", REFADDR % 10, ApAddress[3:0]);
   end
   if ((REFADDR/10) % 10 != ApAddress[7:4]) begin
-    $fatal(1, "Counter1 Failure REF: %d Out: %d", (REFADDR/10) % 10, ApAddress[7:4]);
+    $fatal(1, "APCounter1 Failure REF: %d Out: %d", (REFADDR/10) % 10, ApAddress[7:4]);
   end
   if ((REFADDR/100) % 10 != ApAddress[11:8]) begin
-    $fatal(1, "Counter2 Failure REF: %d Out: %d", (REFADDR/100) % 10, ApAddress[11:8]);
+    $fatal(1, "APCounter2 Failure REF: %d Out: %d", (REFADDR/100) % 10, ApAddress[11:8]);
   end 
 end
 

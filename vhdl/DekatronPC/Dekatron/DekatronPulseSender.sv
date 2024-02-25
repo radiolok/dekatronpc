@@ -8,42 +8,35 @@ module DekatronPulseSender(
 );
 
 // This model of pulse Sender not represent real hw area consumption
-reg [3:0] Cnt;
-reg Dec;
-wire En = |Cnt;
+wire Dec;
+wire pA;
+wire OS_2;
+wire OS_3;
+wire [1:0] _Pulses;
+Impulse pulsesImpInc(
+		.Clk(hsClk),
+		.Rst_n(Rst_n),
+		.En(PulseF),
+		.Impulse(_Pulses[0])
+	);
+Impulse pulsesImpDec(
+		.Clk(hsClk),
+		.Rst_n(Rst_n),
+		.En(PulseR),
+		.Impulse(_Pulses[1])
+	);
+
+wire PulseAny = |_Pulses;
+OneShot #(.DELAY(9)) dir( .Clk(hsClk), .Rst_n(Rst_n),  .En(PulseR), .Impulse(Dec));
+OneShot #(.DELAY(4))os_1( .Clk(hsClk), .Rst_n(Rst_n),  .En(PulseAny), .Impulse(pA));
+OneShot #(.DELAY(3))os_2( .Clk(hsClk), .Rst_n(Rst_n),  .En(PulseAny), .Impulse(OS_2));
+OneShot #(.DELAY(8))os_3( .Clk(hsClk), .Rst_n(Rst_n),  .En(PulseAny), .Impulse(OS_3));
+
+wire pB = OS_3 & ~OS_2;
 
 // synopsys translate_off
-always @(posedge hsClk, negedge Rst_n) begin
-	if (~Rst_n) begin
-		Cnt <= 4'd0;
-		Dec <= 1'b0;
-	end
-	else begin
-		if (PulseR)
-			Dec <= 1'b1;
-		if (PulseF)
-			Dec <= 1'b0;
-		if (PulseF | PulseR | En) begin
-			Cnt <= Cnt + 4'b1;
-			if (Cnt >=7) begin
-				Cnt <= 4'd0;
-			end
-		end
-	end
-end
-/* verilator lint_off UNUSEDSIGNAL */
-wire [9:0] CntPos;
-/* verilator lint_on UNUSEDSIGNAL */
-BcdToBin bcdToBin(
-	.In(Cnt),
-	.Out(CntPos)
-);
-
-wire pA = |CntPos[3:1];
-wire pB = |CntPos[6:4];
-
-wire PulseRight = Dec? pA : pB;
-wire PulseLeft = Dec? pB : pA;
+wire PulseRight = (Dec) ? pA : pB;
+wire PulseLeft = (Dec) ? pB : pA;
 // synopsys translate_on
 assign Pulses = {PulseRight, PulseLeft};
 
