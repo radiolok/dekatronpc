@@ -14,17 +14,19 @@
     input wire PulseR,
 /* verilator lint_off UNDRIVEN */
     output wire[3:0] Out,
+    output wire Equal,
 /* verilator lint_on UNDRIVEN */
     output wire Zero,
     output wire TopPin,
-    output wire CarryLow,
-    output wire CarryHigh
+    output wire Nine
 );
 
 wire[9:0] OutPos;
 wire[9:0] _OutPos;
 wire[9:0] InPosDek_n;
+
 assign Zero = OutPos[0];
+assign Nine = OutPos[9];
 
 generate
     genvar idx;
@@ -83,9 +85,6 @@ if (READ == 1) begin : Reading
         .Out(Out)
     );
     if (WRITE == 1) begin : Equalty
-    /* verilator lint_off UNUSEDSIGNAL */
-        wire Equal;
-    /* verilator lint_on UNUSEDSIGNAL */
         Compare compare(
             .a(Out),
             .b(In),
@@ -94,8 +93,5 @@ if (READ == 1) begin : Reading
     end
 end
 endgenerate
-
-assign CarryLow = OutPos[0];
-assign CarryHigh = OutPos[9];
 
 endmodule

@@ -7,8 +7,11 @@ import math
 from liberty.parser import parse_liberty
 
 VTUBE_CELLS = {}
+VTUBE_CELLS_DATA = {}
 DPC_MODULES = {}
 STATS_MODULES = ['\\\\IpLine', '\\\\ApLine', '\\\\DekatronPC']
+
+KNOWN_TUBES = ('N16B', 'J2B', 'X7B')
 
 KNOWN_MODULES = {
     'Dekatron' : (1, 0),
@@ -69,8 +72,12 @@ if __name__ == "__main__":
         for cell_group in LIBRARY.get_groups('cell'):
 #            print(cell_group)
             name = cell_group.args[0]
-            area = cell_group.get_groups('ff')
+            tubes = cell_group.get_group('tubes')['N16B']
             VTUBE_CELLS[name] = (cell_group['area'], cell_group['heat_current'])
+            VTUBE_CELLS_DATA[name] = {}
+            VTUBE_CELLS_DATA[name]['area'] = cell_group['area']
+            for _tube in KNOWN_TUBES:
+                 VTUBE_CELLS_DATA[name][_tube] = cell_group.get_group('tubes')[_tube] or 0.0
 
     CELLS_TOTAL = {}
 
@@ -92,11 +99,16 @@ if __name__ == "__main__":
                             top_module = module
         BLOCKS[top_module] = get_module_area(modules, top_module, CMDARGS)
 
+    TUBES_TOTAL = {}
+    for tube in KNOWN_TUBES:
+        TUBES_TOTAL[tube] = 0.0
+
     for module in DPC_MODULES:
         for cell in DPC_MODULES[module]['cells']:
             if cell not in CELLS_TOTAL:
                 CELLS_TOTAL[cell] = 0
             CELLS_TOTAL[cell] += DPC_MODULES[module]['cells'][cell]
+            
 
     print(f"=======================================================================")
     print(f"Cell\t\tCount\tTubes\tHeatCurrent")
@@ -107,6 +119,12 @@ if __name__ == "__main__":
                   f"{CELLS_TOTAL[cell]}\t"\
                   f"{VTUBE_CELLS[cell][0]*CELLS_TOTAL[cell]}\t"\
                   f"{VTUBE_CELLS[cell][1]*CELLS_TOTAL[cell]/1000}A")
+            for tube in KNOWN_TUBES:
+                TUBES_TOTAL[tube] += VTUBE_CELLS_DATA[cell][tube] * CELLS_TOTAL[cell]
+    
+    print(f"=======================================================================")
+    for tube in KNOWN_TUBES:
+        print(f"{tube}: {TUBES_TOTAL[tube]} - TBD")
 
     print(f"=======================================================================")
     print(f"Design\t\t\tTubes\t\tPCB\tHeatCurrent(HeatPower)")

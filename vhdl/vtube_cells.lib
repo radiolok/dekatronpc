@@ -1,6 +1,9 @@
 library(vtube_cells_lib) {
   cell(BUF_6N16B) {
     area: 0.5;
+    tubes(names) {
+      N16B: 1;
+    }
     current_unit : "1mA";
     heat_current: 200;
     pin(A) { direction: input; fanout_load: 1.0;}
@@ -13,6 +16,9 @@ library(vtube_cells_lib) {
     area: 1;
     current_unit : "1mA";
     heat_current: 200;
+    tubes(names) {
+      J2B: 1;
+    }
     pin(A) { direction: input; fanout_load: 1.0;}
     pin(Y) { direction: output;
               driver_type : pull_up;
@@ -23,6 +29,9 @@ library(vtube_cells_lib) {
     area: 0.5;
     current_unit : "1mA";
     heat_current: 200;
+    tubes(names) {
+      N16B: 0.5;
+    }
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
               driver_type : pull_up;
@@ -33,6 +42,9 @@ library(vtube_cells_lib) {
     area: 1;
     current_unit : "1mA";
     heat_current: 200;
+    tubes(names) {
+      J2B: 1;
+    }
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
               driver_type : pull_up;
@@ -43,6 +55,10 @@ library(vtube_cells_lib) {
     area: 1.5;
     current_unit : "1mA";
     heat_current: 500;
+    tubes(names) {
+      N16B: 0.5;
+      X7B: 1;
+    }
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
@@ -54,6 +70,10 @@ library(vtube_cells_lib) {
     area: 1.5;
     current_unit : "1mA";
     heat_current: 500;
+    tubes(names) {
+      N16B: 0.5;
+      X7B: 1;
+    }
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
@@ -66,6 +86,9 @@ library(vtube_cells_lib) {
     area: 1;
     current_unit : "1mA";
     heat_current: 200;
+    tubes(names) {
+      J2B: 1;
+    }
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
@@ -78,6 +101,10 @@ library(vtube_cells_lib) {
     area: 2.5;
     current_unit : "1mA";
     heat_current: 800;
+    tubes(names) {
+      N16B: 0.5;
+      X7B: 2;
+    }
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(C) { direction: input; fanout_load: 1.0; }
@@ -91,6 +118,10 @@ library(vtube_cells_lib) {
     area: 2;
     current_unit : "1mA";
     heat_current: 700;
+    tubes(names) {
+      N16B: 1;
+      X7B: 1;
+    }
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(C) { direction: input; fanout_load: 1.0; }
@@ -102,7 +133,11 @@ library(vtube_cells_lib) {
   cell(A2OOI_N16X7){
     area: 3;
     current_unit : "1mA";
-    heat_current: 1000; 
+    heat_current: 1000;
+    tubes(names) {
+      N16B: 1;
+      X7B: 2;
+    }
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(C) { direction: input; fanout_load: 1.0; }
@@ -116,6 +151,9 @@ library(vtube_cells_lib) {
     area: 1;
     current_unit : "1mA";
     heat_current: 400;
+    tubes(names) {
+      N16B: 1;
+    }
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
@@ -127,6 +165,10 @@ library(vtube_cells_lib) {
     area: 1.5;
     current_unit : "1mA";
     heat_current: 500;
+    tubes(names) {
+      N16B: 0.5;
+      X7B: 1;
+    }
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
@@ -138,6 +180,10 @@ library(vtube_cells_lib) {
     area: 2.5;
     current_unit : "1mA";
     heat_current: 800;
+    tubes(names) {
+      N16B: 0.5;
+      X7B: 2;
+    }
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(C) { direction: input; fanout_load: 1.0; }
@@ -151,6 +197,9 @@ library(vtube_cells_lib) {
     area: 1;
     current_unit : "1mA";
     heat_current: 400;
+    tubes(names) {
+      N16B: 1;
+    }
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
@@ -162,6 +211,9 @@ library(vtube_cells_lib) {
     area: 2;
     current_unit : "1mA";
     heat_current: 800;
+    tubes(names) {
+      N16B: 2;
+    }
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(C) { direction: input; fanout_load: 1.0; }
@@ -175,6 +227,10 @@ library(vtube_cells_lib) {
     area: 1.5;
     current_unit : "1mA";
     heat_current: 500;
+    tubes(names) {
+      N16B: 0.5;
+      X7B: 1;
+    }
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
@@ -186,6 +242,10 @@ library(vtube_cells_lib) {
     area: 2.5;
     current_unit : "1mA";
     heat_current: 800;
+    tubes(names) {
+      N16B: 0.5;
+      X7B: 2;
+    }
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(C) { direction: input; fanout_load: 1.0; }
@@ -196,9 +256,13 @@ library(vtube_cells_lib) {
              function: "(A+B+C+D)'"; }
   }
   cell(LATCH) {
-    area: 2.5;
+    area: 3.5;
     current_unit : "1mA";
     heat_current: 500;
+    tubes(names) {
+      N16B: 1.5;
+      J2B: 2;
+    }
     latch(IQ, IQN) { enable: C;
                   data_in: D; }
     pin(C) { direction: input; fanout_load: 1.0;
@@ -213,6 +277,10 @@ library(vtube_cells_lib) {
     area: 3.5;
     current_unit : "1mA";
     heat_current: 8500;
+    tubes(names) {
+      N16B: 1.5;
+      J2B: 2;
+    }
     ff(IQ, IQN) { clocked_on: C;
                   next_state: D; }
     pin(C) { direction: input; fanout_load: 1.0;
@@ -233,6 +301,10 @@ library(vtube_cells_lib) {
     clear : "R" ;
     preset : "S" ;
     }
+    tubes(names) {
+      N16B: 1.5;
+      J2B: 2;
+    }
     pin(C) { direction: input;
                  clock: true; }
     pin(D) { direction: input; }
@@ -252,6 +324,10 @@ library(vtube_cells_lib) {
     clear : "R'" ;
     preset : "S" ;
     }
+    tubes(names) {
+      N16B: 1.5;
+      J2B: 2;
+    }
     pin(C) { direction: input;
                  clock: true; }
     pin(D) { direction: input; }
@@ -259,5 +335,27 @@ library(vtube_cells_lib) {
               function: "IQ"; }
     pin(S) { direction: input; }
     pin(R) { direction: input; }
+  }
+    cell (TIEHI) {
+    area : 0.0;
+    tubes(names) {
+      N16B: 0;
+    }
+    pin (H) {
+      direction : output;
+      driver_type : open_drain;
+      function : "1";
+    }
+  }
+  cell (TIELO) {
+    area : 0.0;
+    tubes(names) {
+      N16B: 0;
+    }
+    pin (L) {
+      direction : output;
+      driver_type : open_source;
+      function : "0";
+    }
   }
 }
