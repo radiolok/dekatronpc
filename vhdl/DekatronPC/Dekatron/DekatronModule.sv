@@ -30,7 +30,7 @@ assign Nine = OutPos[9];
 
 generate
     genvar idx;
-if (WRITE == 1) begin : Writing
+/*if (WRITE == 1) begin : Writing
     wire [9:0] InPos;
     BcdToBin_n bcdToBin(
         .In(In),
@@ -45,7 +45,7 @@ if (WRITE == 1) begin : Writing
             assign InPosDek_n[idx] = ~(Set[2] & ~InPos[idx]);
     end
 end
-else begin
+else begin*/
     for (idx = 0; idx < 10; idx += 1) begin
         if (idx == 0)
             assign InPosDek_n[idx] = ~Set[0];
@@ -54,7 +54,7 @@ else begin
         else
             assign InPosDek_n[idx] = 1'b1;
     end
-end
+//end
 endgenerate
 
 wire [1:0] Pulses;

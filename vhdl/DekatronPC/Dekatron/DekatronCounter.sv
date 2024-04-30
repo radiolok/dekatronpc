@@ -45,6 +45,7 @@ reg [D_NUM-1:0] Nines;
 wire [D_NUM-1:0] TopOut;
 /* verilator lint_on UNUSEDSIGNAL */
 wire [D_NUM-1:0] DekatronBusy;
+reg [D_NUM-1:0] DekatronEqual;
 
 assign Zero = &Zeroes;
 
@@ -93,7 +94,9 @@ always_comb begin
 					else
 						next = INC;
 				end
-				else if (Set) next = SET;
+				else if (Set) begin 
+					next = SET;
+				end
 				else if (SetZero) next = SET_ZERO;
 				else if (TOP_LIMIT_MODE) begin
 					if (SetTop) next = SET_TOP;
@@ -112,7 +115,7 @@ always_comb begin
 				next = SET_ZERO;
 		end
 		SET: begin
-			if (writed_n)
+			if (~(&DekatronEqual))
 				next = SET;
 		end
 		default:
@@ -122,10 +125,10 @@ end
 
 assign Ready = ~Request & ~(|DekatronBusy) & (state == IDLE);
 
-wire PulseR = (state == DEC);
-wire PulseF = (state == INC);
-wire [1:0] Pulses;
-Impulse pulsesImpDec(
+wire PulseR = (state == DEC) & Clk;
+wire PulseF = ((state == INC) | (state == SET)) & Clk;
+wire [1:0] Pulses = {PulseR, PulseF};
+/*Impulse pulsesImpDec(
 		.Clk(Clk),
 		.Rst_n(Rst_n),
 		.En(PulseR),
@@ -137,7 +140,7 @@ Impulse pulsesImpInc(
 		.Rst_n(Rst_n),
 		.En(PulseF),
 		.Impulse(Pulses[0])
-	);
+	);*/
 
 wire write_set;
 Impulse writeimpulse(
@@ -160,7 +163,7 @@ wire [2:0] SetTopZero;
 
 assign SetTopZero[0] = ((state == SET_ZERO) & writed_n);
 assign SetTopZero[1] = ((state == SET_TOP) & writed_n);
-assign SetTopZero[2] = ((state == SET) & writed_n);
+assign SetTopZero[2] = 0;
 
 
 generate
@@ -171,10 +174,10 @@ for (d = 0; d < D_NUM; d++) begin: dek
 	wire [1:0] npulses;
 	/* verilator lint_off UNUSEDSIGNAL */
 	if (d == 0) begin
-		assign pulses = Pulses;
+		assign pulses = ((state == SET) & (DekatronEqual[d])) ? 2'b0: Pulses;
 	end
 	else begin
-		assign pulses = dek[d-1].npulses;
+		assign pulses = ((state == SET) & (~DekatronEqual[d])) ? Pulses : dek[d-1].npulses;
 	end
 	wire DekZero;
 	wire DekNine;
@@ -205,12 +208,16 @@ for (d = 0; d < D_NUM; d++) begin: dek
 			Nines[d] <= 1'b0;
 		end
 		else begin
-			Zeroes[d] <= DekZero;
-			Nines[d] <= DekNine;
+			if (state != SET) begin
+				Zeroes[d] <= DekZero;
+				Nines[d] <= DekNine;
+			end
+			DekatronEqual[d] <= Equal;
 		end
 	end
 
-	assign npulses = ((Nines[d] & (state == INC)) | (Zeroes[d] & (state == DEC))) ? 
+	assign npulses =  ((state == SET) & (~DekatronEqual[d])) ? Pulses:
+						((Nines[d] & (state == INC)) | (Zeroes[d] & (state == DEC))) ? 
 						pulses : 2'b0;
 end
 endgenerate

@@ -64,6 +64,7 @@ initial begin
         REF <= REF + 1;
         repeat(1) @(posedge Request)
         repeat(1) @(posedge Ready)
+        #0.001
         $display("test %d: Out: %x. REF: %d", i, Out, REF);
         if ((REF % 10 != Out[3:0])|(^Out[3:0] === 1'bx)) begin
             $fatal(1, "Counter0 Up Failure REF: %d Out: %d", REF % 10, Out[3:0]);
@@ -81,6 +82,7 @@ initial begin
         Dec <= 1;
         repeat(1) @(posedge Request)
         repeat(1) @(posedge Ready)
+        #0.001
         $display("test %d: Out: %x. REF: %d", i, Out, REF);
         if ((REF % 10 != Out[3:0])|(^Out[3:0] === 1'bx)) begin
             $fatal(1, "Counter0 Down Failure REF: %d Out: %d", REF % 10, Out[3:0]);
@@ -101,6 +103,7 @@ initial begin
         REF <= REF + 1;
         repeat(1) @(posedge Request)
         repeat(1) @(posedge Ready)
+        #0.001
         $display("test %d: Out: %x. REF: %d", i, Out, REF);
         if (REF % 10 != Out[3:0]) begin
             $fatal(1, "Counter0 Down Failure REF: %d Out: %d", REF % 10, Out[3:0]);
@@ -115,6 +118,7 @@ initial begin
         REF <= REF - 1;
         repeat(1) @(posedge Request)
         repeat(1) @(posedge Ready)
+        #0.001
         $display("test %d: Out: %x. REF: %d", i, Out, REF);
         if (REF % 10 != Out[3:0]) begin
             $fatal(1, "Counter0 Down Failure REF: %d Out: %d", REF % 10, Out[3:0]);
