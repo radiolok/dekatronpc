@@ -173,7 +173,6 @@ always @(posedge Clk, negedge Rst_n) begin
                 if (ApLineReady) begin
                     if (Halt | OneStep) begin
                         state <= HALT;
-                        OneStep <= 1'b0;
                     end
                     else begin
                         state <= FETCH;
@@ -216,12 +215,19 @@ always @(posedge Clk, negedge Rst_n) begin
             end
             HALT: begin
                 if (Step | Run) begin
-                    state <= IDLE;
-                    if (Step)
-                        OneStep <= 1'b1;
+                    if (~OneStep) begin
+                        state <= IDLE;
+                        if (Step)
+                            OneStep <= 1'b1;
+                    end
+                    else
+                        state <= HALT;
                 end
                 else begin
                     state <= HALT;
+                end
+                if (OneStep & ~Step) begin
+                    OneStep <= 1'b0;
                 end
             end
             default: begin

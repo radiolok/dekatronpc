@@ -50,6 +50,8 @@ module Emulator #(
 
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
     output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
+    output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
+    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DPC_DataOut,
 `ifdef EMULATOR
     output wire [31:0] IRET,
 
@@ -64,8 +66,6 @@ assign LED = 8'b0;
 
 wire CoutAcq;
 
-wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount;
-
 /* verilator lint_off UNUSEDSIGNAL */
 wire [39:0] keysCurrentState;
 /* verilator lint_on UNUSEDSIGNAL */
@@ -74,13 +74,13 @@ wire keyHalt = keysCurrentState[KEYBOARD_HALT_KEY];
 wire keyRun = keysCurrentState[KEYBOARD_RUN_KEY];
 wire keyStep = keysCurrentState[KEYBOARD_STEP_KEY];
 
-wire Rst_n;
-
-assign Rst_n = KEY[0];
+wire Rst_n = KEY[0];
 
 wire hsClk;
 /* verilator lint_off UNUSEDSIGNAL */
 wire [INSN_WIDTH - 1:0] Insn;
+wire SoftRst_n = ~keysCurrentState[KEYBOARD_SOFT_RST_KEY];
+wire HardRst_n = ~keysCurrentState[KEYBOARD_HARD_RST];
 /* verilator lint_on UNUSEDSIGNAL */
 
 generate
@@ -134,7 +134,6 @@ ClockDivider #(
 
 wire EchoMode = 1'b1;
 
-wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DPC_DataOut;
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DPC_DataIn;
 
 assign stdout = BcdToAscii(DPC_DataOut);

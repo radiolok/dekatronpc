@@ -11,7 +11,7 @@
 #include "VEmulator.h"
 
 
-#define MAX_SIM_TIME 6000000
+#define MAX_SIM_TIME 60000000
 #define DIGITS 9
 
 #define SIM_TRACE
@@ -43,7 +43,7 @@ public:
         ms6205addrOld = 0;
         ms6205dataOld = 0;
         keyboardWrOld = 0;
-        for (uint8_t i = 0; i < 7; i++)
+        for (uint8_t i = 0; i < 8; i++)
         {
             KeypadRaw[i] = 0x00;
         }
@@ -72,7 +72,7 @@ public:
             {
                 idx++;
             }
-            if (idx < 7)
+            if (idx < 8)
             {
                 std::lock_guard<std::mutex> lk(keyUpdateMutex);
                 dataOut = KeypadRaw[idx];
@@ -161,6 +161,12 @@ public:
                 case KEY_F(3)://KEYBOARD_RUN_KEY =  28,
                     keyPressed(28);
                 break;
+                case KEY_F(9)://KEYBOARD_SOFT_RST_KEY  = 38,
+                    keyPressed(38);
+                break;
+                case KEY_F(10)://KEYBOARD_HARD_RST =   37,
+                    keyPressed(37);
+                break;
                 case KEY_NPAGE: keyPressed(36); break;//KEYBOARD_INC_KEY
                 case KEY_PPAGE: keyPressed(31); break;//KEYBOARD_DEC_KEY
                 default:
@@ -170,6 +176,7 @@ public:
                 cioAcq = true;
                 cinSymbol = ch;
             }
+            ch_old = ch;
         }
     }
 
@@ -184,8 +191,8 @@ public:
         std::string status = "RUN";
         if (dut->DPC_currentState == 0x04)
             status = "HALT";
-        mvprintw(LINES-1,0, "Quit(END), F1: HALT F2: STEP: F3: RUN");
-        mvprintw(LINES-2,0, "StatIpAddr: %x  ApAddr: %x", dut->IpAddress, dut->ApAddress);
+        mvprintw(LINES-1,0, "Quit(END), F1: HALT, F2: STEP, F3: RUN, F9: Soft RST, F10: Hard Rst");
+        mvprintw(LINES-2,0, "IpAddr: %x  Loop: %x ApAddr: %x  Data: %x", dut->IpAddress, dut->LoopCount, dut->DPC_DataOut);
     }
 
     void rectangle(int y1, int x1, int y2, int x2)
@@ -218,13 +225,13 @@ public:
         int row = LINES/4-1;
         int col = COLS/2;
         mvprintw(row,col+2, "IP: ");
-        for (uint8_t i = 8; i > 2; i--)
+        for (uint8_t i = 7; i > 1; i--)
             printw("%c", in12High[i]);
         mvprintw(row+1,col+2, "AP: ");
         for (uint8_t i = 8; i > 3; i--)
             printw("%c", in12Low[i]);
-        mvprintw(row,col+15, "Loop: ");
-        for (uint8_t i = 2; i < 10; i--)
+        mvprintw(row,col+16, "Loop: ");
+        for (uint8_t i = 1; i < 10; i--)
             printw("%c", in12High[i]);
         mvprintw(row+1,col+15, "Data: ");
         for (uint8_t i = 2; i < 10; i--)
@@ -242,7 +249,7 @@ public:
 
 private:
     uint8_t KeyCurrentRows;
-    uint8_t KeypadRaw[7];
+    uint8_t KeypadRaw[8];
 
     uint8_t in12AnodeNum;
     char in12High[DIGITS+1];
