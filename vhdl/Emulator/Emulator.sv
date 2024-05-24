@@ -79,8 +79,8 @@ wire Rst_n = KEY[0];
 wire hsClk;
 /* verilator lint_off UNUSEDSIGNAL */
 wire [INSN_WIDTH - 1:0] Insn;
-wire SoftRst_n = ~keysCurrentState[KEYBOARD_SOFT_RST_KEY];
-wire HardRst_n = ~keysCurrentState[KEYBOARD_HARD_RST];
+wire SoftRst_n = Rst_n & ~keysCurrentState[KEYBOARD_SOFT_RST_KEY];
+wire HardRst_n = Rst_n & ~keysCurrentState[KEYBOARD_HARD_RST];
 /* verilator lint_on UNUSEDSIGNAL */
 
 generate
@@ -149,7 +149,7 @@ DekatronPC dekatronPC(
     .LoopCount(LoopCount),
     .hsClk(hsClk),
     .Clk(Clk),
-    .Rst_n(Rst_n),
+    .Rst_n(HardRst_n),
     .Halt(keyHalt),
     .Run(keyRun),
     .Cout(Cout),

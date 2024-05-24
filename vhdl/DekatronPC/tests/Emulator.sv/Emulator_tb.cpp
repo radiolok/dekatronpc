@@ -192,7 +192,7 @@ public:
         if (dut->DPC_currentState == 0x04)
             status = "HALT";
         mvprintw(LINES-1,0, "Quit(END), F1: HALT, F2: STEP, F3: RUN, F9: Soft RST, F10: Hard Rst");
-        mvprintw(LINES-2,0, "IpAddr: %x  Loop: %x ApAddr: %x  Data: %x", dut->IpAddress, dut->LoopCount, dut->DPC_DataOut);
+        mvprintw(LINES-2,0, "IpAddr: %x  Loop: %x ApAddr: %x  Data: %x", dut->IpAddress, dut->LoopCount, dut->ApAddress, dut->DPC_DataOut);
     }
 
     void rectangle(int y1, int x1, int y2, int x2)
@@ -214,7 +214,7 @@ public:
             move(LINES/4-5+r, COLS/4-8);
             for(uint8_t c = 0; c< 16; c++)
             {
-                printw("%c", ms6205ram[r*16+c]);
+                mvprintw(LINES/4-5+r, COLS/4-8+c,"%c", ms6205ram[r*16+c]);
             }
         }
         rectangle(LINES/4-6, COLS/4-9, LINES/4+6, COLS/4+9);
