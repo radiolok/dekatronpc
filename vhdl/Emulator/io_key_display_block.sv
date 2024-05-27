@@ -172,7 +172,7 @@ MS6205 ms6205(
     .Clock_1ms(Clock_1ms),
     .address(ms6205_addr),
     .data_n(ms6205_data),
-    .ipAddress(ipCounter[7:0]),
+    .ipAddress(ipCounter),
     .symbol(stdout),
     .Cout(Cout),
     .CioAcq(CioAcq),

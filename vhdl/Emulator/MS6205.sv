@@ -10,7 +10,7 @@ module MS6205(
     output reg [7:0] address,
     output wire [7:0] data_n,
     /* verilator lint_off UNUSEDSIGNAL */
-    input wire [7:0] ipAddress,
+    input wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipAddress,
     input wire write_addr,
     input wire write_data,
     input wire ready,
@@ -32,10 +32,10 @@ parameter MAX_POS = COLUMNS * ROWS;
 
 parameter [2:0] 
     MS6205_RESTART = 3'b000,
-    MS6205_IRAM = 3'b001,
-    MS6205_DRAM = 3'b010,
-    MS6205_CIN = 3'b011,
-    MS6205_COUT = 3'b100;
+    MS6205_IRAM = 3'b010,
+    MS6205_DRAM = 3'b011,
+    MS6205_CIN = 3'b100,
+    MS6205_COUT = 3'b101;
 
 reg [2:0] ms6205_nextView;
 
@@ -50,7 +50,7 @@ always_comb begin
             ms6205_nextView = MS6205_IRAM;
         else if (keysCurrentState[KEYBOARD_DRAM_KEY])
             ms6205_nextView = MS6205_DRAM;
-        else if (keysCurrentState[KEYBOARD_CIN_KEY])
+        else if (keysCurrentState[KEYBOARD_CIN_KEY] | CioAcq )
             ms6205_nextView = MS6205_CIN;
         else if (keysCurrentState[KEYBOARD_COUT_KEY])
             ms6205_nextView = MS6205_COUT;
@@ -72,6 +72,8 @@ end
 //wire PressedKey = |symbol;
 
 reg [7:0] stdioRam [0: MAX_POS-1];
+reg [7:0] insnRam [0: MAX_POS-1];
+//reg [7:0] DRAM [0: MAX_POS-1];
 reg [7:0] stdioAddr;
 
 initial begin
@@ -113,7 +115,7 @@ always @(negedge Clock_1ms, negedge Rst_n) begin
         if (address == MAX_POS -1) begin
             address <= 8'h0;
         end
-        stdioData <= stdioRam[address];        
+        stdioData <= (ms6205_currentView == MS6205_IRAM) ? insnRam[address] :  stdioRam[address];       
     end
 end
 endmodule
