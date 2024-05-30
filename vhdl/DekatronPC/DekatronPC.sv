@@ -1,6 +1,13 @@
 module DekatronPC (
 `ifdef EMULATOR
     output wire [31:0] IRET,
+    /* verilator lint_off UNDRIVEN */
+    input wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress1,
+    /* verilator lint_on UNDRIVEN */
+    /* verilator lint_off UNUSEDSIGNAL */
+    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApData1,
+    /* verilator lint_on UNUSEDSIGNAL */
+
 `endif
     input hsClk,
     input Clk,
@@ -62,19 +69,11 @@ ROM #(
         .Ready(RomReady)
         );
 
-wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] RamDataIn;
-wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] RamDataOut;
-wire RamCS;
-wire RamWE;
+wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApRamDataIn;
+wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApRamDataOut;
+wire ApRamCS;
+wire ApRamWE;
 
-`ifdef EMULATOR
-/* verilator lint_off UNDRIVEN */
-    wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress1;
-/* verilator lint_on UNDRIVEN */
-/* verilator lint_off UNUSEDSIGNAL */
-    wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApData1;
-/* verilator lint_on UNUSEDSIGNAL */
-`endif
 
 RAM #(
     .ROWS(21'h100000),
@@ -84,14 +83,14 @@ RAM #(
     .Clk(Clk),
     .Rst_n(Rst_n),
     .Address(ApAddress),
-    .In(RamDataIn),
-    .Out(RamDataOut),
+    .In(ApRamDataIn),
+    .Out(ApRamDataOut),
 `ifdef EMULATOR
     .Address1(ApAddress1),
     .Out1(ApData1),
 `endif
-    .WE(RamWE),
-    .CS(RamCS)
+    .WE(ApRamWE),
+    .CS(ApRamCS)
 );
 
 IpLine ipLine(
@@ -124,10 +123,10 @@ ApLine  apLine(
     .DataCin(DataCin),
     .Ready(ApLineReady),
     .Address(ApAddress),
-    .RamDataIn(RamDataIn),
-    .RamDataOut(RamDataOut),
-    .RamCS(RamCS),
-    .RamWE(RamWE),
+    .RamDataIn(ApRamDataIn),
+    .RamDataOut(ApRamDataOut),
+    .RamCS(ApRamCS),
+    .RamWE(ApRamWE),
     .Data(Data)
 );
 

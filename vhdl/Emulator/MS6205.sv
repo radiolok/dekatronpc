@@ -72,7 +72,9 @@ end
 //wire PressedKey = |symbol;
 
 reg [7:0] stdioRam [0: MAX_POS-1];
+/* verilator lint_off UNDRIVEN */
 reg [7:0] insnRam [0: MAX_POS-1];
+/* verilator lint_on UNDRIVEN */
 //reg [7:0] DRAM [0: MAX_POS-1];
 reg [7:0] stdioAddr;
 
