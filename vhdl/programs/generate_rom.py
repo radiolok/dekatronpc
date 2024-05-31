@@ -13,7 +13,25 @@ symbolToOpcode = {
     ']' : 0x07,
     '.' : 0x08,
     ',' : 0x09,
-    '0' : 0x0A # Clear data cell
+    '0' : 0x0A, # Clear data cell
+    'M' : 0x0B, # Clear memory Lock
+    'G' : 0x0C,
+    'P' : 0x0D,
+    'D' : 0x0E,
+    'B' : 0x0F,
+    # Debug ISA:
+    '\a' : 0x02, #Ring the bell
+    #'-' : 0x03,
+    'E' : 0x04, #EOT
+    'S' : 0x05, #SOT
+    '{' : 0x06,
+    '}' : 0x07,
+    'L' : 0x08,
+    'I' : 0x09,
+    '0' : 0x0A, # Clear data cell
+    'A' : 0x0B,
+    'R' : 0x0C,
+    'r' : 0x0D
 }
 
 def encodeSymbol(symbol):

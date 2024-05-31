@@ -153,6 +153,7 @@ DekatronPC dekatronPC(
     .Halt(keyHalt),
     .Run(keyRun),
     .Cout(Cout),
+    .InsnIn(4'b0),
     .EchoMode(EchoMode),
     .DataCin(DPC_DataIn),
     .CioAcq(Acq),

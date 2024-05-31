@@ -3,9 +3,11 @@ module DekatronPC (
     output wire [31:0] IRET,
     /* verilator lint_off UNDRIVEN */
     input wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress1,
+    input wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress1,
     /* verilator lint_on UNDRIVEN */
     /* verilator lint_off UNUSEDSIGNAL */
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApData1,
+    output wire [INSN_WIDTH-1:0] RomData1,
     /* verilator lint_on UNUSEDSIGNAL */
 
 `endif
@@ -26,6 +28,7 @@ module DekatronPC (
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data,
     output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
     output wire [2:0] state,
+    input wire [INSN_WIDTH - 1:0] InsnIn,
     output wire [INSN_WIDTH - 1:0] Insn,
 
 //==========================================================================
@@ -57,17 +60,21 @@ wire RomRequest;
 wire RomReady;
 wire [INSN_WIDTH-1:0] RomData;
 
-ROM #(
-        .D_NUM(IP_DEKATRON_NUM),
-        .DATA_WIDTH(INSN_WIDTH)
-        )rom(
-        .Rst_n(Rst_n),
-        .Clk(Clk), 
-        .Address(IpAddress),
-        .Insn(RomData),
-        .Request(RomRequest),
-        .Ready(RomReady)
-        );
+IpMemory 
+    IpRAM_ROM(
+    .Clk(Clk),
+    .Rst_n(Rst_n),
+    .Request(RomRequest),
+    .Ready(RomReady),
+    .WE(1'b0),
+`ifdef EMULATOR
+    .Address1(IpAddress1),
+    .InsnOut1(RomData1),
+`endif
+    .Address(IpAddress),
+    .InsnIn(InsnIn),
+    .InsnOut(RomData)
+);
 
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApRamDataIn;
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApRamDataOut;
