@@ -67,6 +67,10 @@ assign InsnOut = (isBootloader) ? RomOutReg : RamOutReg;
 
 reg [INSN_WIDTH-1:0] Mem [0:ROWS-1];
 
+initial begin
+    $readmemh("firmware.hex", Mem, 0, 178);
+end
+
 // synopsys translate_off
 bootloader #(
     .portSize(ROM_DEKATRONS*DEKATRON_WIDTH)

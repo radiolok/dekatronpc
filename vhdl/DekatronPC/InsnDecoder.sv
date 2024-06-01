@@ -81,15 +81,24 @@ always @(posedge Clk, negedge Rst_n) begin
                 if (Halt) begin
                     state <= HALT;
                 end
-                state <= FETCH;
-                IpRequest <= 1'b1;
+                else begin
+                    state <= FETCH;
+                    IpRequest <= 1'b1;
+                end
             end
             FETCH: begin
                 IpRequest <= 1'b0;
                 Cout <= 1'b0;
                 if (IpLineReady) begin
                     casez ({InsnMode,Insn})
-                        5'h?0: state <= IDLE;  //INSN_NOP
+                        5'h?0: begin
+                            if (OneStep) begin
+                                state <= HALT;
+                            end
+                            else begin
+                                state <= IDLE;  //INSN_NOP
+                            end
+                        end
                         5'h?1: state <= HALT; //INSN_HALT
                         //5'h02: //INSN_RES0
                         //5'h03: //INSN_RES1

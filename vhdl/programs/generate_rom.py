@@ -68,8 +68,8 @@ def Generate(filePath, resultPath, args):
         if not encoded:
             continue
         if args.hex:
-            suffix = "00 00 00 00 00 00\n" if (address and (address % 16 == 0)) else ""
-            generatedCase = f"{suffix}{encoded:02x} "
+            suffix = "0 0 0 0 0 0\n" if (address and (address % 10 == 0)) else ""
+            generatedCase = f"{suffix}{encoded:01x} "
         else:
             generatedCase = "    %d'h%d: Data = 4'h%x; //%c \n" % (portSize, address, encoded, symbol)
         if (args.verbose):

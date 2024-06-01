@@ -141,6 +141,14 @@ assign stdout = BcdToAscii(DPC_DataOut);
 assign DPC_DataIn = AsciiToBcd(stdin);
 
 wire Acq = CioAcq | CoutAcq;
+/* verilator lint_off UNDRIVEN */
+wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress1;
+wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress1;
+/* verilator lint_on UNDRIVEN */
+/* verilator lint_off UNUSEDSIGNAL */
+wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApData1;
+wire [INSN_WIDTH-1:0] RomData1;
+/* verilator lint_on UNUSEDSIGNAL */
 
 DekatronPC dekatronPC(
     .IpAddress(IpAddress),
@@ -161,6 +169,10 @@ DekatronPC dekatronPC(
     .Step(keyStep),
 `ifdef EMULATOR
     .IRET(IRET),
+    .IpAddress1(IpAddress1),
+    .ApAddress1(ApAddress1),
+    .ApData1(ApData1),
+    .RomData1(RomData1),    
 `endif
     .state(DPC_currentState),
     .Insn(Insn)

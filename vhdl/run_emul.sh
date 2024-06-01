@@ -40,12 +40,13 @@ EmulFiles=$(cat Emul.files)
 
 bf_file=programs/helloworld/helloworld.bfk
 #bf_file=programs/rot13/rot13.bfk
-python ${script_dir}/programs/generate_rom.py -f ${bf_file} -o ${script_dir}/programs/firmware.sv
+
 verilator -Wall --trace --top Emulator --clk FPGA_CLK_50 --cc ${EmulFiles} ${DPCfiles} \
 -GDIVIDE_TO_1US=1 --timescale 1us/10ns  +define+EMULATOR \
 --exe DekatronPC/tests/Emulator.sv/Emulator_tb.cpp -LDFLAGS -lncurses
 
 make -j`nproc` -C obj_dir -f VEmulator.mk VEmulator
+python ${script_dir}/programs/generate_rom.py -f ${bf_file} --hex -o ./obj_dir/firmware.hex
 ./obj_dir/VEmulator
 
 #  -GDIVIDE_TO_1MS=100 -GDIVIDE_TO_4MS=300 -GDIVIDE_TO_1S=1000  \
