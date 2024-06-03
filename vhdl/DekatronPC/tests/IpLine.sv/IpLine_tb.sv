@@ -32,14 +32,11 @@ wire RomRequest;
 wire RomReady;
 wire [INSN_WIDTH-1:0] RomData;
 
-ROM #(
-        .D_NUM(IP_DEKATRON_NUM),
-        .DATA_WIDTH(INSN_WIDTH)
-        )rom(
+IpMemory rom(
         .Rst_n(Rst_n),
         .Clk(Clk), 
         .Address(Address),
-        .Insn(RomData),
+        .InsnOut(RomData),
         .Request(RomRequest),
         .Ready(RomReady)
         );

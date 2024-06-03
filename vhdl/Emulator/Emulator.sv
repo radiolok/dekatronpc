@@ -142,10 +142,11 @@ assign DPC_DataIn = AsciiToBcd(stdin);
 
 wire Acq = CioAcq | CoutAcq;
 /* verilator lint_off UNDRIVEN */
+/* verilator lint_off UNUSEDSIGNAL */
 wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress1;
 wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress1;
 /* verilator lint_on UNDRIVEN */
-/* verilator lint_off UNUSEDSIGNAL */
+
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApData1;
 wire [INSN_WIDTH-1:0] RomData1;
 /* verilator lint_on UNUSEDSIGNAL */

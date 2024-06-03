@@ -72,7 +72,7 @@ veremul() {
 	files=$(cat ${1})
 	bf_file=${2}
 
-	python3 ${script_dir}/programs/generate_rom.py -f ${bf_file} -o ${script_dir}/programs/firmware.sv
+	python3 ${script_dir}/programs/generate_rom.py -f ${bf_file} -o ${script_dir}/firmware.hex --hex
 	verilator -Wall ${COVERAGE} ${TRACE} --top DekatronPC --cc ${files} \
 	../libdpcrun.a  -DEMULATOR=1\
 	--timescale 1us/1ns \
@@ -85,7 +85,7 @@ veremul() {
 parse_params "$@"
 
 python3 ${script_dir}/Functions/TableGenerate.py -d ${script_dir}/Functions
-python3 ${script_dir}/programs/generate_rom.py -f programs/looptest/looptest.bfk -o ${script_dir}/programs/firmware.sv
+python3 ${script_dir}/programs/generate_rom.py -f programs/looptest/looptest.bfk -o ${script_dir}/firmware.hex --hex
 
 if [ ${sim} -ne 0 ]; then	
 

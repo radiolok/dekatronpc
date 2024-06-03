@@ -12,7 +12,6 @@ DekatronPC/Dekatron/DekatronCounter.sv
 DekatronPC/Dekatron/DekatronModule.sv
 DekatronPC/Dekatron/DekatronPulseAllow.sv
 DekatronPC/Dekatron/DekatronPulseSender.sv
-DekatronPC/IpLine/ROM.sv
 DekatronPC/IpMemory.sv
 DekatronPC/RAM.sv
 DekatronPC/DekatronPC.sv

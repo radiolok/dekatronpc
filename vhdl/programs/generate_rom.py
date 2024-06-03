@@ -69,6 +69,18 @@ def Generate(filePath, resultPath, args):
             continue
         if args.hex:
             suffix = "0 0 0 0 0 0\n" if (address and (address % 10 == 0)) else ""
+            if (address and (address % 100 == 0)):
+                for i in range(6):
+                    suffix += "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\n"
+            if (address and (address % 1000 == 0)):
+                for i in range(60):
+                    suffix += "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\n"
+            if (address and (address % 10000 == 0)):
+                for i in range(600):
+                    suffix += "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\n"
+            if (address and (address % 100000 == 0)):
+                for i in range(6000):
+                    suffix += "0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0\n"
             generatedCase = f"{suffix}{encoded:01x} "
         else:
             generatedCase = "    %d'h%d: Data = 4'h%x; //%c \n" % (portSize, address, encoded, symbol)
