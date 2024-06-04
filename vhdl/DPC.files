@@ -21,3 +21,4 @@ Logic/Impulse.sv
 Logic/OneShot.sv
 Logic/Compare.sv
 Logic/ClockDivider.sv
+Logic/BCDCounter.sv

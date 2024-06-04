@@ -48,5 +48,3 @@ verilator -Wall --trace --top Emulator --clk FPGA_CLK_50 --cc ${EmulFiles} ${DPC
 make -j`nproc` -C obj_dir -f VEmulator.mk VEmulator
 python ${script_dir}/programs/generate_rom.py -f ${bf_file} --hex -o ./firmware.hex
 ./obj_dir/VEmulator
-
-#  -GDIVIDE_TO_1MS=100 -GDIVIDE_TO_4MS=300 -GDIVIDE_TO_1S=1000  \

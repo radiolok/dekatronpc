@@ -144,12 +144,21 @@ wire Acq = CioAcq | CoutAcq;
 /* verilator lint_off UNDRIVEN */
 /* verilator lint_off UNUSEDSIGNAL */
 wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress1;
-wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress1;
 /* verilator lint_on UNDRIVEN */
-
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApData1;
-wire [INSN_WIDTH-1:0] RomData1;
 /* verilator lint_on UNUSEDSIGNAL */
+
+`ifdef EMULATOR
+    wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress1;
+    wire [INSN_WIDTH-1:0] RomData1;
+    assign IpAddress1[IP_DEKATRON_NUM*DEKATRON_WIDTH-1] = IpAddress[IP_DEKATRON_NUM*DEKATRON_WIDTH-1];
+
+    BCDCounter U_IpMS6205Counter(
+        .Clk(Clk),
+        .Rst_n(Rst_n),
+        .count(IpAddress1[2*DEKATRON_WIDTH-1:0])
+    );
+`endif
 
 DekatronPC dekatronPC(
     .IpAddress(IpAddress),
@@ -173,7 +182,7 @@ DekatronPC dekatronPC(
     .IpAddress1(IpAddress1),
     .ApAddress1(ApAddress1),
     .ApData1(ApData1),
-    .RomData1(RomData1),    
+    .RomData1(RomData1),
 `endif
     .state(DPC_currentState),
     .Insn(Insn)
@@ -196,6 +205,10 @@ io_key_display_block #(
     .keyboard_keysCurrentState(keysCurrentState),
     .emulData(emulData),
     .ipCounter(IpAddress),
+`ifdef EMULATOR
+    .ipCounter1(IpAddress1),
+    .RomData1(RomData1),
+`endif
     .loopCounter(LoopCount),
     .apCounter(ApAddress),
     .dataCounter(DPC_DataOut),

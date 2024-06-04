@@ -11,6 +11,8 @@ module MS6205(
     output wire [7:0] data_n,
     /* verilator lint_off UNUSEDSIGNAL */
     input wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipAddress,
+    input wire  [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipAddress1,
+    input wire [INSN_WIDTH-1:0] RomData1,
     input wire write_addr,
     input wire write_data,
     input wire ready,

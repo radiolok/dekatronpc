@@ -25,6 +25,10 @@ module io_key_display_block #(
     input wire [7:0] stdout,
 
     input wire  [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipCounter,
+`ifdef EMULATOR
+    input wire  [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipCounter1,
+    input wire [INSN_WIDTH-1:0] RomData1,
+`endif
     input wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] loopCounter,
     input wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apCounter,
     input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] dataCounter,
@@ -145,8 +149,6 @@ wire [15:0] numericKey;
 wire [7:0] symbol;
 /* verilator lint_on UNUSEDSIGNAL */
 
-
-
 Keyboard kb(
     .Rst_n(Rst_n),
     .Clk(Clock_1us),
@@ -173,6 +175,8 @@ MS6205 ms6205(
     .address(ms6205_addr),
     .data_n(ms6205_data),
     .ipAddress(ipCounter),
+    .ipAddress1(ipCounter1),
+    .RomData1(RomData1),
     .symbol(stdout),
     .Cout(Cout),
     .CioAcq(CioAcq),
