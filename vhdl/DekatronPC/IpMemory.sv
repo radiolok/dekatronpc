@@ -105,7 +105,7 @@ end
             .Data(RomOutWire1));
     // synopsys translate_on
 
-    always @(negedge Clk, negedge Rst_n) begin
+    always @(posedge Clk, negedge Rst_n) begin
         if (~Rst_n) begin
             RamOutReg1 <= {INSN_WIDTH{1'b0}};
             RomOutReg1 <= {(INSN_WIDTH){1'b0}};

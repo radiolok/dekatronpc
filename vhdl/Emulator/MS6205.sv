@@ -9,10 +9,10 @@ module MS6205(
     output reg CioAcq,
     output reg [7:0] address,
     output wire [7:0] data_n,
+    input wire [INSN_WIDTH-1:0] RomData1,
     /* verilator lint_off UNUSEDSIGNAL */
     input wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipAddress,
     input wire  [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipAddress1,
-    input wire [INSN_WIDTH-1:0] RomData1,
     input wire write_addr,
     input wire write_data,
     input wire ready,
@@ -36,8 +36,7 @@ parameter [2:0]
     MS6205_RESTART = 3'b000,
     MS6205_IRAM = 3'b010,
     MS6205_DRAM = 3'b011,
-    MS6205_CIN = 3'b100,
-    MS6205_COUT = 3'b101;
+    MS6205_CIO = 3'b101;
 
 reg [2:0] ms6205_nextView;
 
@@ -45,17 +44,15 @@ assign marker = (ms6205_currentView == MS6205_IRAM) & (DPC_State == 2);
 
 always_comb begin
     if (ms6205_currentView == MS6205_RESTART) begin
-        ms6205_nextView = (address < MAX_POS)? MS6205_RESTART : MS6205_IRAM;
+        ms6205_nextView = MS6205_IRAM;
     end
     else begin
         if (keysCurrentState[KEYBOARD_IRAM_KEY])
             ms6205_nextView = MS6205_IRAM;
         else if (keysCurrentState[KEYBOARD_DRAM_KEY])
             ms6205_nextView = MS6205_DRAM;
-        else if (keysCurrentState[KEYBOARD_CIN_KEY] | CioAcq )
-            ms6205_nextView = MS6205_CIN;
-        else if (keysCurrentState[KEYBOARD_COUT_KEY])
-            ms6205_nextView = MS6205_COUT;
+        else if (keysCurrentState[KEYBOARD_CIO_KEY] | CioAcq)
+            ms6205_nextView = MS6205_CIO;
         else if (keysCurrentState[KEYBOARD_HARD_RST])
             ms6205_nextView = MS6205_RESTART;
         else
@@ -75,13 +72,13 @@ end
 
 reg [7:0] stdioRam [0: MAX_POS-1];
 /* verilator lint_off UNDRIVEN */
-reg [7:0] insnRam [0: MAX_POS-1];
+reg [3:0] insnRam [0: MAX_POS-1];
 /* verilator lint_on UNDRIVEN */
 //reg [7:0] DRAM [0: MAX_POS-1];
 reg [7:0] stdioAddr;
 
 initial begin
-    $readmemh("MSmemZero.hex", stdioRam);
+    $readmemh("./Emulator/MSmemZero.hex", stdioRam);
 end
 
 always @(negedge Clk, negedge Rst_n) begin
@@ -89,13 +86,15 @@ always @(negedge Clk, negedge Rst_n) begin
         stdioAddr <= 8'h0;
     end
     else begin
+        insnRam[ipAddress1[7:0]] <= RomData1;
         if ((Cout| Cin) & ~CioAcq) begin
             CioAcq <= 1'b1;
             stdioRam[stdioAddr] <= symbol;
             stdioAddr <= stdioAddr + 1;
         end
         if (~Cout & ~Cin & CioAcq) begin
-            CioAcq <= 1'b0;
+            if (ms6205_currentView == MS6205_CIO)
+                CioAcq <= 1'b0;
         end
     end
 end
@@ -119,7 +118,7 @@ always @(negedge Clock_1ms, negedge Rst_n) begin
         if (address == MAX_POS -1) begin
             address <= 8'h0;
         end
-        stdioData <= (ms6205_currentView == MS6205_IRAM) ? insnRam[address] :  stdioRam[address];       
+        stdioData <= (ms6205_currentView == MS6205_IRAM) ? OpcodeToSymbol({1'b1, insnRam[address]}) :  stdioRam[address];       
     end
 end
 endmodule

@@ -13,14 +13,8 @@ always @(posedge Clk, negedge Rst_n) begin
         co <= 1'b0;
     end else begin
         if (ci) begin
-            if (count == 4'd9) begin
-                count <= 4'd0;
-                co <= 1'b1;
-            end
-            else begin
-                count <= count + 4'd1;
-                co <= 1'b0;
-            end
+            count <= (count == 4'd9) ? 4'd0 : count + 4'd1;
+            co <= (count == 4'd8) ? 1'b1 : 1'b0;
         end
     end
 end

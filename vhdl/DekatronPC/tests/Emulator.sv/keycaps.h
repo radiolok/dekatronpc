@@ -4,8 +4,7 @@
 typedef enum  {
     KEYBOARD_IRAM_KEY =  15,
     KEYBOARD_DRAM_KEY =  10,
-    KEYBOARD_CIN_KEY =  5,
-    KEYBOARD_COUT_KEY =  0,
+    KEYBOARD_CIO_KEY =  0,
 
     KEYBOARD_IP_KEY =   35,
     KEYBOARD_LOOP_KEY =  30,

@@ -4,8 +4,8 @@
 typedef enum  bit [5:0] {
     KEYBOARD_IRAM_KEY =  6'd15,
     KEYBOARD_DRAM_KEY =  6'd10,
-    KEYBOARD_CIN_KEY =  6'd5,
-    KEYBOARD_COUT_KEY =  6'd0,
+    //KEYBOARD_CIN_KEY =  6'd5,
+    KEYBOARD_CIO_KEY =  6'd0,
 
     KEYBOARD_IP_KEY =   6'd35,
     KEYBOARD_LOOP_KEY =  6'd30,
