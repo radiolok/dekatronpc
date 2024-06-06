@@ -86,7 +86,7 @@ always @(negedge Clk, negedge Rst_n) begin
         stdioAddr <= 8'h0;
     end
     else begin
-        insnRam[ipAddress1[7:0]] <= RomData1;
+        insnRam[ipAddress1[7:0]+6] <= RomData1;
         if ((Cout| Cin) & ~CioAcq) begin
             CioAcq <= 1'b1;
             stdioRam[stdioAddr] <= symbol;
@@ -100,6 +100,7 @@ always @(negedge Clk, negedge Rst_n) begin
 end
 
 reg [7:0] stdioData;
+reg [7:0] ms6205Pos;
 wire [7:0] data;
 
 assign data_n = ~data;
@@ -108,17 +109,48 @@ assign data = stdioData;
 
 always @(negedge Clock_1ms, negedge Rst_n) begin
     if (~Rst_n) begin
-        address <= 8'h00;
+        ms6205Pos <= 8'h00;
         stdioData <= 8'h00;
+        address <= 8'h00;
         ms6205_addr_acq <= 1'b1;
         ms6205_data_acq <= 1'b1;
     end
     else begin
-        address <= address  + 8'h1;
-        if (address == MAX_POS -1) begin
-            address <= 8'h0;
+        ms6205Pos <= ms6205Pos  + 8'h1;
+        address <= ms6205Pos;
+        if (ms6205Pos == MAX_POS -1) begin
+            ms6205Pos <= 8'h0;
         end
-        stdioData <= (ms6205_currentView == MS6205_IRAM) ? OpcodeToSymbol({1'b1, insnRam[address]}) :  stdioRam[address];       
+        case (ms6205_currentView)
+            (MS6205_IRAM): begin
+                case (ms6205Pos[3:0])
+                    (0): begin
+                        stdioData <= 8'h20;// {4'b0, ipAddress1[19:16]} + 8'h30;
+                    end
+                    (1): begin
+                        stdioData <= 8'h20;//{4'b0, ipAddress1[15:12]} + 8'h30;
+                    end
+                    (2): begin
+                        stdioData <= 8'h20;// {4'b0, ipAddress1[11:8]} + 8'h30;
+                    end
+                    (3): begin
+                        stdioData <= 8'h20;// {4'b0, ipAddress1[7:4]} + 8'h30;
+                    end
+                    (4): begin
+                        stdioData <= 8'h20;//{4'b0, ipAddress1[3:0]} + 8'h30;
+                    end
+                    (5): begin
+                        stdioData <= ":";
+                    end
+                    default: begin
+                        stdioData <= OpcodeToSymbol({1'b1, insnRam[ms6205Pos]});
+                    end
+                endcase
+            end
+            default: begin
+                stdioData <= stdioRam[ms6205Pos];
+            end
+        endcase
     end
 end
 endmodule
