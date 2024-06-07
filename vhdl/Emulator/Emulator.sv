@@ -151,13 +151,6 @@ wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApData1;
 `ifdef EMULATOR
     wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress1;
     wire [INSN_WIDTH-1:0] RomData1;
-    assign IpAddress1[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:2*DEKATRON_WIDTH] = IpAddress[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:2*DEKATRON_WIDTH];
-
-    BCDCounter U_IpMS6205Counter(
-        .Clk(Clk),
-        .Rst_n(Rst_n),
-        .count(IpAddress1[2*DEKATRON_WIDTH-1:0])
-    );
 `endif
 
 DekatronPC dekatronPC(
@@ -204,13 +197,15 @@ io_key_display_block #(
     .keyboard_clear(keyboard_clear),
     .keyboard_keysCurrentState(keysCurrentState),
     .emulData(emulData),
-    .ipCounter(IpAddress),
+    .ipAddress(IpAddress),
 `ifdef EMULATOR
-    .ipCounter1(IpAddress1),
+    .ipAddress1(IpAddress1),
     .RomData1(RomData1),
+    .apAddress1(ApAddress1),
+    .apData1(ApData1),
 `endif
     .loopCounter(LoopCount),
-    .apCounter(ApAddress),
+    .apAddress(ApAddress),
     .dataCounter(DPC_DataOut),
     .Clock_1s(Clock_1s),
     .Clock_1ms(Clock_1ms),

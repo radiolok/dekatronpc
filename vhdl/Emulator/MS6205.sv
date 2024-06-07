@@ -10,9 +10,12 @@ module MS6205(
     output reg [7:0] address,
     output wire [7:0] data_n,
     input wire [INSN_WIDTH-1:0] RomData1,
+    input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apData1,
     /* verilator lint_off UNUSEDSIGNAL */
     input wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipAddress,
-    input wire  [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipAddress1,
+    output wire  [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipAddress1,
+    input wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apAddress,
+    output wire  [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apAddress1,
     input wire write_addr,
     input wire write_data,
     input wire ready,
@@ -73,12 +76,15 @@ end
 reg [7:0] stdioRam [0: MAX_POS-1];
 /* verilator lint_off UNDRIVEN */
 reg [3:0] insnRam [0: MAX_POS-1];
+
+reg [11:0] dataRam [0: 9];
 /* verilator lint_on UNDRIVEN */
 //reg [7:0] DRAM [0: MAX_POS-1];
 reg [7:0] stdioAddr;
 
 initial begin
     $readmemh("./Emulator/MSmemZero.hex", stdioRam);
+    $readmemh("./Emulator/MSmemZero.hex", insnRam);
 end
 
 always @(negedge Clk, negedge Rst_n) begin
@@ -87,6 +93,7 @@ always @(negedge Clk, negedge Rst_n) begin
     end
     else begin
         insnRam[ipAddress1[7:0]+6] <= RomData1;
+        dataRam[apAddress1[3:0]] <= apData1; 
         if ((Cout| Cin) & ~CioAcq) begin
             CioAcq <= 1'b1;
             stdioRam[stdioAddr] <= symbol;
@@ -116,6 +123,10 @@ always @(negedge Clock_1ms, negedge Rst_n) begin
         ms6205_data_acq <= 1'b1;
     end
     else begin
+        ipAddress1[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:2*DEKATRON_WIDTH] <= ipAddress[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:2*DEKATRON_WIDTH];
+        apAddress1[AP_DEKATRON_NUM*DEKATRON_WIDTH-1:1*DEKATRON_WIDTH] <= apAddress[AP_DEKATRON_NUM*DEKATRON_WIDTH-1:1*DEKATRON_WIDTH];
+        ipAddress1[2*DEKATRON_WIDTH-1:0] <= ms6205Pos;
+        apAddress1[1*DEKATRON_WIDTH-1:0] <= ms6205Pos[6:3];
         ms6205Pos <= ms6205Pos  + 8'h1;
         address <= ms6205Pos;
         if (ms6205Pos == MAX_POS -1) begin
@@ -125,19 +136,19 @@ always @(negedge Clock_1ms, negedge Rst_n) begin
             (MS6205_IRAM): begin
                 case (ms6205Pos[3:0])
                     (0): begin
-                        stdioData <= 8'h20;// {4'b0, ipAddress1[19:16]} + 8'h30;
+                        stdioData <= {4'b0, ipAddress1[19:16]} + 8'h30;
                     end
                     (1): begin
-                        stdioData <= 8'h20;//{4'b0, ipAddress1[15:12]} + 8'h30;
+                        stdioData <= {4'b0, ipAddress1[15:12]} + 8'h30;
                     end
                     (2): begin
-                        stdioData <= 8'h20;// {4'b0, ipAddress1[11:8]} + 8'h30;
+                        stdioData <= {4'b0, ipAddress1[11:8]} + 8'h30;
                     end
                     (3): begin
-                        stdioData <= 8'h20;// {4'b0, ipAddress1[7:4]} + 8'h30;
+                        stdioData <= {4'b0, ipAddress1[7:4]} + 8'h30;
                     end
                     (4): begin
-                        stdioData <= 8'h20;//{4'b0, ipAddress1[3:0]} + 8'h30;
+                        stdioData <= 8'h30;
                     end
                     (5): begin
                         stdioData <= ":";
@@ -146,6 +157,53 @@ always @(negedge Clock_1ms, negedge Rst_n) begin
                         stdioData <= OpcodeToSymbol({1'b1, insnRam[ms6205Pos]});
                     end
                 endcase
+            end
+            (MS6205_DRAM): begin
+                if (ms6205Pos < 80) begin
+                    case (ms6205Pos[3:0])
+                        (0): begin
+                            stdioData <= {4'b0, apAddress1[19:16]} + 8'h30;
+                        end
+                        (1): begin
+                            stdioData <= {4'b0, apAddress1[15:12]} + 8'h30;
+                        end
+                        (2): begin
+                            stdioData <= {4'b0, apAddress1[11:8]} + 8'h30;
+                        end
+                        (3): begin
+                            stdioData <= {4'b0, apAddress1[7:4]} + 8'h30;
+                        end
+                        (4): begin
+                            stdioData <= {4'b0, ms6205Pos[7:4]} + 8'h30;
+                        end
+                        (5): begin
+                            stdioData <= ":";
+                        end
+                        (7): begin
+                            stdioData <= {4'b0, dataRam[ms6205Pos[7:4]][11:8]} + 8'h30;
+                        end
+                        (8): begin
+                            stdioData <= {4'b0, dataRam[ms6205Pos[7:4]][7:4]} + 8'h30;
+                        end
+                        (9): begin
+                            stdioData <= {4'b0, dataRam[ms6205Pos[7:4]][3:0]} + 8'h30;
+                        end
+                        (12): begin
+                            stdioData <= {4'b0, dataRam[ms6205Pos[7:4]+1][11:8]} + 8'h30;
+                        end
+                        (13): begin
+                            stdioData <= {4'b0, dataRam[ms6205Pos[7:4]+1][7:4]} + 8'h30;
+                        end
+                        (14): begin
+                            stdioData <= {4'b0, dataRam[ms6205Pos[7:4]+1][3:0]} + 8'h30;
+                        end
+                        default: begin
+                            stdioData <= " ";
+                        end
+                    endcase
+                end else begin
+                    stdioData <= " ";
+                end
             end
             default: begin
                 stdioData <= stdioRam[ms6205Pos];

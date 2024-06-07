@@ -24,13 +24,15 @@ module io_key_display_block #(
 
     input wire [7:0] stdout,
 
-    input wire  [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipCounter,
+    input wire  [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipAddress,
 `ifdef EMULATOR
-    input wire  [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipCounter1,
-    input wire [INSN_WIDTH-1:0] RomData1,
+    output wire  [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipAddress1,
+    input wire [INSN_WIDTH-1:0] RomData1,    
+    output wire  [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apAddress1,
+    input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apData1,
 `endif
     input wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] loopCounter,
-    input wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apCounter,
+    input wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apAddress,
     input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] dataCounter,
 
     input wire Cout,
@@ -59,7 +61,7 @@ bn_mux_n_1_generate #(
 )  muxCathode1
         (  .data({
             28'b0,
-            ipCounter,
+            ipAddress,
             loopCounter}),
             .sel(anodeCount),
             .y(cathodeHigh)
@@ -72,7 +74,7 @@ bn_mux_n_1_generate #(
 )  muxCathode2
         (  .data({
             28'b0,
-            apCounter,
+            apAddress,
             4'b0,
             dataCounter}),
             .sel(anodeCount),
@@ -174,8 +176,11 @@ MS6205 ms6205(
     .Clock_1ms(Clock_1ms),
     .address(ms6205_addr),
     .data_n(ms6205_data),
-    .ipAddress(ipCounter),
-    .ipAddress1(ipCounter1),
+    .ipAddress(ipAddress),
+    .ipAddress1(ipAddress1),
+    .apAddress(apAddress),
+    .apAddress1(apAddress1),
+    .apData1(apData1),
     .RomData1(RomData1),
     .symbol(stdout),
     .Cout(Cout),
