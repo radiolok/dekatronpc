@@ -10,6 +10,7 @@ module MS6205(
     output reg [7:0] address,
     output wire [7:0] data_n,
     input wire [INSN_WIDTH-1:0] RomData1,
+    input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apData,
     input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apData1,
     /* verilator lint_off UNUSEDSIGNAL */
     input wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipAddress,
@@ -93,7 +94,7 @@ always @(negedge Clk, negedge Rst_n) begin
     end
     else begin
         insnRam[ipAddress1[7:0]+6] <= RomData1;
-        dataRam[apAddress1[3:0]] <= apData1; 
+        dataRam[apAddress1[3:0]] <= (apAddress == apAddress1)? apData : apData1; 
         if ((Cout| Cin) & ~CioAcq) begin
             CioAcq <= 1'b1;
             stdioRam[stdioAddr] <= symbol;
@@ -113,6 +114,9 @@ wire [7:0] data;
 assign data_n = ~data;
 
 assign data = stdioData;
+
+wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] currentDataRam0 = dataRam[ms6205Pos[7:4]*2];
+wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] currentDataRam1 = dataRam[ms6205Pos[7:4]*2+1];
 
 always @(negedge Clock_1ms, negedge Rst_n) begin
     if (~Rst_n) begin
@@ -180,22 +184,22 @@ always @(negedge Clock_1ms, negedge Rst_n) begin
                             stdioData <= ":";
                         end
                         (7): begin
-                            stdioData <= {4'b0, dataRam[ms6205Pos[7:4]][11:8]} + 8'h30;
+                            stdioData <= {4'b0, currentDataRam0[11:8]} + 8'h30;
                         end
                         (8): begin
-                            stdioData <= {4'b0, dataRam[ms6205Pos[7:4]][7:4]} + 8'h30;
+                            stdioData <= {4'b0, currentDataRam0[7:4]} + 8'h30;
                         end
                         (9): begin
-                            stdioData <= {4'b0, dataRam[ms6205Pos[7:4]][3:0]} + 8'h30;
+                            stdioData <= {4'b0, currentDataRam0[3:0]} + 8'h30;
                         end
                         (12): begin
-                            stdioData <= {4'b0, dataRam[ms6205Pos[7:4]+1][11:8]} + 8'h30;
+                            stdioData <= {4'b0, currentDataRam1[11:8]} + 8'h30;
                         end
                         (13): begin
-                            stdioData <= {4'b0, dataRam[ms6205Pos[7:4]+1][7:4]} + 8'h30;
+                            stdioData <= {4'b0, currentDataRam1[7:4]} + 8'h30;
                         end
                         (14): begin
-                            stdioData <= {4'b0, dataRam[ms6205Pos[7:4]+1][3:0]} + 8'h30;
+                            stdioData <= {4'b0, currentDataRam1[3:0]} + 8'h30;
                         end
                         default: begin
                             stdioData <= " ";

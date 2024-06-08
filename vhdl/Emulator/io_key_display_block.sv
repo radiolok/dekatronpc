@@ -30,6 +30,7 @@ module io_key_display_block #(
     input wire [INSN_WIDTH-1:0] RomData1,    
     output wire  [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apAddress1,
     input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apData1,
+    input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apData,
 `endif
     input wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] loopCounter,
     input wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apAddress,
@@ -181,6 +182,7 @@ MS6205 ms6205(
     .apAddress(apAddress),
     .apAddress1(apAddress1),
     .apData1(apData1),
+    .apData(apData),
     .RomData1(RomData1),
     .symbol(stdout),
     .Cout(Cout),

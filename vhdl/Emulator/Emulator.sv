@@ -203,6 +203,7 @@ io_key_display_block #(
     .RomData1(RomData1),
     .apAddress1(ApAddress1),
     .apData1(ApData1),
+    .apData(DPC_DataOut),
 `endif
     .loopCounter(LoopCount),
     .apAddress(ApAddress),
