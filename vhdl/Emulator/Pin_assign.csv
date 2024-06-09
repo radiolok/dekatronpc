@@ -1,0 +1,102 @@
+# Copyright (C) 2023  Intel Corporation. All rights reserved.
+# Your use of Intel Corporation's design tools, logic functions 
+# and other software and tools, and any partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files), and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Intel Program License 
+# Subscription Agreement, the Intel Quartus Prime License Agreement,
+# the Intel FPGA IP License Agreement, or other applicable license
+# agreement, including, without limitation, that your use is for
+# the sole purpose of programming logic devices manufactured by
+# Intel and sold by Intel or its authorized distributors.  Please
+# refer to the applicable agreement for further details, at
+# https://fpgasoftware.intel.com/eula.
+
+# Quartus Prime Version 23.1std.0 Build 991 11/28/2023 SC Lite Edition
+# File: D:\radiolok@oc.urlnn.ru\Projects\20180271-DekatronPC\vhdl\Emulator\Pin_assgn.csv
+# Generated on: Sun Jun  9 17:45:46 2024
+
+# Note: The column header names should not be changed if you wish to import this .csv file into the Quartus Prime software.
+
+To,Direction,Location,I/O Bank,VREF Group,I/O Standard,Reserved,Current Strength,Slew Rate,Differential Pair,Transceiver Analog Settings Protocol,VCCR_GXB/VCCT_GXB Voltage,Transceiver I/O Pin Termination,Transceiver Dedicated Refclk Pin Termination,Transmitter Common Mode Driver Voltage,Transmitter Slew Rate Control,Transmitter Differential Output Voltage,Receiver Buffer Common Mode Voltage,Strict Preservation
+CinReq,Output,,,,,,,,,,,,,,,,,
+CioAcq,Input,,,,,,,,,,,,,,,,,
+Clock_1ms,Output,,,,,,,,,,,,,,,,,
+Clock_1s,Output,,,,,,,,,,,,,,,,,
+Clock_1us,Output,,,,,,,,,,,,,,,,,
+Cout,Output,,,,,,,,,,,,,,,,,
+DPC_currentState[2],Output,,,,,,,,,,,,,,,,,
+DPC_currentState[1],Output,,,,,,,,,,,,,,,,,
+DPC_currentState[0],Output,,,,,,,,,,,,,,,,,
+FPGA_CLK2_50,Input,PIN_E11,8A,B8A_N0,3.3-V LVTTL,,,,,,,,,,,,,
+FPGA_CLK3_50,Input,PIN_Y13,4A,B4A_N0,3.3-V LVTTL,,,,,,,,,,,,,
+FPGA_CLK_50,Input,PIN_V11,3B,B3B_N0,3.3-V LVTTL,,,,,,,,,,,,,
+KEY[1],Input,PIN_AH16,4A,B4A_N0,3.3-V LVTTL,,,,,,,,,,,,,
+KEY[0],Input,PIN_AH17,4A,B4A_N0,3.3-V LVTTL,,,,,,,,,,,,,
+LED[7],Output,,,,,,,,,,,,,,,,,
+LED[6],Output,,,,,,,,,,,,,,,,,
+LED[5],Output,,,,,,,,,,,,,,,,,
+LED[4],Output,,,,,,,,,,,,,,,,,
+LED[3],Output,,,,,,,,,,,,,,,,,
+LED[2],Output,,,,1.2 V,,,,,,,,,,,,,
+LED[1],Output,,,,,,,,,,,,,,,,,
+LED[0],Output,,,,3.3-V LVTTL,,,,,,,,,,,,,
+SW[3],Input,,,,,,,,,,,,,,,,,
+SW[2],Input,,,,3.3-V LVTTL,,,,,,,,,,,,,
+SW[1],Input,,,,3.3-V LVTTL,,,,,,,,,,,,,
+SW[0],Input,,,,3.3-V LVTTL,,,,,,,,,,,,,
+emulData[7],Output,PIN_Y4,3A,B3A_N0,3.3-V LVTTL,,,,,,,,,,,,,
+emulData[6],Output,PIN_W8,3A,B3A_N0,3.3-V LVTTL,,,,,,,,,,,,,
+emulData[5],Output,PIN_AB4,3A,B3A_N0,3.3-V LVTTL,,,,,,,,,,,,,
+emulData[4],Output,PIN_Y8,3A,B3A_N0,3.3-V LVTTL,,,,,,,,,,,,,
+emulData[3],Output,PIN_AF8,3B,B3B_N0,3.3-V LVTTL,,,,,,,,,,,,,
+emulData[2],Output,PIN_W12,3B,B3B_N0,3.3-V LVTTL,,,,,,,,,,,,,
+emulData[1],Output,PIN_AF7,3B,B3B_N0,3.3-V LVTTL,,,,,,,,,,,,,
+emulData[0],Output,PIN_V12,3B,B3B_N0,3.3-V LVTTL,,,,,,,,,,,,,
+in12_clear_n,Output,PIN_AH5,3B,B3B_N0,3.3-V LVTTL,,,,,,,,,,,,,
+in12_write_anode,Output,PIN_T8,3A,B3A_N0,3.3-V LVTTL,,,,,,,,,,,,,
+in12_write_cathode,Output,PIN_T12,3B,B3B_N0,3.3-V LVTTL,,,,,,,,,,,,,
+io_address[3],Output,,,,,,,,,,,,,,,,,
+io_address[2],Output,,,,,,,,,,,,,,,,,
+io_address[1],Output,,,,,,,,,,,,,,,,,
+io_address[0],Output,,,,,,,,,,,,,,,,,
+io_data[7],Bidir,,,,,,,,,,,,,,,,,
+io_data[6],Bidir,,,,,,,,,,,,,,,,,
+io_data[5],Bidir,,,,,,,,,,,,,,,,,
+io_data[4],Bidir,,,,,,,,,,,,,,,,,
+io_data[3],Bidir,,,,,,,,,,,,,,,,,
+io_data[2],Bidir,,,,,,,,,,,,,,,,,
+io_data[1],Bidir,,,,,,,,,,,,,,,,,
+io_data[0],Bidir,,,,,,,,,,,,,,,,,
+io_enable_n[1],Output,,,,,,,,,,,,,,,,,
+io_enable_n[0],Output,,,,,,,,,,,,,,,,,
+keyboard_clear,Output,PIN_AH4,3B,B3B_N0,3.3-V LVTTL,,,,,,,,,,,,,
+keyboard_data_in[6],Input,PIN_T13,3B,B3B_N0,3.3-V LVTTL,,,,,,,,,,,,,
+keyboard_data_in[5],Input,PIN_AE4,3B,B3B_N0,3.3-V LVTTL,,,,,,,,,,,,,
+keyboard_data_in[4],Input,PIN_af5,3B,B3B_N0,3.3-V LVTTL,,,,,,,,,,,,,
+keyboard_data_in[3],Input,PIN_AG6,3B,B3B_N0,3.3-V LVTTL,,,,,,,,,,,,,
+keyboard_data_in[2],Input,PIN_AF4,3B,B3B_N0,3.3-V LVTTL,,,,,,,,,,,,,
+keyboard_data_in[1],Input,PIN_AH2,3B,B3B_N0,3.3-V LVTTL,,,,,,,,,,,,,
+keyboard_data_in[0],Input,PIN_AH3,3B,B3B_N0,3.3-V LVTTL,,,,,,,,,,,,,
+keyboard_write,Output,PIN_AH6,3B,B3B_N0,3.3-V LVTTL,,,,,,,,,,,,,
+ms6205_marker,Output,PIN_AG5,3B,B3B_N0,3.3-V LVTTL,,,,,,,,,,,,,
+ms6205_ready,Input,PIN_T11,3B,B3B_N0,3.3-V LVTTL,,,,,,,,,,,,,
+ms6205_write_addr_n,Output,PIN_Y5,3A,B3A_N0,3.3-V LVTTL,,,,,,,,,,,,,
+ms6205_write_data_n,Output,PIN_U11,3B,B3B_N0,3.3-V LVTTL,,,,,,,,,,,,,
+stdin[7],Input,,,,,,,,,,,,,,,,,
+stdin[6],Input,,,,,,,,,,,,,,,,,
+stdin[5],Input,,,,,,,,,,,,,,,,,
+stdin[4],Input,,,,,,,,,,,,,,,,,
+stdin[3],Input,,,,,,,,,,,,,,,,,
+stdin[2],Input,,,,,,,,,,,,,,,,,
+stdin[1],Input,,,,,,,,,,,,,,,,,
+stdin[0],Input,,,,,,,,,,,,,,,,,
+stdout[7],Output,,,,,,,,,,,,,,,,,
+stdout[6],Output,,,,,,,,,,,,,,,,,
+stdout[5],Output,,,,,,,,,,,,,,,,,
+stdout[4],Output,,,,,,,,,,,,,,,,,
+stdout[3],Output,,,,,,,,,,,,,,,,,
+stdout[2],Output,,,,,,,,,,,,,,,,,
+stdout[1],Output,,,,,,,,,,,,,,,,,
+stdout[0],Output,,,,,,,,,,,,,,,,,

@@ -8,34 +8,64 @@ module Emulator #(
 )(
     /* verilator lint_off UNUSEDSIGNAL */
 	//////////// CLOCK //////////
-	input 		          		FPGA_CLK_50,
-	input 		          		FPGA_CLK2_50,
-	input 		          		FPGA_CLK3_50,
+	input 		          		FPGA_CLK_50,//V11
+	input 		          		FPGA_CLK2_50,//Y13
+	input 		          		FPGA_CLK3_50,//E11
 	/* 3.3-V LVTTL */
-	input				[1:0]			KEY,	
-	output			    [7:0]			LED,
+	
+	/*
+	KEY0 - AH17
+	KEY1 - AH16
+	*/
+	input				[1:0]			KEY,
+	output			[7:0]			LED,
+	/*
+	SW0 - L10
+	SW1 - L9
+	SW2 - H6
+	SW3 - H5
+	*/
 	input				[3:0]			SW,
     /* verilator lint_on UNUSEDSIGNAL */	
 
+	 /*
+	 D0 - AH3
+	 D1 - AH2
+	 D2 - AF4
+	 D3 - AG6
+	 D4 - AF5
+	 D5 - AE4
+	 D6 - T13
+	 */
 	input [6:0] keyboard_data_in,
 
-	input ms6205_ready,
-	output ms6205_write_addr_n,
-	output ms6205_write_data_n,
-    output ms6205_marker,
+	input ms6205_ready,//T11
+	output ms6205_write_addr_n,//Y5
+	output ms6205_write_data_n,//U11
+   output ms6205_marker,//AG5
 
-	output in12_write_anode,
-	output in12_write_cathode,
-	output in12_clear_n,
+	output in12_write_anode,//T8
+	output in12_write_cathode,//T12
+	output in12_clear_n,//AH5
 
-	output keyboard_write,
-	output keyboard_clear,
+	output keyboard_write,//AH6
+	output keyboard_clear,//AH4
 
+	/*
+	D0 - V12
+	D1 - AF7
+	D2 - W12
+	D3 - AF8
+	D4 - Y8
+	D5 - AB4
+	D6 - W8
+	D7 - Y4
+	*/
 	output [7:0] emulData,
 
-    output wire Clock_1s,
-    output wire Clock_1ms,
-    output wire Clock_1us,
+    output wire Clock_1s, //AF18 GPIO1.24
+    output wire Clock_1ms, //AG23 GPIO1.22
+    output wire Clock_1us, //AF25 GPIO1.20
 
     output wire Cout,
     output wire CinReq,
@@ -44,17 +74,36 @@ module Emulator #(
 
     input wire [7:0] stdin,
     
+	 /*
+	 A0 - AA18
+	 A1 - AC22
+	 A2 - AD23
+	 A3 - AE23
+	 */
     output wire [3:0] io_address,
-    output wire [1:0] io_enable_n,
+    /*
+	 EN1 - AG21
+	 EN2 - AH18
+	 */
+	 output wire [1:0] io_enable_n,
+	 /*
+	 D0 - AE20
+	 D1 - AD19
+	 D2 - AD20
+	 D3 - AE24
+	 D4 - AH22
+	 D5 - AF22
+	 D6 - AH21
+	 D7 - AH19
+	 */
     inout wire [7:0] io_data,
 
+`ifdef VERILATOR
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
     output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
     output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DPC_DataOut,
-`ifdef EMULATOR
     output wire [31:0] IRET,
-
 `endif
 
     input wire CioAcq,
@@ -62,7 +111,16 @@ module Emulator #(
     output wire [2:0] DPC_currentState
 );
 
-assign LED = 8'b0;
+
+`ifndef VERILATOR
+    wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress;
+    wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress;
+    wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount;
+    wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DPC_DataOut;
+    wire [31:0] IRET;
+`endif
+
+assign LED = Clock_1s;
 
 wire CoutAcq;
 

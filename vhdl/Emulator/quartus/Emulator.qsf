@@ -38,15 +38,32 @@
 
 
 set_global_assignment -name FAMILY "Cyclone V"
-set_global_assignment -name DEVICE 5CGXFC7C7F23C8
+set_global_assignment -name DEVICE 5CSEMA4U23C6
 set_global_assignment -name TOP_LEVEL_ENTITY Emulator
 set_global_assignment -name ORIGINAL_QUARTUS_VERSION 22.1STD.1
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "20:17:27  MAY 24, 2023"
-set_global_assignment -name LAST_QUARTUS_VERSION "22.1std.1 Lite Edition"
+set_global_assignment -name LAST_QUARTUS_VERSION "23.1std.0 Lite Edition"
 set_global_assignment -name EDA_SIMULATION_TOOL "<None>"
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_global_assignment -name VERILOG_SHOW_LMF_MAPPING_MESSAGES OFF
+set_global_assignment -name VERILOG_MACRO "EMULATOR=True"
+set_global_assignment -name SYSTEMVERILOG_FILE ../../DekatronPC/InsnDecoder.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../programs/bootloader/bootloader.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../Logic/Compare.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../DekatronPC/IpMemory.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../Logic/OneShot.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../Functions/SymbolToOpcode.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../Functions/OpcodeToSymbol.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../Functions/In12CathodeToPin.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../Functions/BinaryToHex.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../Functions/BcdToAscii.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../Functions/AsciiToBcd.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../programs/firmware.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../Logic/UpCounter.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../Logic/RsLatch.sv
@@ -84,8 +101,146 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../../DekatronPC/Dekatron/Dekatro
 set_global_assignment -name SYSTEMVERILOG_FILE ../../DekatronPC/Dekatron/Dekatron.sv
 set_global_assignment -name VERILOG_FILE ../../DekatronPC/Dekatron/BinToBcd.v
 set_global_assignment -name VERILOG_FILE ../../DekatronPC/Dekatron/BcdToBin.v
-set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
-set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
-set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
-set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[1]
+set_location_assignment PIN_Y4 -to emulData[7]
+set_location_assignment PIN_W8 -to emulData[6]
+set_location_assignment PIN_AB4 -to emulData[5]
+set_location_assignment PIN_Y8 -to emulData[4]
+set_location_assignment PIN_AF8 -to emulData[3]
+set_location_assignment PIN_W12 -to emulData[2]
+set_location_assignment PIN_AF7 -to emulData[1]
+set_location_assignment PIN_V12 -to emulData[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to emulData[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LED[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to emulData[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LED[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to KEY[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to emulData[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to emulData[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to emulData[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to emulData[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to emulData[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to emulData[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to emulData
+set_location_assignment PIN_AH16 -to KEY[1]
+set_location_assignment PIN_AH17 -to KEY[0]
+set_location_assignment PIN_V11 -to FPGA_CLK_50
+set_location_assignment PIN_Y13 -to FPGA_CLK3_50
+set_location_assignment PIN_E11 -to FPGA_CLK2_50
+set_location_assignment PIN_AH5 -to in12_clear_n
+set_location_assignment PIN_T8 -to in12_write_anode
+set_location_assignment PIN_T12 -to in12_write_cathode
+set_location_assignment PIN_T13 -to keyboard_data_in[6]
+set_location_assignment PIN_AE4 -to keyboard_data_in[5]
+set_location_assignment PIN_AF5 -to keyboard_data_in[4]
+set_location_assignment PIN_AG6 -to keyboard_data_in[3]
+set_location_assignment PIN_AF4 -to keyboard_data_in[2]
+set_location_assignment PIN_AH2 -to keyboard_data_in[1]
+set_location_assignment PIN_AH3 -to keyboard_data_in[0]
+set_location_assignment PIN_AH4 -to keyboard_clear
+set_location_assignment PIN_AH6 -to keyboard_write
+set_location_assignment PIN_AG5 -to ms6205_marker
+set_location_assignment PIN_T11 -to ms6205_ready
+set_location_assignment PIN_Y5 -to ms6205_write_addr_n
+set_location_assignment PIN_U11 -to ms6205_write_data_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to FPGA_CLK2_50
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to FPGA_CLK3_50
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to FPGA_CLK_50
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to KEY[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to KEY
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to in12_clear_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to in12_write_anode
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to in12_write_cathode
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to keyboard_clear
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to keyboard_data_in[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to keyboard_data_in[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to keyboard_data_in[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to keyboard_data_in[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to keyboard_data_in[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to keyboard_data_in[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to keyboard_data_in[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to keyboard_data_in
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to keyboard_write
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ms6205_marker
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ms6205_ready
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ms6205_write_addr_n
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ms6205_write_data_n
+set_location_assignment PIN_AE23 -to io_address[3]
+set_location_assignment PIN_AD23 -to io_address[2]
+set_location_assignment PIN_AC22 -to io_address[1]
+set_location_assignment PIN_AA18 -to io_address[0]
+set_location_assignment PIN_AH19 -to io_data[7]
+set_location_assignment PIN_AH21 -to io_data[6]
+set_location_assignment PIN_AF22 -to io_data[5]
+set_location_assignment PIN_AH22 -to io_data[4]
+set_location_assignment PIN_AE24 -to io_data[3]
+set_location_assignment PIN_AD20 -to io_data[2]
+set_location_assignment PIN_AD19 -to io_data[1]
+set_location_assignment PIN_AE20 -to io_data[0]
+set_location_assignment PIN_AG21 -to io_enable_n[0]
+set_location_assignment PIN_AH18 -to io_enable_n[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to io_address[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to io_address[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to io_address[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to io_address[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to io_address
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to io_data[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to io_data[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to io_data[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to io_data[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to io_data[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to io_data[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to io_data[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to io_data[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to io_enable_n[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to io_enable_n[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to io_enable_n
+set_location_assignment PIN_W15 -to LED[0]
+set_location_assignment PIN_AA24 -to LED[1]
+set_location_assignment PIN_V16 -to LED[2]
+set_location_assignment PIN_V15 -to LED[3]
+set_location_assignment PIN_AF26 -to LED[4]
+set_location_assignment PIN_AE26 -to LED[5]
+set_location_assignment PIN_Y16 -to LED[6]
+set_location_assignment PIN_AA23 -to LED[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LED[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LED[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LED[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LED[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LED[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LED[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LED
+set_location_assignment PIN_AF18 -to Clock_1ms
+set_location_assignment PIN_AF25 -to Clock_1us
+set_location_assignment PIN_AG23 -to Clock_1s
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to Clock_1ms
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to Clock_1s
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to Clock_1us
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to DPC_currentState
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to DPC_currentState[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to DPC_currentState[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to DPC_currentState[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to "io_data[5](n)"
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdin
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdin[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdin[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdin[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdin[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdin[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdin[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdin[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdin[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[0]
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
