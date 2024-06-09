@@ -34,10 +34,8 @@ OneShot #(.DELAY(8))os_3( .Clk(hsClk), .Rst_n(Rst_n),  .En(PulseAny), .Impulse(O
 
 wire pB = OS_3 & ~OS_2;
 
-// synopsys translate_off
 wire PulseRight = (Dec) ? pA : pB;
 wire PulseLeft = (Dec) ? pB : pA;
-// synopsys translate_on
 assign Pulses = {PulseRight, PulseLeft};
 
 endmodule

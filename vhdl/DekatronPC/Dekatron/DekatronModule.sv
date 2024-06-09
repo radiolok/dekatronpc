@@ -36,7 +36,7 @@ if (WRITE == 1) begin : Writing
         .In(In),
         .Out_n(InPos)
     );
-    for (idx = 0; idx < 10; idx += 1) begin
+    for (idx = 0; idx < 10; idx += 1) begin: posDek1
         if (idx == 0)
             assign InPosDek_n[idx] = ~((Set[2] & ~InPos[idx]) | Set[0]);
         else if ((TOP_LIMIT_MODE == 1) & (idx == TOP_PIN_OUT))
@@ -46,7 +46,7 @@ if (WRITE == 1) begin : Writing
     end
 end
 else begin
-    for (idx = 0; idx < 10; idx += 1) begin
+    for (idx = 0; idx < 10; idx += 1) begin: posDek2
         if (idx == 0)
             assign InPosDek_n[idx] = ~Set[0];
         else if ((TOP_LIMIT_MODE == 1) & (idx == TOP_PIN_OUT))

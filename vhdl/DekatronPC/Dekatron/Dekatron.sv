@@ -89,7 +89,7 @@ wire [9:0] InPosDek_n;
 
 generate
 genvar idx;
-for (idx = 0; idx < 10; idx += 1) begin
+for (idx = 0; idx < 10; idx += 1) begin: posDek
     if (idx == 0) begin
         if (TOP_WR == 1) 
             assign InPosDek_n[idx] = Set[1];
