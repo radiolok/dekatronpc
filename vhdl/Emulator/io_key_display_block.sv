@@ -1,7 +1,6 @@
 module io_key_display_block #(
     parameter DIVIDE_TO_4MS = 28'd3000
 )(
-    input wire Clk,
     input wire Rst_n,
 
     input [6:0] keyboard_data_in,
@@ -53,7 +52,7 @@ wire anodesClkTick;
 
 wire [7:0] cathodeData;
 
-assign cathodeData = {In12CathodeToPin(cathodeHigh), In12CathodeToPin(cathodeLow)};
+assign cathodeData = {In12CathodeToPin(cathodeLow), In12CathodeToPin(cathodeHigh)};
 
 //This mux  compress IP and LOOP data into 3-bit interface
 bn_mux_n_1_generate #(
@@ -172,8 +171,8 @@ wire ms6205_data_acq;
 assign ms6205_marker = ms6205_marker_en & Clock_1s;
 
 MS6205 ms6205(
-    .Clk(Clk),
     .Rst_n(Rst_n),
+    .Clock_1us(Clock_1us),
     .Clock_1ms(Clock_1ms),
     .address(ms6205_addr),
     .data_n(ms6205_data),

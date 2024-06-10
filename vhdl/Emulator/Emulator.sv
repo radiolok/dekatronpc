@@ -18,7 +18,9 @@ module Emulator #(
 	KEY1 - AH16
 	*/
 	input				[1:0]			KEY,
-	output			[7:0]			LED,
+	/* verilator lint_off UNDRIVEN */
+    output			[7:0]			LED,
+    /* verilator lint_on UNDRIVEN */
 	/*
 	SW0 - L10
 	SW1 - L9
@@ -98,29 +100,20 @@ module Emulator #(
 	 */
     inout wire [7:0] io_data,
 
-`ifdef VERILATOR
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
     output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
     output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DPC_DataOut,
     output wire [31:0] IRET,
-`endif
 
     input wire CioAcq,
     
     output wire [2:0] DPC_currentState
 );
 
-
-`ifndef VERILATOR
-    wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress;
-    wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress;
-    wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount;
-    wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DPC_DataOut;
-    wire [31:0] IRET;
-`endif
-
-assign LED = Clock_1s;
+assign LED[0] = Rst_n;
+assign LED[1] =  Clock_1s;
+assign LED[2] = Clock_1ms;
 
 wire CoutAcq;
 
@@ -242,7 +235,6 @@ DekatronPC dekatronPC(
 io_key_display_block #(
     .DIVIDE_TO_4MS(DIVIDE_TO_4MS)
 )ioKeyDisplayBlock(
-    .Clk(Clk),
     .keyboard_data_in(keyboard_data_in),
     .ms6205_ready(ms6205_ready),
     .ms6205_write_addr_n(ms6205_write_addr_n),

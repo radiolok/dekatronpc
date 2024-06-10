@@ -1,6 +1,6 @@
 module MS6205(
-    input wire Clk,
     input wire Rst_n,
+    input wire Clock_1us,
     input wire Clock_1ms,
     output reg ms6205_addr_acq,
 	output reg ms6205_data_acq,
@@ -84,11 +84,11 @@ reg [11:0] dataRam [0: 9];
 reg [7:0] stdioAddr;
 
 initial begin
-    $readmemh("../MSmemZero.hex", stdioRam);
-    $readmemh("../MSmemZero.hex", insnRam);
+    $readmemh("./Emulator/MSmemZero.hex", stdioRam);
+    $readmemh("./Emulator/MSmemZero.hex", insnRam);
 end
 
-always @(negedge Clk, negedge Rst_n) begin
+always @(negedge Clock_1us, negedge Rst_n) begin
     if (~Rst_n) begin
         stdioAddr <= 8'h0;
     end

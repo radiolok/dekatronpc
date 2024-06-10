@@ -46,5 +46,5 @@ verilator -Wall --trace --top Emulator --clk FPGA_CLK_50 --cc ${EmulFiles} ${DPC
 --exe DekatronPC/tests/Emulator.sv/Emulator_tb.cpp -LDFLAGS -lncurses
 
 make -j`nproc` -C obj_dir -f VEmulator.mk VEmulator
-python ${script_dir}/programs/generate_rom.py -f ${bf_file} --hex -o ./firmware.hex
+python ${script_dir}/programs/generate_rom.py -f ${bf_file} --hex -o firmware.hex
 ./obj_dir/VEmulator
