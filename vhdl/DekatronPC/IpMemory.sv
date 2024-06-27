@@ -13,6 +13,7 @@ module IpMemory(
     input wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Address
 );
 
+`ifndef SYNTH
 localparam ROM_DEKATRONS = 2;
 localparam ROWS = 25'h1000000;
 wire isBootloader = (Address[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:ROM_DEKATRONS*DEKATRON_WIDTH] == 16'h9999);
@@ -67,7 +68,7 @@ assign InsnOut = (isBootloader) ? RomOutReg : RamOutReg;
 
 reg [INSN_WIDTH-1:0] Mem [0:ROWS-1];
 initial begin
-    $readmemh("./firmware.hex", Mem);
+    $readmemh("../firmware.hex", Mem);
 end
 
 bootloader #(
@@ -95,13 +96,11 @@ end
     reg [INSN_WIDTH-1: 0] RamOutReg1;
     assign InsnOut1 = (isBootloader) ? RomOutReg1 : RamOutReg1;
 
-    // synopsys translate_off
     bootloader #(
         .portSize(ROM_DEKATRONS*DEKATRON_WIDTH)
         )storage1(
             .Address(Address1[ROM_DEKATRONS*DEKATRON_WIDTH-1:0]),
             .Data(RomOutWire1));
-    // synopsys translate_on
 
     always @(posedge Clk, negedge Rst_n) begin
         if (~Rst_n) begin
@@ -114,6 +113,6 @@ end
         end
     end
 `endif
-
+`endif
 
 endmodule

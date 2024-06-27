@@ -5,7 +5,7 @@ module DekatronCarrySignal(
 ); 
 /*This module generates carry signal for full 10-position width dekatron*/
 
-// synopsys translate_off
+`ifndef SYNTH
 wire carryLowSet = In[0];
 wire noCarrySet = |In[8:1];
 wire carryHighSet = In[9];
@@ -24,6 +24,6 @@ RsLatch carryHighLatch(
 	.R(carryHighRst),
 	.Q(CarryHigh)
 );
-// synopsys translate_on
+`endif
 
 endmodule

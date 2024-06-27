@@ -4,7 +4,7 @@ module Impulse (
     input Rst_n,
     output wire Impulse
 );
-//synopsys translate_off
+`ifndef SYNTH
 reg D_state;
 
 assign Impulse = En & ~D_state;
@@ -18,5 +18,5 @@ always @(posedge Clk, negedge Rst_n) begin
         D_state <= En;
     end
 end
-//synopsys translate_on
+`endif
 endmodule

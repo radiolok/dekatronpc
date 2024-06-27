@@ -6,7 +6,7 @@ module Dekatron(
     output wire [9:0] Out
 );
 
-// synopsys translate_off
+`ifndef SYNTH
 //Main wire state:
 reg [29:0] Cathodes;
 
@@ -71,7 +71,7 @@ always @(posedge hsClk, negedge Rst_n)
             GuideLeftGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
         end
  end
-// synopsys translate_on
+`endif
 endmodule
 
 /* verilator lint_off DECLFILENAME */

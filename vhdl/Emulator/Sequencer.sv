@@ -2,8 +2,10 @@ module Sequencer(
     input Clock_1us,
     input Enable,
     input Rst_n,
+/* verilator lint_off UNUSEDSIGNAL */
 	input wire ms6205_addr_acq,
 	input wire ms6205_data_acq,
+/* verilator lint_on UNUSEDSIGNAL */
     output wire ms6205_write_addr_n,
     output wire ms6205_write_data_n,
     output reg in12_write_anode,
@@ -83,21 +85,9 @@ always_comb begin
 	ANODES:
 		next_state = (in12_write_anode) ?  KEYBOARD_WR : ANODES;
 	KEYBOARD_WR:
-		if (~keyboard_write)
-			next_state = KEYBOARD_WR;
-		else begin
-			if (ms6205_addr_acq) 
-				next_state = MC_ADDR;
-			else if (ms6205_data_acq)
-				next_state = MC_DATA;
-			else 
-				next_state = STOP;
-		end
+		next_state = (keyboard_write) ? MC_ADDR : KEYBOARD_WR;
 	MC_ADDR:
-		if (~ms6205_write_addr) 
-			next_state = MC_ADDR;
-		else 
-			next_state = (ms6205_data_acq) ? MC_DATA : STOP;
+		next_state = (ms6205_write_addr) ? MC_DATA : MC_ADDR;		
 	MC_DATA:
 		next_state =  (ms6205_write_data) ? STOP : MC_DATA;
 	STOP:
@@ -127,7 +117,7 @@ always @(negedge Clock_1us, negedge Rst_n) begin
 	end
 	else begin
 		in12_write_cathode <= (current_state==CATHODES) & Enable;
-        in12_write_anode <= ((current_state==ANODES) & Enable);// | ((current_state == KEYBOARD_RD) & ~Enable);
+        in12_write_anode <= ((current_state==ANODES) & Enable);
         keyboard_write <= (current_state==KEYBOARD_WR) & Enable;
         keyboard_read <= (current_state==KEYBOARD_RD) & ~Enable;
         ms6205_write_addr <= ((current_state==MC_ADDR) & Enable);

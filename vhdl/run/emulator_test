@@ -1,0 +1,13 @@
+#!/bin/bash
+set -Eeuo pipefail
+DPCfiles=$(cat ../DekatronPC/DPC.files)
+EmulFiles=$(cat ../Emulator/Emul.files)
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
+current_dir=$(realpath $(pwd))
+echo "Emulator Test"
+if [ $# -ge 1 ]; then
+    file=${1}
+    python3 ${script_dir}/programs/generate_rom.py -f ${file} -o ${script_dir}/programs/firmware.sv
+fi
+iverilog -DEMULATOR=1 -g2012 -o ./EmulatorUT -s Emulator_tb ../DekatronPC/tests/Emulator.sv/Emulator_tb.sv $DPCfiles $EmulFiles
+./EmulatorUT

@@ -8,7 +8,7 @@ module OneShot #(
     input Rst_n,
     output wire Impulse
 );
-//synopsys translate_off
+`ifndef SYNTH
 localparam DELAY_COMP=DELAY-1;
 reg [WIDTH:0] count;
 assign Impulse = (|count) | En;
@@ -26,7 +26,7 @@ always @(posedge Clk, negedge Rst_n) begin
         end
     end
 end
-//synopsys translate_on
+`endif
 endmodule
 
 module OneShot_tb();

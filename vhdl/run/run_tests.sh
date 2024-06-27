@@ -4,6 +4,7 @@ set -Eeuo pipefail
 trap cleanup SIGINT SIGTERM ERR EXIT
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
+root_dir=${script_dir}/..
 
 png=0
 synt=0
@@ -72,11 +73,11 @@ veremul() {
 	files=$(cat ${1})
 	bf_file=${2}
 
-	python3 ${script_dir}/programs/generate_rom.py -f ${bf_file} -o ${script_dir}/firmware.hex --hex
+	python3 ${root_dir}/programs/generate_rom.py -f ${bf_file} -o ${root_dir}/firmware.hex --hex
 	verilator -Wall ${COVERAGE} ${TRACE} --top DekatronPC --cc ${files} \
 	../libdpcrun.a  -DEMULATOR=1\
 	--timescale 1us/1ns \
-	--exe DekatronPC/tests/DekatronPC.sv/DekatronPC_tb.cpp  -LDFLAGS -lncurses
+	--exe ${root_dir}/DekatronPC/tests/DekatronPC.sv/DekatronPC_tb.cpp  -LDFLAGS -lncurses
 
 	make -j`nproc` -C obj_dir -f VDekatronPC.mk VDekatronPC
 	./obj_dir/VDekatronPC -f ${bf_file}
@@ -84,16 +85,16 @@ veremul() {
 
 parse_params "$@"
 
-python3 ${script_dir}/Functions/TableGenerate.py -d ${script_dir}/Functions
-python3 ${script_dir}/programs/generate_rom.py -f programs/looptest/looptest.bfk -o ${script_dir}/firmware.hex --hex
+python3 ${root_dir}/Functions/TableGenerate.py -d ${root_dir}/Functions
+python3 ${root_dir}/programs/generate_rom.py -f ${root_dir}/programs/looptest/looptest.bfk -o ${root_dir}/firmware.hex --hex
 
 if [ ${sim} -ne 0 ]; then	
 
-	DPCfiles=$(cat DPC.files)
+	DPCfiles=$(cat ${root_dir}/DekatronPC/DPC.files)
 
-	EmulFiles=$(cat Emul.files)
+	EmulFiles=$(cat ${root_dir}/Emulator/Emul.files)
 
-	verilator --top-module Emulator --lint-only -Wall ${EmulFiles} ${DPCfiles}
+	verilator --top-module Emulator --lint-only -DEMULATOR=1 -Wall ${EmulFiles} ${DPCfiles}
 
 	verilator --top-module DekatronPC --lint-only  -Wall ${DPCfiles}
 	
@@ -101,24 +102,24 @@ if [ ${sim} -ne 0 ]; then
 
 	./emul Counter
 
-	./emul IpLine programs/looptest/looptest.bfk
+	./emul IpLine ${root_dir}/programs/looptest/looptest.bfk
 
 	./emul ApLine
 
-	bf_file=programs/helloworld/helloworld.bfk
+	bf_file=${root_dir}/programs/helloworld/helloworld.bfk
 
-	g++ -o dpcrun -DEXEC DekatronPC/tests/DekatronPC.sv/dpcrun.cpp
+	g++ -o dpcrun -DEXEC ${root_dir}/DekatronPC/tests/DekatronPC.sv/dpcrun.cpp
 	./dpcrun -f ${bf_file}
-	g++ -c DekatronPC/tests/DekatronPC.sv/dpcrun.cpp
+	g++ -c ${root_dir}/DekatronPC/tests/DekatronPC.sv/dpcrun.cpp
 	ar rvs libdpcrun.a dpcrun.o
 
-	veremul DPC.files ${bf_file}
+	veremul ${root_dir}/DekatronPC/DPC.files ${bf_file}
 	
-	veremul DPC.files programs/pi/pi.bfk
+	veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/pi/pi.bfk
 
-	#veremul DPC.files programs/fractal.bfk
+	#veremul DPC.files ${root_dir}/programs/fractal.bfk
 
-	#veremul DPC.files programs/rot13/rot13.bfk
+	#veremul DPC.files ${root_dir}/programs/rot13/rot13.bfk
 
 	if [ ! -d vcd ]; then
 		mkdir vcd

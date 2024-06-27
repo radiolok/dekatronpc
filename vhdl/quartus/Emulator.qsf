@@ -44,6 +44,7 @@ set_global_assignment -name ORIGINAL_QUARTUS_VERSION 22.1STD.1
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "20:17:27  MAY 24, 2023"
 set_global_assignment -name LAST_QUARTUS_VERSION "23.1std.0 Lite Edition"
 set_global_assignment -name EDA_SIMULATION_TOOL "<None>"
+set_global_assignment -name NUM_PARALLEL_PROCESSORS ALL
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
@@ -53,54 +54,6 @@ set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 
 set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 set_global_assignment -name VERILOG_SHOW_LMF_MAPPING_MESSAGES OFF
 set_global_assignment -name VERILOG_MACRO "EMULATOR=True"
-set_global_assignment -name SYSTEMVERILOG_FILE ../../DekatronPC/InsnDecoder.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../programs/bootloader/bootloader.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../Logic/Compare.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../DekatronPC/IpMemory.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../Logic/OneShot.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../Functions/SymbolToOpcode.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../Functions/OpcodeToSymbol.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../Functions/In12CathodeToPin.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../Functions/BinaryToHex.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../Functions/BcdToAscii.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../Functions/AsciiToBcd.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../programs/firmware.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../Logic/UpCounter.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../Logic/RsLatch.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../Logic/RegisterFileSharedOut.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../Logic/RegisterFileFlatOut.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../Logic/Register.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../Logic/mux.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../Logic/Impulse.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../Logic/ClockDivider.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../Logic/bn_mux_n_1_generate.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../Sequencer.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../segment7.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../MS6205.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../KeyToSymbol.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../KeyboardKeys.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../Keyboard.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../io_register_block.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../io_key_display_block.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../input_regs.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../In12CathodeToPin.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator_tb.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../DekatronPC/RAM.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../DekatronPC/DekatronPC.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../DekatronPC/IpLine/ROM.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../DekatronPC/IpLine/IpLine.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../DekatronPC/IpLine/InsnLoopDetector.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../DekatronPC/ApLine/ApLine.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../parameters.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../DekatronPC/Dekatron/DekatronPulseSender.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../DekatronPC/Dekatron/DekatronPulseAllow.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../DekatronPC/Dekatron/DekatronModule.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../DekatronPC/Dekatron/DekatronCounter.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../DekatronPC/Dekatron/DekatronCarrySignal.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../../DekatronPC/Dekatron/Dekatron.sv
-set_global_assignment -name VERILOG_FILE ../../DekatronPC/Dekatron/BinToBcd.v
-set_global_assignment -name VERILOG_FILE ../../DekatronPC/Dekatron/BcdToBin.v
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[0]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[1]
 set_location_assignment PIN_Y4 -to emulData[7]
@@ -243,4 +196,48 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[3]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[2]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[1]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[0]
+set_global_assignment -name ENABLE_LOGIC_ANALYZER_INTERFACE OFF
+set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/Sequencer.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/MS6205.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/KeyToSymbol.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/KeyboardKeys.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/Keyboard.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/io_register_block.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/io_key_display_block.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/input_regs.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/Emulator.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../parameters.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../programs/bootloader/bootloader.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Functions/SymbolToOpcode.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Functions/OpcodeToSymbol.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Functions/In12CathodeToPin.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Functions/BinaryToHex.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Functions/BcdToAscii.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Functions/AsciiToBcd.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../DekatronPC/IpLine.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../DekatronPC/InsnLoopDetector.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../DekatronPC/ApLine.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/UpCounter.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/RsLatch.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/RegisterFileSharedOut.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/RegisterFileFlatOut.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/Register.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/OneShot.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/mux.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/Impulse.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/Compare.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/ClockDivider.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/bn_mux_n_1_generate.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../DekatronPC/RAM.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../DekatronPC/IpMemory.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../DekatronPC/InsnDecoder.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../DekatronPC/DekatronPC.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../DekatronPC/Dekatron/DekatronPulseSender.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../DekatronPC/Dekatron/DekatronPulseAllow.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../DekatronPC/Dekatron/DekatronModule.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../DekatronPC/Dekatron/DekatronCounter.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../DekatronPC/Dekatron/DekatronCarrySignal.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../DekatronPC/Dekatron/Dekatron.sv
+set_global_assignment -name VERILOG_FILE ../DekatronPC/Dekatron/BinToBcd.v
+set_global_assignment -name VERILOG_FILE ../DekatronPC/Dekatron/BcdToBin.v
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

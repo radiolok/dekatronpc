@@ -14,9 +14,9 @@ module MS6205(
     input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apData1,
     /* verilator lint_off UNUSEDSIGNAL */
     input wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipAddress,
-    output wire  [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipAddress1,
+    output reg  [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipAddress1,
     input wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apAddress,
-    output wire  [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apAddress1,
+    output reg  [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apAddress1,
     input wire write_addr,
     input wire write_data,
     input wire ready,
@@ -84,8 +84,8 @@ reg [11:0] dataRam [0: 9];
 reg [7:0] stdioAddr;
 
 initial begin
-    $readmemh("./Emulator/MSmemZero.hex", stdioRam);
-    $readmemh("./Emulator/MSmemZero.hex", insnRam);
+    $readmemh("../Emulator/MSmemZero.hex", stdioRam);
+    $readmemh("../Emulator/MSmemZero.hex", insnRam);
 end
 
 always @(negedge Clock_1us, negedge Rst_n) begin

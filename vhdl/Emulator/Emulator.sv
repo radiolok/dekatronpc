@@ -100,14 +100,16 @@ module Emulator #(
 	 */
     inout wire [7:0] io_data,
 
+    input wire CioAcq,
+
+`ifdef VERILATOR
+
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
     output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
     output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DPC_DataOut,
-    output wire [31:0] IRET,
+`endif
 
-    input wire CioAcq,
-    
     output wire [2:0] DPC_currentState
 );
 
@@ -115,9 +117,17 @@ assign LED[0] = Rst_n;
 assign LED[1] =  Clock_1s;
 assign LED[2] = Clock_1ms;
 
+`ifndef VERILATOR
+    wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress;
+    wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress;
+    wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount;
+    wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DPC_DataOut;
+`endif
+
 wire CoutAcq;
 
 /* verilator lint_off UNUSEDSIGNAL */
+wire [31:0] IRET;
 wire [39:0] keysCurrentState;
 /* verilator lint_on UNUSEDSIGNAL */
 
@@ -187,9 +197,9 @@ wire EchoMode = 1'b1;
 
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DPC_DataIn;
 
-assign stdout = BcdToAscii(DPC_DataOut);
+BcdToAscii bcdToAscii(DPC_DataOut, stdout);
 
-assign DPC_DataIn = AsciiToBcd(stdin);
+AsciiToBcd asciiToBcd(stdin, DPC_DataIn);
 
 wire Acq = CioAcq | CoutAcq;
 /* verilator lint_off UNDRIVEN */
@@ -198,11 +208,8 @@ wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress1;
 /* verilator lint_on UNDRIVEN */
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApData1;
 /* verilator lint_on UNUSEDSIGNAL */
-
-`ifdef EMULATOR
-    wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress1;
-    wire [INSN_WIDTH-1:0] RomData1;
-`endif
+wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress1;
+wire [INSN_WIDTH-1:0] RomData1;
 
 DekatronPC dekatronPC(
     .IpAddress(IpAddress),
@@ -248,16 +255,13 @@ io_key_display_block #(
     .keyboard_keysCurrentState(keysCurrentState),
     .emulData(emulData),
     .ipAddress(IpAddress),
-`ifdef EMULATOR
     .ipAddress1(IpAddress1),
     .RomData1(RomData1),
     .apAddress1(ApAddress1),
     .apData1(ApData1),
     .apData(DPC_DataOut),
-`endif
     .loopCounter(LoopCount),
     .apAddress(ApAddress),
-    .dataCounter(DPC_DataOut),
     .Clock_1s(Clock_1s),
     .Clock_1ms(Clock_1ms),
     .Clock_1us(Clock_1us),

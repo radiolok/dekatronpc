@@ -2,10 +2,10 @@
 set -Eeuo pipefail
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
-
+root_dir=${script_dir}/..
 current_dir=$(realpath $(pwd))
 
-files_path=${script_dir}/DPC.files
+files_path=${root_dir}/DekatronPC/DPC.files
 
 touch ${1}.txt
 chmod 777 ${1}.txt

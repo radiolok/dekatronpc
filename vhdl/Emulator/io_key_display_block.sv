@@ -24,16 +24,13 @@ module io_key_display_block #(
     input wire [7:0] stdout,
 
     input wire  [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipAddress,
-`ifdef EMULATOR
     output wire  [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipAddress1,
     input wire [INSN_WIDTH-1:0] RomData1,    
     output wire  [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apAddress1,
     input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apData1,
     input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apData,
-`endif
     input wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] loopCounter,
     input wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apAddress,
-    input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] dataCounter,
 
     input wire Cout,
     output wire CioAcq,
@@ -45,41 +42,57 @@ module io_key_display_block #(
 
 wire [3:0] anodeCount;
 
-wire [3:0]cathodeLow;
-wire [3:0] cathodeHigh;
-
-wire anodesClkTick;
+reg [3:0]cathodeLow;
+reg [3:0] cathodeHigh;
 
 wire [7:0] cathodeData;
 
 assign cathodeData = {In12CathodeToPin(cathodeLow), In12CathodeToPin(cathodeHigh)};
 
-//This mux  compress IP and LOOP data into 3-bit interface
-bn_mux_n_1_generate #(
-.DATA_WIDTH(4), 
-.SEL_WIDTH(4)
-)  muxCathode1
-        (  .data({
-            28'b0,
-            ipAddress,
-            loopCounter}),
-            .sel(anodeCount),
-            .y(cathodeHigh)
-        );
-    
-//This mux  compress AP and DATA info into 3-bit interface
-bn_mux_n_1_generate #(
-.DATA_WIDTH(4), 
-.SEL_WIDTH(4)
-)  muxCathode2
-        (  .data({
-            28'b0,
-            apAddress,
-            4'b0,
-            dataCounter}),
-            .sel(anodeCount),
-            .y(cathodeLow)
-        );
+always_comb begin
+    case(anodeCount)
+        4'd0: begin
+            cathodeHigh = loopCounter[3:0];
+            cathodeLow = apData[3:0];
+        end
+        4'd1: begin
+            cathodeHigh = loopCounter[7:4];
+            cathodeLow = apData[7:4];
+        end
+        4'd2: begin
+            cathodeHigh = loopCounter[11:8];
+            cathodeLow = apData[11:8];
+        end
+        4'd3: begin
+            cathodeHigh = ipAddress[3:0];
+            cathodeLow = 4'd0;
+        end
+        4'd4: begin
+            cathodeHigh = ipAddress[7:4];
+            cathodeLow = apAddress[3:0];
+        end
+        4'd5: begin
+            cathodeHigh = ipAddress[11:8];
+            cathodeLow = apAddress[7:4];
+        end
+        4'd6: begin
+            cathodeHigh = ipAddress[15:12];
+            cathodeLow = apAddress[7:4];
+        end
+        4'd7: begin
+            cathodeHigh = ipAddress[19:16];
+            cathodeLow = apAddress[11:8];
+        end
+        4'd8: begin
+            cathodeHigh = ipAddress[23:20];
+            cathodeLow = apAddress[15:12];
+        end
+        default: begin
+            cathodeHigh = 4'b0;
+            cathodeLow = 4'b0;
+        end
+    endcase
+end
 
 wire Clock_4ms;
 ClockDivider #(
@@ -91,24 +104,17 @@ ClockDivider #(
 	.clock_out(Clock_4ms)
 );
 
-Impulse impulse(
-	.Clk(Clock_1us),
-	.Rst_n(Rst_n),
-	.En(Clock_4ms),
-	.Impulse(anodesClkTick)
-);
-
 //We do anodes inc only when we need it
 
 UpCounter #(.TOP(4'b1010)) anodesCounter(
-            .Tick(anodesClkTick),
+            .Tick(Clock_4ms),
             .Rst_n(Rst_n),
             .Count(anodeCount)
 );
 
 wire [3:0] kbRowCount;
 UpCounter #(.TOP(4'b1000)) kbRowCounter(
-            .Tick(anodesClkTick),
+            .Tick(Clock_4ms),
             .Rst_n(Rst_n),
             .Count(kbRowCount)
 );

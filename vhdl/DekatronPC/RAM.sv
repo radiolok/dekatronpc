@@ -16,41 +16,43 @@
   input CS//CS==1 to do all operations
 );
 
-// synopsys translate_off
-//As RAM would not be evaluated with vacuum tubes
-reg [DATA_WIDTH-1:0] Mem [0:ROWS-1];
+`ifndef SYNTH
+    //As RAM would not be evaluated with vacuum tubes
+    reg [DATA_WIDTH-1:0] Mem [0:ROWS-1];
 
-reg [DATA_WIDTH-1:0] Data;
+    reg [DATA_WIDTH-1:0] Data;
 
-assign Out = CS ? Data : {DATA_WIDTH{1'bz}};
+    assign Out = CS ? Data : {DATA_WIDTH{1'bz}};
 
-always @(posedge Clk, negedge Rst_n) begin
-    if (~Rst_n) begin
-//TODO:  Bootloader should cleanUp Memory itself
-/* verilator lint_off BLKSEQ */
-      integer  i;
-      for (i=0; i < ROWS; i++) 
-        Mem[i] = {DATA_WIDTH{1'b0}};
-      Data <= {DATA_WIDTH{1'b0}};
-/* verilator lint_off BLKSEQ */
+    always @(posedge Clk, negedge Rst_n) begin
+        if (~Rst_n) begin
+    //TODO:  Bootloader should cleanUp Memory itself
+	 //synopsys translate_off
+    /* verilator lint_off BLKSEQ */
+          integer  i;
+          for (i=0; i < ROWS; i++) 
+            Mem[i] = {DATA_WIDTH{1'b0}};
+    /* verilator lint_off BLKSEQ */
+			Data <= {DATA_WIDTH{1'b0}};
+			//synopsys translate_on
+        end
+        else if (WE) Mem[Address] <= In;
+          else Data <= Mem[Address];
     end
-    else if (WE) Mem[Address] <= In;
-      else Data <= Mem[Address];
-end
 
 
-`ifdef EMULATOR
-  reg [DATA_WIDTH-1:0] Data1;
+    `ifdef EMULATOR
+      reg [DATA_WIDTH-1:0] Data1;
 
-  assign Out1 = CS ? Data1 : {DATA_WIDTH{1'bz}};
+      assign Out1 = CS ? Data1 : {DATA_WIDTH{1'bz}};
 
-  always @(negedge Clk, negedge Rst_n) begin
-      if (~Rst_n) begin
-        Data1 <= {DATA_WIDTH{1'b0}};
+      always @(negedge Clk, negedge Rst_n) begin
+          if (~Rst_n) begin
+            Data1 <= {DATA_WIDTH{1'b0}};
+          end
+          else Data1 <= Mem[Address1];
       end
-      else Data1 <= Mem[Address1];
-  end
-`endif
+    `endif
 
-// synopsys translate_on
+`endif
 endmodule

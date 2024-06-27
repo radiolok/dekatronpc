@@ -4,6 +4,8 @@ if { $argc != 2 } {
 }
 yosys -import
 
+yosys read -define SYNTH=1
+
 set fp [open [lindex $argv 0] r]
 set file_data [read $fp]
 close $fp
