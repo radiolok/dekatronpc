@@ -5,7 +5,7 @@
 )(
   input wire Rst_n,
   input Clk,//Sync operation
-  input wire [ADDR_WIDTH-1:0] Address,
+  input wire [ADDR_WIDTH-1:0] Address,//BCD
   input wire [DATA_WIDTH-1:0] In,
   output wire [DATA_WIDTH-1:0] Out,
 `ifdef EMULATOR

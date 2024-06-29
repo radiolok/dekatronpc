@@ -49,6 +49,19 @@ wire [7:0] cathodeData;
 
 assign cathodeData = {In12CathodeToPin(cathodeLow), In12CathodeToPin(cathodeHigh)};
 
+wire [3:0] inIPHigh [0:9];
+generate 
+    genvar idx;
+    for (idx = 0; idx < 9; idx = idx + 1) begin: IP_HIGH
+        if (idx < IP_DEKATRON_NUM) begin: IP_EXIST
+            assign inIPHigh[idx] = ipAddress[(idx+1)*4-1:idx*4];
+        end
+        else begin: IP_NOX_EXIST
+            assign inIPHigh[idx] = 4'b0;
+        end
+    end
+endgenerate
+
 always_comb begin
     case(anodeCount)
         4'd0: begin
@@ -64,27 +77,27 @@ always_comb begin
             cathodeLow = apData[11:8];
         end
         4'd3: begin
-            cathodeHigh = ipAddress[3:0];
+            cathodeHigh = inIPHigh[0];
             cathodeLow = 4'd0;
         end
         4'd4: begin
-            cathodeHigh = ipAddress[7:4];
+            cathodeHigh = inIPHigh[1];
             cathodeLow = apAddress[3:0];
         end
         4'd5: begin
-            cathodeHigh = ipAddress[11:8];
+            cathodeHigh = inIPHigh[2];
             cathodeLow = apAddress[7:4];
         end
         4'd6: begin
-            cathodeHigh = ipAddress[15:12];
+            cathodeHigh = inIPHigh[3];
             cathodeLow = apAddress[7:4];
         end
         4'd7: begin
-            cathodeHigh = ipAddress[19:16];
+            cathodeHigh = inIPHigh[4];
             cathodeLow = apAddress[11:8];
         end
         4'd8: begin
-            cathodeHigh = ipAddress[23:20];
+            cathodeHigh = inIPHigh[5];
             cathodeLow = apAddress[15:12];
         end
         default: begin

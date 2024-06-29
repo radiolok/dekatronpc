@@ -81,19 +81,41 @@ wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApRamDataOut;
 wire ApRamCS;
 wire ApRamWE;
 
+localparam AP_RAM_ROWS_NUM = 30000;
+localparam AP_RAM_BIN_BW = $clog2(AP_RAM_ROWS_NUM-1);
 
+wire [AP_RAM_BIN_BW-1:0] ApAddressBin;
+
+BcdToBinEnc #(
+    .DIGITS(AP_DEKATRON_NUM),
+    .OUT_WIDTH(AP_RAM_BIN_BW)
+) ApRAM_address_enc (
+    .bcd(ApAddress),
+    .bin(ApAddressBin)
+);
+
+`ifdef EMULATOR
+wire [AP_RAM_BIN_BW-1:0] ApAddress1Bin;
+BcdToBinEnc #(
+    .DIGITS(AP_DEKATRON_NUM),
+    .OUT_WIDTH(AP_RAM_BIN_BW)
+) ApRAM1_address_enc (
+    .bcd(ApAddress1),
+    .bin(ApAddress1Bin)
+);
+`endif
 RAM #(
-    .ROWS(21'h100000),
-    .ADDR_WIDTH(AP_DEKATRON_NUM*DEKATRON_WIDTH),
+    .ROWS(AP_RAM_ROWS_NUM),
+    .ADDR_WIDTH(AP_RAM_BIN_BW),
     .DATA_WIDTH(DATA_DEKATRON_NUM*DEKATRON_WIDTH)
 ) ram(
     .Clk(Clk),
     .Rst_n(Rst_n),
-    .Address(ApAddress),
+    .Address(ApAddressBin),
     .In(ApRamDataIn),
     .Out(ApRamDataOut),
 `ifdef EMULATOR
-    .Address1(ApAddress1),
+    .Address1(ApAddress1Bin),
     .Out1(ApData1),
 `endif
     .WE(ApRamWE),

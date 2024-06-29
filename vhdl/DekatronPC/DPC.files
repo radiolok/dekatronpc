@@ -22,3 +22,4 @@
 ../Logic/Compare.sv
 ../Logic/ClockDivider.sv
 ../Logic/BCDCounter.sv
+../Functions/BcdToBinEnc.sv

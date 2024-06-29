@@ -197,6 +197,8 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[2]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[1]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[0]
 set_global_assignment -name ENABLE_LOGIC_ANALYZER_INTERFACE OFF
+set_global_assignment -name SDC_FILE Emulator.sdc
+set_global_assignment -name SYSTEMVERILOG_FILE ../Functions/BcdToBinEnc.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/Sequencer.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/MS6205.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/KeyToSymbol.sv

@@ -1,4 +1,6 @@
-module IpMemory(
+module IpMemory #(
+    parameter ROWS = 10**IP_DEKATRON_NUM
+)(
     input wire Clk,
     input wire Rst_n,
     input wire Request,
@@ -15,13 +17,23 @@ module IpMemory(
 
 `ifndef SYNTH
 localparam ROM_DEKATRONS = 2;
-localparam ROWS = 25'h1000000;
-wire isBootloader = (Address[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:ROM_DEKATRONS*DEKATRON_WIDTH] == 16'h9999);
+localparam HIGH_ADDR = (10**(IP_DEKATRON_NUM-ROM_DEKATRONS)-1);
+wire isBootloader = (Address[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:ROM_DEKATRONS*DEKATRON_WIDTH] == HIGH_ADDR);
 
 wire [INSN_WIDTH-1: 0] RomOutWire;
 reg [INSN_WIDTH-1: 0] RomOutReg;
 reg [INSN_WIDTH-1: 0] RamOutReg;
 
+localparam IP_RAM_BIN_BW = $clog2(ROWS-1);
+wire [IP_RAM_BIN_BW-1:0] AddressBin;
+
+BcdToBinEnc #(
+    .DIGITS(IP_DEKATRON_NUM),
+    .OUT_WIDTH(IP_RAM_BIN_BW)
+) ApRAM_address_enc (
+    .bcd(Address),
+    .bin(AddressBin)
+);
 
 parameter [1:0]
     INIT      = 2'd0,
@@ -82,15 +94,22 @@ always @(posedge Clk, negedge Rst_n) begin
       RamOutReg <= {INSN_WIDTH{1'b0}};
       RomOutReg <= {(INSN_WIDTH){1'b0}};
     end
-    else if (WE) Mem[Address] <= InsnIn;
+    else if (WE) Mem[AddressBin] <= InsnIn;
       else begin 
-        RamOutReg <= Mem[Address];
+        RamOutReg <= Mem[AddressBin];
         RomOutReg <= RomOutWire;
     end
 end
 
 `ifdef EMULATOR
-
+    wire [IP_RAM_BIN_BW-1:0] Address1Bin;
+    BcdToBinEnc #(
+        .DIGITS(IP_DEKATRON_NUM),
+        .OUT_WIDTH(IP_RAM_BIN_BW)
+    ) ApRAM1_address_enc (
+        .bcd(Address1),
+        .bin(Address1Bin)
+    );
     wire [INSN_WIDTH-1: 0] RomOutWire1;
     reg [INSN_WIDTH-1: 0] RomOutReg1;
     reg [INSN_WIDTH-1: 0] RamOutReg1;
@@ -108,7 +127,7 @@ end
             RomOutReg1 <= {(INSN_WIDTH){1'b0}};
         end
         else begin 
-            RamOutReg1 <= Mem[Address1];
+            RamOutReg1 <= Mem[Address1Bin];
             RomOutReg1 <= RomOutWire1;
         end
     end
