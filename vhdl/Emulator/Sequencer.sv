@@ -20,25 +20,8 @@ module Sequencer(
 reg ms6205_write_addr;
 reg ms6205_write_data;
 
-wire ms6205_write_addr_imp;
-wire ms6205_write_data_imp;
-
-assign ms6205_write_data_n = ~ms6205_write_data_imp;
-assign ms6205_write_addr_n = ~ms6205_write_addr_imp;
-
-Impulse impulse_addr(
-	.Clk(Clock_1us),
-	.Rst_n(Rst_n),
-	.En(ms6205_write_addr),
-	.Impulse(ms6205_write_addr_imp)
-);
-
-Impulse impulse_data(
-	.Clk(Clock_1us),
-	.Rst_n(Rst_n),
-	.En(ms6205_write_data),
-	.Impulse(ms6205_write_data_imp)
-);
+assign ms6205_write_data_n = ~ms6205_write_data;
+assign ms6205_write_addr_n = ~ms6205_write_addr;
 
 //Now, we need to do next job if ack signal:
 /*

@@ -1,5 +1,5 @@
 module Emulator #(
-    parameter DIVIDE_TO_1US = 28'd50,
+    parameter DIVIDE_TO_01US = 28'd5,
     parameter DIVIDE_TO_1MS = 28'd1000,
     parameter DIVIDE_TO_4MS = 28'd3000,
     parameter DIVIDE_TO_1S = 28'd1000,
@@ -65,12 +65,12 @@ module Emulator #(
 	*/
 	output [7:0] emulData,
 
-    output wire Clock_1s, //AF18 GPIO1.24
-    output wire Clock_1ms, //AG23 GPIO1.22
-    output wire Clock_1us, //AF25 GPIO1.20
+    output wire Clock_1Hz, //AF18 GPIO1.24
+    output wire Clock_1KHz, //AG23 GPIO1.22
+    output wire Clock_1MHz, //AF25 GPIO1.20
 
-    output wire Cout,
-    output wire CinReq,
+    output wire Cout,//AG18
+    output wire CinReq,//AC23
 
     output wire [7:0] stdout,
 
@@ -100,7 +100,7 @@ module Emulator #(
 	 */
     inout wire [7:0] io_data,
 
-    input wire CioAcq,
+    input wire CioAcq,//
 
 `ifdef VERILATOR
 
@@ -114,8 +114,8 @@ module Emulator #(
 );
 
 assign LED[0] = Rst_n;
-assign LED[1] =  Clock_1s;
-assign LED[2] = Clock_1ms;
+assign LED[1] =  Clock_1Hz;
+assign LED[2] = Clock_1KHz;
 
 `ifndef VERILATOR
     wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress;
@@ -137,7 +137,7 @@ wire keyStep = keysCurrentState[KEYBOARD_STEP_KEY];
 
 wire Rst_n = KEY[0];
 
-wire hsClk;
+wire Clock_10MHz;
 /* verilator lint_off UNUSEDSIGNAL */
 wire [INSN_WIDTH - 1:0] Insn;
 wire SoftRst_n = Rst_n & ~keysCurrentState[KEYBOARD_SOFT_RST_KEY];
@@ -145,52 +145,41 @@ wire HardRst_n = Rst_n & ~keysCurrentState[KEYBOARD_HARD_RST];
 /* verilator lint_on UNUSEDSIGNAL */
 
 generate
-    if (DIVIDE_TO_1US == 1) begin
-        assign Clock_1us = FPGA_CLK_50;
+    if (DIVIDE_TO_01US == 1) begin
+        assign Clock_10MHz = FPGA_CLK_50;
     end
     else begin
-    ClockDivider #(.DIVISOR({DIVIDE_TO_1US})) clock_divider_us(
+    ClockDivider #(.DIVISOR({DIVIDE_TO_01US})) clock_divider_10MHz(
         .Rst_n(Rst_n),
         .clock_in(FPGA_CLK_50),
-        .clock_out(Clock_1us)
+        .clock_out(Clock_10MHz)
     );
     end
 endgenerate
 
 ClockDivider #(
-    .DIVISOR(8'd5),
-    .DUTY_CYCLE(50)
-) clock_divider_hsClk(
-    .Rst_n(Rst_n),
-	.clock_in(FPGA_CLK_50),
-	.clock_out(hsClk)
-);
-
-wire Clk;
-
-ClockDivider #(
     .DIVISOR(10)
-) clock_divider_Clk(
+) clock_divider_1MHz(
     .Rst_n(Rst_n),
-	.clock_in(hsClk),
-	.clock_out(Clk)
+	.clock_in(Clock_10MHz),
+	.clock_out(Clock_1MHz)
 );
 
 ClockDivider #(
     .DIVISOR({DIVIDE_TO_1MS}),
     .DUTY_CYCLE(80)
-) clock_divider_ms(
+) clock_divider_1KHz(
     .Rst_n(Rst_n),
-	.clock_in(Clock_1us),
-	.clock_out(Clock_1ms)
+	.clock_in(Clock_1MHz),
+	.clock_out(Clock_1KHz)
 );
 
 ClockDivider #(
     .DIVISOR({DIVIDE_TO_1S})
-) clock_divider_s(
+) clock_divider_1Hz(
     .Rst_n(Rst_n),
-	.clock_in(Clock_1ms),
-	.clock_out(Clock_1s)
+	.clock_in(Clock_1KHz),
+	.clock_out(Clock_1Hz)
 );
 
 wire EchoMode = 1'b1;
@@ -216,8 +205,8 @@ DekatronPC dekatronPC(
     .ApAddress(ApAddress),
     .Data(DPC_DataOut),
     .LoopCount(LoopCount),
-    .hsClk(hsClk),
-    .Clk(Clk),
+    .hsClk(Clock_10MHz),
+    .Clk(Clock_1MHz),
     .Rst_n(HardRst_n),
     .Halt(keyHalt),
     .Run(keyRun),
@@ -262,9 +251,9 @@ io_key_display_block #(
     .apData(DPC_DataOut),
     .loopCounter(LoopCount),
     .apAddress(ApAddress),
-    .Clock_1s(Clock_1s),
-    .Clock_1ms(Clock_1ms),
-    .Clock_1us(Clock_1us),
+    .Clock_1s(Clock_1Hz),
+    .Clock_1ms(Clock_1KHz),
+    .Clock_1us(Clock_1MHz),
     .Rst_n(Rst_n),
     .stdout(stdout),
     .Cout(Cout),
@@ -278,21 +267,21 @@ wire [127:0] io_input_regs;
 
 wire [127:0] io_output_regs = 128'b0;
 
-wire Clock_10us;
+wire Clock_100KHz;
 
 ClockDivider #(
     .DIVISOR(10)
-) clock_divider_10us(
+) clock_divider_100KHz(
     .Rst_n(Rst_n),
-	.clock_in(Clock_1us),
-	.clock_out(Clock_10us)
+	.clock_in(Clock_1MHz),
+	.clock_out(Clock_100KHz)
 );
 
 io_register_block #(
     .BOARDS(BOARDS),
     .INSTALLED_BOARDS(INSTALLED_BOARDS)
 )IoRegisterBlock(
-    .Clk(Clock_10us),
+    .Clk(Clock_100KHz),
 	.Rst_n(Rst_n),
     .io_address(io_address),
     .io_enable_n(io_enable_n),

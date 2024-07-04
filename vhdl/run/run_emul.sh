@@ -38,11 +38,12 @@ DPCfiles=$(cat ${root_dir}/DekatronPC/DPC.files)
 
 EmulFiles=$(cat ${root_dir}/Emulator/Emul.files)
 
-bf_file=${root_dir}/programs/helloworld/helloworld.bfk
+#bf_file=${root_dir}/programs/helloworld/helloworld.bfk
+bf_file=${root_dir}/programs/pi/pi.bfk
 #bf_file=programs/rot13/rot13.bfk
 
 verilator -Wall --trace --top Emulator --clk FPGA_CLK_50 --cc ${EmulFiles} ${DPCfiles} \
--GDIVIDE_TO_1US=1 --timescale 1us/10ns  +define+EMULATOR -DVERILATOR=1 \
+-GDIVIDE_TO_01US=1 --timescale 1us/10ns  +define+EMULATOR -DVERILATOR=1 \
 --exe ${root_dir}/DekatronPC/tests/Emulator.sv/Emulator_tb.cpp -LDFLAGS -lncurses
 
 make -j`nproc` -C obj_dir -f VEmulator.mk VEmulator
