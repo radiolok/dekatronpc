@@ -19,3 +19,4 @@
 ../Emulator/io_register_block.sv
 ../Emulator/input_regs.sv
 ../Emulator/Sequencer.sv
+../Emulator/consul.sv

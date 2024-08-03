@@ -71,11 +71,11 @@ module Emulator #(
 
     output wire Cout,//AG18
     output wire CinReq,//AC23
+    input wire CioAcq,//
 
     output wire [7:0] stdout,
 
-    input wire [7:0] stdin,
-    
+   
 	 /*
 	 A0 - AA18
 	 A1 - AC22
@@ -99,8 +99,6 @@ module Emulator #(
 	 D7 - AH19
 	 */
     inout wire [7:0] io_data,
-
-    input wire CioAcq,//
 
 `ifdef VERILATOR
 
@@ -187,7 +185,7 @@ wire EchoMode = 1'b1;
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DPC_DataIn;
 
 BcdToAscii bcdToAscii(DPC_DataOut, stdout);
-
+wire [7:0] stdin;
 AsciiToBcd asciiToBcd(stdin, DPC_DataIn);
 
 wire Acq = CioAcq | CoutAcq;
@@ -210,10 +208,10 @@ DekatronPC dekatronPC(
     .Rst_n(HardRst_n),
     .Halt(keyHalt),
     .Run(keyRun),
-    .Cout(Cout),
     .InsnIn(4'b0),
     .EchoMode(EchoMode),
     .DataCin(DPC_DataIn),
+    .Cout(Cout),
     .CioAcq(Acq),
     .CinReq(CinReq),
     .Step(keyStep),
@@ -265,7 +263,7 @@ io_key_display_block #(
 wire [127:0] io_input_regs;
 /* verilator lint_on UNUSEDSIGNAL */
 
-wire [127:0] io_output_regs = 128'b0;
+wire [127:0] io_output_regs;
 
 wire Clock_100KHz;
 
@@ -281,7 +279,7 @@ io_register_block #(
     .BOARDS(BOARDS),
     .INSTALLED_BOARDS(INSTALLED_BOARDS)
 )IoRegisterBlock(
-    .Clk(Clock_100KHz),
+    .Clk(Clock_10MHz),
 	.Rst_n(Rst_n),
     .io_address(io_address),
     .io_enable_n(io_enable_n),
@@ -289,6 +287,26 @@ io_register_block #(
     .inputs(io_input_regs),
     .outputs(io_output_regs)
 );
+
+
+wire [15:0] consul_regs_in;
+wire [9:0] consul_regs_out;
+
+assign io_input_regs[15:0] = consul_regs_in;
+assign io_output_regs[9:0] = consul_regs_out;
+
+consul Consul(
+    .Clk(Clock_1KHz),
+    .Rst_n(Rst_n),
+    .regs_in(consul_regs_in),
+    .regs_out(consul_regs_out),
+    .stdout(stdout),
+    .stdin(stdin),
+    .Cout(Cout),
+    .CioAcq(Acq),
+    .CinReq(CinReq)
+);
+
 
 
 endmodule
