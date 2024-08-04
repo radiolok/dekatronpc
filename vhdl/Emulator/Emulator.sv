@@ -69,14 +69,7 @@ module Emulator #(
     output wire Clock_1KHz, //AG23 GPIO1.22
     output wire Clock_1MHz, //AF25 GPIO1.20
 
-    output wire Cout,//AG18
-    output wire CinReq,//AC23
-    input wire CioAcq,//
-
-    output wire [7:0] stdout,
-
-   
-	 /*
+     /*
 	 A0 - AA18
 	 A1 - AC22
 	 A2 - AD23
@@ -121,8 +114,13 @@ assign LED[2] = Clock_1KHz;
     wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount;
     wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DPC_DataOut;
 `endif
+wire Cout;
+wire CinReq;
+wire CioAcq;
 
-wire CoutAcq;
+wire [7:0] stdout;
+wire [7:0] stdin;
+wire CoutAcqMs;
 
 /* verilator lint_off UNUSEDSIGNAL */
 wire [31:0] IRET;
@@ -185,10 +183,9 @@ wire EchoMode = 1'b1;
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DPC_DataIn;
 
 BcdToAscii bcdToAscii(DPC_DataOut, stdout);
-wire [7:0] stdin;
 AsciiToBcd asciiToBcd(stdin, DPC_DataIn);
 
-wire Acq = CioAcq | CoutAcq;
+wire Acq = CioAcq | CoutAcqMs;
 /* verilator lint_off UNDRIVEN */
 /* verilator lint_off UNUSEDSIGNAL */
 wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress1;
@@ -255,7 +252,7 @@ io_key_display_block #(
     .Rst_n(Rst_n),
     .stdout(stdout),
     .Cout(Cout),
-    .CioAcq(CoutAcq),
+    .CioAcq(CoutAcqMs),
     .DPC_currentState(DPC_currentState)
 );
 
@@ -263,7 +260,9 @@ io_key_display_block #(
 wire [127:0] io_input_regs;
 /* verilator lint_on UNUSEDSIGNAL */
 
+/* verilator lint_off UNDRIVEN */
 wire [127:0] io_output_regs;
+/* verilator lint_on UNDRIVEN */
 
 wire Clock_100KHz;
 
@@ -275,11 +274,21 @@ ClockDivider #(
 	.clock_out(Clock_100KHz)
 );
 
+wire Clock_100Hz;
+
+ClockDivider #(
+    .DIVISOR(10)
+) clock_divider_100Hz(
+    .Rst_n(Rst_n),
+	.clock_in(Clock_1KHz),
+	.clock_out(Clock_100Hz)
+);
+
 io_register_block #(
     .BOARDS(BOARDS),
     .INSTALLED_BOARDS(INSTALLED_BOARDS)
 )IoRegisterBlock(
-    .Clk(Clock_10MHz),
+    .Clk(Clock_100KHz),
 	.Rst_n(Rst_n),
     .io_address(io_address),
     .io_enable_n(io_enable_n),
@@ -292,18 +301,18 @@ io_register_block #(
 wire [15:0] consul_regs_in;
 wire [9:0] consul_regs_out;
 
-assign io_input_regs[15:0] = consul_regs_in;
+assign consul_regs_in = io_input_regs[15:0];
 assign io_output_regs[9:0] = consul_regs_out;
 
 consul Consul(
-    .Clk(Clock_1KHz),
+    .Clk(Clock_100Hz),
     .Rst_n(Rst_n),
     .regs_in(consul_regs_in),
     .regs_out(consul_regs_out),
     .stdout(stdout),
     .stdin(stdin),
     .Cout(Cout),
-    .CioAcq(Acq),
+    .CioAcq(CioAcq),
     .CinReq(CinReq)
 );
 
