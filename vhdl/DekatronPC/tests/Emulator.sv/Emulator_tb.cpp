@@ -32,6 +32,44 @@ const char* dpcStatus[] = {"NONE", "IDLE", "RUN", "RUN", "HALT", "CIN", "COUT", 
 
 #define EXIT 0xFF
 
+class ioRegs{
+public:
+    ioRegs(){
+        memset(inputRegs, 0, sizeof(inputRegs));
+        memset(outputRegs, 0, sizeof(outputRegs));
+    }
+
+    ~ioRegs(){
+
+    }
+    //return true if dataOut is updated
+    bool update(uint8_t en, uint8_t addr, uint8_t data, uint8_t& dataOut){
+        uint8_t reg = (en - 1) * 8 + (addr & 0x07);
+        assert(reg <= 16);
+        if ((addr >> 3) & 0x01){//write
+            outputRegs[reg] = data;
+            return false;
+        } else {//read
+            dataOut = inputRegs[reg];
+            return true;
+        }
+        return false;
+    }
+
+    uint8_t read(uint8_t addr){
+        return (addr < 16)? outputRegs[addr] : 0;
+    }
+    
+    void write(uint8_t addr, const uint8_t& data){
+        if (addr < 16 ){
+            inputRegs[addr] = data;
+        }
+    }
+private:
+    uint8_t inputRegs[16];
+    uint8_t outputRegs[16];
+};
+
 class UI{
 public:
     UI() : KeyCurrentRows(0)
@@ -294,6 +332,7 @@ uint8_t Cin(bool state, uint8_t& symbol)
 int main(int argc, char** argv, char** env) {
     VEmulator *dut = new VEmulator;
     UI *ui = new UI;
+    ioRegs *ioregs = new ioRegs;
     Verilated::traceEverOn(true);
 #ifdef SIM_COV
     Verilated::mkdir("logs");
@@ -326,12 +365,12 @@ int main(int argc, char** argv, char** env) {
         if (sim_time < MAX_SIM_TIME)
             m_trace->dump(sim_time);
     #endif
-        if (!(dut->Cout | dut->CinReq)){
-            dut->CioAcq = 0;
-        }
-        if (Cin(dut->CinReq, dut->stdin)){
-            dut->CioAcq = 1;
-        }
+        // if (!(dut->Cout | dut->CinReq)){
+        //     dut->CioAcq = 0;
+        // }
+        // if (Cin(dut->CinReq, dut->stdin)){
+        //     dut->CioAcq = 1;
+        // }
         uint8_t needUpdate = 0;
         ui->keyboardUpdate(dut->keyboard_write, dut->emulData, dut->keyboard_data_in);
         needUpdate += ui->in12AnodeUpdate(dut->in12_write_anode, dut->emulData);
@@ -356,5 +395,6 @@ int main(int argc, char** argv, char** env) {
     endwin();
     delete dut;
     delete ui;
+    delete ioregs;
     exit(EXIT_SUCCESS);
 }

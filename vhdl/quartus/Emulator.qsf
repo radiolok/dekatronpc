@@ -165,12 +165,6 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LED[4]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LED[3]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LED[1]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to LED
-set_location_assignment PIN_AF18 -to Clock_1ms
-set_location_assignment PIN_AF25 -to Clock_1us
-set_location_assignment PIN_AG23 -to Clock_1s
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to Clock_1ms
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to Clock_1s
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to Clock_1us
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[3]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to DPC_currentState
@@ -178,25 +172,8 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to DPC_currentState[2]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to DPC_currentState[1]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to DPC_currentState[0]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to "io_data[5](n)"
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdin
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdin[7]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdin[6]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdin[5]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdin[4]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdin[3]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdin[2]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdin[1]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdin[0]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[7]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[6]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[5]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[4]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[3]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[2]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[1]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[0]
 set_global_assignment -name ENABLE_LOGIC_ANALYZER_INTERFACE OFF
+set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/consul.sv
 set_global_assignment -name SDC_FILE Emulator.sdc
 set_global_assignment -name SYSTEMVERILOG_FILE ../Functions/BcdToBinEnc.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/Sequencer.sv

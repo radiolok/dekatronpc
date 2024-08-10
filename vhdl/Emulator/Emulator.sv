@@ -264,14 +264,14 @@ wire [127:0] io_input_regs;
 wire [127:0] io_output_regs;
 /* verilator lint_on UNDRIVEN */
 
-wire Clock_100KHz;
+wire Clock_10KHz;
 
 ClockDivider #(
-    .DIVISOR(10)
+    .DIVISOR(100)
 ) clock_divider_100KHz(
     .Rst_n(Rst_n),
 	.clock_in(Clock_1MHz),
-	.clock_out(Clock_100KHz)
+	.clock_out(Clock_10KHz)
 );
 
 wire Clock_100Hz;
@@ -288,7 +288,7 @@ io_register_block #(
     .BOARDS(BOARDS),
     .INSTALLED_BOARDS(INSTALLED_BOARDS)
 )IoRegisterBlock(
-    .Clk(Clock_100KHz),
+    .Clk(Clock_10KHz),
 	.Rst_n(Rst_n),
     .io_address(io_address),
     .io_enable_n(io_enable_n),
@@ -300,6 +300,7 @@ io_register_block #(
 
 wire [15:0] consul_regs_in;
 wire [9:0] consul_regs_out;
+
 
 assign consul_regs_in = io_input_regs[15:0];
 assign io_output_regs[9:0] = consul_regs_out;
@@ -319,5 +320,3 @@ consul Consul(
 
 
 endmodule
-
-
