@@ -44,7 +44,7 @@ set_global_assignment -name ORIGINAL_QUARTUS_VERSION 22.1STD.1
 set_global_assignment -name PROJECT_CREATION_TIME_DATE "20:17:27  MAY 24, 2023"
 set_global_assignment -name LAST_QUARTUS_VERSION "23.1std.0 Lite Edition"
 set_global_assignment -name EDA_SIMULATION_TOOL "<None>"
-set_global_assignment -name NUM_PARALLEL_PROCESSORS 6
+set_global_assignment -name NUM_PARALLEL_PROCESSORS ALL
 set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
 set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
 set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
@@ -173,32 +173,20 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to DPC_currentState[1]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to DPC_currentState[0]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to "io_data[5](n)"
 set_global_assignment -name ENABLE_LOGIC_ANALYZER_INTERFACE OFF
-set_location_assignment PIN_Y15 -to rx
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to rx
-set_location_assignment PIN_AA15 -to tx
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to tx
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to Clock_10KHz
-set_location_assignment PIN_AG28 -to Clock_10KHz
-set_global_assignment -name TIMING_ANALYZER_MULTICORNER_ANALYSIS ON
-set_global_assignment -name SMART_RECOMPILE ON
-set_global_assignment -name SYSTEMVERILOG_FILE ../programs/bootloader/bootloader.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/consul.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../uart/uart_tx.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../uart/uart_rx.sv
 set_global_assignment -name SDC_FILE Emulator.sdc
 set_global_assignment -name SYSTEMVERILOG_FILE ../Functions/BcdToBinEnc.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/Sequencer.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/MS6205.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/KeyToSymbol.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/KeyboardOpcodeInput.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/KeyboardKeys.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/Keyboard.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/io_register_block.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/io_key_display_block.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/input_regs.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/Emulator.sv
-set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/FirmwareLoader.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../parameters.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../programs/bootloader/bootloader.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Functions/SymbolToOpcode.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Functions/OpcodeToSymbol.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Functions/In12CathodeToPin.sv
@@ -231,16 +219,4 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../DekatronPC/Dekatron/DekatronCa
 set_global_assignment -name SYSTEMVERILOG_FILE ../DekatronPC/Dekatron/Dekatron.sv
 set_global_assignment -name VERILOG_FILE ../DekatronPC/Dekatron/BinToBcd.v
 set_global_assignment -name VERILOG_FILE ../DekatronPC/Dekatron/BcdToBin.v
-set_global_assignment -name VERILOG_MACRO "CONSUL=False"
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to pwr_selector
-set_location_assignment PIN_AG18 -to selector[0]
-set_location_assignment PIN_AA19 -to selector[1]
-set_location_assignment PIN_AF25 -to selector[2]
-set_location_assignment PIN_AG23 -to selector[3]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to selector[3]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to selector[2]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to selector[1]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to selector[0]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to selector
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to "pwr_selector(n)"
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
