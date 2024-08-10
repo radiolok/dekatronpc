@@ -120,9 +120,9 @@ wire CioAcq;
 
 wire [7:0] stdout;
 wire [7:0] stdin;
-wire CoutAcqMs;
 
 /* verilator lint_off UNUSEDSIGNAL */
+wire CoutAcqMs;
 wire [31:0] IRET;
 wire [39:0] keysCurrentState;
 /* verilator lint_on UNUSEDSIGNAL */
@@ -185,7 +185,7 @@ wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DPC_DataIn;
 BcdToAscii bcdToAscii(DPC_DataOut, stdout);
 AsciiToBcd asciiToBcd(stdin, DPC_DataIn);
 
-wire Acq = CioAcq | CoutAcqMs;
+wire Acq = CioAcq;// | CoutAcqMs;
 /* verilator lint_off UNDRIVEN */
 /* verilator lint_off UNUSEDSIGNAL */
 wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress1;

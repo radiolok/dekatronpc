@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <mutex>
 #include <thread>
+#include <chrono>
 #include <curses.h>
 #include <verilated.h>
 #include "verilated_vpi.h"
@@ -11,7 +12,7 @@
 #include "VEmulator.h"
 
 
-#define MAX_SIM_TIME 60000000
+#define MAX_SIM_TIME 600000000
 #define DIGITS 9
 
 #define SIM_TRACE
@@ -32,6 +33,113 @@ const char* dpcStatus[] = {"NONE", "IDLE", "RUN", "RUN", "HALT", "CIN", "COUT", 
 
 #define EXIT 0xFF
 
+class Consul{
+public:
+    Consul() : symbols_on_line(0), set_kb_block(0),
+        set_tab(0), need_nl(0), block_print(0),
+        is_moving(0), high_reg(0), coAcq(0), red_print(0),
+        top_symbol_correction(0), cin_ready(0),
+        ecc(0), inchar(0), sync(0), outchar(0)
+    {
+    }
+
+    ~Consul(){
+
+    }
+    
+    bool ioConnect(vluint64_t time, uint8_t Rout, uint8_t Lout, uint8_t& Rin, uint8_t& Lin){
+        bool update = false;
+        outchar = Lout & 0x7F;
+
+        sync = (Lout >> 7) & 0x01;
+
+        set_tab = (Rout & 0x01);
+        set_kb_block = (Rout >> 1) & 0x01;
+        ctime = time;
+
+        Lin = (ecc << 7) | inchar & 0x07F;
+        Rin = (cin_ready << 7) |
+            (top_symbol_correction << 6)|
+            (red_print << 5) |
+            (coAcq << 4) |
+            (high_reg << 3) |
+            (is_moving << 2) |
+            (block_print << 1) |
+            need_nl;
+        return update;
+    }
+
+    void waitMs(uint8_t ms){
+        vluint64_t waittime = ctime + 100*ms;
+        while (ctime < waittime)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        }
+    }
+
+    void printChar(){
+        while(true){
+            if (sync){
+                char char_to_print = outchar;
+                switch(char_to_print){
+                    case 0x0e:
+                        high_reg = 1;
+                        waitMs(6);
+                        break;
+                    case 0x0f:
+                        high_reg = 0;
+                        waitMs(6);
+                        break;
+                    case 0x11:
+                        red_print = 1;
+                        waitMs(6);
+                        break;
+                    case 0x12:
+                        red_print = 0;
+                        waitMs(6);
+                        break;
+                    default:
+                        waitMs(1);
+                        block_print = 1;
+                        waitMs(6);                        
+                        mvprintw(20,0, "%c", char_to_print);
+                        coAcq = 1;
+                        break;
+                }               
+            }
+            else{
+                waitMs(6);
+                block_print = 0;
+                coAcq = 0;
+            }
+        }
+    }
+
+    uint8_t getChar(){
+        uint8_t symbol;
+
+        return symbol;
+    }
+private:
+    volatile uint8_t outchar;
+    volatile uint8_t sync;
+    volatile uint8_t inchar;
+    volatile uint8_t ecc;
+    volatile uint8_t cin_ready;
+    volatile uint8_t top_symbol_correction;
+    volatile uint8_t red_print;
+    volatile uint8_t coAcq;
+    volatile uint8_t high_reg;
+    volatile uint8_t is_moving;
+    volatile uint8_t block_print;
+    volatile uint8_t need_nl;
+    volatile uint8_t set_tab;
+    volatile uint8_t set_kb_block;
+    volatile uint8_t symbols_on_line;
+
+    volatile vluint64_t ctime;
+};
+
 class ioRegs{
 public:
     ioRegs(){
@@ -43,21 +151,25 @@ public:
 
     }
     //return true if dataOut is updated
-    bool update(uint8_t en, uint8_t addr, uint8_t data, uint8_t& dataOut){
-        uint8_t reg = (en - 1) * 8 + (addr & 0x07);
-        assert(reg <= 16);
-        if ((addr >> 3) & 0x01){//write
-            outputRegs[reg] = data;
-            return false;
-        } else {//read
-            dataOut = inputRegs[reg];
-            return true;
+    bool update(uint8_t en_n, uint8_t addr, uint8_t data, uint8_t& dataOut){
+        en_n = (~en_n) & 0x03;
+        uint8_t reg = (en_n - 1) * 8 + (addr & 0x07);
+        
+        if(reg < 16){
+            if ((addr >> 3) & 0x01){//write
+                outputRegs[reg] = data;
+                return false;
+            } else {//read
+                dataOut = inputRegs[reg];
+                return true;
+            }
         }
         return false;
+
     }
 
     uint8_t read(uint8_t addr){
-        return (addr < 16)? outputRegs[addr] : 0;
+        return (addr < 16) ? outputRegs[addr] : (addr < 32) ? inputRegs[addr] : 0;
     }
     
     void write(uint8_t addr, const uint8_t& data){
@@ -333,6 +445,7 @@ int main(int argc, char** argv, char** env) {
     VEmulator *dut = new VEmulator;
     UI *ui = new UI;
     ioRegs *ioregs = new ioRegs;
+    Consul *consul = new Consul;
     Verilated::traceEverOn(true);
 #ifdef SIM_COV
     Verilated::mkdir("logs");
@@ -349,7 +462,11 @@ int main(int argc, char** argv, char** env) {
     keypad(stdscr, TRUE);
     start_color();
     std::thread keyControl(&UI::keyControl, ui);
-    
+    std::thread ConsulPrint(&Consul::printChar, consul);
+    std::thread ConsulGet(&Consul::getChar, consul);
+    uint8_t io_regs_out = 0;
+    uint8_t consulLin, consulRin;
+
     while (true) {
         if (toExit)
             break;
@@ -365,12 +482,20 @@ int main(int argc, char** argv, char** env) {
         if (sim_time < MAX_SIM_TIME)
             m_trace->dump(sim_time);
     #endif
-        // if (!(dut->Cout | dut->CinReq)){
-        //     dut->CioAcq = 0;
-        // }
-        // if (Cin(dut->CinReq, dut->stdin)){
-        //     dut->CioAcq = 1;
-        // }
+
+        if(ioregs->update(dut->io_enable_n, dut->io_address, dut->io_data, io_regs_out))
+        {
+            dut->io_data = io_regs_out;
+        }
+        
+        for(uint8_t c = 0; c< 16; c++)
+        {
+            mvprintw(3+c, 0,"%x", ioregs->read(c));
+            mvprintw(3+c, 5,"%x", ioregs->read(c+16));
+        }
+        consul->ioConnect(sim_time, ioregs->read(1),ioregs->read(0), consulRin, consulLin);
+        ioregs->write(1, consulRin);
+        ioregs->write(0, consulLin);
         uint8_t needUpdate = 0;
         ui->keyboardUpdate(dut->keyboard_write, dut->emulData, dut->keyboard_data_in);
         needUpdate += ui->in12AnodeUpdate(dut->in12_write_anode, dut->emulData);
@@ -396,5 +521,6 @@ int main(int argc, char** argv, char** env) {
     delete dut;
     delete ui;
     delete ioregs;
+    delete consul;
     exit(EXIT_SUCCESS);
 }

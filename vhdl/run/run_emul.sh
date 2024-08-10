@@ -38,8 +38,8 @@ DPCfiles=$(cat ${root_dir}/DekatronPC/DPC.files)
 
 EmulFiles=$(cat ${root_dir}/Emulator/Emul.files)
 
-#bf_file=${root_dir}/programs/helloworld/helloworld.bfk
-bf_file=${root_dir}/programs/pi/pi.bfk
+bf_file=${root_dir}/programs/helloworld/helloworld.bfk
+#bf_file=${root_dir}/programs/pi/pi.bfk
 #bf_file=programs/rot13/rot13.bfk
 
 verilator -Wall --trace --top Emulator --clk FPGA_CLK_50 --cc ${EmulFiles} ${DPCfiles} \
