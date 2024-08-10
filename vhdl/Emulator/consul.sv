@@ -76,12 +76,16 @@ parameter [3:0]
     WAIT_IN     = 4'b0001,
     SET_CODE    = 4'b0010,
     SET_SYNC    = 4'b0011,
-    WAIT_OUT    = 4'b0100;
+    WAIT_OUT    = 4'b0100,
+    WAIT_REG    = 4'b0101;
 
 reg NL_workout;
 reg REG_switch;
 
 reg [3:0] state;
+
+reg [3:0] high_reg_counter;
+
 always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
         state <= 4'b0;
@@ -91,37 +95,44 @@ always @(posedge Clk, negedge Rst_n) begin
         CioAcq <= 1'b0;
         set_tab <= 1'b0;
         NL_workout <= 1'b0;
+        high_reg_counter <= 4'b0000;
     end
     else begin
+        if (high_reg_counter > 0) begin
+            high_reg_counter <= high_reg_counter - 4'b0001;
+        end
         case(state)
         IDLE: begin
-            if (CinReq) begin
+            case ({CinReq, Cout})
+                2'b10: begin//CinReq, ~Cout
                 state <=  WAIT_IN;
                 set_kb_block <= 1'b0;
-            end
-            if (Cout) begin
-                if (~is_moving | ~block_print) begin
-                    if (need_nl) begin
-                        out <= 7'h0d;//CR
-                        NL_workout <= 1'b1;
-                    end
-                    else begin
-                        if (high_reg ^ stdout[7]) begin
-                            REG_switch <= 1'b1;
-                            out <= {6'b000111, stdout[7]};
-                        end else begin
-                            out <= stdout[6:0];
-                            NL_workout <= 1'b0;
-                            REG_switch <= 1'b0;
-                        end
-                    end
-                    state <= SET_CODE;
                 end
-            end
-            if (~CinReq & ~Cout) begin
-                state <= IDLE;
-                CioAcq <= 1'b0;
-            end
+                2'b01: begin//~CinReq, Cout
+                    if (~is_moving & ~block_print) begin
+                        if (need_nl) begin
+                            out <= 7'h0d;//CR
+                            NL_workout <= 1'b1;
+                        end
+                        else begin
+                            if (high_reg ^ ~stdout[5]) begin
+                                REG_switch <= 1'b1;
+                                high_reg_counter <= 4'd11;
+                                out <= {6'b000111, stdout[5]};
+                            end else begin
+                                out <= stdout[6:0];
+                                NL_workout <= 1'b0;
+                                REG_switch <= 1'b0;
+                            end
+                        end
+                        state <= SET_CODE;
+                    end
+                end
+                default: begin//~CinReq, ~Cout
+                    state <= IDLE;
+                    CioAcq <= 1'b0;
+                end
+            endcase            
         end
         WAIT_IN: begin
             if (cin_ready & in_is_valid) begin
@@ -133,7 +144,14 @@ always @(posedge Clk, negedge Rst_n) begin
         end
         SET_SYNC: begin
             sync <= 1'b1;
-            state <= WAIT_OUT;
+            state <= (REG_switch)? WAIT_REG : WAIT_OUT;
+        end
+        WAIT_REG: begin
+            if (high_reg_counter == 0) begin
+                REG_switch <= 1'b0;
+                sync <= 1'b0;
+                state <= IDLE;
+            end
         end
         WAIT_OUT: begin
             if (NL_workout & ~is_moving) begin
@@ -142,16 +160,10 @@ always @(posedge Clk, negedge Rst_n) begin
                 NL_workout <= 1'b0;
             end
             else begin
-                if (REG_switch & ~(high_reg ^ stdout[7])) begin
-                    REG_switch <= 1'b0;
+                if (coAcq) begin
                     sync <= 1'b0;
                     state <= IDLE;
-                end else begin
-                    if (coAcq) begin
-                        sync <= 1'b0;
-                        state <= IDLE;
-                        CioAcq <= 1'b1;
-                    end
+                    CioAcq <= 1'b1;
                 end
             end
         end
