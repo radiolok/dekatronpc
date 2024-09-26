@@ -1,0 +1,3 @@
+[submodule "vhdl/uart"]
+	path = vhdl/uart
+	url = https://github.com/jswtyc/SystemVerilog_UART.git
