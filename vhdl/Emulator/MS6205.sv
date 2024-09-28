@@ -4,9 +4,8 @@ module MS6205(
     input wire Clock_1ms,
     output reg ms6205_addr_acq,
 	output reg ms6205_data_acq,
-    input wire [7:0] symbol,
-    input wire Cout,
-    output reg CioAcq,
+    input wire [7:0] tx_data,
+    input wire tx_vld,
     output reg [7:0] address,
     output wire [7:0] data_n,
     input wire [INSN_WIDTH-1:0] RomData1,
@@ -25,10 +24,7 @@ module MS6205(
     output wire marker,    
     input wire [2:0] DPC_State
 );
-
-    /* verilator lint_off UNUSEDSIGNAL */
-    wire Cin=1'b0;
-    /* verilator lint_on UNUSEDSIGNAL */
+reg CioAcq;
 
 reg [2:0] ms6205_currentView;
 
@@ -91,16 +87,17 @@ end
 always @(negedge Clock_1us, negedge Rst_n) begin
     if (~Rst_n) begin
         stdioAddr <= 8'h0;
+        CioAcq <= 1'b0;
     end
     else begin
         insnRam[ipAddress1[7:0]+6] <= RomData1;
         dataRam[apAddress1[3:0]] <= (apAddress == apAddress1)? apData : apData1; 
-        if ((Cout| Cin) & ~CioAcq) begin
+        if ((tx_vld) & ~CioAcq) begin
             CioAcq <= 1'b1;
-            stdioRam[stdioAddr] <= symbol;
+            stdioRam[stdioAddr] <= tx_data;
             stdioAddr <= stdioAddr + 1;
         end
-        if (~Cout & ~Cin & CioAcq) begin
+        if (~tx_vld & CioAcq) begin
             if (ms6205_currentView == MS6205_CIO)
                 CioAcq <= 1'b0;
         end

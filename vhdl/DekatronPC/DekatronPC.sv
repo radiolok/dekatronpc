@@ -17,15 +17,17 @@ module DekatronPC (
     input Halt,
     input Step,
     input Run,
-    output wire Cout,
-    input wire CioAcq,
-    output wire CinReq,
 
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
     output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
 
-    input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DataCin,
-    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data,
+    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd,
+    output wire tx_vld,
+    input wire tx_rdy,
+    
+    input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] rx_data_bcd,
+    input wire rx_vld,
+
     output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
     output wire [2:0] state,
     input wire [INSN_WIDTH - 1:0] InsnIn,
@@ -149,14 +151,14 @@ ApLine  apLine(
     .Dec(ApLineDec),
     .Zero(ApLineZero),
     .Cin(ApLineCin),
-    .DataCin(DataCin),
+    .rx_data_bcd(rx_data_bcd),
     .Ready(ApLineReady),
     .Address(ApAddress),
     .RamDataIn(ApRamDataIn),
     .RamDataOut(ApRamDataOut),
     .RamCS(ApRamCS),
     .RamWE(ApRamWE),
-    .Data(Data)
+    .tx_data_bcd(tx_data_bcd)
 );
 
 InsnDecoder insnDecoder(
@@ -175,9 +177,10 @@ InsnDecoder insnDecoder(
     .ApLineZero(ApLineZero),
     .DataRequest(DataRequest),
 
-    .CioAcq(CioAcq),
-    .Cout(Cout),
-    .CinReq(CinReq),
+    .tx_vld(tx_vld),
+    .tx_rdy(tx_rdy),
+    .rx_vld(rx_vld),
+
     .DataZero(DataZero),
     .ApZero(ApZero),
     .LoopValZero(LoopValZero),

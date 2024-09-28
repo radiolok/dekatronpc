@@ -201,7 +201,7 @@ public:
         if (dut->DPC_currentState == 0x04)
             status = "HALT";
         mvprintw(LINES-1,0, "Quit(END), F1: HALT, F2: STEP, F3: RUN, F5: IRAM, F6: DRAM, F7: CIO, F9: Soft RST, F10: Hard Rst");
-        mvprintw(LINES-2,0, "IpAddr: %x  Loop: %x ApAddr: %x  Data: %x", dut->IpAddress, dut->LoopCount, dut->ApAddress, dut->DPC_DataOut);
+        mvprintw(LINES-2,0, "IpAddr: %x  Loop: %x ApAddr: %x  Data: %x", dut->IpAddress, dut->LoopCount, dut->ApAddress, dut->tx_data_bcd);
     }
 
     void rectangle(int y1, int x1, int y2, int x2)
@@ -326,12 +326,12 @@ int main(int argc, char** argv, char** env) {
         if (sim_time < MAX_SIM_TIME)
             m_trace->dump(sim_time);
     #endif
-        if (!(dut->Cout | dut->CinReq)){
+        /*if (!(dut->Cout | dut->CinReq)){
             dut->CioAcq = 0;
         }
-        if (Cin(dut->CinReq, dut->stdin)){
+        if (Cin(dut->CinReq, dut->rx_data)){
             dut->CioAcq = 1;
-        }
+        }*/
         uint8_t needUpdate = 0;
         ui->keyboardUpdate(dut->keyboard_write, dut->emulData, dut->keyboard_data_in);
         needUpdate += ui->in12AnodeUpdate(dut->in12_write_anode, dut->emulData);

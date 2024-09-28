@@ -21,7 +21,7 @@ module io_key_display_block #(
 	output [7:0] emulData,
     input wire [2:0] DPC_currentState,
 
-    input wire [7:0] stdout,
+    input wire [7:0] tx_data,
 
     input wire  [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipAddress,
     output wire  [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipAddress1,
@@ -32,8 +32,7 @@ module io_key_display_block #(
     input wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] loopCounter,
     input wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apAddress,
 
-    input wire Cout,
-    output wire CioAcq,
+    input wire tx_vld,
 
     input wire Clock_1s,
     input wire Clock_1ms,
@@ -202,9 +201,8 @@ MS6205 ms6205(
     .apData1(apData1),
     .apData(apData),
     .RomData1(RomData1),
-    .symbol(stdout),
-    .Cout(Cout),
-    .CioAcq(CioAcq),
+    .tx_data(tx_data),
+    .tx_vld(tx_vld),
     .ms6205_addr_acq(ms6205_addr_acq),
 	.ms6205_data_acq(ms6205_data_acq),
     .write_addr(ms6205_write_addr_n),

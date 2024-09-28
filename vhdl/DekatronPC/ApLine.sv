@@ -21,8 +21,8 @@ module ApLine (
     output reg RamWE,
     output wire RamCS,
 
-    input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DataCin,
-    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data
+    input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] rx_data_bcd,
+    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd
 
 );
 
@@ -70,13 +70,13 @@ DekatronCounter  #(
 
 
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DataCounterIn;
-assign DataCounterIn = (currentState == CIN) ? DataCin : RamDataOut;
+assign DataCounterIn = (currentState == CIN) ? rx_data_bcd : RamDataOut;
 
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DataCounterOut;
-//COUT data
-assign Data = MemLock ? DataCounterOut : RamDataOut;
+//COUT tx_data_bcd
+assign tx_data_bcd = MemLock ? DataCounterOut : RamDataOut;
 
-assign RamDataIn = ( currentState == CIN ) ? DataCin : DataCounterOut;
+assign RamDataIn = ( currentState == CIN ) ? rx_data_bcd : DataCounterOut;
 
 DekatronCounter  #(
             .D_NUM(DATA_DEKATRON_NUM),

@@ -126,15 +126,15 @@ int stepVerilog(VerilogMachine &state){
                 state.CPU_CLK_UNHALTED++;
             }
         }
-        if (Cout(state.dut->Cout, state.dut->Data))
+        if (Cout(state.dut->tx_vld, state.dut->tx_data_bcd))
         {
-            state.dut->CioAcq = 1;
+            state.dut->tx_rdy = 1;
         }
-        if (!(state.dut->Cout | state.dut->CinReq)){
-            state.dut->CioAcq = 0;
+        if (!(state.dut->tx_vld)){
+            state.dut->tx_rdy = 0;
         }
-        if (Cin(state.dut->CinReq, state.dut->DataCin)){
-            state.dut->CioAcq = 1;
+        if (Cin(0, state.dut->rx_data_bcd)){
+            state.dut->rx_vld = 1;
         }
         state.dut->eval();
 #ifdef SIM_TRACE
@@ -180,10 +180,10 @@ int compareStates(const VerilogMachine& state, const CppMachine& cppMachine)
         BcdToInt(state.dut->ApAddress, 5), cppMachine.dataRAM.pos());
         return -1;
     }
-    if (BcdToInt(state.dut->Data, 3) != static_cast<uint8_t>(*cppMachine.dataRAM))
+    if (BcdToInt(state.dut->tx_data_bcd, 3) != static_cast<uint8_t>(*cppMachine.dataRAM))
     {
         printf("FATAL: state.dut->Data(%d) != *CppMachine.dataRAM(%d)\n",
-        BcdToInt(state.dut->Data, 3), *cppMachine.dataRAM);
+        BcdToInt(state.dut->tx_data_bcd, 3), *cppMachine.dataRAM);
         return -1;
     }
     if (BcdToInt(state.dut->LoopCount, 3) != cppMachine.loopCounter.pos())
@@ -274,7 +274,7 @@ int main(int argc, char** argv, char** env) {
                 *(cppMachine.codeRAM),
                 state.dut->ApAddress,
                 cppMachine.dataRAM.pos(),
-                state.dut->Data,
+                state.dut->tx_data_bcd,
                 static_cast<uint8_t>(*(cppMachine.dataRAM))
                 );
             if (compareStates(state, cppMachine))
