@@ -24,7 +24,7 @@ module MS6205(
 );
 
 reg [2:0] ms6205_currentView;
-reg tx_vld_old;
+wire tx_vld;
 reg tx_view_req;
 parameter COLUMNS = 16;
 parameter ROWS = 10;
@@ -82,16 +82,22 @@ initial begin
     $readmemh("../Emulator/MSmemZero.hex", insnRam);
 end
 
+Impulse impulse_addr(
+	.Clk(Clock_1us),
+	.Rst_n(Rst_n),
+	.En(tx_vld_i),
+	.Impulse(tx_vld)
+);
+
 always @(negedge Clock_1us, negedge Rst_n) begin
-    tx_vld_old <= tx_vld_i;
     if (~Rst_n) begin
         stdioAddr <= 8'h0;
         tx_view_req <= 1'b0;  
     end
     else begin
         insnRam[ipAddress1[7:0]+6] <= RomData1;
-        dataRam[apAddress1[3:0]] <= (apAddress == apAddress1)? apData : apData1; 
-        if (tx_vld_i & ~tx_vld_old) begin
+        dataRam[apAddress1[3:0]] <= (apAddress == apAddress1)? apData : apData1;
+        if (tx_vld) begin
             stdioRam[stdioAddr] <= tx_data;
             stdioAddr <= stdioAddr + 1;
             tx_view_req <= 1'b1;
