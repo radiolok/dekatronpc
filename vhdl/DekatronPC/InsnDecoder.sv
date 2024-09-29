@@ -208,7 +208,7 @@ always @(posedge Clk, negedge Rst_n) begin
             CIO_ACQ: begin
                 DataRequest <= 1'b0;
                 ApLineCin <= 1'b0;
-                if (ApLineReady & ~tx_rdy & ~rx_vld) begin
+                if (ApLineReady & tx_rdy ) begin
                     if (Echo) begin
                         Echo <= 1'b0;
                         tx_vld <= 1'b1;

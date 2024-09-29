@@ -292,7 +292,6 @@ wire                          rx_vld  ;
 /* verilator lint_off UNUSEDSIGNAL */
 wire                          rx_pc_pass ;
 /* verilator lint_on UNUSEDSIGNAL */
-
 wire tx_n;
 assign tx = ~tx_n;
 
@@ -301,7 +300,7 @@ uart_tx#(
     .PARITY_CHECK ( "EVEN" ) ,
     .CLK_FREQ     ( 1000000    ) ,
     .STOP_BITS     (2),
-    .BAUD_RATE    ( 625    )
+    .BAUD_RATE    ( 650    )
 )transmitter(
     .clk    ( Clock_1MHz       ),
     .rst    ( ~Rst_n       ),
@@ -317,7 +316,7 @@ uart_rx#(
     .DATA_WIDTH   ( 7   ) ,
     .PARITY_CHECK ( "EVEN" ) ,
     .CLK_FREQ     ( 1000000    ) ,
-    .BAUD_RATE    ( 625    )
+    .BAUD_RATE    ( 650    )
 )receiver(
     .clk     ( Clock_1MHz        ),
     .rst     ( ~Rst_n        ),

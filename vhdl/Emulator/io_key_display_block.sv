@@ -22,6 +22,7 @@ module io_key_display_block #(
     input wire [2:0] DPC_currentState,
 
     input wire [7:0] tx_data,
+    input wire tx_vld,
 
     input wire  [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipAddress,
     output wire  [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipAddress1,
@@ -31,8 +32,6 @@ module io_key_display_block #(
     input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apData,
     input wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] loopCounter,
     input wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apAddress,
-
-    input wire tx_vld,
 
     input wire Clock_1s,
     input wire Clock_1ms,
@@ -183,8 +182,6 @@ Keyboard kb(
 );
 
 wire ms6205_marker_en;
-wire ms6205_addr_acq;
-wire ms6205_data_acq;
 
 assign ms6205_marker = ms6205_marker_en & Clock_1s;
 
@@ -202,9 +199,7 @@ MS6205 ms6205(
     .apData(apData),
     .RomData1(RomData1),
     .tx_data(tx_data),
-    .tx_vld(tx_vld),
-    .ms6205_addr_acq(ms6205_addr_acq),
-	.ms6205_data_acq(ms6205_data_acq),
+    .tx_vld_i(tx_vld),
     .write_addr(ms6205_write_addr_n),
     .write_data(ms6205_write_data_n),
     .marker(ms6205_marker_en),
@@ -217,8 +212,6 @@ Sequencer sequencer(
 	.Clock_1us(Clock_1us),
 	.Enable(Clock_1ms),
 	.Rst_n(Rst_n),
-    .ms6205_addr_acq(ms6205_addr_acq),
-	.ms6205_data_acq(ms6205_data_acq),
 	.ms6205_write_addr_n(ms6205_write_addr_n),
 	.ms6205_write_data_n(ms6205_write_data_n),
 	.in12_write_anode(in12_write_anode),

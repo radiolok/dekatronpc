@@ -2,10 +2,6 @@ module Sequencer(
     input Clock_1us,
     input Enable,
     input Rst_n,
-/* verilator lint_off UNUSEDSIGNAL */
-	input wire ms6205_addr_acq,
-	input wire ms6205_data_acq,
-/* verilator lint_on UNUSEDSIGNAL */
     output wire ms6205_write_addr_n,
     output wire ms6205_write_data_n,
     output reg in12_write_anode,

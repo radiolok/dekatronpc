@@ -2,10 +2,8 @@ module MS6205(
     input wire Rst_n,
     input wire Clock_1us,
     input wire Clock_1ms,
-    output reg ms6205_addr_acq,
-	output reg ms6205_data_acq,
     input wire [7:0] tx_data,
-    input wire tx_vld,
+    input wire tx_vld_i,
     output reg [7:0] address,
     output wire [7:0] data_n,
     input wire [INSN_WIDTH-1:0] RomData1,
@@ -24,10 +22,10 @@ module MS6205(
     output wire marker,    
     input wire [2:0] DPC_State
 );
-reg CioAcq;
 
 reg [2:0] ms6205_currentView;
-
+reg tx_vld_old;
+reg tx_view_req;
 parameter COLUMNS = 16;
 parameter ROWS = 10;
 parameter MAX_POS = COLUMNS * ROWS;
@@ -51,7 +49,7 @@ always_comb begin
             ms6205_nextView = MS6205_IRAM;
         else if (keysCurrentState[KEYBOARD_DRAM_KEY])
             ms6205_nextView = MS6205_DRAM;
-        else if (keysCurrentState[KEYBOARD_CIO_KEY] | CioAcq)
+        else if (keysCurrentState[KEYBOARD_CIO_KEY] | tx_view_req)
             ms6205_nextView = MS6205_CIO;
         else if (keysCurrentState[KEYBOARD_HARD_RST])
             ms6205_nextView = MS6205_RESTART;
@@ -85,21 +83,21 @@ initial begin
 end
 
 always @(negedge Clock_1us, negedge Rst_n) begin
+    tx_vld_old <= tx_vld_i;
     if (~Rst_n) begin
         stdioAddr <= 8'h0;
-        CioAcq <= 1'b0;
+        tx_view_req <= 1'b0;  
     end
     else begin
         insnRam[ipAddress1[7:0]+6] <= RomData1;
         dataRam[apAddress1[3:0]] <= (apAddress == apAddress1)? apData : apData1; 
-        if ((tx_vld) & ~CioAcq) begin
-            CioAcq <= 1'b1;
+        if (tx_vld_i & ~tx_vld_old) begin
             stdioRam[stdioAddr] <= tx_data;
             stdioAddr <= stdioAddr + 1;
+            tx_view_req <= 1'b1;
         end
-        if (~tx_vld & CioAcq) begin
-            if (ms6205_currentView == MS6205_CIO)
-                CioAcq <= 1'b0;
+        if (ms6205_currentView == MS6205_CIO) begin
+            tx_view_req <= 1'b0;
         end
     end
 end
@@ -115,13 +113,11 @@ assign data = stdioData;
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] currentDataRam0 = dataRam[ms6205Pos[7:4]*2];
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] currentDataRam1 = dataRam[ms6205Pos[7:4]*2+1];
 
-always @(negedge Clock_1ms, negedge Rst_n) begin
+always_ff @(negedge Clock_1ms, negedge Rst_n) begin
     if (~Rst_n) begin
         ms6205Pos <= 8'h00;
         stdioData <= 8'h00;
         address <= 8'h00;
-        ms6205_addr_acq <= 1'b1;
-        ms6205_data_acq <= 1'b1;
     end
     else begin
         ipAddress1[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:2*DEKATRON_WIDTH] <= ipAddress[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:2*DEKATRON_WIDTH];
