@@ -131,9 +131,9 @@ int stepVerilog(VerilogMachine &state){
             state.dut->tx_rdy = 1;
         }
         if (!(state.dut->tx_vld)){
-            state.dut->tx_rdy = 0;
+            state.dut->tx_rdy = 1;
         }
-        if (Cin(0, state.dut->rx_data_bcd)){
+        if (Cin(state.dut->state == 0x05, state.dut->rx_data_bcd)){
             state.dut->rx_vld = 1;
         }
         state.dut->eval();
@@ -249,7 +249,7 @@ int main(int argc, char** argv, char** env) {
     state.dut->trace(state.trace, 5);
     state.trace->open("VDekatronPC.vcd");
 #endif
-      
+    state.dut->EchoMode = 1;
     auto start = high_resolution_clock::now();
     while (state.PLL_CLK < MAX_SIM_TIME) {
         if (cppMachine.codeRAM.pos() == size)
