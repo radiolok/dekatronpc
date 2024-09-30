@@ -15,6 +15,7 @@ module ApLine (
     output wire Ready,
 
     output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Address,
+    input wire ap_ram_rdy_i,
 
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] RamDataIn,
     input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] RamDataOut,
@@ -111,7 +112,7 @@ always @(posedge Clk, negedge Rst_n) begin
     else begin
         case (currentState)
             IDLE: begin
-                if (ApRequest) begin
+                if (ApRequest & ap_ram_rdy_i) begin
                     if (MemLock) begin 
                         currentState <= STORE;
                         RamWE <= 1'b1;
@@ -121,7 +122,7 @@ always @(posedge Clk, negedge Rst_n) begin
                         AP_Request <= 1'b1;
                     end                    
                 end
-                if (DataRequest) begin
+                if (DataRequest & ap_ram_rdy_i) begin
                     if (Cin) begin
                         currentState <= CIN;
                         DataCounterSet <= 1'b1;

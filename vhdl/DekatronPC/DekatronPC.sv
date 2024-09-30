@@ -95,6 +95,7 @@ BcdToBinEnc #(
     .bcd(ApAddress),
     .bin(ApAddressBin)
 );
+wire ap_ram_rdy;
 
 `ifdef EMULATOR
 wire [AP_RAM_BIN_BW-1:0] ApAddress1Bin;
@@ -116,6 +117,7 @@ RAM #(
     .Address(ApAddressBin),
     .In(ApRamDataIn),
     .Out(ApRamDataOut),
+    .rdy_o(ap_ram_rdy),
 `ifdef EMULATOR
     .Address1(ApAddress1Bin),
     .Out1(ApData1),
@@ -154,6 +156,7 @@ ApLine  apLine(
     .rx_data_bcd(rx_data_bcd),
     .Ready(ApLineReady),
     .Address(ApAddress),
+    .ap_ram_rdy_i(ap_ram_rdy),
     .RamDataIn(ApRamDataIn),
     .RamDataOut(ApRamDataOut),
     .RamCS(ApRamCS),
