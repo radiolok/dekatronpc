@@ -126,6 +126,7 @@ wire [39:0] keysCurrentState;
 wire keyHalt = keysCurrentState[KEYBOARD_HALT_KEY];
 wire keyRun = keysCurrentState[KEYBOARD_RUN_KEY];
 wire keyStep = keysCurrentState[KEYBOARD_STEP_KEY];
+wire keyNextApp = keysCurrentState[KEYBOARD_NONAME_KEY];
 
 wire Rst_n = KEY[0];
 
@@ -210,6 +211,7 @@ DekatronPC dekatronPC(
     .rx_data_bcd(rx_data_bcd),
     .rx_vld(rx_vld),
     .Step(keyStep),
+    .key_next_app_i(keyNextApp),
 `ifdef EMULATOR
     .IRET(IRET),
     .IpAddress1(IpAddress1),

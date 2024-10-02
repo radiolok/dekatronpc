@@ -161,6 +161,9 @@ public:
                 case KEY_F(3)://KEYBOARD_RUN_KEY =  28,
                     keyPressed(28);
                 break;
+                case KEY_F(4)://KEYBOARD_NONAME_KEY =  32,
+                    keyPressed(32);
+                break;
                 case KEY_F(5):
                     keyPressed(15);// KEYBOARD_IRAM_KEY =  15,
                 break;
@@ -200,7 +203,7 @@ public:
         std::string status = "RUN";
         if (dut->DPC_currentState == 0x04)
             status = "HALT";
-        mvprintw(LINES-1,0, "Quit(END), F1: HALT, F2: STEP, F3: RUN, F5: IRAM, F6: DRAM, F7: CIO, F9: Soft RST, F10: Hard Rst");
+        mvprintw(LINES-1,0, "Quit(END), F1: HALT, F2: STEP, F3: RUN, F4: APP, F5: IRAM, F6: DRAM, F7: CIO, F9: Soft RST, F10: Hard Rst");
         mvprintw(LINES-2,0, "IpAddr: %x  Loop: %x ApAddr: %x  Data: %x", dut->IpAddress, dut->LoopCount, dut->ApAddress, dut->tx_data_bcd);
     }
 

@@ -5,7 +5,7 @@ module IpLine (
     input wire HaltRq,
 
     input wire dataIsZeroed, 
-
+    input wire key_next_app_i,
     input wire Request,
     output wire Ready,
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
@@ -22,8 +22,22 @@ reg IP_Request;
 reg IP_Dec;
 wire IP_Ready;
 
+reg [3:0] AppNum;
+reg prevApp;
+assign IpAddress[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:(IP_DEKATRON_NUM-1)*DEKATRON_WIDTH] = AppNum;
+always @(posedge Clk, negedge Rst_n) begin
+    prevApp <= key_next_app_i;
+    if (~Rst_n) begin
+        AppNum <= '0;
+    end else begin
+        if (key_next_app_i & ~prevApp) begin
+            AppNum <= (AppNum < 9) ?  AppNum + 4'b1 : '0;
+        end
+    end
+end
+
 DekatronCounter  #(
-            .D_NUM(IP_DEKATRON_NUM),
+            .D_NUM(IP_DEKATRON_NUM-1),
 		    .WRITE(1'b0)
             )IP_counter(
                 .Clk(Clk),
@@ -33,9 +47,9 @@ DekatronCounter  #(
                 .Dec(IP_Dec),
                 .Set(1'b0),
                 .SetZero(1'b0),
-                .In({(IP_DEKATRON_NUM*DEKATRON_WIDTH){1'b0}}),
+                .In({((IP_DEKATRON_NUM-1)*DEKATRON_WIDTH){1'b0}}),
                 .Ready(IP_Ready),
-                .Out(IpAddress),
+                .Out(IpAddress[(IP_DEKATRON_NUM-1)*DEKATRON_WIDTH-1:0]),
                 /* verilator lint_off PINCONNECTEMPTY */
                 .Zero()
                 /* verilator lint_on PINCONNECTEMPTY */

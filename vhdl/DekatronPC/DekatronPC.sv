@@ -17,6 +17,7 @@ module DekatronPC (
     input Halt,
     input Step,
     input Run,
+    input key_next_app_i,
 
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
     output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
@@ -139,6 +140,7 @@ IpLine ipLine(
     .RomRequest(RomRequest),
     .RomReady(RomReady),
     .RomData(RomData),
+    .key_next_app_i(key_next_app_i),
 	.Insn(Insn)
 );
 
