@@ -39,11 +39,12 @@ DPCfiles=$(cat ${root_dir}/DekatronPC/DPC.files)
 EmulFiles=$(cat ${root_dir}/Emulator/Emul.files)
 
 bf_file="${root_dir}/programs/helloworld/helloworld.bfk"
-#bf_file="${bf_file} ${root_dir}/programs/fibonachi/fibonachi.bfk"
-#bf_file="${bf_file} ${root_dir}/programs/pi/pi.bfk"
-#bf_file="${bf_file} ${root_dir}/programs/rot13/rot13.bfk"
-#bf_file="${bf_file} ${root_dir}/programs/fractal/fractal.bfk"
-python ${root_dir}/programs/generate_rom.py -f ${bf_file} -o ${root_dir}/firmware.hex --hex
+bf_file="${bf_file} ${root_dir}/programs/fibonachi/fibonachi.bfk"
+bf_file="${bf_file} ${root_dir}/programs/pi/pi.bfk"
+bf_file="${bf_file} ${root_dir}/programs/rot13/rot13.bfk"
+bf_file="${bf_file} ${root_dir}/programs/triangle/triangle.bfk"
+bf_file="${bf_file} ${root_dir}/programs/fractal/fractal.bfk"
+python ${root_dir}/programs/generate_rom.py -f ${bf_file} -o ${root_dir}/firmware.hex --hex --pack
 python ${root_dir}/programs/generate_rom.py -f ${bf_file} -o ${root_dir}/firmware.sv 
 
 verilator -Wall --trace --top Emulator --clk FPGA_CLK_50 --cc ${EmulFiles} ${DPCfiles} \

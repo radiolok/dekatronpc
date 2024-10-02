@@ -26,12 +26,18 @@ reg [3:0] AppNum;
 reg prevApp;
 assign IpAddress[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:(IP_DEKATRON_NUM-1)*DEKATRON_WIDTH] = AppNum;
 always @(posedge Clk, negedge Rst_n) begin
-    prevApp <= key_next_app_i;
     if (~Rst_n) begin
         AppNum <= '0;
+        prevApp <= '0;
     end else begin
-        if (key_next_app_i & ~prevApp) begin
-            AppNum <= (AppNum < 9) ?  AppNum + 4'b1 : '0;
+        if (key_next_app_i) begin
+            if (~prevApp) begin
+                AppNum <= (AppNum < 9) ?  AppNum + 4'b1 : '0;
+                prevApp <= 1'b1;
+            end
+        end
+        else begin
+            prevApp <= 1'b0;
         end
     end
 end

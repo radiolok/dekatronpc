@@ -88,13 +88,19 @@ localparam AP_RAM_ROWS_NUM = 30000;
 localparam AP_RAM_BIN_BW = $clog2(AP_RAM_ROWS_NUM-1);
 
 wire [AP_RAM_BIN_BW-1:0] ApAddressBin;
+reg [AP_RAM_BIN_BW-1:0] ApAddressBin_Setup;
+wire [AP_RAM_BIN_BW-1:0] ApAddressBin_Cnt;
+
+reg ApRamRdy;
+
+assign ApAddressBin = (ApRamRdy) ? ApAddressBin_Cnt : ApAddressBin_Setup;
 
 BcdToBinEnc #(
     .DIGITS(AP_DEKATRON_NUM),
     .OUT_WIDTH(AP_RAM_BIN_BW)
 ) ApRAM_address_enc (
     .bcd(ApAddress),
-    .bin(ApAddressBin)
+    .bin(ApAddressBin_Cnt)
 );
 
 `ifdef EMULATOR
@@ -107,6 +113,22 @@ BcdToBinEnc #(
     .bin(ApAddress1Bin)
 );
 `endif
+
+always @(posedge Clk, negedge Rst_n) begin
+    if (~Rst_n) begin
+        ApRamRdy <= 1'b0;
+        ApAddressBin_Setup <= AP_RAM_ROWS_NUM - 1;
+    end else begin
+        if (~ApRamRdy) begin
+            if (ApAddressBin_Setup != 0) begin
+                ApAddressBin_Setup <= ApAddressBin_Setup - 1;
+            end else begin
+                ApRamRdy <= 1;
+            end
+        end
+    end
+end
+
 RAM #(
     .ROWS(AP_RAM_ROWS_NUM),
     .ADDR_WIDTH(AP_RAM_BIN_BW),
@@ -156,6 +178,7 @@ ApLine  apLine(
     .rx_data_bcd(rx_data_bcd),
     .Ready(ApLineReady),
     .Address(ApAddress),
+    .ram_rdy_i(ApRamRdy),
     .RamDataIn(ApRamDataIn),
     .RamDataOut(ApRamDataOut),
     .RamCS(ApRamCS),

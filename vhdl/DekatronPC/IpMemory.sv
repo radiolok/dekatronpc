@@ -24,18 +24,17 @@ wire [INSN_WIDTH-1: 0] RomOutWire;
 reg [INSN_WIDTH-1: 0] RomOutReg;
 reg [INSN_WIDTH-1: 0] RamOutReg;
 
-localparam IP_RAM_BIN_BW = $clog2(ROWS/10-1);
+localparam IP_RAM_BIN_BW = $clog2(ROWS-1);
 wire [IP_RAM_BIN_BW-1:0] AddressBin;
 
 BcdToBinEnc #(
-    .DIGITS(IP_DEKATRON_NUM-1),
+    .DIGITS(IP_DEKATRON_NUM),
     .OUT_WIDTH(IP_RAM_BIN_BW)
 ) ApRAM_address_enc (
-    .bcd(Address[(IP_DEKATRON_NUM-1)*DEKATRON_WIDTH-1:0]),
+    .bcd(Address),
     .bin(AddressBin)
 );
 
-wire [3:0] mem_bank = Address[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:(IP_DEKATRON_NUM-1)*DEKATRON_WIDTH];
 
 parameter [1:0]
     INIT      = 2'd0,
@@ -80,27 +79,9 @@ assign Ready = ~Request & (state == READY);
 
 assign InsnOut = (isBootloader) ? RomOutReg : RamOutReg;
 
-reg [INSN_WIDTH-1:0] Mem0 [0:ROWS/10-1];
-// reg [INSN_WIDTH-1:0] Mem1 [0:ROWS/10-1];
-// reg [INSN_WIDTH-1:0] Mem2 [0:ROWS/10-1];
-// reg [INSN_WIDTH-1:0] Mem3 [0:ROWS/10-1];
-// reg [INSN_WIDTH-1:0] Mem4 [0:ROWS/10-1];
-// reg [INSN_WIDTH-1:0] Mem5 [0:ROWS/10-1];
-// reg [INSN_WIDTH-1:0] Mem6 [0:ROWS/10-1];
-// reg [INSN_WIDTH-1:0] Mem7 [0:ROWS/10-1];
-// reg [INSN_WIDTH-1:0] Mem8 [0:ROWS/10-1];
-// reg [INSN_WIDTH-1:0] Mem9 [0:ROWS/10-1];
+reg [INSN_WIDTH-1:0] Mem [0:ROWS-1];
 initial begin
-    $readmemh("../firmware.hex", Mem0);
-    // $readmemh("../firmware.hex", Mem1);
-    // $readmemh("../firmware.hex", Mem2);
-    // $readmemh("../firmware.hex", Mem3);
-    // $readmemh("../firmware.hex", Mem4);
-    // $readmemh("../firmware.hex", Mem5);
-    // $readmemh("../firmware.hex", Mem6);
-    // $readmemh("../firmware.hex", Mem7);
-    // $readmemh("../firmware.hex", Mem8);
-    // $readmemh("../firmware.hex", Mem9);        
+    $readmemh("../firmware.hex", Mem);
 end
 
 bootloader #(
@@ -114,43 +95,9 @@ always @(posedge Clk, negedge Rst_n) begin
       RamOutReg <= {INSN_WIDTH{1'b0}};
       RomOutReg <= {(INSN_WIDTH){1'b0}};
     end
-    else if (WE) Mem0[AddressBin] <= InsnIn;
+    else if (WE) Mem[AddressBin] <= InsnIn;
       else begin
-        case(mem_bank)
-            4'h0: begin
-                RamOutReg <= Mem0[AddressBin];
-            end
-            // 4'h1: begin
-            //     RamOutReg <= Mem1[AddressBin];
-            // end
-            // 4'h2: begin
-            //     RamOutReg <= Mem2[AddressBin];
-            // end
-            // 4'h3: begin
-            //     RamOutReg <= Mem3[AddressBin];
-            // end
-            // 4'h4: begin
-            //     RamOutReg <= Mem4[AddressBin];
-            // end
-            // 4'h5: begin
-            //     RamOutReg <= Mem5[AddressBin];
-            // end
-            // 4'h6: begin
-            //     RamOutReg <= Mem6[AddressBin];
-            // end
-            // 4'h7: begin
-            //     RamOutReg <= Mem7[AddressBin];
-            // end
-            // 4'h8: begin
-            //     RamOutReg <= Mem8[AddressBin];
-            // end
-            // 4'h9: begin
-            //     RamOutReg <= Mem9[AddressBin];
-            // end
-            default: begin
-                RamOutReg <= Mem0[AddressBin];
-            end
-        endcase
+        RamOutReg <= Mem[AddressBin];
         RomOutReg <= RomOutWire;
     end
 end
@@ -158,13 +105,12 @@ end
 `ifdef EMULATOR
     wire [IP_RAM_BIN_BW-1:0] Address1Bin;
     BcdToBinEnc #(
-        .DIGITS(IP_DEKATRON_NUM-1),
+        .DIGITS(IP_DEKATRON_NUM),
         .OUT_WIDTH(IP_RAM_BIN_BW)
     ) ApRAM1_address_enc (
-        .bcd(Address1[(IP_DEKATRON_NUM-1)*DEKATRON_WIDTH-1:0]),
+        .bcd(Address1),
         .bin(Address1Bin)
     );
-    wire [3:0] mem_bank_1 = Address1[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:(IP_DEKATRON_NUM-1)*DEKATRON_WIDTH];
     wire [INSN_WIDTH-1: 0] RomOutWire1;
     reg [INSN_WIDTH-1: 0] RomOutReg1;
     reg [INSN_WIDTH-1: 0] RamOutReg1;
@@ -182,41 +128,7 @@ end
             RomOutReg1 <= {(INSN_WIDTH){1'b0}};
         end
         else begin 
-            case(mem_bank_1)
-            4'h0: begin
-                RamOutReg1 <= Mem0[Address1Bin];
-            end
-            // 4'h1: begin
-            //     RamOutReg1 <= Mem1[Address1Bin];
-            // end
-            // 4'h2: begin
-            //     RamOutReg1 <= Mem2[Address1Bin];
-            // end
-            // 4'h3: begin
-            //     RamOutReg1 <= Mem3[Address1Bin];
-            // end
-            // 4'h4: begin
-            //     RamOutReg1 <= Mem4[Address1Bin];
-            // end
-            // 4'h5: begin
-            //     RamOutReg1 <= Mem5[Address1Bin];
-            // end
-            // 4'h6: begin
-            //     RamOutReg1 <= Mem6[Address1Bin];
-            // end
-            // 4'h7: begin
-            //     RamOutReg1 <= Mem7[Address1Bin];
-            // end
-            // 4'h8: begin
-            //     RamOutReg1 <= Mem8[Address1Bin];
-            // end
-            // 4'h9: begin
-            //     RamOutReg1 <= Mem9[Address1Bin];
-            // end
-            default: begin
-                RamOutReg1 <= Mem0[Address1Bin];
-            end
-        endcase
+            RamOutReg1 <= Mem[Address1Bin];
             RomOutReg1 <= RomOutWire1;
         end
     end
