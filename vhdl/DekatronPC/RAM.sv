@@ -8,7 +8,6 @@
   input wire [ADDR_WIDTH-1:0] Address,//BCD
   input wire [DATA_WIDTH-1:0] In,
   output wire [DATA_WIDTH-1:0] Out,
-  output reg rdy_o,
 `ifdef EMULATOR
   input wire [ADDR_WIDTH-1:0] Address1,
   output wire [DATA_WIDTH-1:0] Out1,
@@ -22,27 +21,23 @@
     reg [DATA_WIDTH-1:0] Mem [0:ROWS-1];
 
     reg [DATA_WIDTH-1:0] Data;
-    reg [ADDR_WIDTH-1:0] AddressClean;
 
     assign Out = CS ? Data : {DATA_WIDTH{1'bz}};
 
     always @(posedge Clk, negedge Rst_n) begin
         if (~Rst_n) begin
-            rdy_o <= 1'b0;
-            AddressClean <= ROWS - 1;
+    //TODO:  Bootloader should cleanUp Memory itself
+	 //synopsys translate_off
+    /* verilator lint_off BLKSEQ */
+          integer  i;
+          for (i=0; i < ROWS; i++) 
+            Mem[i] = {DATA_WIDTH{1'b0}};
+    /* verilator lint_off BLKSEQ */
+			Data <= {DATA_WIDTH{1'b0}};
+			//synopsys translate_on
         end
-        else begin 
-          if (rdy_o) begin  
-            if (WE) Mem[Address] <= In;
-            else Data <= Mem[Address];
-          end else begin
-            AddressClean <= AddressClean -1;
-            Mem[AddressClean] <= '0;
-            if (AddressClean == 0) begin
-              rdy_o <= 1;
-            end
-          end
-        end
+        else if (WE) Mem[Address] <= In;
+          else Data <= Mem[Address];
     end
 
 
