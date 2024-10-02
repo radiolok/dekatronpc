@@ -205,6 +205,7 @@ MS6205 ms6205(
     .marker(ms6205_marker_en),
     .ready(ms6205_ready),
     .DPC_State(DPC_currentState),
+    .tx_switch_view_i(1'b0),
     .keysCurrentState(keyboard_keysCurrentState)
 );
 

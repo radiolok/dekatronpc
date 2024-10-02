@@ -91,6 +91,7 @@ wire [AP_RAM_BIN_BW-1:0] ApAddressBin;
 reg [AP_RAM_BIN_BW-1:0] ApAddressBin_Setup;
 wire [AP_RAM_BIN_BW-1:0] ApAddressBin_Cnt;
 
+
 reg ApRamRdy;
 
 assign ApAddressBin = (ApRamRdy) ? ApAddressBin_Cnt : ApAddressBin_Setup;
@@ -120,10 +121,10 @@ always @(posedge Clk, negedge Rst_n) begin
         ApAddressBin_Setup <= AP_RAM_ROWS_NUM - 1;
     end else begin
         if (~ApRamRdy) begin
-            if (ApAddressBin_Setup != 0) begin
-                ApAddressBin_Setup <= ApAddressBin_Setup - 1;
-            end else begin
+            if (ApAddressBin_Setup == 0) begin
                 ApRamRdy <= 1;
+            end else begin
+                ApAddressBin_Setup <= ApAddressBin_Setup - 1;
             end
         end
     end
@@ -143,7 +144,7 @@ RAM #(
     .Address1(ApAddress1Bin),
     .Out1(ApData1),
 `endif
-    .WE(ApRamWE),
+    .WE(ApRamWE | ~ApRamRdy),
     .CS(ApRamCS)
 );
 

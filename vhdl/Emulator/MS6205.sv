@@ -19,7 +19,10 @@ module MS6205(
     input wire ready,
     input wire [39:0] keysCurrentState,
     /* verilator lint_on UNUSEDSIGNAL */
-    output wire marker,    
+    output wire marker,
+
+    input wire tx_switch_view_i, //if 1 enable automatic switch on MS6205
+
     input wire [2:0] DPC_State
 );
 
@@ -100,7 +103,9 @@ always @(negedge Clock_1us, negedge Rst_n) begin
         if (tx_vld) begin
             stdioRam[stdioAddr] <= tx_data;
             stdioAddr <= stdioAddr + 1;
-            tx_view_req <= 1'b1;
+            if (tx_switch_view_i) begin
+                tx_view_req <= 1'b1;
+            end
         end
         if (ms6205_currentView == MS6205_CIO) begin
             tx_view_req <= 1'b0;
@@ -177,7 +182,7 @@ always_ff @(negedge Clock_1ms, negedge Rst_n) begin
                             stdioData <= {4'b0, apAddress1[7:4]} + 8'h30;
                         end
                         (4): begin
-                            stdioData <= {4'b0, ms6205Pos[7:4]} + 8'h30;
+                            stdioData <= {3'b0, ms6205Pos[7:4], 1'b0} + 8'h30;
                         end
                         (5): begin
                             stdioData <= ":";
