@@ -53,6 +53,9 @@ module Emulator #(
 	output keyboard_write,//AH6
 	output keyboard_clear,//AH4
 
+    input rx,//Y15
+    output tx,//AA15
+
 	/*
 	D0 - V12
 	D1 - AF7
@@ -69,7 +72,7 @@ module Emulator #(
     output wire Clock_1KHz, //AG23 GPIO1.22
     output wire Clock_1MHz, //AF25 GPIO1.20
 
-     /*
+	 /*
 	 A0 - AA18
 	 A1 - AC22
 	 A2 - AD23
@@ -98,31 +101,24 @@ module Emulator #(
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
     output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
     output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
-    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DPC_DataOut,
+    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd,
 `endif
 
     output wire [2:0] DPC_currentState
 );
 
 assign LED[0] = Rst_n;
-assign LED[1] =  Clock_1Hz;
+assign LED[1] = Clock_1Hz;
 assign LED[2] = Clock_1KHz;
 
 `ifndef VERILATOR
     wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress;
     wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress;
     wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount;
-    wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DPC_DataOut;
+    wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd;
 `endif
-wire Cout;
-wire CinReq;
-wire CioAcq;
-
-wire [7:0] stdout;
-wire [7:0] stdin;
 
 /* verilator lint_off UNUSEDSIGNAL */
-wire CoutAcqMs;
 wire [31:0] IRET;
 wire [39:0] keysCurrentState;
 /* verilator lint_on UNUSEDSIGNAL */
@@ -130,6 +126,7 @@ wire [39:0] keysCurrentState;
 wire keyHalt = keysCurrentState[KEYBOARD_HALT_KEY];
 wire keyRun = keysCurrentState[KEYBOARD_RUN_KEY];
 wire keyStep = keysCurrentState[KEYBOARD_STEP_KEY];
+wire keyNextApp = keysCurrentState[KEYBOARD_NONAME_KEY];
 
 wire Rst_n = KEY[0];
 
@@ -180,12 +177,14 @@ ClockDivider #(
 
 wire EchoMode = 1'b1;
 
-wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DPC_DataIn;
+wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] rx_data_bcd;
 
-BcdToAscii bcdToAscii(DPC_DataOut, stdout);
-AsciiToBcd asciiToBcd(stdin, DPC_DataIn);
+wire [7:0] tx_data;
+wire [7:0] rx_data;
+BcdToAscii bcdToAscii(tx_data_bcd, tx_data);
 
-wire Acq = CioAcq;// | CoutAcqMs;
+AsciiToBcd asciiToBcd(rx_data, rx_data_bcd);
+
 /* verilator lint_off UNDRIVEN */
 /* verilator lint_off UNUSEDSIGNAL */
 wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress1;
@@ -198,7 +197,6 @@ wire [INSN_WIDTH-1:0] RomData1;
 DekatronPC dekatronPC(
     .IpAddress(IpAddress),
     .ApAddress(ApAddress),
-    .Data(DPC_DataOut),
     .LoopCount(LoopCount),
     .hsClk(Clock_10MHz),
     .Clk(Clock_1MHz),
@@ -207,18 +205,18 @@ DekatronPC dekatronPC(
     .Run(keyRun),
     .InsnIn(4'b0),
     .EchoMode(EchoMode),
-    .DataCin(DPC_DataIn),
-    .Cout(Cout),
-    .CioAcq(Acq),
-    .CinReq(CinReq),
+    .tx_data_bcd(tx_data_bcd),
+    .tx_vld(tx_vld),
+    .tx_rdy(tx_rdy),
+    .rx_data_bcd(rx_data_bcd),
+    .rx_vld(rx_vld),
     .Step(keyStep),
-`ifdef EMULATOR
+    .key_next_app_i(keyNextApp),
     .IRET(IRET),
     .IpAddress1(IpAddress1),
     .ApAddress1(ApAddress1),
     .ApData1(ApData1),
     .RomData1(RomData1),
-`endif
     .state(DPC_currentState),
     .Insn(Insn)
 );
@@ -243,16 +241,15 @@ io_key_display_block #(
     .RomData1(RomData1),
     .apAddress1(ApAddress1),
     .apData1(ApData1),
-    .apData(DPC_DataOut),
+    .apData(tx_data_bcd),
     .loopCounter(LoopCount),
     .apAddress(ApAddress),
     .Clock_1s(Clock_1Hz),
     .Clock_1ms(Clock_1KHz),
     .Clock_1us(Clock_1MHz),
     .Rst_n(Rst_n),
-    .stdout(stdout),
-    .Cout(Cout),
-    .CioAcq(CoutAcqMs),
+    .tx_data(tx_data),
+    .tx_vld(tx_vld),
     .DPC_currentState(DPC_currentState)
 );
 
@@ -274,15 +271,6 @@ ClockDivider #(
 	.clock_out(Clock_10KHz)
 );
 
-wire Clock_100Hz;
-
-ClockDivider #(
-    .DIVISOR(10)
-) clock_divider_100Hz(
-    .Rst_n(Rst_n),
-	.clock_in(Clock_1KHz),
-	.clock_out(Clock_100Hz)
-);
 
 io_register_block #(
     .BOARDS(BOARDS),
@@ -298,6 +286,24 @@ io_register_block #(
 );
 
 
+
+logic                        tx_rdy  ;
+logic                        tx_vld  ;
+//rx signal
+wire                          rx_vld  ;
+
+`ifdef CONSUL
+
+wire Clock_100Hz;
+
+ClockDivider #(
+    .DIVISOR(10)
+) clock_divider_100Hz(
+    .Rst_n(Rst_n),
+	.clock_in(Clock_1KHz),
+	.clock_out(Clock_100Hz)
+);
+
 wire [15:0] consul_regs_in;
 wire [9:0] consul_regs_out;
 
@@ -310,13 +316,57 @@ consul Consul(
     .Rst_n(Rst_n),
     .regs_in(consul_regs_in),
     .regs_out(consul_regs_out),
-    .stdout(stdout),
-    .stdin(stdin),
-    .Cout(Cout),
-    .CioAcq(CioAcq),
-    .CinReq(CinReq)
+    .print_data_i(tx_data),
+    .kb_data_o(rx_data),
+    .print_data_vld(tx_vld),
+    .kb_data_vld(rx_vld),
+    .print_data_rdy(tx_rdy)
+);
+assign tx = rx;
+`else
+/* verilator lint_off UNUSEDSIGNAL */
+wire                          rx_pc_pass ;
+/* verilator lint_on UNUSEDSIGNAL */
+wire tx_n;
+assign tx = ~tx_n;
+
+
+uart_tx#(
+    .DATA_WIDTH   ( 7   ) ,
+    .PARITY_CHECK ( "EVEN" ) ,
+    .CLK_FREQ     ( 1000000    ) ,
+    .STOP_BITS     (2),
+    .BAUD_RATE    ( 650    )
+)transmitter(
+    .clk    ( Clock_1MHz       ),
+    .rst    ( ~Rst_n       ),
+    
+    .i_vld  ( tx_vld    ),
+    .i_data ( tx_data[6:0]   ),
+    
+    .o_rdy  ( tx_rdy    ),
+    .tx     ( tx_n      )
 );
 
+uart_rx#(
+    .DATA_WIDTH   ( 7   ) ,
+    .PARITY_CHECK ( "EVEN" ) ,
+    .CLK_FREQ     ( 1000000    ) ,
+    .BAUD_RATE    ( 650    )
+)receiver(
+    .clk     ( Clock_1MHz        ),
+    .rst     ( ~Rst_n        ),
+    
+    .rx      ( ~rx         ),
+    .i_rdy   ( 1'b1       ),
+    
+    .o_vld   ( rx_vld     ),
+    .pc_pass ( rx_pc_pass ),
+    .o_data  ( rx_data[6:0]    )
+) ;
 
+assign rx_data[7] = 1'b0;
+
+`endif
 
 endmodule

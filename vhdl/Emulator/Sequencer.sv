@@ -2,10 +2,6 @@ module Sequencer(
     input Clock_1us,
     input Enable,
     input Rst_n,
-/* verilator lint_off UNUSEDSIGNAL */
-	input wire ms6205_addr_acq,
-	input wire ms6205_data_acq,
-/* verilator lint_on UNUSEDSIGNAL */
     output wire ms6205_write_addr_n,
     output wire ms6205_write_data_n,
     output reg in12_write_anode,
@@ -20,8 +16,22 @@ module Sequencer(
 reg ms6205_write_addr;
 reg ms6205_write_data;
 
-assign ms6205_write_data_n = ~ms6205_write_data;
-assign ms6205_write_addr_n = ~ms6205_write_addr;
+wire ms6205_write_addr_imp;
+wire ms6205_write_data_imp;
+assign ms6205_write_data_n = ~ms6205_write_data_imp;
+assign ms6205_write_addr_n = ~ms6205_write_addr_imp;
+Impulse impulse_addr(
+	.Clk(Clock_1us),
+	.Rst_n(Rst_n),
+	.En(ms6205_write_addr),
+	.Impulse(ms6205_write_addr_imp)
+);
+Impulse impulse_data(
+	.Clk(Clock_1us),
+	.Rst_n(Rst_n),
+	.En(ms6205_write_data),
+	.Impulse(ms6205_write_data_imp)
+);
 
 //Now, we need to do next job if ack signal:
 /*

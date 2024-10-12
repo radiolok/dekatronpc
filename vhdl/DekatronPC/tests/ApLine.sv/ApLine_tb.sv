@@ -68,7 +68,7 @@ ApLine  apLine(
     .RamDataOut(RamDataOut),
     .RamCS(RamCS),
     .RamWE(RamWE),
-    .Data(Data)
+    .tx_data_bcd(Data)
 );
 
 initial begin $dumpfile("ApLine_tb.vcd"); $dumpvars(0,ApLine_tb); end

@@ -1,14 +1,14 @@
 module consul(
     input wire Clk,
     input wire Rst_n,
-    input wire [7:0] stdout,
-    output reg [7:0] stdin,
+    input wire [7:0] print_data_i,
+    output reg [7:0] kb_data_o,
 
     input wire [15:0] regs_in,
     output reg [9:0] regs_out,
-    input wire Cout,
-    input wire CinReq,
-    output wire CioAcq
+    input wire print_data_vld,
+    output reg kb_data_vld,
+    output reg print_data_rdy
 );
 
 /* Consul 260 section */
@@ -28,7 +28,7 @@ reg high_reg;//14R
 reg coAcq;//15R
 /* verilator lint_off UNUSEDSIGNAL */
 reg red_print;//16R
-wire dummy_stdout = stdout[7];
+wire dummy_stdout = print_data_i[7];
 /* verilator lint_on UNUSEDSIGNAL */
 reg top_symbol_correction;//17R
 reg cin_ready;//18R
@@ -89,10 +89,11 @@ reg [3:0] high_reg_counter;
 always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
         state <= 4'b0;
-        stdin <= 8'b0;
+        kb_data_o <= 8'b0;
+        kb_data_vld <= 1'b0;
         sync <= 1'b0;
         set_kb_block <= 1'b1;
-        CioAcq <= 1'b0;
+        print_data_rdy <= 1'b0;
         set_tab <= 1'b0;
         NL_workout <= 1'b0;
         high_reg_counter <= 4'b0000;
@@ -103,40 +104,33 @@ always @(posedge Clk, negedge Rst_n) begin
         end
         case(state)
         IDLE: begin
-            case ({CinReq, Cout})
-                2'b10: begin//CinReq, ~Cout
-                state <=  WAIT_IN;
-                set_kb_block <= 1'b0;
-                end
-                2'b01: begin//~CinReq, Cout
-                    if (~is_moving & ~block_print) begin
-                        if (need_nl) begin
-                            out <= 7'h0d;//CR
-                            NL_workout <= 1'b1;
-                        end
-                        else begin
-                            if (high_reg ^ ~stdout[5]) begin
-                                REG_switch <= 1'b1;
-                                high_reg_counter <= 4'd11;
-                                out <= {6'b000111, stdout[5]};
-                            end else begin
-                                out <= stdout[6:0];
-                                NL_workout <= 1'b0;
-                                REG_switch <= 1'b0;
-                            end
-                        end
-                        state <= SET_CODE;
+            if (print_data_vld) begin
+                if (~is_moving & ~block_print) begin
+                    if (need_nl) begin
+                        out <= 7'h0d;//CR
+                        NL_workout <= 1'b1;
                     end
+                    else begin
+                        if (high_reg ^ ~print_data_i[5]) begin
+                            REG_switch <= 1'b1;
+                            high_reg_counter <= 4'd11;
+                            out <= {6'b000111, print_data_i[5]};
+                        end else begin
+                            out <= print_data_i[6:0];
+                            NL_workout <= 1'b0;
+                            REG_switch <= 1'b0;
+                        end
+                    end
+                    state <= SET_CODE;
                 end
-                default: begin//~CinReq, ~Cout
+            end else begin
                     state <= IDLE;
-                    CioAcq <= 1'b0;
-                end
-            endcase            
+                    print_data_rdy <= 1'b0;
+            end       
         end
         WAIT_IN: begin
             if (cin_ready & in_is_valid) begin
-                stdin <= {top_symbol_correction, in[6:0]};
+                kb_data_o <= {top_symbol_correction, in[6:0]};
             end
         end
         SET_CODE: begin//10ms delay for relays
@@ -163,7 +157,7 @@ always @(posedge Clk, negedge Rst_n) begin
                 if (coAcq) begin
                     sync <= 1'b0;
                     state <= IDLE;
-                    CioAcq <= 1'b1;
+                    print_data_rdy <= 1'b1;
                 end
             end
         end

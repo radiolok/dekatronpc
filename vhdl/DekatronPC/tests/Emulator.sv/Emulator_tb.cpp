@@ -33,6 +33,7 @@ const char* dpcStatus[] = {"NONE", "IDLE", "RUN", "RUN", "HALT", "CIN", "COUT", 
 
 #define EXIT 0xFF
 
+#ifdef CONSUL
 class Consul{
 public:
     Consul() : symbols_on_line(0), set_kb_block(0),
@@ -181,6 +182,7 @@ private:
     uint8_t inputRegs[16];
     uint8_t outputRegs[16];
 };
+#endif
 
 class UI{
 public:
@@ -311,6 +313,9 @@ public:
                 case KEY_F(3)://KEYBOARD_RUN_KEY =  28,
                     keyPressed(28);
                 break;
+                case KEY_F(4)://KEYBOARD_NONAME_KEY =  32,
+                    keyPressed(32);
+                break;
                 case KEY_F(5):
                     keyPressed(15);// KEYBOARD_IRAM_KEY =  15,
                 break;
@@ -350,8 +355,8 @@ public:
         std::string status = "RUN";
         if (dut->DPC_currentState == 0x04)
             status = "HALT";
-        mvprintw(LINES-1,0, "Quit(END), F1: HALT, F2: STEP, F3: RUN, F5: IRAM, F6: DRAM, F7: CIO, F9: Soft RST, F10: Hard Rst");
-        mvprintw(LINES-2,0, "IpAddr: %x  Loop: %x ApAddr: %x  Data: %x", dut->IpAddress, dut->LoopCount, dut->ApAddress, dut->DPC_DataOut);
+        mvprintw(LINES-1,0, "Quit(END), F1: HALT, F2: STEP, F3: RUN, F4: APP, F5: IRAM, F6: DRAM, F7: CIO, F9: Soft RST, F10: Hard Rst");
+        mvprintw(LINES-2,0, "IpAddr: %x  Loop: %x ApAddr: %x  Data: %x", dut->IpAddress, dut->LoopCount, dut->ApAddress, dut->tx_data_bcd);
     }
 
     void rectangle(int y1, int x1, int y2, int x2)
@@ -444,8 +449,6 @@ uint8_t Cin(bool state, uint8_t& symbol)
 int main(int argc, char** argv, char** env) {
     VEmulator *dut = new VEmulator;
     UI *ui = new UI;
-    ioRegs *ioregs = new ioRegs;
-    Consul *consul = new Consul;
     Verilated::traceEverOn(true);
 #ifdef SIM_COV
     Verilated::mkdir("logs");
@@ -462,11 +465,14 @@ int main(int argc, char** argv, char** env) {
     keypad(stdscr, TRUE);
     start_color();
     std::thread keyControl(&UI::keyControl, ui);
+#ifdef CONSUL
+    ioRegs *ioregs = new ioRegs;
+    Consul *consul = new Consul;
     std::thread ConsulPrint(&Consul::printChar, consul);
     std::thread ConsulGet(&Consul::getChar, consul);
     uint8_t io_regs_out = 0;
     uint8_t consulLin, consulRin;
-
+#endif
     while (true) {
         if (toExit)
             break;
@@ -482,20 +488,15 @@ int main(int argc, char** argv, char** env) {
         if (sim_time < MAX_SIM_TIME)
             m_trace->dump(sim_time);
     #endif
-
+#ifdef CONSUL
         if(ioregs->update(dut->io_enable_n, dut->io_address, dut->io_data, io_regs_out))
         {
             dut->io_data = io_regs_out;
         }
-        
-        for(uint8_t c = 0; c< 16; c++)
-        {
-            mvprintw(3+c, 0,"%x", ioregs->read(c));
-            mvprintw(3+c, 5,"%x", ioregs->read(c+16));
-        }
         consul->ioConnect(sim_time, ioregs->read(1),ioregs->read(0), consulRin, consulLin);
         ioregs->write(1, consulRin);
         ioregs->write(0, consulLin);
+#endif
         uint8_t needUpdate = 0;
         ui->keyboardUpdate(dut->keyboard_write, dut->emulData, dut->keyboard_data_in);
         needUpdate += ui->in12AnodeUpdate(dut->in12_write_anode, dut->emulData);
@@ -520,7 +521,9 @@ int main(int argc, char** argv, char** env) {
     endwin();
     delete dut;
     delete ui;
+#ifdef CONSUL
     delete ioregs;
     delete consul;
+#endif
     exit(EXIT_SUCCESS);
 }
