@@ -11,7 +11,6 @@
 #include <verilated_vcd_c.h>
 #include "VEmulator.h"
 
-
 #define MAX_SIM_TIME 600000000
 #define DIGITS 9
 
@@ -67,6 +66,10 @@ public:
             (is_moving << 2) |
             (block_print << 1) |
             need_nl;
+        mvprintw(20,0, "%x", Rout);
+        mvprintw(20,2, "%x", Lout);
+        mvprintw(20,4, "%x", Rin);
+        mvprintw(20,6, "%x", Lin);
         return update;
     }
 
@@ -80,36 +83,28 @@ public:
 
     void printChar(){
         while(true){
-            if (sync){
+            if (sync){                
                 char char_to_print = outchar;
                 switch(char_to_print){
                     case 0x0e:
                         high_reg = 1;
-                        waitMs(6);
                         break;
                     case 0x0f:
                         high_reg = 0;
-                        waitMs(6);
                         break;
                     case 0x11:
                         red_print = 1;
-                        waitMs(6);
                         break;
                     case 0x12:
                         red_print = 0;
-                        waitMs(6);
                         break;
                     default:
-                        waitMs(1);
                         block_print = 1;
-                        waitMs(6);                        
-                        mvprintw(20,0, "%c", char_to_print);
                         coAcq = 1;
                         break;
-                }               
+                }            
             }
             else{
-                waitMs(6);
                 block_print = 0;
                 coAcq = 0;
             }
@@ -143,20 +138,20 @@ private:
 
 class ioRegs{
 public:
-    ioRegs(){
+    ioRegs() : channel_old(0){
         memset(inputRegs, 0, sizeof(inputRegs));
         memset(outputRegs, 0, sizeof(outputRegs));
     }
 
     ~ioRegs(){
-
     }
     //return true if dataOut is updated
     bool update(uint8_t en_n, uint8_t addr, uint8_t data, uint8_t& dataOut){
         en_n = (~en_n) & 0x03;
         uint8_t reg = (en_n - 1) * 8 + (addr & 0x07);
-        
-        if(reg < 16){
+        uint8_t channel = (en_n << 4)  | (addr & 0x0F);
+        if((channel != channel_old) and (reg < 16)){            
+            channel_old = channel;
             if ((addr >> 3) & 0x01){//write
                 outputRegs[reg] = data;
                 return false;
@@ -166,11 +161,10 @@ public:
             }
         }
         return false;
-
     }
 
     uint8_t read(uint8_t addr){
-        return (addr < 16) ? outputRegs[addr] : (addr < 32) ? inputRegs[addr] : 0;
+        return (addr < 16) ? inputRegs[addr] : (addr < 32) ? outputRegs[addr-16] : 0;
     }
     
     void write(uint8_t addr, const uint8_t& data){
@@ -181,6 +175,7 @@ public:
 private:
     uint8_t inputRegs[16];
     uint8_t outputRegs[16];
+    volatile uint8_t channel_old;
 };
 #endif
 
@@ -492,8 +487,13 @@ int main(int argc, char** argv, char** env) {
         if(ioregs->update(dut->io_enable_n, dut->io_address, dut->io_data, io_regs_out))
         {
             dut->io_data = io_regs_out;
+         for(uint8_t c = 0; c< 16; c++)
+        {
+            mvprintw(3+c, 0,"%x", ioregs->read(c));
+            mvprintw(3+c, 5,"%x", ioregs->read(c+16));
         }
-        consul->ioConnect(sim_time, ioregs->read(1),ioregs->read(0), consulRin, consulLin);
+        }
+        consul->ioConnect(sim_time, ioregs->read(17),ioregs->read(16), consulRin, consulLin);
         ioregs->write(1, consulRin);
         ioregs->write(0, consulLin);
 #endif

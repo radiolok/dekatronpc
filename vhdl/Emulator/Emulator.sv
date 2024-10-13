@@ -295,7 +295,6 @@ wire                          rx_vld  ;
 `ifdef CONSUL
 
 wire Clock_100Hz;
-
 ClockDivider #(
     .DIVISOR(10)
 ) clock_divider_100Hz(
@@ -311,6 +310,30 @@ wire [9:0] consul_regs_out;
 assign consul_regs_in = io_input_regs[15:0];
 assign io_output_regs[9:0] = consul_regs_out;
 
+logic consul_tx_rdy;
+logic consul_tx_vld;
+logic consul_tx_rdy_old;
+
+always @(posedge Clock_1MHz, negedge Rst_n) begin
+    if (~Rst_n) begin
+        consul_tx_rdy_old <= 1'b1;
+        tx_rdy <= 1'b1;
+        consul_tx_vld <= 1'b0;
+    end else begin
+        consul_tx_rdy_old <= consul_tx_rdy;
+        if (~consul_tx_rdy_old & consul_tx_rdy) begin
+            tx_rdy <= 1'b1;
+            consul_tx_vld <= 1'b0;
+        end
+        else begin
+            if (tx_vld) begin
+                tx_rdy <= 1'b0;
+                consul_tx_vld <= 1'b1;
+            end
+        end
+    end
+end
+
 consul Consul(
     .Clk(Clock_100Hz),
     .Rst_n(Rst_n),
@@ -318,9 +341,9 @@ consul Consul(
     .regs_out(consul_regs_out),
     .print_data_i(tx_data),
     .kb_data_o(rx_data),
-    .print_data_vld(tx_vld),
+    .print_data_vld(consul_tx_vld),
     .kb_data_vld(rx_vld),
-    .print_data_rdy(tx_rdy)
+    .print_data_rdy(consul_tx_rdy)
 );
 assign tx = rx;
 `else

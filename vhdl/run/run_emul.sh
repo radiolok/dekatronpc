@@ -80,7 +80,7 @@ python ${root_dir}/programs/generate_rom.py -f ${bf_file} -o ${root_dir}/firmwar
 
 CONSUL=""
 if [ ${consul} -ne 0 ]; then
-	CONSUL="+define+CONSUL=1 -DCONSUL=1"
+	CONSUL="-CFLAGS -DCONSUL=1 +define+CONSUL"
 fi
 
 verilator -Wall --trace --top Emulator --clk FPGA_CLK_50 --cc ${EmulFiles} ${DPCfiles} \
