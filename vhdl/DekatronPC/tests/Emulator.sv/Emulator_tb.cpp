@@ -472,10 +472,10 @@ int main(int argc, char** argv, char** env) {
         if (toExit)
             break;
         dut->FPGA_CLK_50 ^= 1;
-        if (sim_time == 1){
+        if (sim_time == 5){
             dut->KEY = 0;
         }
-        if (sim_time == 4){
+        if (sim_time == 20){
             dut->KEY = 1;
         }
         dut->eval();
@@ -511,7 +511,7 @@ int main(int argc, char** argv, char** env) {
         dut->ms6205_ready = ui->ms6205UpdateAddr(dut->ms6205_write_addr_n, dut->emulData, dut->ms6205_marker);
         dut->ms6205_ready = ui->ms6205UpdateData(dut->ms6205_write_data_n, dut->emulData, dut->ms6205_marker);
 
-        sim_time++;
+        sim_time+=5;
     }
     mvprintw(20,0, "Emulator Done. sim_time = %ld\n", sim_time);
 #ifdef SIM_TRACE

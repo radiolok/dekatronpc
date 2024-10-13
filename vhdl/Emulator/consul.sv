@@ -11,7 +11,7 @@ module consul(
     output wire print_data_rdy
 );
 
-localparam PERIOD_SYMBOL = 5;
+localparam PERIOD_SYMBOL = 4;
 localparam PERIOD_NL = 500;
 localparam PERIOD_COLOR = 12;
 /* Consul 260 section */
