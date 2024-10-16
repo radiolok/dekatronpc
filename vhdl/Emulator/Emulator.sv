@@ -70,6 +70,7 @@ module Emulator #(
 
     output wire Clock_1Hz, //AF18 GPIO1.24
     output wire Clock_1KHz, //AG23 GPIO1.22
+    output wire Clock_10KHz,
     output wire Clock_1MHz, //AF25 GPIO1.20
 
 	 /*
@@ -97,7 +98,6 @@ module Emulator #(
     inout wire [7:0] io_data,
 
 `ifdef VERILATOR
-
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
     output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
     output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
@@ -261,7 +261,7 @@ wire [127:0] io_input_regs;
 wire [127:0] io_output_regs;
 /* verilator lint_on UNDRIVEN */
 
-wire Clock_10KHz;
+//wire Clock_10KHz;
 
 ClockDivider #(
     .DIVISOR(100)
@@ -278,11 +278,11 @@ io_register_block #(
 )IoRegisterBlock(
     .Clk(Clock_10KHz),
 	.Rst_n(Rst_n),
-    .io_address(io_address),
-    .io_enable_n(io_enable_n),
-    .io_data(io_data),
-    .inputs(io_input_regs),
-    .outputs(io_output_regs)
+    .addr_o(io_address),
+    .enable_n_o(io_enable_n),
+    .data_io(io_data),
+    .regs_in_o(io_input_regs),
+    .regs_out_i(io_output_regs)
 );
 
 

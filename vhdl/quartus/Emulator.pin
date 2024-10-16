@@ -113,7 +113,7 @@ nCSO, DATA4                  : AA6       :        :                   :         
 DCLK                         : AA8       :        :                   :         : 3A        :                
 GND                          : AA9       : gnd    :                   :         :           :                
 VCCPD3A                      : AA10      : power  :                   : 3.3V    : 3A        :                
-SW[1]                        : AA11      : input  : 3.3-V LVTTL       :         : 3A        : N              
+RESERVED_INPUT_WITH_WEAK_PULLUP : AA11      :        :                   :         : 3A        :                
 VCCIO3B                      : AA12      : power  :                   : 3.3V    : 3B        :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : AA13      :        :                   :         : 4A        :                
 VCCPD3B4A                    : AA14      : power  :                   : 3.3V    : 3B, 4A    :                
@@ -169,12 +169,12 @@ GND                          : AD8       : gnd    :                   :         
 VCCPD3B4A                    : AD9       : power  :                   : 3.3V    : 3B, 4A    :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : AD10      :        :                   :         : 3B        :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : AD11      :        :                   :         : 3B        :                
-RESERVED_INPUT_WITH_WEAK_PULLUP : AD12      :        :                   :         : 3B        :                
+DPC_currentState[1]          : AD12      : output : 3.3-V LVTTL       :         : 3B        : N              
 VCCPD3B4A                    : AD13      : power  :                   : 3.3V    : 3B, 4A    :                
 GND                          : AD14      : gnd    :                   :         :           :                
 VCC_AUX                      : AD15      : power  :                   : 2.5V    :           :                
 VCCPD3B4A                    : AD16      : power  :                   : 3.3V    : 3B, 4A    :                
-RESERVED_INPUT_WITH_WEAK_PULLUP : AD17      :        :                   :         : 4A        :                
+SW[1]                        : AD17      : input  : 3.3-V LVTTL       :         : 4A        : N              
 VCCPD3B4A                    : AD18      : power  :                   : 3.3V    : 3B, 4A    :                
 io_data[1]                   : AD19      : bidir  : 3.3-V LVTTL       :         : 4A        : Y              
 io_data[2]                   : AD20      : bidir  : 3.3-V LVTTL       :         : 4A        : Y              
@@ -192,12 +192,12 @@ GND                          : AE3       : gnd    :                   :         
 keyboard_data_in[5]          : AE4       : input  : 3.3-V LVTTL       :         : 3B        : Y              
 VREFB3AN0                    : AE5       : power  :                   :         : 3A        :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : AE6       :        :                   :         : 3A        :                
-SW[3]                        : AE7       : input  : 3.3-V LVTTL       :         : 3B        : N              
+RESERVED_INPUT_WITH_WEAK_PULLUP : AE7       :        :                   :         : 3B        :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : AE8       :        :                   :         : 3B        :                
-RESERVED_INPUT_WITH_WEAK_PULLUP : AE9       :        :                   :         : 3B        :                
+SW[3]                        : AE9       : input  : 3.3-V LVTTL       :         : 3B        : N              
 VCCIO3B                      : AE10      : power  :                   : 3.3V    : 3B        :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : AE11      :        :                   :         : 3B        :                
-RESERVED_INPUT_WITH_WEAK_PULLUP : AE12      :        :                   :         : 3B        :                
+DPC_currentState[2]          : AE12      : output : 3.3-V LVTTL       :         : 3B        : N              
 VCCIO3B                      : AE13      : power  :                   : 3.3V    : 3B        :                
 DNU                          : AE14      :        :                   :         :           :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : AE15      :        :                   :         : 4A        :                
@@ -224,7 +224,7 @@ emulData[1]                  : AF7       : output : 3.3-V LVTTL       :         
 emulData[3]                  : AF8       : output : 3.3-V LVTTL       :         : 3B        : Y              
 RESERVED_INPUT_WITH_WEAK_PULLUP : AF9       :        :                   :         : 3B        :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : AF10      :        :                   :         : 3B        :                
-RESERVED_INPUT_WITH_WEAK_PULLUP : AF11      :        :                   :         : 3B        :                
+DPC_currentState[0]          : AF11      : output : 3.3-V LVTTL       :         : 3B        : N              
 VREFB3BN0                    : AF12      : power  :                   :         : 3B        :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : AF13      :        :                   :         : 4A        :                
 VCCIO4A                      : AF14      : power  :                   : 3.3V    : 4A        :                
@@ -240,7 +240,7 @@ RESERVED_INPUT_WITH_WEAK_PULLUP : AF23      :        :                   :      
 GND                          : AF24      : gnd    :                   :         :           :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : AF25      :        :                   :         : 4A        :                
 LED[4]                       : AF26      : output : 3.3-V LVTTL       :         : 5A        : Y              
-SW[1]                        : AF27      : input  : 3.3-V LVTTL       :         : 4A        : N              
+RESERVED_INPUT_WITH_WEAK_PULLUP : AF27      :        :                   :         : 4A        :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : AF28      :        :                   :         : 4A        :                
 GND                          : AG1       : gnd    :                   :         :           :                
 GND                          : AG2       : gnd    :                   :         :           :                
@@ -249,19 +249,19 @@ VCCIO3B                      : AG4       : power  :                   : 3.3V    
 ms6205_marker                : AG5       : output : 3.3-V LVTTL       :         : 3B        : Y              
 keyboard_data_in[3]          : AG6       : input  : 3.3-V LVTTL       :         : 3B        : Y              
 GND                          : AG7       : gnd    :                   :         :           :                
-DPC_currentState[1]          : AG8       : output : 3.3-V LVTTL       :         : 4A        : N              
-SW[0]                        : AG9       : input  : 3.3-V LVTTL       :         : 4A        : N              
+RESERVED_INPUT_WITH_WEAK_PULLUP : AG8       :        :                   :         : 4A        :                
+RESERVED_INPUT_WITH_WEAK_PULLUP : AG9       :        :                   :         : 4A        :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : AG10      :        :                   :         : 4A        :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : AG11      :        :                   :         : 4A        :                
 VCCIO4A                      : AG12      : power  :                   : 3.3V    : 4A        :                
-DPC_currentState[2]          : AG13      : output : 3.3-V LVTTL       :         : 4A        : N              
+RESERVED_INPUT_WITH_WEAK_PULLUP : AG13      :        :                   :         : 4A        :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : AG14      :        :                   :         : 4A        :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : AG15      :        :                   :         : 4A        :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : AG16      :        :                   :         : 4A        :                
 GND                          : AG17      : gnd    :                   :         :           :                
-RESERVED_INPUT_WITH_WEAK_PULLUP : AG18      :        :                   :         : 4A        :                
+SW[2]                        : AG18      : input  : 3.3-V LVTTL       :         : 4A        : N              
 RESERVED_INPUT_WITH_WEAK_PULLUP : AG19      :        :                   :         : 4A        :                
-RESERVED_INPUT_WITH_WEAK_PULLUP : AG20      :        :                   :         : 4A        :                
+SW[0]                        : AG20      : input  : 3.3-V LVTTL       :         : 4A        : N              
 io_enable_n[0]               : AG21      : output : 3.3-V LVTTL       :         : 4A        : Y              
 VCCIO4A                      : AG22      : power  :                   : 3.3V    : 4A        :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : AG23      :        :                   :         : 4A        :                
@@ -269,7 +269,7 @@ RESERVED_INPUT_WITH_WEAK_PULLUP : AG24      :        :                   :      
 RESERVED_INPUT_WITH_WEAK_PULLUP : AG25      :        :                   :         : 4A        :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : AG26      :        :                   :         : 4A        :                
 GND                          : AG27      : gnd    :                   :         :           :                
-RESERVED_INPUT_WITH_WEAK_PULLUP : AG28      :        :                   :         : 4A        :                
+Clock_10KHz                  : AG28      : output : 3.3-V LVTTL       :         : 4A        : Y              
 keyboard_data_in[1]          : AH2       : input  : 3.3-V LVTTL       :         : 3B        : Y              
 keyboard_data_in[0]          : AH3       : input  : 3.3-V LVTTL       :         : 3B        : Y              
 keyboard_clear               : AH4       : output : 3.3-V LVTTL       :         : 3B        : Y              
@@ -359,11 +359,11 @@ RESERVED_INPUT_WITH_WEAK_PULLUP : D4        :        :                   :      
 RESERVED_INPUT_WITH_WEAK_PULLUP : D5        :        :                   :         : 7D        :                
 VCCIO7D_HPS                  : D6        : power  :                   : 2.5V    : 7D        :                
 VCCBAT                       : D7        : power  :                   : 1.2V    :           :                
-RESERVED_INPUT_WITH_WEAK_PULLUP : D8        :        :                   :         : 8A        :                
+Clock_1Hz                    : D8        : output : 2.5 V             :         : 8A        : N              
 VREFB8AN0                    : D9        : power  :                   :         : 8A        :                
 GND                          : D10       : gnd    :                   :         :           :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : D11       :        :                   :         : 8A        :                
-Clock_1Hz                    : D12       : output : 2.5 V             :         : 8A        : N              
+RESERVED_INPUT_WITH_WEAK_PULLUP : D12       :        :                   :         : 8A        :                
 GND                          : D13       : gnd    :                   :         :           :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : D14       :        :                   :         : 7C        :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : D15       :        :                   :         : 7B        :                
@@ -441,7 +441,7 @@ DNU                          : H2        :        :                   :         
 GND                          : H3        : gnd    :                   :         :           :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : H4        :        :                   :         : 8A        :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : H5        :        :                   :         : 8A        :                
-SW[3]                        : H6        : input  : 3.3-V LVTTL       :         : 8A        : N              
+RESERVED_INPUT_WITH_WEAK_PULLUP : H6        :        :                   :         : 8A        :                
 nSTATUS                      : H8        :        :                   :         : 9A        :                
 MSEL1                        : H9        :        :                   :         : 9A        :                
 VCCPGM                       : H10       : power  :                   : 1.8V/2.5V/3.0V/3.3V :           :                
@@ -516,8 +516,8 @@ GND                          : L3        : gnd    :                   :         
 VCC                          : L4        : power  :                   : 1.1V    :           :                
 GND                          : L5        : gnd    :                   :         :           :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : L8        :        :                   :         : 8A        :                
-SW[2]                        : L9        : input  : 3.3-V LVTTL       :         : 8A        : N              
-Clock_1MHz                   : L10       : output : 2.5 V             :         : 8A        : N              
+Clock_1MHz                   : L9        : output : 2.5 V             :         : 8A        : N              
+RESERVED_INPUT_WITH_WEAK_PULLUP : L10       :        :                   :         : 8A        :                
 VCC                          : L11       : power  :                   : 1.1V    :           :                
 VCC                          : L12       : power  :                   : 1.1V    :           :                
 GND                          : L13       : gnd    :                   :         :           :                
@@ -710,7 +710,7 @@ VCCA_FPLL                    : W5        : power  :                   : 2.5V    
 emulData[6]                  : W8        : output : 3.3-V LVTTL       :         : 3A        : Y              
 VCCIO3A                      : W9        : power  :                   : 3.3V    : 3A        :                
 TDI                          : W10       : input  :                   :         : 3A        :                
-DPC_currentState[0]          : W11       : output : 3.3-V LVTTL       :         : 3B        : N              
+RESERVED_INPUT_WITH_WEAK_PULLUP : W11       :        :                   :         : 3B        :                
 emulData[2]                  : W12       : output : 3.3-V LVTTL       :         : 3B        : Y              
 VCCIO4A                      : W13       : power  :                   : 3.3V    : 4A        :                
 RESERVED_INPUT_WITH_WEAK_PULLUP : W14       :        :                   :         : 4A        :                

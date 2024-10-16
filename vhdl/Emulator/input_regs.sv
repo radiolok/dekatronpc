@@ -4,6 +4,7 @@ module input_regs #(
     input wire [3:0] reg_num,
     input wire ReadEnable,
     input wire Clk,
+    input wire Rst_n,
     input wire [7:0] data,
     output wire [BOARDS*8-1:0] outputs
 );
@@ -17,7 +18,25 @@ assign  outputs = { regs[15],  regs[14],  regs[13],  regs[12],
                 regs[3],   regs[2],   regs[1],   regs[0]};    
 
 
-always @(negedge Clk) begin
+always @(posedge Clk, negedge Rst_n) begin
+    if (~Rst_n) begin
+        regs[0] <=0;
+        regs[1] <=0;
+        regs[2] <=0;
+        regs[3] <=0;
+        regs[4] <=0;
+        regs[5] <=0;
+        regs[6] <=0;
+        regs[7] <=0;
+        regs[8] <=0;
+        regs[9] <=0;
+        regs[10] <=0;
+        regs[11] <=0;
+        regs[12] <=0;
+        regs[13] <=0;
+        regs[14] <=0;
+        regs[15] <=0;
+    end
     if (ReadEnable)
         regs[reg_num] <= data;
 end
