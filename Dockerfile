@@ -44,10 +44,10 @@ RUN apt-get update -y &&  DEBIAN_FRONTEND=noninteractive apt-get install -y \
     libncursesw5-dev && \
     rm -rf /var/lib/apt/lists
 
-RUN wget https://github.com/verilator/verilator/archive/refs/tags/v5.012.tar.gz && \
-    tar -xvf v5.012.tar.gz && cd verilator-5.012 && \
+RUN wget https://github.com/verilator/verilator/archive/refs/tags/v5.030.tar.gz && \
+    tar -xvf v5.030.tar.gz && cd verilator-5.030 && \
     autoconf && ./configure && make -j `nproc` && make install && \
-    cd / && rm -rf /verilator-5.012 && rm -rf v5.012.tar.gz
+    cd / && rm -rf /verilator-5.030 && rm -rf v5.030.tar.gz
 
 
 RUN apt-get update -y &&  DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -56,11 +56,11 @@ RUN apt-get update -y &&  DEBIAN_FRONTEND=noninteractive apt-get install -y \
 	libboost-python-dev libboost-filesystem-dev && \
     rm -rf /var/lib/apt/lists
 
-RUN wget https://github.com/YosysHQ/yosys/archive/refs/tags/yosys-0.30.tar.gz && \
-    tar -xvf yosys-0.30.tar.gz && cd yosys-yosys-0.30 && \
-    pip install liberty-parser && \
+RUN git clone --recurse-submodules https://github.com/YosysHQ/yosys.git && \
+    cd yosys && git checkout 0.46 && \
     make config-gcc && make -j `nproc` && make install && \
-    cd / && rm -rf /yosys-yosys-0.30 && rm -rf yosys-0.30.tar.gz
+    pip install liberty-parser && \
+    cd / && rm -rf /yosys
 
 RUN apt-get update -y && DEBIAN_FRONTEND=noninteractive apt-get install -y \
     iverilog && \
