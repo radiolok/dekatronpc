@@ -197,6 +197,8 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[2]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[1]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to stdout[0]
 set_global_assignment -name ENABLE_LOGIC_ANALYZER_INTERFACE OFF
+set_global_assignment -name SYSTEMVERILOG_FILE ../uart/uart_tx.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../uart/uart_rx.sv
 set_global_assignment -name SDC_FILE Emulator.sdc
 set_global_assignment -name SYSTEMVERILOG_FILE ../Functions/BcdToBinEnc.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/Sequencer.sv
@@ -242,4 +244,8 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../DekatronPC/Dekatron/DekatronCa
 set_global_assignment -name SYSTEMVERILOG_FILE ../DekatronPC/Dekatron/Dekatron.sv
 set_global_assignment -name VERILOG_FILE ../DekatronPC/Dekatron/BinToBcd.v
 set_global_assignment -name VERILOG_FILE ../DekatronPC/Dekatron/BcdToBin.v
+set_location_assignment PIN_Y15 -to rx
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to rx
+set_location_assignment PIN_AA15 -to tx
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to tx
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

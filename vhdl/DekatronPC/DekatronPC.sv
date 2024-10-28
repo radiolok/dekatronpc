@@ -17,15 +17,18 @@ module DekatronPC (
     input Halt,
     input Step,
     input Run,
-    output wire Cout,
-    input wire CioAcq,
-    output wire CinReq,
+    input key_next_app_i,
 
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
     output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
 
-    input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DataCin,
-    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Data,
+    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd,
+    output wire tx_vld,
+    input wire tx_rdy,
+    
+    input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] rx_data_bcd,
+    input wire rx_vld,
+
     output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
     output wire [2:0] state,
     input wire [INSN_WIDTH - 1:0] InsnIn,
@@ -85,13 +88,20 @@ localparam AP_RAM_ROWS_NUM = 30000;
 localparam AP_RAM_BIN_BW = $clog2(AP_RAM_ROWS_NUM-1);
 
 wire [AP_RAM_BIN_BW-1:0] ApAddressBin;
+reg [AP_RAM_BIN_BW-1:0] ApAddressBin_Setup;
+wire [AP_RAM_BIN_BW-1:0] ApAddressBin_Cnt;
+
+
+reg ApRamRdy;
+
+assign ApAddressBin = (ApRamRdy) ? ApAddressBin_Cnt : ApAddressBin_Setup;
 
 BcdToBinEnc #(
     .DIGITS(AP_DEKATRON_NUM),
     .OUT_WIDTH(AP_RAM_BIN_BW)
 ) ApRAM_address_enc (
     .bcd(ApAddress),
-    .bin(ApAddressBin)
+    .bin(ApAddressBin_Cnt)
 );
 
 `ifdef EMULATOR
@@ -104,6 +114,22 @@ BcdToBinEnc #(
     .bin(ApAddress1Bin)
 );
 `endif
+
+always @(posedge Clk, negedge Rst_n) begin
+    if (~Rst_n) begin
+        ApRamRdy <= 1'b0;
+        ApAddressBin_Setup <= AP_RAM_ROWS_NUM - 1;
+    end else begin
+        if (~ApRamRdy) begin
+            if (ApAddressBin_Setup == 0) begin
+                ApRamRdy <= 1;
+            end else begin
+                ApAddressBin_Setup <= ApAddressBin_Setup - 1;
+            end
+        end
+    end
+end
+
 RAM #(
     .ROWS(AP_RAM_ROWS_NUM),
     .ADDR_WIDTH(AP_RAM_BIN_BW),
@@ -118,7 +144,7 @@ RAM #(
     .Address1(ApAddress1Bin),
     .Out1(ApData1),
 `endif
-    .WE(ApRamWE),
+    .WE(ApRamWE | ~ApRamRdy),
     .CS(ApRamCS)
 );
 
@@ -135,6 +161,7 @@ IpLine ipLine(
     .RomRequest(RomRequest),
     .RomReady(RomReady),
     .RomData(RomData),
+    .key_next_app_i(key_next_app_i),
 	.Insn(Insn)
 );
 
@@ -149,14 +176,15 @@ ApLine  apLine(
     .Dec(ApLineDec),
     .Zero(ApLineZero),
     .Cin(ApLineCin),
-    .DataCin(DataCin),
+    .rx_data_bcd(rx_data_bcd),
     .Ready(ApLineReady),
     .Address(ApAddress),
+    .ram_rdy_i(ApRamRdy),
     .RamDataIn(ApRamDataIn),
     .RamDataOut(ApRamDataOut),
     .RamCS(ApRamCS),
     .RamWE(ApRamWE),
-    .Data(Data)
+    .tx_data_bcd(tx_data_bcd)
 );
 
 InsnDecoder insnDecoder(
@@ -175,9 +203,10 @@ InsnDecoder insnDecoder(
     .ApLineZero(ApLineZero),
     .DataRequest(DataRequest),
 
-    .CioAcq(CioAcq),
-    .Cout(Cout),
-    .CinReq(CinReq),
+    .tx_vld(tx_vld),
+    .tx_rdy(tx_rdy),
+    .rx_vld(rx_vld),
+
     .DataZero(DataZero),
     .ApZero(ApZero),
     .LoopValZero(LoopValZero),

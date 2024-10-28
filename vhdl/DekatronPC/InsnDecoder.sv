@@ -24,9 +24,9 @@ module InsnDecoder(
     output reg IpRequest,
     output reg DataRequest,
 
-    input wire CioAcq,
-    output reg CinReq,
-    output reg Cout,
+    output reg tx_vld,
+    input wire tx_rdy,
+    input wire rx_vld,
 
     output reg [2:0] state,
 
@@ -49,18 +49,17 @@ reg Echo;
 reg InsnMode;
 
 parameter [2:0]
-    IDLE     =  3'b001,
-    FETCH     =  3'b0010,
+    IDLE    =  3'b001,
+    FETCH   =  3'b0010,
     EXEC    =  3'b011,
     HALT    =  3'b100,
     CIN     =  3'b101,
     COUT    =  3'b110,
-    CIO_ACQ    =  3'b111;
+    CIO_ACQ =  3'b111;
 
 always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
-        Cout <= 1'b0;
-        CinReq <= 1'b0;
+        tx_vld <= 1'b0;
         Echo <= 1'b0;
         IpRequest <= 1'b0;
         ApLineDec <= 1'b0;
@@ -88,7 +87,7 @@ always @(posedge Clk, negedge Rst_n) begin
             end
             FETCH: begin
                 IpRequest <= 1'b0;
-                Cout <= 1'b0;
+                tx_vld <= 1'b0;
                 if (IpLineReady) begin
                     casez ({InsnMode,Insn})
                         5'h?0: begin
@@ -149,11 +148,10 @@ always @(posedge Clk, negedge Rst_n) begin
                                 state <= EXEC;
                             end
                         5'h18:   begin //INSN_COUT
-                            Cout <= 1'b1;
+                            tx_vld <= 1'b1;
                             state <= COUT;
                         end
                         5'h19:  begin //INSN_CIN
-                            CinReq <= 1'b1;
                             state <= CIN;
                         end
                         //5'h1A:   //INSN_CLRD?
@@ -193,28 +191,27 @@ always @(posedge Clk, negedge Rst_n) begin
                 end
             end
             CIN: begin
-                if (CioAcq) begin;
+                if (rx_vld) begin;
                     DataRequest <= 1'b1;
                     ApLineCin <= 1'b1;
-                    CinReq <= 1'b0;
                     state <= CIO_ACQ;
                     if (EchoMode)
                         Echo <= 1'b1;
                 end
             end
             COUT: begin
-                if (CioAcq) begin
-                    Cout <= 1'b0;
+                if (tx_rdy) begin
+                    tx_vld <= 1'b0;
                     state <= CIO_ACQ;
                 end
             end
             CIO_ACQ: begin
                 DataRequest <= 1'b0;
                 ApLineCin <= 1'b0;
-                if (ApLineReady & ~CioAcq) begin
+                if (ApLineReady & tx_rdy ) begin
                     if (Echo) begin
                         Echo <= 1'b0;
-                        Cout <= 1'b1;
+                        tx_vld <= 1'b1;
                         state <= COUT;
                     end
                     else begin

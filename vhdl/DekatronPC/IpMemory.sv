@@ -35,6 +35,7 @@ BcdToBinEnc #(
     .bin(AddressBin)
 );
 
+
 parameter [1:0]
     INIT      = 2'd0,
     READY     =  2'd1,
@@ -95,7 +96,7 @@ always @(posedge Clk, negedge Rst_n) begin
       RomOutReg <= {(INSN_WIDTH){1'b0}};
     end
     else if (WE) Mem[AddressBin] <= InsnIn;
-      else begin 
+      else begin
         RamOutReg <= Mem[AddressBin];
         RomOutReg <= RomOutWire;
     end
