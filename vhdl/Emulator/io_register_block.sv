@@ -20,7 +20,7 @@ logic strobe;
 wire en_1_n = channel_num[4] & strobe;
 wire en_2_n = (~channel_num[4]) & strobe;
 
-assign enable_n_o = {en_2_n, en_1_n};
+assign enable_n_o = {~en_2_n, ~en_1_n};
 
 reg [7:0] current_out_reg;
 

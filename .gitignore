@@ -22,3 +22,5 @@ vhdl/share/
 *.txt
 *.o
 *.a
+*.kicad_sch-bak
+*conflicted copy*.sv

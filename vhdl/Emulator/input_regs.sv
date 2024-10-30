@@ -18,7 +18,7 @@ assign  outputs = { regs[15],  regs[14],  regs[13],  regs[12],
                 regs[3],   regs[2],   regs[1],   regs[0]};    
 
 
-always @(posedge Clk, negedge Rst_n) begin
+always @(negedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
         regs[0] <=0;
         regs[1] <=0;
@@ -36,9 +36,11 @@ always @(posedge Clk, negedge Rst_n) begin
         regs[13] <=0;
         regs[14] <=0;
         regs[15] <=0;
-    end
-    if (ReadEnable)
+    end else begin
+    if (ReadEnable) begin
         regs[reg_num] <= data;
+	 end
+	 end
 end
 
 endmodule
