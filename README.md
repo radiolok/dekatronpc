@@ -1,7 +1,9 @@
 # DekatronPC
+
 A vacuum tube and cold-cathode tube based computer
 
 ## Dekatrons
+
 Сan do +1 and -1 operations by desing, so they are best devices for brainfuck instruction set.
 
 As a next generation of BrainfuckPC, DekatronPC should have next characteristics:
