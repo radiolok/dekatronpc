@@ -1,0 +1,29 @@
+*--------------------------------------------------------------------------
+* Specialized tube model
+*
+*    Type           : 6N16B
+*    Description    : Triode
+*    Direct heated  : no
+*    Screen present : yes
+*--------------------------------------------------------------------------
+.SUBCKT 6N16B Pa Ga Ka Pb Gb Kb;
++ PARAMS: CCG=2.7P  CGP=1.5P CCP=1.65P RGI=2000
++ MU=25.96 EX=1.79 KG1=557.56 KG2=557.56 KP=137.33 KVB=391.918
+E1  7   0  VALUE={V(Pa,Ka)/KP*LOG(1+EXP(KP*(1/MU+V(Ga,Ka)/SQRT(KVB+V(Pa,Ka)*V(Pa,Ka)))))}
+RE1  7  0  1G
+E2  17   0  VALUE={V(Pb,Kb)/KP*LOG(1+EXP(KP*(1/MU+V(Gb,Kb)/SQRT(KVB+V(Pb,Kb)*V(Pb,Kb)))))}
+RE2  17  0  1G
+G1  Pa  Ka  VALUE={((PWR(V(7),EX)+PWRS(V(7),EX))/(2*KG1))}
+G2  Pb  Kb  VALUE={((PWR(V(17),EX)+PWRS(V(17),EX))/(2*KG2))}
+C1  Ga  Ka  {CCG}  ; CATHODE GRID
+C2  Ga  Pa  {CGP}  ; GRID-PLATE
+C3  Pa  Ka  {CCP}  ; CATHODE-PLATE
+C4  Gb  Kb  {CCG}  ; CATHODE GRID
+C5  Gb  Pb  {CGP}  ; GRID-PLATE
+C6  Pb  Kb  {CCP}  ; CATHODE-PLATE
+D3  5  Ka  DX  ; FOR GRID CURRENT
+R1  Ga  5  {RGI}  ; FOR GRID CURRENT
+D4  15  Ka  DX  ; FOR GRID CURRENT
+R2  Ga  15  {RGI}  ; FOR GRID CURRENT
+.MODEL DX D(IS=1N RS=1 CJO=10PF TT=1N)
+.ENDS 6N16B

@@ -1,0 +1,1147 @@
+*--------------------------------------------------------------------------
+* Specialized tube model
+*
+*    Type           : 6F12P
+*    Description    : Triode only
+*    Direct heated  : no
+*    Screen present : no
+*--------------------------------------------------------------------------
+.SUBCKT 6F12PT 1 2 3 ; P G C (Triode) 07 Nov 2004
++ params:
++ mu  = 137.721
++ ex  = 1.60508
++ kg1 = 55.4076
++ kp  = 593.725
++ kvb = 11210.8
++ ccg = 4.6e-12
++ cgp = 1.6e-12
++ ccp = 2.6e-13
+e1 7 0 value=
++{v(1,3)/kp*log(1+exp(kp*(1/mu+v(2,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g
+g1 1 3 value= {(pwr(v(7),ex)+pwrs(v(7),ex))/kg1}
+rcp 1 3 1g
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+.ENDS
+
+*--------------------------------------------------------------------------
+* Specialized tube model
+*
+*    Type           : 6SN7 6N8S
+*    Description    : Triode
+*    Direct heated  : no
+*    Screen present : no
+*--------------------------------------------------------------------------
+.subckt 6SN7 P G K
+Bp P K  I=(0.02003791851m)*uramp(V(P,K)*ln(1.0+(-0.07740549711)+exp((4.618036737)+(4.618036737)*((20.288965)+(-110.4389272m)*V(G,K))*V(G,K)/sqrt((28.13407639)**2+(V(P,K)-(7.118597372))**2)))/(4.618036737))**(1.380047579)
+Cgp G P 4.0pF
+Cgk G K 2.6pF
+Cpk P K 0.7pF
+.ends 6SN7
+
+*--------------------------------------------------------------------------
+* Specialized tube model
+*
+*    Type           : 12AX7 ECC83 6N2P
+*    Description    : Triode
+*    Direct heated  : no
+*    Screen present : no
+*--------------------------------------------------------------------------
+.subckt 12AX7 P G K
+Bp P K I=((0.001149607902m)+(0.0001063352726m)*V(G,K))*uramp((91.16514401)*V(G,K)+V(P,K)+(52.29904339))**1.5 * V(P,K)/(V(P,K)+(2.177964467))
+Cgp G P 1.7pF
+Cgk G K 1.6pF
+Cpk P K 0.46pF
+.ends 12AX7
+
+*--------------------------------------------------------------------------
+* Specialized tube model
+*
+*    Type           : 12AU7 ECC82
+*    Description    : Triode
+*    Direct heated  : no
+*    Screen present : no
+*--------------------------------------------------------------------------
+.subckt 12AU7 P G K
+Bp P K I=(0.01701593477m)*uramp(V(P,K)*ln(1.0+(-0.1251806139)+exp((1.234948774)+(1.234948774)*((34.50197863)+(-26.60747394m)*V(G,K))*V(G,K)/sqrt((22.53603268)**2+(V(P,K)-(-4.400778147))**2)))/(1.234948774))**(1.369425091)
+Cgp G P 1.5pF
+Cgk G K 1.6pF
+Cpk P K 0.4pF
+.ends 12AU7
+
+*--------------------------------------------------------------------------
+* Specialized tube model
+*
+*    Type           : 12AT7 ECC81
+*    Description    : Triode
+*    Direct heated  : no
+*    Screen present : no
+*--------------------------------------------------------------------------
+.subckt 12AT7 P G K
+Bp P K I=(0.0253900853m)*uramp(V(P,K)*ln(1.0+(-0.002225559277)+exp((2.167148412)+(2.167148412)*((98.41058113)+(-236.6932297m)*V(G,K))*V(G,K)/sqrt((21.28395113)**2+(V(P,K)-(-33.16307233))**2)))/(2.167148412))**(1.238709418)
+Cgp G P 1.5pF
+Cgk G K 2.2pF
+Cpk P K 0.5pF
+.ends 12AT7
+
+*--------------------------------------------------------------------------
+* Specialized tube model
+*
+*    Type           : 6N16B
+*    Description    : Triode
+*    Direct heated  : no
+*    Screen present : yes
+*--------------------------------------------------------------------------
+*.SUBCKT 6N16B 1 2 3 ; P G K ;
+*+ PARAMS: CCG=2.7P  CGP=1.5P CCP=1.65P RGI=2000
+*+ MU=25.96 EX=1.79 KG1=557.56 KP=137.33 KVB=391.918
+*E1  7   0  VALUE={V(1,3)/KP*LOG(1+EXP(KP*(1/MU+V(2,3)/SQRT(KVB+V(1,3)*V(1,3)))))}
+*RE1  7  0  1G
+*G1  1  3  VALUE={((PWR(V(7),EX)+PWRS(V(7),EX))/(2*KG1))}
+*C1  2  3  {CCG}  ; CATHODE GRID
+*C2  2  1  {CGP}  ; GRID-PLATE
+*C3  1  3  {CCP}  ; CATHODE-PLATE
+*D3  5  3  DX  ; FOR GRID CURRENT
+*R1  2  5  {RGI}  ; FOR GRID CURRENT
+*.MODEL DX D(IS=1N RS=1 CJO=10PF TT=1N)
+*.ENDS 6N16B
+
+.subckt 01A 1 6 3
++ params: mu=7.7 ex=1.512 kg1=8700 kp=57 kvb=1116 rgi=1000 vct=.372
++ ccg=3.1p cgp=8.1p ccp=2.2p
+e1 7 0 value=
++{v(1,3)/kp*log(1+exp(kp*(1/mu+v(2,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g
+g1 1 3 value= {(pwr(v(7),ex)+pwrs(v(7),ex))/kg1}
+rcp 1 3 1g
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+r1 2 5 {rgi}
+v1 5 6 {vct}
+d3 6 3 dx
+.model dx d(is=1n rs=1 cjo=1pf tt=1n)
+.ends
+
+.SUBCKT 2A3 A G K
+XV1 A G K TRIODENH
++PARAMS: LIP= 1.5 LIF= .003 RAF= 1.92357959289845E-03 RAS= .98 CDO= 0 
++ RAP= 0.005 ERP= 1.55 
++ MU0= 4.2 MUR= 0.0006 EMC= 0.0000868 
++ GCO=-0.2 GCF= 0.00001 
++ CGA=1.65E-11 CGK=7.50E-12 CAK=5.50E-12
+.ENDS
+
+.SUBCKT 2A3_sofia A G K
++PARAMS: MU=4.545 ERP=1.5
++ KK1=1744 KP=41.4 KVB=17.1 vg0=1.5
++ CGA=16.5p CGK=7.5p CAK=5.5p RGI=1000
+.func V_6() {KP*( (1/MU)+((V(G,K)-vg0)/sqrt(V(A,K)**2+KVB**2)) )} 
+E8 8 0 VALUE={(V(A,K))/KP*LN(1+EXP(V_6()))}
+Eam am 0 VALUE= {2*Pow(V(8),ERP)/KK1}
+GA A K VALUE={V(am)}
+D3 5 k DX ; FOR GRID CURRENT
+R1 g 5 {RGI} ; FOR GRID CURRENT
+Rak A K 1G
+Rgk G K 1G
+C1 G K {CGK}
+C2 G A {CGA}
+C3 A K {CAK}
+.MODEL DX D(IS=1N RS=1)
+.ENDS
+
+.subckt 2C51 1 6 3
++ params: mu=40.9 ex=1.71 kg1=825 kp=126 kvb=708 rgi=2000 vct=.01
++ ccg=2.3p cgp=1.3p ccp=1.3p
+e1 7 0 value=
++{v(1,3)/kp*log(1+exp(kp*(1/mu+v(2,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g
+g1 1 3 value= {(pwr(v(7),ex)+pwrs(v(7),ex))/kg1}
+rcp 1 3 1g
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+r1 2 5 {rgi}
+v1 5 6 {vct}
+d3 6 3 dx
+.model dx d(is=1n rs=1 cjo=1pf tt=1n)
+.ends
+
+.subckt 3A5 1 2 3 ; uses vacuum diode grid current model
++ params: mu=16.13 ex=1.526 kg1=3270 kp=126 kvb=2 rgi=3000
++ ccg=0.9p cgp=3.2p ccp=1.0p
+e1 7 0 value=
++{v(1,3)/kp*log(1+exp(kp*(1/mu+v(2,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g
+g1 1 3 value= {(pwr(v(7),ex)+pwrs(v(7),ex))/kg1}
+rcp 1 3 1g
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+r1 2 5 {rgi}
+d3 5 3 dx
+.model dx d(is=60u rs=1 cjo=1pf N=180)
+.ends
+
+.SUBCKT 3CX300 A G K
+XV1 A G K TRIODENH
++PARAMS: LIP= 1.5 LIF= 10 RAF= 0.00536 RAS= 1 CDO= 0 
++ RAP= 0.005 ERP= 1.25 
++ MU0= 8.321 MUR= 0.0012 EMC= 0.000533 
++ GCO= 0 GCF= 0.0001 
++ CGA=1.00E-11 CGK=2.50E-11 CAK=1.00E-12
+.ENDS
+
+.SUBCKT 6AN8T 1 2 3  ; P G C; NEW MODEL   ; TRIODE SECTION
++ PARAMS: MU=21.5 EX=1.3 KG1=1180 KP=84 KVB=300 RGI=2000
++ CCG=2.3P  CGP=2.2P CCP=1.0P  ; ADD .7PF TO ADJACENT PINS; .5 TO OTHERS. 
+E1 7 0 VALUE=
++{V(1,3)/KP*LOG(1+EXP(KP*(1/MU+V(2,3)/SQRT(KVB+V(1,3)*V(1,3)))))}
+RE1 7 0 1G
+G1 1 3 VALUE={(PWR(V(7),EX)+PWRS(V(7),EX))/KG1}
+RCP 1 3 1G    ; TO AVOID FLOATING NODES IN MU-FOLLOWER
+C1 2 3 {CCG}  ; CATHODE-GRID; WAS 1.6P
+C2 2 1 {CGP}  ; GRID-PLATE; WAS 1.5P
+C3 1 3 {CCP}  ; CATHODE-PLATE; WAS 0.5P
+D3 5 3 DX     ; FOR GRID CURRENT
+R1 2 5 {RGI}  ; FOR GRID CURRENT
+.MODEL DX D(IS=1N RS=1 CJO=10PF TT=1N)
+.ENDS
+
+.SUBCKT 6AS7_6080 A G K
+XV1 A G K TRIODENH
++PARAMS: LIP= 1 LIF= 0.01 RAF= 0.0058 RAS= 0.7 CDO= 0 
++ RAP= 0.035 ERP= 1.5 
++ MU0= 2.05 MUR= 0.0017 EMC= 0.0005 
++ GCO= 0 GCF= 0 
++ CGA=1.10E-11 CGK=8.00E-12 CAK=3.00E-12
+.ENDS
+
+.subckt 6AQ8_ECC85 1 6 3
++ params: mu=68.2 ex=1.386 kg1=487 kp=234 kvb=1680 rgi=2000 vct=.346
++ ccg=3.0p cgp=1.5p ccp=1.2p
+e1 7 0 value=
++{v(1,3)/kp*log(1+exp(kp*(1/mu+v(2,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g
+g1 1 3 value= {(pwr(v(7),ex)+pwrs(v(7),ex))/kg1}
+rcp 1 3 1g
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+r1 2 5 {rgi}
+v1 5 6 {vct}
+d3 6 3 dx
+.model dx d(is=1n rs=1 cjo=1pf tt=1n)
+.ends
+
+.SUBCKT 6BM8 A G K
+XV1 A G K TRIODENH
++PARAMS: LIP= 1.5 LIF= 10 RAF= 0.030667 RAS= 5 CDO=-0.5 
++ RAP= 0.587 ERP= 1.5 
++ MU0= 50 MUR= 0.035 EMC= 0.00000256 
++ GCO= 0 GCF= 0 
++ CGA=4.00E-12 CGK=2.70E-12 CAK=4.00E-12
+.ENDS
+
+.SUBCKT 6C33C A G K
++PARAMS: MU=2.67 ERP=1.45
++ KK1=418 KP=14.6 KVB=5
++ CGA=30p CGK=30p CAK=10p RGI=1000
+.func V_6() {KP*( (1/MU)+(V(G,K)/sqrt(V(A,K)**2+KVB**2)) )} 
+E8 8 0 VALUE={(V(A,K))/KP*LN(1+EXP(V_6()))}
+Eam am 0 VALUE= {2*Pow(V(8),ERP)/KK1}
+GA A K VALUE={V(am)}
+D3 5 k DX ; FOR GRID CURRENT
+R1 g 5 {RGI} ; FOR GRID CURRENT
+Rak A K 1G
+Rgk G K 1G
+C1 G K {CGK}
+C2 G A {CGA}
+C3 A K {CAK}
+.MODEL DX D(IS=1N RS=1) 
+.ENDS
+
+.SUBCKT 6C4C  A G K
++PARAMS: MU=4.4 ERP=1.5
++ KK1=2136 KP=49.5 KVB=23 vg0=-3
++ CGA=16.5p CGK=7.5p CAK=5.5p RGI=1000   ;(2A3 values)
+.func V_6() {KP*( (1/MU)+((V(G,K)-vg0)/sqrt(V(A,K)**2+KVB**2)) )}
+E8    8  0  VALUE={(V(A,K))/KP*LN(1+EXP(V_6()))}
+Eam   am  0  VALUE= {2*Pow(V(8),ERP)/KK1}
+GA    A  K  VALUE={V(am)}
+D3    5 k DX     ; FOR GRID CURRENT
+R1    g 5 {RGI}  ; FOR GRID CURRENT
+Rak   A  K  1G
+Rgk   G  K  1G
+C1    G  K  {CGK}
+C2    G  A  {CGA}
+C3    A  K  {CAK}
+.MODEL DX D(IS=1N RS=1)
+.ENDS
+
+.subckt 6C45-PE 1 2 3 ; plate grid cathode
++ params: mu=47.4501 ex=2.374193 kg1=268.615545 kp=485.735371 kvb=501.503636 rgi=300
++ ccg=2.4p cgp=4p ccp=.7p
+e1 7 0 value= {v(1,3)/kp*log(1+exp(kp*(1/mu+v(2,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g
+g1 1 3 value= {(pwr(v(7),ex)+pwrs(v(7),ex))/kg1}
+rcp 1 3 1g
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+r1 2 5 {rgi}
+d3 5 3 dx
+.model dx d(is=1n rs=1 cjo=10pf tt=1n)
+.ends
+
+.subckt 6CG7 1 6 3
++ params: mu=21.17 ex=1.442 kg1=1920 kp=150 kvb=10 rgi=1000 vct=.48
++ ccg=2.3p cgp=4.9p ccp=2.2p
+e1 7 0 value=
++{v(1,3)/kp*log(1+exp(kp*(1/mu+v(2,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g
+g1 1 3 value= {(pwr(v(7),ex)+pwrs(v(7),ex))/kg1}
+rcp 1 3 1g
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+r1 2 5 {rgi}
+v1 5 6 {vct}
+d3 6 3 dx
+.model dx d(is=1n rs=1 cjo=1pf tt=1n)
+.ends
+
+.subckt 6CW4 1 2 3 ; placca griglia catodo NUVISTOR R.C.A.
++ params: mu=68.75 ex=1.35 kg1=160 kp=250 kvb=300 rgi=200
++ ccg=4.1p cgp=.92p ccp=.18p
++ a=2.133e-7 b=-9.40e-5 c=.0139666 d=.64
+e1 7 0 value=
++{v(1,3)/kp*log(1+exp(kp*(1/mu+v(2,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g
+e2 8 0 value=
++{a*v(1,3)*v(1,3)*v(1,3)+b*v(1,3)*v(1,3)+c*v(1,3)+d}
+re2 8 0 1g
+g1 1 3 value= {(pwr(v(7),v(8))+pwrs(v(7),v(8)))/kg1}
+rcp 1 3 1g
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+r1 2 5 {rgi}
+d3 5 3 dx
+.model dx d(is=1n rs=1 cjo=10pf tt=1n)
+.ends
+
+.SUBCKT 6DJ8 A G K
+XV1 A G K TRIODENH
++PARAMS: LIP= 1.5 LIF= 10 RAF= 0.09 RAS= 0.2 CDO= 0 
++ RAP= 0 ERP= 1.35 
++ MU0= 33 MUR= 0.02 EMC= 0.0000795 
++ GCO=-0.2 GCF= 0 
++ CGA=1.40E-12 CGK=3.30E-12 CAK=1.80E-12
+.ENDS
+
+.subckt 6H30  P G K
+    Bp  P K  I=(0.3800825583m)*uramp(V(P,K)*ln(1.0+(-0.02540430176)+exp((7.018331616)+(7.018331616)*((15.85848193)+(-66.34009258m)*V(G,K))*V(G,K)/sqrt((27.2125877)**2+(V(P,K)-(5.267363515))**2)))/(7.018331616))**(1.211856956)
+.ends 6H30
+
+.subckt 6HV5  P G K
+    Bp  P K  I=((0.002251977888m)+(-5.369015936e-005m)*V(G,K))*uramp((370.7812379)*V(G,K)+V(P,K)+(423.2938397))**1.5 * V(P,K)/(V(P,K)+(57.14378617))
+.ends
+
+.subckt 6J4 1 6 3
++ params: mu=94.8 ex=1.274 kg1=103 kp=153 kvb=792 rgi=2000 vct=.122
++ ccg=5.5p cgp=4.0p ccp=5.0p
+e1 7 0 value=
++{v(1,3)/kp*log(1+exp(kp*(1/mu+v(2,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g
+g1 1 3 value= {(pwr(v(7),ex)+pwrs(v(7),ex))/kg1}
+rcp 1 3 1g
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+r1 2 5 {rgi}
+v1 5 6 {vct}
+d3 6 3 dx
+.model dx d(is=1n rs=1 cjo=1pf tt=1n)
+.ends
+
+.subckt 6J6 1 6 3
++ params: mu=38.9 ex=1.484 kg1=780 kp=162 kvb=1176 rgi=2000 vct=.384
++ ccg=2.6p cgp=1.5p ccp=1.6p
+e1 7 0 value=
++{v(1,3)/kp*log(1+exp(kp*(1/mu+v(2,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g
+g1 1 3 value= {(pwr(v(7),ex)+pwrs(v(7),ex))/kg1}
+rcp 1 3 1g
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+r1 2 5 {rgi}
+v1 5 6 {vct}
+d3 6 3 dx
+.model dx d(is=1n rs=1 cjo=1pf tt=1n)
+.ends
+
+.SUBCKT 6N1P A G K
+XV1 A G K TRIODENH
++PARAMS: LIP= 1.5 LIF= 10 RAF= 0.01 RAS= 1 CDO= 0 
++ RAP= 0 ERP= 1.6 
++ MU0= 37.5 MUR= 0.01 EMC= 0.000005 
++ GCO= 0 GCF= 0 
++ CGA=1.60E-12 CGK=3.20E-12 CAK=1.50E-12
+.ENDS
+
+.subckt 6N6P 1 6 3
++ params: mu=18.8 ex=1.666 kg1=810 kp=85.5 kvb=600 rgi=2000 vct=.02
++ ccg=4.4p cgp=1.7p ccp=1.85p
+e1 7 0 value=
++{v(1,3)/kp*log(1+exp(kp*(1/mu+v(2,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g
+g1 1 3 value= {(pwr(v(7),ex)+pwrs(v(7),ex))/kg1}
+rcp 1 3 1g
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+r1 2 5 {rgi}
+v1 5 6 {vct}
+d3 6 3 dx
+.model dx d(is=1n rs=1 cjo=1pf tt=1n)
+.ends
+
+.SUBCKT 6SL7GT P G K
+E1  2  0  VALUE={V(P,K)+65.5*V(G,K)}
+R1  2  0  1.0K
+Gp  P  K  VALUE={1.54E-6*(PWR(V(2),1.5)+PWRS(V(2),1.5))/2}
+Cgk G  K  3.2P
+Cgp G  P  2.8P
+Cpk P  K  3.5P
+.ENDS
+
+.SUBCKT 6SN7GTB A G K
+XV1 A G K TRIODENH
++PARAMS: LIP= 1 LIF= 0.0037 RAF= 0.02 RAS= 2 CDO= 0 
++ RAP= 0.002 ERP= 1.4 
++ MU0= 19.2642 MUR= 0.006167 EMC= 0.0000189 
++ GCO= 0 GCF= 0.000213 
++ CGA=3.90E-12 CGK=2.40E-12 CAK=7.00E-13
+.ENDS
+
+.SUBCKT 6SN7_sofia A G K
++PARAMS: MU=21.95 ERP=1.5
++ KK1=2100 KP=169 KVB=4 vg0=-.45
++ CGA=4p CGK=3p CAK=1.2p RGI=1000
+.func V_6() {KP*( (1/MU)+((V(G,K)-vg0)/sqrt(V(A,K)**2+KVB**2)) )} 
+E8 8 0 VALUE={(V(A,K))/KP*LN(1+EXP(V_6()))}
+Eam am 0 VALUE= {2*Pow(V(8),ERP)/KK1}
+GA A K VALUE={V(am)}
+D3 5 k DX ; FOR GRID CURRENT
+R1 g 5 {RGI} ; FOR GRID CURRENT
+Rak A K 1G
+Rgk G K 1G
+C1 G K {CGK}
+C2 G A {CGA}
+C3 A K {CAK}
+.MODEL DX D(IS=1N RS=1)
+.ENDS
+
+.subckt 12A4  P G K
+    Bp  P K  I=(0.04842259598m)*uramp(V(P,K)*ln(1.0+(-0.1171696503)+exp((6.561427624)+(6.561427624)*((18.54552963)+(-100.6055605m)*V(G,K))*V(G,K)/sqrt((40.8808477)**2+(V(P,K)-(25.43292096))**2)))/(6.561427624))**(1.491616235)
+.ends
+
+.SUBCKT 12AT7_ECC81 A G K
+XV1 A G K TRIODENH
++PARAMS: LIP= 1 LIF= 0.0037 RAF= 0.09869 RAS= 1 CDO=-0.5 
++ RAP= 0.1 ERP= 1.4 
++ MU0= 45.093 MUR= 0.012937 EMC= 0.00000863 
++ GCO=-0.5 GCF= 0.00012 
++ CGA=1.60E-12 CGK=2.30E-12 CAK=4.00E-13
+.ENDS
+
+.SUBCKT 12AU7_ECC82 A G K
+XV1 A G K TRIODENH
++PARAMS: LIP= 1 LIF= 0.0037 RAF= 0.000001 RAS= 2.065382774 CDO= 0 
++ RAP= 0.18 ERP= 1.4 
++ MU0= 17.08958652 MUR= 0.010938375 EMC= 0.0000183 
++ GCO= 0 GCF= 0.00012 
++ CGA=1.60E-12 CGK=1.80E-12 CAK=4.50E-13
+.ENDS
+
+.subckt 12AV7 1 6 3
++ params: mu=45 ex=1.4 kg1=465 kp=132 kvb=181 rgi=2000 vct=.356
++ ccg=3.2p cgp=1.9p ccp=1.4p
+e1 7 0 value=
++{v(1,3)/kp*log(1+exp(kp*(1/mu+v(2,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g
+g1 1 3 value= {(pwr(v(7),ex)+pwrs(v(7),ex))/kg1}
+rcp 1 3 1g
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+r1 2 5 {rgi}
+v1 5 6 {vct}
+d3 6 3 dx
+.model dx d(is=1n rs=1 cjo=1pf tt=1n)
+.ends
+
+.SUBCKT 12AX7_ECC83 A G K
+XV1 A G K TRIODENH
++PARAMS: LIP= 1.5 LIF= 0.000016 RAF= 0.076498 RAS= 1 CDO=-0.53056 
++ RAP= 0.18 ERP= 1.5 
++ MU0= 87.302 MUR=-0.013621 EMC= 0.00000111 
++ GCO=-0.2 GCF= 0.00001 
++ CGA=3.90E-12 CGK=2.40E-12 CAK=7.00E-13
+.ENDS
+
+.subckt 12AY7_6072A 1 6 3
++ params: mu=45 ex=1.47 kg1=2355 kp=300 kvb=136.5 rgi=950 vct=.704
++ ccg=1.3p cgp=1.3p ccp=0.6p
+e1 7 0 value=
++{v(1,3)/kp*log(1+exp(kp*(1/mu+v(2,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g
+g1 1 3 value= {(pwr(v(7),ex)+pwrs(v(7),ex))/kg1}
+rcp 1 3 1g
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+r1 2 5 {rgi}
+v1 5 6 {vct}  ; offset grid voltage
+d3 6 3 dx
+.model dx d(is=1n rs=1 cjo=1pf tt=1n)
+.ends
+
+.subckt 12B4  P G K
+    Bp  P K  I=(0.7475666979m)*uramp(V(P,K)*ln(1.0+(-0.03869784353)+exp((5.06748961)+(5.06748961)*((7.783573199)+(-7.718521472m)*V(G,K))*V(G,K)/sqrt((16.65965534)**2+(V(P,K)-(1.974437216))**2)))/(5.06748961))**(1.293967904)
+.ends 12B4
+
+.SUBCKT 12BH7A P G K
+E1  2  0  VALUE={V(P,K)+16.64*V(G,K)}
+R1  2  0  1.0K
+Gp  P  K  VALUE={22.34E-6*(PWR(V(2),1.5)+PWRS(V(2),1.5))/2}
+Cgk G  K  3.2P
+Cgp G  P  2.6P
+Cpk P  K  0.5P
+.ENDS
+
+.SUBCKT 71a  A G K
++PARAMS: MU=3.15 ERP=1.5
++ KK1=6350 KP=26.5 KVB=9 vg0=0.5 va0=6.0
++  CGA=7.4p CGK=3.7p CAK=2.1p RGI=1000
+.func V_6() {KP*( (1/MU)+((V(G,K)-vg0)/sqrt(V(A,K)**2+KVB**2)) )}
+E8    8  0  VALUE={(V(A,K)-va0)/KP*LN(1+EXP(V_6()))}
+Eam   am  0  VALUE= {2*Pow(V(8),ERP)/KK1}
+GA    A  K  VALUE={V(am)}
+D3    5 k DX     ; FOR GRID CURRENT
+R1    g 5 {RGI}  ; FOR GRID CURRENT
+Rak   A  K  1G
+Rgk   G  K  1G
+C1    G  K  {CGK}
+C2    G  A  {CGA}
+C3    A  K  {CAK}
+.MODEL DX D(IS=1N RS=1)
+.ENDS
+
+.subckt 75TL  P G K
+    Bp  P K  I=((0.008071931767m)+(3.503608694e-005m)*V(G,K))*uramp((11.35872332)*V(G,K)+V(P,K)+(-21.07038254))**1.5 * V(P,K)/(V(P,K)+(-4.024455933))
+.ends
+
+.SUBCKT 76 A G K
+XV1 A G K TRIODENH
++PARAMS: LIP= 1 LIF= 10 RAF= 0.015 RAS= 1.8 CDO= 0 
++ RAP= 0 ERP= 1.6 
++ MU0= 12.8 MUR= 0.001 EMC= 0.000008 
++ GCO= 0 GCF= 0 
++ CGA=2.80E-12 CGK=3.50E-12 CAK=2.50E-12
+.ENDS
+
+.subckt 211_VT4C 1 3 4 ; TRIODO DI POTENZA D.H.T. ( G.E.)
+g1 2 4 value = {(exp(1.5*(log((v(2,4)/12)+v(3,4)))))/3010}
+c1 3 4 6p
+c2 3 1 14.5p
+c3 1 4 5.5p
+r1 3 5 10k
+d1 1 2 dx
+d2 4 2 dx2
+d3 5 4 dx
+.model dx d(is=1p rs=1)
+.model dx2 d(is=1n rs=1)
+.ends
+
+.SUBCKT GL211  P G K
+E1  2  0  VALUE={V(P,K)+12.11*V(G,K)}
+R1  2  0  1.0K
+Gp  P  K  VALUE={9.39E-6*(PWR(V(2),1.5)+PWRS(V(2),1.5))/2}
+Gg  G  K  VALUE={358E-6*(PWR(V(G,K),1.5)+PWRS(V(G,K),1.5))/2}
+Cgk G  K  6.0P
+Cgp G  P  14.5P
+Cpk P  K  5.5P
+.ENDS
+
+.SUBCKT 300B A G K
+XV1 A G K TRIODENH
++PARAMS: LIP= 1 LIF= 10 RAF= 0.00311 RAS= 1.013608 CDO= 0 
++ RAP= 0 ERP= 1.5 
++ MU0= 3.7992 MUR= 0.000362 EMC= 0.000116 
++ GCO= 0 GCF= 0 
++ CGA=1.50E-11 CGK=9.00E-12 CAK=4.30E-12
+.ENDS
+
+.SUBCKT 300B_sofia  A G K
++PARAMS: MU=4.16 ERP=1.5
++ KK1=1922 KP=45.5 KVB=7 vg0=3
++ CGA=15.p CGK=9.p CAK=4.3p RGI=1000
+.func V_6() {KP*( (1/MU)+((V(G,K)-vg0)/sqrt(V(A,K)**2+KVB**2)) )}
+E8    8  0  VALUE={(V(A,K))/KP*LN(1+EXP(V_6()))}
+Eam   am  0  VALUE= {2*Pow(V(8),ERP)/KK1}
+GA    A  K  VALUE={V(am)}
+D3    5 k DX     ; FOR GRID CURRENT
+R1    g 5 {RGI}  ; FOR GRID CURRENT
+Rak   A  K  1G
+Rgk   G  K  1G
+C1    G  K  {CGK}
+C2    G  A  {CGA}
+C3    A  K  {CAK}
+.MODEL DX D(IS=1N RS=1)
+.ENDS   
+
+.subckt 437  P G K
+    Bp  P K  I=(0.02254655914m)*uramp(V(P,K)*ln(1.0+(-0.4880850946)+exp((0.9206824464)+(0.9206824464)*((62.11491976)+(-2109.77701m)*V(G,K))*V(G,K)/sqrt((52.5190469)**2+(V(P,K)-(21.20975915))**2)))/(0.9206824464))**(1.712612552)
+.ends
+
+.SUBCKT SV572_3 A G K
+XV1 A G K TRIODENH
++PARAMS: LIP= 1 LIF= 0.0018 RAF= 0.0012 RAS= 0.5 CDO= 0 
++ RAP= 0 ERP= 1.4 
++ MU0= 3.79928 MUR= 0.0002 EMC= 0.0000425 
++ GCO= 0 GCF= 0.0000349 
++ CGA=4.00E-12 CGK=4.00E-12 CAK=1.00E-12
+.ENDS
+
+.SUBCKT SV572_10 A G K
+XV1 A G K TRIODENH
++PARAMS: LIP= 1.4 LIF= 0.0008 RAF= 0.001 RAS= 1 CDO= 0 
++ RAP=-0.00117 ERP= 1.38 
++ MU0= 10 MUR= 0.0001 EMC= 0.0000272 
++ GCO=-0.2 GCF= 0.0003 
++ CGA=5.00E-12 CGK=6.40E-12 CAK=1.00E-12
+.ENDS
+
+.subckt 801a 1 2 3 ; relatively accurate A1 and A2 model
++ params: mu=8.06 ex=1.596 kg1=11520 kp=162 kvb=10 rgi=180
++ ccg=4.5p cgp=6p ccp=1.5p
+e1 7 0 value=
++{v(1,3)/kp*log(1+exp(kp*(1/mu+v(5,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g  ; note in e1: grid voltage is behind r1. modl mu drop at hi +grid
+g1 1 3 value= {(pwr(v(7),ex)+pwrs(v(7),ex))/kg1}
+rcp 1 3 1g
+r1 2 5 {rgi}    
+g2 5 3 value= {(pwr(v(2,3),ex)+pwrs(v(2,3),ex))/(rgi*(v(1,3)+120))} ; g1 curr
+rcg 2 3 1g
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+
+.ends
+
+.subckt 811a 1 2 3 ;
++ params: mu=160 ex=1.317 kg1=1350 kp=100 kvb=1400 rgi=2000
++ ccg=2.3p cgp=2.4p ccp=.9p
++ a=1.6667e-10 b=-.0000002875 c=0.0001758333 d=1.275 
+e1 7 0 value=
++{v(1,3)/kp*log(1+exp(kp*(1/mu+v(2,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g
+e2 8 0 value=
++{a*v(1,3)*v(1,3)*v(1,3)+b*v(1,3)*v(1,3)+c*v(1,3)+d}
+re2 8 0 1g
+e3 9 0 table {v(2,3)} =
++ (-1 1.1e-16)
++ (0, .6e-4) (20, 5.38e-4)
++ (40, 6.25e-4) (60, 7.41e-4)
+re3 9 0 1g
+g1 1 3 value= {(pwr(v(7),v(8))+pwrs(v(7),v(8)))*v(9)}
+rcp 1 3 100k
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+r1 2 5 {rgi}
+d3 5 3 dx
+.model dx d(is=70u rs=1 cjo=1pf N=180)
+.ends
+
+.SUBCKT 845  A G K
++PARAMS: MU=5.355 ERP=1.5
++ KK1=6323  KP=85.64  KVB=65.8 vg0=3 va0=0
++ CGA=13.5E-12 CGK=6E-12 CAK=6.5E-12 RGI=4000;
+.func V_6() {KP*( (1/MU)+((V(G,K)-vg0)/sqrt(V(A,K)**2+KVB**2)) )}
+E8    8  0  VALUE={(V(A,K)-va0)/KP*LN(1+EXP(V_6()))}
+Eam   am  0  VALUE= {2*Pow(V(8),ERP)/KK1}
+GA    A  K  VALUE={V(am)}
+D3    5 k DX     ; FOR GRID CURRENT
+R1    g 5 {RGI}  ; FOR GRID CURRENT
+Rak   A  K  1G
+Rgk   G  K  1G
+C1    G  K  {CGK}
+C2    G  A  {CGA}
+C3    A  K  {CAK}
+.MODEL DX D(IS=1N RS=1)
+.ENDS
+
+.subckt 864 1 6 3
++ params: mu=8.2 ex=1.372 kg1=9540 kp=165 kvb=2.84 rgi=6000 vct=.195
++ ccg=3.3p cgp=5.3p ccp=2.1p
+e1 7 0 value=
++{v(1,3)/kp*log(1+exp(kp*(1/mu+v(2,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g
+g1 1 3 value= {(pwr(v(7),ex)+pwrs(v(7),ex))/kg1}
+rcp 1 3 1g
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+r1 2 5 {rgi}
+v1 5 6 {vct}
+d3 6 3 dx
+.model dx d(is=1n rs=1 cjo=1pf tt=1n)
+.ends
+
+.subckt 1626 1 6 3
++ params: mu=5.17 ex=1.652 kg1=11700 kp=16.1 kvb=11424 rgi=4000 vct=.01
++ ccg=3.2p cgp=4.4p ccp=3.4p
+e1 7 0 value=
++{v(1,3)/kp*log(1+exp(kp*(1/mu+v(2,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g
+g1 1 3 value= {(pwr(v(7),ex)+pwrs(v(7),ex))/kg1}
+rcp 1 3 1g
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+r1 2 5 {rgi}
+v1 5 6 {vct}
+d3 6 3 dx
+.model dx d(is=60u rs=1 cjo=1pf n=170)
+.ends
+
+.subckt 5670 1 6 3
++ params: mu=40.9 ex=1.71 kg1=825 kp=126 kvb=708 rgi=2000 vct=.01
++ ccg=2.2p cgp=1.1p ccp=1.0p
+e1 7 0 value=
++{v(1,3)/kp*log(1+exp(kp*(1/mu+v(2,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g
+g1 1 3 value= {(pwr(v(7),ex)+pwrs(v(7),ex))/kg1}
+rcp 1 3 1g
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+r1 2 5 {rgi}
+v1 5 6 {vct}
+d3 6 3 dx
+.model dx d(is=1n rs=1 cjo=1pf tt=1n)
+.ends
+
+.subckt 5676 1 2 3
++ params: mu=16.13 ex=1.526 kg1=3270 kp=126 kvb=2 rgi=5000
++ ccg=1.3p cgp=4.0p ccp=2.0p
+e1 7 0 value=
++{v(1,3)/kp*log(1+exp(kp*(1/mu+v(2,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g
+g1 1 3 value= {(pwr(v(7),ex)+pwrs(v(7),ex))/kg1}
+rcp 1 3 1g
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+r1 2 5 {rgi}
+d3 5 3 dx
+.model dx d(is=1n rs=1 cjo=1pf tt=1n)
+.ends
+
+.SUBCKT 5687wa  A G K
++PARAMS: MU=18.14 ERP=1.48
++ KK1=665 KP=128.5 KVB=13.6 vg0=-0.7
++ CGA=5.2p CGK=5.2p CAK=0.8p RGI=1000
+.func V_6() {KP*( (1/MU)+((V(G,K)-vg0)/sqrt(V(A,K)**2+KVB**2)) )}
+E8    8  0  VALUE={(V(A,K))/KP*LN(1+EXP(V_6()))}
+Eam   am  0  VALUE= {2*Pow(V(8),ERP)/KK1}
+GA    A  K  VALUE={V(am)}
+D3    5 k DX     ; FOR GRID CURRENT
+R1    g 5 {RGI}  ; FOR GRID CURRENT
+Rak   A  K  1G
+Rgk   G  K  1G
+C1   G  K  {CGK}
+C2   G  A  {CGA}
+C3   A  K  {CAK}
+.MODEL DX D(IS=1N RS=1)
+.ENDS       
+
+.SUBCKT 5751 A G K
+XV1 A G K TRIODENH
++PARAMS: LIP= 1.5 LIF= 0.000016 RAF= 0.075772 RAS= 1 CDO=-0.53056 
++ RAP= 0.131285 ERP= 1.5 
++ MU0= 62.94685 MUR=-0.0111 EMC= 0.00000142 
++ GCO=-0.2 GCF= 0.00001 
++ CGA=1.40E-12 CGK=1.40E-12 CAK=4.50E-13
+.ENDS
+
+.subckt 5842_417 1 2 3
++ params: mu=42.4 ex=2.21 kg1=393 kp=629 kvb=446 rgi=2000
++ ccg=9p cgp=1.8p ccp=.48p
+e1 7 0 value=
++{v(1,3)/kp*log(1+exp(kp*(1/mu+v(2,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g
+g1 1 3 value= {(pwr(v(7),ex)+pwrs(v(7),ex))/kg1}
+rcp 1 3 1g
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+r1 2 5 {rgi}
+d3 5 3 dx
+.model dx d(is=1n rs=1 cjo=10pf tt=1n)
+.ends
+
+.subckt 6948 1 6 3
++ params: mu=87 ex=1.568 kg1=1215 kp=228 kvb=15.75 rgi=3000 vct=.656
++ ccg=1.6p cgp=.75p ccp=.25p
+e1 7 0 value=
++{v(1,3)/kp*log(1+exp(kp*(1/mu+v(2,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g
+g1 1 3 value= {(pwr(v(7),ex)+pwrs(v(7),ex))/kg1}
+rcp 1 3 1g
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+r1 2 5 {rgi}
+v1 5 6 {vct}
+d3 6 3 dx
+.model dx d(is=1n rs=1 cjo=1pf tt=1n)
+.ends
+
+.subckt 7119  P G K
+    Bp  P K  I=(0.2025738143m)*uramp(V(P,K)*ln(1.0+(0.04163079423)+exp((3.21147579)+(3.21147579)*((23.87181902)+(-454.0996836m)*V(G,K))*V(G,K)/sqrt((33.58240995)**2+(V(P,K)-(16.01952758))**2)))/(3.21147579))**(1.235675486)
+.ends
+
+.subckt 8532 1 6 3
++ params: mu=78.6 ex=1.288 kg1=127 kp=190 kvb=288 rgi=2000 vct=.02
++ ccg=7.5p cgp=2.8p ccp=5.0p
+e1 7 0 value=
++{v(1,3)/kp*log(1+exp(kp*(1/mu+v(2,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g
+g1 1 3 value= {(pwr(v(7),ex)+pwrs(v(7),ex))/kg1}
+rcp 1 3 1g
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+r1 2 5 {rgi}
+v1 5 6 {vct}
+d3 6 3 dx
+.model dx d(is=1n rs=1 cjo=1pf tt=1n)
+.ends
+
+.SUBCKT D3a_7721 A G K
+XV1 A G K TRIODENH
++PARAMS: LIP= 1 LIF= 1E-3 RAF= 240E-3 RAS= 2 CDO= -0.16
++ RAP= 8E-3 ERP= 1.5
++ MU0= 70 MUR= 1.5E-3 EMC= 4.7E-5
++ GCO= -0.16 GCF= 213E-6
++CGA= 2.7E-12 CGK= 7.3E-12 CAK=3.1E-12
+.ENDS
+
+.subckt E182CC 1 2 3 ; placca griglia catodo
++ params: mu=24 ex=1.7 kg1=75 kp=320 kvb=300 rgi=2k
++ ccg=2.3p cgp=2.4p ccp=.9p
+e1 7 0 value=
++{v(1,3)/kp*log(1+exp(kp*(1/mu+v(2,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g
+g1 1 3 value= {(pwr(v(7),ex)+pwrs(v(7),ex))/kg1}
+rcp 1 3 1g
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+r1 2 5 {rgi}
+d3 5 3 dx
+.model dx d(is=1n rs=1 cjo=10pf tt=1n)
+.ends
+
+.subckt E88CC_6922 1 3 4 ; TRIODO DI SEGNALE  (SQ PHILIPS) *modello sperimentale*
+g1 2 4 value = {(exp(1.5*(log((v(2,4)/(-0.1369*v(3,4)*v(3,4)-1.0232*v(3,4)+31.5035))+v(3,4)))))/120}
+c1 3 4 3.3p
+c2 3 1 1.4p
+c3 1 4 2.8p
+r1 3 5 10k
+d1 1 2 dx
+d2 4 2 dx2
+d3 5 4 dx
+.model dx d(is=1p rs=1)
+.model dx2 d(is=1n rs=1)
+.ends ; eq. 6dj8, 7dj8, 6922
+
+.SUBCKT ECC99 A G K 
++PARAMS: MU=23.33 ERP=1.48
++ KK1=448.5 KP=172.65 KVB=8.92
++ CGA=5p CGK=6p CAK=1p RGI=1000
+.func V_6() {KP*( (1/MU)+(V(G,K)/sqrt(V(A,K)**2+KVB**2)) )} 
+E8 8 0 VALUE={(V(A,K))/KP*LN(1+EXP(V_6()))}
+Eam am 0 VALUE= {2*Pow(V(8),ERP)/KK1}
+GA A K VALUE={V(am)}
+D3 5 k DX ; FOR GRID CURRENT
+R1 g 5 {RGI} ; FOR GRID CURRENT
+Rak A K 1G
+Rgk G K 1G
+C1 G K {CGK}
+C2 G A {CGA}
+C3 A K {CAK}
+.MODEL DX D(IS=1N RS=1)
+.ENDS
+
+.SUBCKT EL34_sofia A G K
++PARAMS: MU=11.17 ERP=1.48
++ KK1=597 KP=40.5 KVB=24.6 vg0=-.4
++ CGA=1.1p CGK=15p CAK=8.5p RGI=4000
+.func V_6() {KP*( (1/MU)+((V(G,K)-vg0)/sqrt(V(A,K)**2+KVB**2)) )} 
+E8 8 0 VALUE={(V(A,K))/KP*LN(1+EXP(V_6()))}
+Eam am 0 VALUE= {2*Pow(V(8),ERP)/KK1}
+GA A K VALUE={V(am)}
+D3 5 k DX ; FOR GRID CURRENT
+R1 g 5 {RGI} ; FOR GRID CURRENT
+Rak A K 1G
+Rgk G K 1G
+C1 G K {CGK}
+C2 G A {CGA}
+C3 A K {CAK}
+.MODEL DX D(IS=1N RS=1)
+.ENDS
+
+.SUBCKT GM70  A G K
++PARAMS: MU=8.037 ERP=1.5
++ KK1=4121 KP=182.25 KVB=34 vg0=-5.7
++ CGA=12.p CGK=8.p CAK=4.p RGI=1000
+.func   V_6() {KP*( (1/MU)+((V(G,K)-vg0)/sqrt(V(A,K)**2+KVB**2)) )}
+E8    8  0  VALUE={(V(A,K))/KP*LN(1+EXP(V_6()))}
+Eam   am  0  VALUE= {2*Pow(V(8),ERP)/KK1}
+GA    A  K  VALUE={V(am)}
+D3    5 k DX     ; FOR GRID CURRENT
+R1    g 5 {RGI}  ; FOR GRID CURRENT
+Rak   A  K  1G
+Rgk   G  K  1G
+C1    G  K  {CGK}
+C2    G  A  {CGA}
+C3    A  K  {CAK}
+.MODEL DX D(IS=1N RS=1)
+.ENDS
+
+.SUBCKT VV30B_sofia  A G K
++PARAMS: MU=3.775 ERP=1.52
++ KK1=2230 KP=43.6 KVB=5 vg0=4
++ CGA=15.p CGK=9.p CAK=4.3p RGI=1000 ; 300b cap values
+.func V_6() {KP*( (1/MU)+((V(G,K)-vg0)/sqrt(V(A,K)**2+KVB**2)) )}
+E8    8  0  VALUE={(V(A,K))/KP*LN(1+EXP(V_6()))}
+Eam   am  0  VALUE= {2*Pow(V(8),ERP)/KK1}
+GA    A  K  VALUE={V(am)}
+D3    5 k DX     ; FOR GRID CURRENT
+R1    g 5 {RGI}  ; FOR GRID CURRENT
+Rak   A  K  1G
+Rgk   G  K  1G
+C1    G  K  {CGK}
+C2    G  A  {CGA}
+C3    A  K  {CAK}
+.MODEL DX D(IS=1N RS=1)
+.ENDS   
+
+* Generic triode model: 6C19P
+* Copyright 2003--2006 by Ayumi Nakabayashi, All rights reserved.
+* Version 3.01, Generated on Wed Mar 22 17:19:54 2006
+.SUBCKT 6S19P A G K
+BGG GG 0 V=V(G,K)+0.10684511
+BEP EP 0 V=URAMP(V(A,K))+1e-10
+BEG EG 0 V=URAMP(V(G,K))+1e-10
+BM1 M1 0 V=(0.32782347*(URAMP(V(EP)-1e-10)+1e-10))**-1.8567866
+BM2 M2 0 V=(0.44685593*(URAMP(V(GG)+V(EP)/1.687323)+1e-10))**3.3567866
+BP P 0 V=0.0032573245*(URAMP(V(GG)+V(EP)/3.7759889)+1e-10)**1.5
+BIK IK 0 V=U(V(GG))*V(P)+(1-U(V(GG)))*0.0048409525*V(M1)*V(M2)
+BIG IG 0 V=0.0016286622*V(EG)**1.5*(V(EG)/(V(EP)+V(EG))*1.2+0.4)
+BIAK A K I=URAMP(V(IK,IG)-URAMP(V(IK,IG)-(0.0030048458*V(EP)**1.5)))+1e-10*V(A,K)
+BIGK G K I=V(IG)
+* CAPS
+CGA G A 8p
+CGK G K 6.5p
+CAK A K 2.5p
+.ENDS
+
+* 6N8S LTSpice model
+* .subckt 6N8S_G  P G K
+*     Bp  P K  I=(0.01426566929m)*uramp(V(P,K)*ln(1.0+(-0.2502838438)+exp((4.158339595)+(4.158339595)*((28.09578646)+(161.3001729m)*V(G,K))*V(G,K)/sqrt((-6.213441794e-06)**2+(V(P,K)-(-44.88870551))**2)))/(4.158339595))**(1.444372043)
+*    .ends 6N8S
+
+* * 6S19P Spice 3F4 model
+* .subckt 6S19P  P G K
+* Bp  P K  I=(0.003614146717m)*uramp(V(P,K)*ln(1.0+(-0.1222237273)+exp((4.37779085)+(4.37779085)*((2.57642359)+(0.1540553766m)*V(G,K))*V(G,K)/sqrt((50.74577601)^2+(V(P,K)-(-10.67155002))^2)))/(4.37779085))^(2.504102323)
+* .ends 6S19P
+
+* PC900 LTSpice model
+.subckt PC900  P G K
+Bp  P K  I=(0.002140170508m)*uramp(V(P,K)*ln(1.0+(0.02344764131)+exp((0.1654933313)+(0.1654933313)*((1012.353407)+(45664.70069m)*V(G,K))*V(G,K)/sqrt((119.4999393)**2+(V(P,K)-(43.55712427))**2)))/(0.1654933313))**(1.502978819)
+.ends PC900
+
+.subckt 6C45-PE 1 2 3 ; plate grid cathode
++ params: mu=47.4501 ex=2.374193 kg1=268.615545 kp=485.735371 kvb=501.503636 rgi=300
++ ccg=2.4p cgp=4p ccp=.7p
+e1 7 0 value= {v(1,3)/kp*log(1+exp(kp*(1/mu+v(2,3)/sqrt(kvb+v(1,3)*v(1,3)))))}
+re1 7 0 1g
+g1 1 3 value= {(pwr(v(7),ex)+pwrs(v(7),ex))/kg1}
+rcp 1 3 1g
+c1 2 3 {ccg}
+c2 1 2 {cgp}
+c3 1 3 {ccp}
+r1 2 5 {rgi}
+d3 5 3 dx
+.model dx d(is=1n rs=1 cjo=10pf tt=1n)
+.ends
+
+.SUBCKT 6N23P  1 2 3 ; P G C (Triode) 26-Oct-2001
++ PARAMS: MU=33.04  EX=1.220  KG1=212.4  KP=183.83 
++ KVB=300.0  VCT=0.00 RGI=2000
++ CCG=3.6P  CGP=1.5P CCP=2P
+E1 7 0 VALUE=
++{V(1,3)/KP*LN(1+EXP(KP*(1/MU+(V(2,3)+VCT)/SQRT(KVB+V(1,3)*V(1,3)))))}
+RE1 7 0 1G
+G1 1 3 VALUE={(PWR(V(7),EX)+PWRS(V(7),EX))/KG1}
+RCP 1 3 1G    ; TO AVOID FLOATING NODES IN MU-FOLLOWER
+C1 2 3 {CCG}  ; CATHODE-GRID; 
+C2 2 1 {CGP}  ; GRID-PLATE; 
+C3 1 3 {CCP}  ; CATHODE-PLATE; 
+D3 5 3 DX     ; FOR GRID CURRENT
+R1 2 5 {RGI}  ; FOR GRID CURRENT
+.MODEL DX D(IS=1N RS=1 CJO=10PF TT=1N)
+.ENDS
+
+.SUBCKT 6N8S  1 2 3 ; P G C (Triode) 24-Oct-2001
++ PARAMS: MU= 22.87  EX= 1.516  KG1=2209.8  KP=167.87 
++ KVB=155.4  VCT=0.70  RGI=1000
++ CCG=3P  CGP=1.2P CCP=4P
+E1 7 0 VALUE=
++{V(1,3)/KP*LN(1+EXP(KP*(1/MU+(V(2,3)+VCT)/SQRT(KVB+V(1,3)*V(1,3)))))}
+RE1 7 0 1G
+G1 1 3 VALUE={(PWR(V(7),EX)+PWRS(V(7),EX))/KG1}
+RCP 1 3 1G    ; TO AVOID FLOATING NODES IN MU-FOLLOWER
+C1 2 3 {CCG}  ; CATHODE-GRID; 
+C2 2 1 {CGP}  ; GRID-PLATE; 
+C3 1 3 {CCP}  ; CATHODE-PLATE; 
+D3 5 3 DX     ; FOR GRID CURRENT
+R1 2 5 {RGI}  ; FOR GRID CURRENT
+.MODEL DX D(IS=1N RS=1 CJO=10PF TT=1N)
+.ENDS
+*$
+
+* 6S31B PSpice model
+.subckt 6S31B  P G K
+    Gp  P K  VALUE={(0.1988913097m)*limit(V(P,K)*log(1.0+(0.2013646826)+exp((1.395045813)+(1.395045813)*((24.59849299)+(-157.6682693m)*V(G,K))*V(G,K)/sqrt((17.71050123)**2+(V(P,K)-(10.00128114))**2)))/(1.395045813),0.0,1.0e16)**(1.327315281)}
+.ends 6S31B
+
+* EL360 PSpice model
+.subckt EL360  P G K
+Gp  P K  VALUE={(0.3524190389m)*limit(V(P,K)*log(1.0+(-0.06859204498)+exp((2.624540677)+(2.624540677)*((5.264539741)+(-20.87518491m)*V(G,K))*V(G,K)/sqrt((40.72821505)**2+(V(P,K)-(25.82179747))**2)))/(2.624540677),0.0,1.0e16)**(1.398000602)}
+C1 G K 17.5P
+C2 K P 7.7P
+C3 G P 1.1P
+D1  1 K DX
+R1  G 1 200
+.MODEL DX D(IS=1N RS=1 CJO=10PF TT=1N)
+.ends EL360
+
+* 6N16B PSpice model
+.subckt 6N16B  P G K
+Gp  P K  VALUE={(0.004962431538m)*limit(V(P,K)*log(1.0+(0.08698102102)+exp((7.465673)+(7.465673)*((27.59140947)+(313.5342386m)*V(G,K))*V(G,K)/sqrt((16.94851566)**2+(V(P,K)-(-7.563231177))**2)))/(7.465673),0.0,1.0e16)**(1.801591602)}
+C1 G K 2.7P
+C2 P K 1.65P
+C3 G P 1.5P
+D1  1 K DX
+R1  G 1 2000
+.MODEL DX D(IS=1N RS=1 CJO=10PF TT=1N)
+.ends 6N16B
+
+.SUBCKT 6S41S  1 2 3 ; P G C (Triode) 30-Oct-2001
++ PARAMS: MU=2.58  EX=1.450  KG1=689.1  KP=9.98 
++ KVB=300.0  VCT=0.00  RGI=1k
++ CCG=11P  CGP=15P CCP=5P
+E1 7 0 VALUE=
++{V(1,3)/KP*LN(1+EXP(KP*(1/MU+(V(2,3)+VCT)/SQRT(KVB+V(1,3)*V(1,3)))))}
+RE1 7 0 1G
+G1 1 3 VALUE={(PWR(V(7),EX)+PWRS(V(7),EX))/KG1}
+RCP 1 3 1G    ; TO AVOID FLOATING NODES IN MU-FOLLOWER
+C1 2 3 {CCG}  ; CATHODE-GRID; 
+C2 2 1 {CGP}  ; GRID-PLATE; 
+C3 1 3 {CCP}  ; CATHODE-PLATE; 
+D3 5 3 DX     ; FOR GRID CURRENT
+R1 2 5 {RGI}  ; FOR GRID CURRENT
+.MODEL DX D(IS=1N RS=1 CJO=10PF TT=1N)
+.ENDS
+
+.SUBCKT 6P13S_T  1 2 3 ; P G C (Pentode in Triode mode) 22-Mar-2007
++ PARAMS: MU= 10.752  EX= 1.246  KG1=435  KP=48 
++ KVB= 1440  VCT=  0.314  RGI=1000
++ CCG=6.5P  CGP=7P CCP=11P
+E1 7 0 VALUE=
++{V(1,3)/KP*LN(1+EXP(KP*(1/MU+(V(2,3)+VCT)/SQRT(KVB+V(1,3)*V(1,3)))))}
+RE1 7 0 1G
+G1 1 3 VALUE={(PWR(V(7),EX)+PWRS(V(7),EX))/KG1}
+RCP 1 3 1G    ; TO AVOID FLOATING NODES IN MU-FOLLOWER
+C1 2 3 {CCG}  ; CATHODE-GRID; 
+C2 2 1 {CGP}  ; GRID-PLATE; 
+C3 1 3 {CCP}  ; CATHODE-PLATE; 
+D3 5 3 DX     ; FOR GRID CURRENT
+R1 2 5 {RGI}  ; FOR GRID CURRENT
+.MODEL DX D(IS=1N RS=1 CJO=10PF TT=1N)
+.ENDS
+
+.SUBCKT EL36_T  1 2 3 ; P G C (Pentode in Triode mode) 22-Mar-2007
++ PARAMS: MU= 6.8  EX= 1.33  KG1=330  KP=27
++ KVB= 0.06  VCT=  0.001  RGI=1000
++ CCG=6.5P  CGP=7P CCP=11P
+E1 7 0 VALUE=
++{V(1,3)/KP*LN(1+EXP(KP*(1/MU+(V(2,3)+VCT)/SQRT(KVB+V(1,3)*V(1,3)))))}
+RE1 7 0 1G
+G1 1 3 VALUE={(PWR(V(7),EX)+PWRS(V(7),EX))/KG1}
+RCP 1 3 1G    ; TO AVOID FLOATING NODES IN MU-FOLLOWER
+C1 2 3 {CCG}  ; CATHODE-GRID; 
+C2 2 1 {CGP}  ; GRID-PLATE; 
+C3 1 3 {CCP}  ; CATHODE-PLATE; 
+D3 5 3 DX     ; FOR GRID CURRENT
+R1 2 5 {RGI}  ; FOR GRID CURRENT
+.MODEL DX D(IS=1N RS=1 CJO=10PF TT=1N)
+.ENDS
+
+.SUBCKT 6N9S  1 2 3 ; P G C (Triode) 04-Mar-2006
++ PARAMS: MU= 72.7  EX= 1.126  KG1= 1278.4  KP= 621.48 
++ KVB= 300.0  VCT= 0.0 RGI=1500
++ CCG=2.5P  CGP=2.8P CCP=1P
+E1 7 0 VALUE=
++{V(1,3)/KP*LN(1+EXP(KP*(1/MU+(V(2,3)+VCT)/SQRT(KVB+V(1,3)*V(1,3)))))}
+RE1 7 0 1G
+G1 1 3 VALUE={(PWR(V(7),EX)+PWRS(V(7),EX))/KG1}
+RCP 1 3 1G    ; TO AVOID FLOATING NODES IN MU-FOLLOWER
+C1 2 3 {CCG}  ; CATHODE-GRID; 
+C2 2 1 {CGP}  ; GRID-PLATE; 
+C3 1 3 {CCP}  ; CATHODE-PLATE; 
+D3 5 3 DX     ; FOR GRID CURRENT
+R1 2 5 {RGI}  ; FOR GRID CURRENT
+.MODEL DX D(IS=1N RS=1 CJO=10PF TT=1N)
+.ENDS
+
+.SUBCKT 6N3P-E  1 2 3 ; P G C (Triode) 16-Nov-2001
++ PARAMS: MU=31.33  EX=1.979  KG1=1920.5  KP=211.72 
++ KVB=300.0  VCT=0.00 RGI=1k
++ CCG=2.5P  CGP=1.3P CCP=1.4P
+E1 7 0 VALUE=
++{V(1,3)/KP*LN(1+EXP(KP*(1/MU+(V(2,3)+VCT)/SQRT(KVB+V(1,3)*V(1,3)))))}
+RE1 7 0 1G
+G1 1 3 VALUE={(PWR(V(7),EX)+PWRS(V(7),EX))/KG1}
+RCP 1 3 1G    ; TO AVOID FLOATING NODES IN MU-FOLLOWER
+C1 2 3 {CCG}  ; CATHODE-GRID; 
+C2 2 1 {CGP}  ; GRID-PLATE; 
+C3 1 3 {CCP}  ; CATHODE-PLATE; 
+D3 5 3 DX     ; FOR GRID CURRENT
+R1 2 5 {RGI}  ; FOR GRID CURRENT
+.MODEL DX D(IS=1N RS=1 CJO=10PF TT=1N)
+.ENDS
+
+*--------------------------------------------------------------------------
+* End of file
+*--------------------------------------------------------------------------
