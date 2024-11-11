@@ -1,3 +1,0 @@
-[submodule "vhdl/uart"]
-	path = vhdl/uart
-	url = git@github.com:radiolok/SystemVerilog_UART.git

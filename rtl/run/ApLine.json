@@ -1,0 +1,255 @@
+{
+   "creator": "Yosys 0.27+30 (git sha1 101075611, gcc 9.4.0-1ubuntu1~20.04.1 -fPIC -Os)",
+   "invocation": "stat -liberty vtube_cells.lib -json ",
+   "modules": {
+      "$paramod$1a1eb2ccf25cb6dbc46f6c871807a872b8f2c260\\DekatronCounter": {
+         "num_wires":         72,
+         "num_wire_bits":     111,
+         "num_pub_wires":     37,
+         "num_pub_wire_bits": 76,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         65,
+         "area":              85.000000,
+         "num_cells_by_type": {
+            "$paramod\\DekatronModule\\READ=1'1\\WRITE=1'1\\TOP_LIMIT_MODE=1'1\\TOP_PIN_OUT=4'0010": 1,
+            "$paramod\\DekatronModule\\READ=1'1\\WRITE=1'1\\TOP_LIMIT_MODE=1'1\\TOP_PIN_OUT=4'0101": 2,
+            "A1OOI_N16X7": 4,
+            "A2OOI_N16X7": 1,
+            "AND2_N16X7": 2,
+            "DFFSR_n": 8,
+            "Impulse": 4,
+            "NAND2_J2": 11,
+            "NAND4_N16X7": 3,
+            "NOR2_N16": 10,
+            "NOR4_N16": 2,
+            "NOT_6N16B": 11,
+            "OR2_N16": 5,
+            "OneShot": 1
+         }
+      },
+      "$paramod\\DekatronCounter\\D_NUM=4'0101\\WRITE=1'0": {
+         "num_wires":         86,
+         "num_wire_bits":     151,
+         "num_pub_wires":     49,
+         "num_pub_wire_bits": 114,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         77,
+         "area":              107.000000,
+         "num_cells_by_type": {
+            "$paramod\\DekatronModule\\READ=1'1\\WRITE=1'0\\TOP_LIMIT_MODE=1'0\\TOP_PIN_OUT=4'0000": 2,
+            "$paramod\\DekatronModule\\READ=1'1\\WRITE=1'0\\TOP_LIMIT_MODE=1'0\\TOP_PIN_OUT=4'0101": 3,
+            "A1OOI_N16X7": 4,
+            "AND2_N16X7": 3,
+            "DFFSR_n": 12,
+            "Impulse": 4,
+            "NAND2_J2": 10,
+            "NOR2_N16": 6,
+            "NOR4_N16": 12,
+            "NOT_6N16B": 15,
+            "OR2_N16": 5,
+            "OneShot": 1
+         }
+      },
+      "$paramod\\DekatronModule\\READ=1'1\\WRITE=1'0\\TOP_LIMIT_MODE=1'0\\TOP_PIN_OUT=4'0000": {
+         "num_wires":         15,
+         "num_wire_bits":     42,
+         "num_pub_wires":     15,
+         "num_pub_wire_bits": 42,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         4,
+         "area":              0.500000,
+         "num_cells_by_type": {
+            "BinToBcd": 1,
+            "Dekatron": 1,
+            "DekatronPulseSender": 1,
+            "NOT_6N16B": 1
+         }
+      },
+      "$paramod\\DekatronModule\\READ=1'1\\WRITE=1'0\\TOP_LIMIT_MODE=1'0\\TOP_PIN_OUT=4'0101": {
+         "num_wires":         15,
+         "num_wire_bits":     42,
+         "num_pub_wires":     15,
+         "num_pub_wire_bits": 42,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         4,
+         "area":              0.500000,
+         "num_cells_by_type": {
+            "BinToBcd": 1,
+            "Dekatron": 1,
+            "DekatronPulseSender": 1,
+            "NOT_6N16B": 1
+         }
+      },
+      "$paramod\\DekatronModule\\READ=1'1\\WRITE=1'1\\TOP_LIMIT_MODE=1'1\\TOP_PIN_OUT=4'0010": {
+         "num_wires":         26,
+         "num_wire_bits":     71,
+         "num_pub_wires":     16,
+         "num_pub_wire_bits": 61,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         25,
+         "area":              17.000000,
+         "num_cells_by_type": {
+            "A1OOI_N16X7": 2,
+            "BcdToBin_n": 1,
+            "BinToBcd": 1,
+            "Compare": 1,
+            "Dekatron": 1,
+            "DekatronPulseSender": 1,
+            "NAND2_J2": 8,
+            "NOT_6N16B": 10
+         }
+      },
+      "$paramod\\DekatronModule\\READ=1'1\\WRITE=1'1\\TOP_LIMIT_MODE=1'1\\TOP_PIN_OUT=4'0101": {
+         "num_wires":         26,
+         "num_wire_bits":     71,
+         "num_pub_wires":     16,
+         "num_pub_wire_bits": 61,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         25,
+         "area":              17.000000,
+         "num_cells_by_type": {
+            "A1OOI_N16X7": 2,
+            "BcdToBin_n": 1,
+            "BinToBcd": 1,
+            "Compare": 1,
+            "Dekatron": 1,
+            "DekatronPulseSender": 1,
+            "NAND2_J2": 8,
+            "NOT_6N16B": 10
+         }
+      },
+      "\\ApLine": {
+         "num_wires":         160,
+         "num_wire_bits":     249,
+         "num_pub_wires":     28,
+         "num_pub_wire_bits": 117,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         182,
+         "area":              221.500000,
+         "num_cells_by_type": {
+            "$paramod$1a1eb2ccf25cb6dbc46f6c871807a872b8f2c260\\DekatronCounter": 1,
+            "$paramod\\DekatronCounter\\D_NUM=4'0101\\WRITE=1'0": 1,
+            "A1OOI_N16X7": 4,
+            "A2OOI_N16X7": 1,
+            "DFFSR_n": 10,
+            "NAND2_J2": 111,
+            "NAND4_N16X7": 2,
+            "NOR2_N16": 18,
+            "NOR4_N16": 10,
+            "NOT_6N16B": 11,
+            "OR2_N16": 11,
+            "OR4_N16X7": 2
+         }
+      },
+      "\\BcdToBin_n": {
+         "num_wires":         6,
+         "num_wire_bits":     18,
+         "num_pub_wires":     2,
+         "num_pub_wire_bits": 14,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         14,
+         "area":              27.000000,
+         "num_cells_by_type": {
+            "NAND4_N16X7": 9,
+            "NOT_6N16B": 4,
+            "OR4_N16X7": 1
+         }
+      },
+      "\\BinToBcd": {
+         "num_wires":         4,
+         "num_wire_bits":     16,
+         "num_pub_wires":     2,
+         "num_pub_wire_bits": 14,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         6,
+         "area":              9.000000,
+         "num_cells_by_type": {
+            "OR2_N16": 4,
+            "OR4_N16X7": 2
+         }
+      },
+      "\\Compare": {
+         "num_wires":         18,
+         "num_wire_bits":     24,
+         "num_pub_wires":     3,
+         "num_pub_wire_bits": 9,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         16,
+         "area":              15.500000,
+         "num_cells_by_type": {
+            "NAND2_J2": 7,
+            "NOR2_N16": 2,
+            "NOR4_N16": 1,
+            "NOT_6N16B": 3,
+            "OR2_N16": 3
+         }
+      },
+      "\\DekatronPulseSender": {
+         "num_wires":         19,
+         "num_wire_bits":     21,
+         "num_pub_wires":     13,
+         "num_pub_wire_bits": 15,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         15,
+         "area":              10.000000,
+         "num_cells_by_type": {
+            "A1OOI_N16X7": 2,
+            "Impulse": 2,
+            "NOR2_N16": 4,
+            "NOT_6N16B": 2,
+            "OR2_N16": 1,
+            "OneShot": 4
+         }
+      }
+   },
+      "design": {
+         "num_wires":         727,
+         "num_wire_bits":     1356,
+         "num_pub_wires":     372,
+         "num_pub_wire_bits": 1001,
+         "num_memories":      0,
+         "num_memory_bits":   0,
+         "num_processes":     0,
+         "num_cells":         645,
+         "area":              746.500000,
+         "num_cells_by_type": {
+            "A1OOI_N16X7": 34,
+            "A2OOI_N16X7": 2,
+            "AND2_N16X7": 5,
+            "DFFSR_n": 30,
+            "Dekatron": 8,
+            "Impulse": 24,
+            "NAND2_J2": 177,
+            "NAND4_N16X7": 32,
+            "NOR2_N16": 72,
+            "NOR4_N16": 27,
+            "NOT_6N16B": 109,
+            "OR2_N16": 70,
+            "OR4_N16X7": 21,
+            "OneShot": 34
+         }
+      }
+}
+

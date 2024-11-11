@@ -1,0 +1,12 @@
+#!/bin/bash
+set -Eeuo pipefail
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
+DPCfiles=$(cat ${script_dir}/../DekatronPC/DPC.files)
+current_dir=$(realpath $(pwd))
+echo "${1} Test"
+if [ $# -ge 2 ]; then
+    file=${2}
+    python3 ${script_dir}/../run/generate_rom.py -f ${file} -o ${script_dir}/../firmware.sv
+fi
+iverilog -g2012 -o ${1}UT -s ${1}_tb ${script_dir}/../tests/${1}.sv/${1}_tb.sv $DPCfiles
+./${1}UT
