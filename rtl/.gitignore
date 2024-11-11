@@ -1,0 +1,6 @@
+*.swp
+obj_dir
+*.vcd
+quartus/Emulator.*
+quartus/output_file.*
+*UT

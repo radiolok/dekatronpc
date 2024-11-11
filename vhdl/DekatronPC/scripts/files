@@ -1,9 +1,0 @@
-./dekatron.v
-./dekatronPulseSender.v
-./dekatronCarrySignal.sv
-./dekatronModule.sv
-./BinToBdc.v
-./Counter.sv
-./Counter_tb.v
-./FourCounters.sv
-../Logic/counters.sv

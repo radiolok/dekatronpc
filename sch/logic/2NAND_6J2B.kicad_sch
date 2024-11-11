@@ -627,7 +627,7 @@
 	)
 	(wire
 		(pts
-			(xy 125.73 58.42) (xy 125.73 68.58)
+			(xy 125.73 64.77) (xy 125.73 68.58)
 		)
 		(stroke
 			(width 0)
@@ -763,7 +763,7 @@
 	)
 	(global_label "VCC"
 		(shape input)
-		(at 125.73 58.42 90)
+		(at 125.73 64.77 90)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -773,7 +773,7 @@
 		)
 		(uuid "acc11abf-f74e-4134-9921-7ddacc1e7f38")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 125.73 51.8856 90)
+			(at 125.73 58.2356 90)
 			(effects
 				(font
 					(size 1.27 1.27)

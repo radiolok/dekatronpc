@@ -22,3 +22,9 @@ vhdl/share/
 *.txt
 *.o
 *.a
+*.kicad_sch-bak
+*conflicted copy*.sv
+rtl/firmware.sv
+rtl/firmware.hex
+run/*.json
+*.dip~
