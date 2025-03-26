@@ -1,3 +1,6 @@
 [submodule "vhdl/uart"]
 	path = vhdl/uart
 	url = git@github.com:radiolok/SystemVerilog_UART.git
+[submodule "witch_dev"]
+  path = witch_dev
+  url = https://github.com/prpplague/witch_dev.git
