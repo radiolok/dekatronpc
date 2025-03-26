@@ -39,8 +39,7 @@ Impulse reqPulse(
 	.Impulse(_Request)
 );
 
-reg [D_NUM-1:0] Zeroes;
-reg [D_NUM-1:0] Nines;
+wire [D_NUM-1:0] Zeroes;
 /* verilator lint_off UNUSEDSIGNAL */
 wire [D_NUM-1:0] TopOut;
 /* verilator lint_on UNUSEDSIGNAL */
@@ -176,9 +175,9 @@ for (d = 0; d < D_NUM; d++) begin: dek
 	else begin
 		assign pulses = dek[d-1].npulses;
 	end
-	wire DekZero;
-	wire DekNine;
-	wire Equal;
+
+	wire CarryLow;
+	wire CarryHigh;
 	DekatronModule #(
 		.READ(READ),
 		.WRITE(WRITE),
@@ -187,31 +186,22 @@ for (d = 0; d < D_NUM; d++) begin: dek
 	)dModule (
 		.Rst_n(Rst_n),
 		.hsClk(hsClk),
+		.Clk(Clk),
 		.Set(SetTopZero),
 		.PulseR(pulses[1]),
 		.PulseF(pulses[0]),
 		.In(In[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),
 		.Out(Out[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),
-		.Zero(DekZero),
-		.Nine(DekNine),
-		.Equal(Equal),
+		.CarryLow(CarryLow),
+		.CarryHigh(CarryHigh),
 		.TopPin(TopOut[d])
 	);
 	assign DekatronBusy[d] = |pulses |  |SetTopZero;
 
-	always @(posedge Clk, negedge Rst_n) begin
-		if (~Rst_n) begin
-			Zeroes[d] <= 1'b0;
-			Nines[d] <= 1'b0;
-		end
-		else begin
-			Zeroes[d] <= DekZero;
-			Nines[d] <= DekNine;
-		end
-	end
-
-	assign npulses = ((Nines[d] & (state == INC)) | (Zeroes[d] & (state == DEC))) ? 
+	assign npulses = ((CarryHigh & (state == INC)) | (CarryLow & (state == DEC))) ? 
 						pulses : 2'b0;
+
+	assign Zeroes[d] = CarryLow;
 end
 endgenerate
 

@@ -9,7 +9,7 @@ library(vtube_cells_lib) {
     pin(A) { direction: input; fanout_load: 1.0;}
     pin(Y) { direction: output;
               driver_type : pull_up;
-               max_fanout : 10; 
+               max_fanout : 5; 
               function: "A"; }
   }
   cell(BUF_6J2B) {
@@ -22,7 +22,7 @@ library(vtube_cells_lib) {
     pin(A) { direction: input; fanout_load: 1.0;}
     pin(Y) { direction: output;
               driver_type : pull_up;
-               max_fanout : 10; 
+               max_fanout : 2; 
               function: "A"; }
   }
   cell(NOT_6N16B) {
@@ -35,7 +35,7 @@ library(vtube_cells_lib) {
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
               driver_type : pull_up;
-               max_fanout : 10; 
+               max_fanout : 5; 
               function: "A'"; }
   }
   cell(NOT_6J2B) {
@@ -48,23 +48,23 @@ library(vtube_cells_lib) {
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
               driver_type : pull_up;
-               max_fanout : 10; 
+               max_fanout : 2; 
               function: "A'"; }
   }
-  cell(NAND2_N16X7) {
-    area: 1.5;
+   cell(AND2_J2B) {
+    area: 1;
     current_unit : "1mA";
-    heat_current: 500;
+    heat_current: 200;
     tubes(names) {
-      N16B: 0.5;
-      X7B: 1;
+      J2B: 1;
     }
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
-             driver_type : pull_up;
-               max_fanout : 10; 
-             function: "(A*B)'"; }
+            driver_type : pull_up;
+               max_fanout : 2; 
+             function: "(A*B)"; }
+
   }
   cell(AND2_N16X7) {
     area: 1.5;
@@ -78,7 +78,7 @@ library(vtube_cells_lib) {
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
             driver_type : pull_up;
-               max_fanout : 10; 
+               max_fanout : 5; 
              function: "(A*B)"; }
 
   }
@@ -93,50 +93,32 @@ library(vtube_cells_lib) {
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
             driver_type : pull_up;
-               max_fanout : 10; 
+               max_fanout : 2; 
              function: "(A*B)'"; }
 
   }
-  cell(NAND4_N16X7) {
-    area: 2.5;
+  cell(AOI21_N16J2){
+    area: 1.5;
     current_unit : "1mA";
-    heat_current: 800;
+    heat_current: 400;
     tubes(names) {
       N16B: 0.5;
-      X7B: 2;
-    }
-    pin(A) { direction: input; fanout_load: 1.0; }
-    pin(B) { direction: input; fanout_load: 1.0; }
-    pin(C) { direction: input; fanout_load: 1.0; }
-    pin(D) { direction: input; fanout_load: 1.0; }
-    pin(Y) { direction: output;
-               max_fanout : 10; 
-            driver_type : pull_up;
-             function: "(A*B*C*D)'"; }
-  }
-  cell(A1OOI_N16X7){
-    area: 2;
-    current_unit : "1mA";
-    heat_current: 700;
-    tubes(names) {
-      N16B: 1;
-      X7B: 1;
+      J2B: 1;
     }
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(C) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
             driver_type : pull_up;
-               max_fanout : 10; 
+               max_fanout : 2; 
              function: "((A*B)+C)'"; }
   }
-  cell(A2OOI_N16X7){
-    area: 3;
+  cell(AOI22_N16J2){
+    area: 2;
     current_unit : "1mA";
-    heat_current: 1000;
+    heat_current: 400;
     tubes(names) {
-      N16B: 1;
-      X7B: 2;
+      J2B: 2;
     }
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
@@ -144,8 +126,8 @@ library(vtube_cells_lib) {
     pin(D) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
             driver_type : pull_up;
-               max_fanout : 10; 
-             function: "((A*B)+C+D)'"; }
+               max_fanout : 2; 
+             function: "((A*B)+(C*D))'"; }
   }
   cell(OR2_N16) {
     area: 1;
@@ -161,28 +143,12 @@ library(vtube_cells_lib) {
             driver_type : pull_up;
              function: "(A+B)"; }
   }
-  cell(OR2_N16X7) {
-    area: 1.5;
-    current_unit : "1mA";
-    heat_current: 500;
-    tubes(names) {
-      N16B: 0.5;
-      X7B: 1;
-    }
-    pin(A) { direction: input; fanout_load: 1.0; }
-    pin(B) { direction: input; fanout_load: 1.0; }
-    pin(Y) { direction: output;
-               max_fanout : 10; 
-            driver_type : pull_up;
-             function: "(A+B)"; }
-  }
-  cell(OR4_N16X7) {
-    area: 2.5;
+  cell(OR4_N16) {
+    area: 2;
     current_unit : "1mA";
     heat_current: 800;
     tubes(names) {
-      N16B: 0.5;
-      X7B: 2;
+      N16B: 2;
     }
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
@@ -213,38 +179,6 @@ library(vtube_cells_lib) {
     heat_current: 800;
     tubes(names) {
       N16B: 2;
-    }
-    pin(A) { direction: input; fanout_load: 1.0; }
-    pin(B) { direction: input; fanout_load: 1.0; }
-    pin(C) { direction: input; fanout_load: 1.0; }
-    pin(D) { direction: input; fanout_load: 1.0; }
-    pin(Y) { direction: output;
-               max_fanout : 10; 
-            driver_type : pull_up;
-             function: "(A+B+C+D)'"; }
-  }
-  cell(NOR2_N16X7) {
-    area: 1.5;
-    current_unit : "1mA";
-    heat_current: 500;
-    tubes(names) {
-      N16B: 0.5;
-      X7B: 1;
-    }
-    pin(A) { direction: input; fanout_load: 1.0; }
-    pin(B) { direction: input; fanout_load: 1.0; }
-    pin(Y) { direction: output;
-               max_fanout : 10; 
-            driver_type : pull_up;
-             function: "(A+B)'"; }
-  }
-  cell(NOR4_N16X7) {
-    area: 2.5;
-    current_unit : "1mA";
-    heat_current: 800;
-    tubes(names) {
-      N16B: 0.5;
-      X7B: 2;
     }
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
@@ -292,9 +226,9 @@ library(vtube_cells_lib) {
               function: "IQ"; }
   }
   cell(DFFSR) {
-    area: 3.5;
+    area: 8;
     current_unit : "1mA";
-    heat_current: 850;
+    heat_current: 2400;
     ff(IQ, IQN) {
     next_state : "D" ;
     clocked_on : "C" ;
@@ -302,8 +236,8 @@ library(vtube_cells_lib) {
     preset : "S" ;
     }
     tubes(names) {
-      N16B: 1.5;
-      J2B: 2;
+      N16B: 4;
+      J2B: 4;
     }
     pin(C) { direction: input;
                  clock: true; }
@@ -315,9 +249,9 @@ library(vtube_cells_lib) {
   }
 
   cell(DFFSR_n) {
-    area: 3.5;
+    area: 8;
     current_unit : "1mA";
-    heat_current: 850;
+    heat_current: 2400;
     ff(IQ, IQN) {
     next_state : "D" ;
     clocked_on : "C" ;
@@ -325,8 +259,8 @@ library(vtube_cells_lib) {
     preset : "S" ;
     }
     tubes(names) {
-      N16B: 1.5;
-      J2B: 2;
+      N16B: 4;
+      J2B: 4;
     }
     pin(C) { direction: input;
                  clock: true; }

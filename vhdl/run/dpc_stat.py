@@ -15,7 +15,7 @@ KNOWN_TUBES = ('N16B', 'J2B', 'X7B')
 
 KNOWN_MODULES = {
     'Dekatron' : (1, 0),
-    'DekatronCarrySignal' : (7.5, 2400),
+    'DekatronCarrySignal' : (5, 1200),
     'DekatronPulseSender' : (1.5, 400),
     'OneShot': (1, 300),
     'Impulse': (1, 300)

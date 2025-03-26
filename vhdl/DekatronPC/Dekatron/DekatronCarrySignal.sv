@@ -1,4 +1,5 @@
 module DekatronCarrySignal(
+	input wire en,
     input wire [9:0] In,
     output wire CarryLow,
     output wire CarryHigh
@@ -10,20 +11,19 @@ wire carryLowSet = In[0];
 wire noCarrySet = |In[8:1];
 wire carryHighSet = In[9];
 
-wire carryLowRst = carryHighSet | noCarrySet;
-wire carryHighRst = carryLowSet | noCarrySet;
+/* verilator lint_off UNUSEDSIGNAL */
+wire Q_n;
+/* verilator lint_on UNUSEDSIGNAL */
+Rs3Latch_en dekCarryLatch(
+    .Sa(carryLowSet),
+    .Sb(carryHighSet),
+    .R(noCarrySet),
+	.en(en),
+    .Qa(CarryLow),
+    .Qb(CarryHigh),
+    .Q_n(Q_n)
+);
 
-RsLatch carryLowLatch(
-	.S(carryLowSet),
-	.R(carryLowRst),
-	.Q(CarryLow)
-);
- 
-RsLatch carryHighLatch(
-	.S(carryHighSet),
-	.R(carryHighRst),
-	.Q(CarryHigh)
-);
 `endif
 
 endmodule

@@ -6,6 +6,7 @@
 )(
     input wire Rst_n,
     input wire hsClk,
+    input wire Clk,
 /* verilator lint_off UNUSEDSIGNAL */
     input wire[3:0] In,
     input wire [2:0] Set,//{Set, SetTop, SetZero}
@@ -14,19 +15,14 @@
     input wire PulseR,
 /* verilator lint_off UNDRIVEN */
     output wire[3:0] Out,
-    output wire Equal,
+    output wire CarryLow,
+    output wire CarryHigh,
 /* verilator lint_on UNDRIVEN */
-    output wire Zero,
-    output wire TopPin,
-    output wire Nine
+    output wire TopPin
 );
 
 wire[9:0] OutPos;
-wire[9:0] _OutPos;
 wire[9:0] InPosDek_n;
-
-assign Zero = OutPos[0];
-assign Nine = OutPos[9];
 
 generate
     genvar idx;
@@ -74,23 +70,22 @@ Dekatron dekatron(
     .Rst_n(Rst_n),
 	.Pulses(Pulses),
     .In_n(InPosDek_n),
-    .Out(_OutPos)
+    .Out(OutPos)
 );
 
-assign OutPos = (~(|_OutPos) | (|Pulses)) ? 10'bx : _OutPos;
+DekatronCarrySignal  dekatronCarrySignal(
+    .en(Clk),
+    .In(OutPos),
+    .CarryLow(CarryLow),
+    .CarryHigh(CarryHigh)
+);
+
 generate
 if (READ == 1) begin : Reading
     BinToBcd binToDbc(
         .In(OutPos),
         .Out(Out)
     );
-    if (WRITE == 1) begin : Equalty
-        Compare compare(
-            .a(Out),
-            .b(In),
-            .eq(Equal)
-        );
-    end
 end
 endgenerate
 
