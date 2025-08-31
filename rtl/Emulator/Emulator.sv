@@ -12,7 +12,7 @@ module Emulator #(
 	input 		          		FPGA_CLK2_50,//Y13
 	input 		          		FPGA_CLK3_50,//E11
 	/* 3.3-V LVTTL */
-	
+
 	/*
 	KEY0 - AH17
 	KEY1 - AH16
@@ -28,7 +28,7 @@ module Emulator #(
 	SW3 - H5
 	*/
 	input				[3:0]			SW,
-    /* verilator lint_on UNUSEDSIGNAL */	
+    /* verilator lint_on UNUSEDSIGNAL */
 
 	 /*
 	 D0 - AH3
@@ -97,6 +97,9 @@ module Emulator #(
 	 */
     inout wire [7:0] io_data,
 
+    output wire pwr_selector,
+    input wire [3:0] selector,
+
 `ifdef VERILATOR
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
     output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
@@ -110,6 +113,7 @@ module Emulator #(
 assign LED[0] = Rst_n;
 assign LED[1] = Clock_1Hz;
 assign LED[2] = Clock_1KHz;
+assign LED[6:3] = selector;
 
 `ifndef VERILATOR
     wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress;
@@ -292,7 +296,34 @@ logic                        tx_vld  ;
 //rx signal
 wire                          rx_vld  ;
 
-`ifdef CONSUL
+
+logic [7:0] uart_rx_data;
+logic       uart_tx_vld;
+logic       uart_tx_rdy;
+logic       uart_rx_vld;
+
+logic [7:0] consul_rx_data;
+logic       consul_tx_vld;
+logic       consul_tx_rdy;
+logic       consul_rx_vld;
+
+assign pwr_selector = 1'b1;
+
+always_comb begin
+    if (selector == 4'b0001) begin
+        uart_tx_vld  = tx_vld;
+        consul_tx_vld  = '0;
+        tx_rdy  = uart_tx_rdy;
+        rx_data = uart_rx_data;
+        rx_vld  = uart_rx_vld;
+    end else begin
+        uart_tx_vld  = '0;
+        consul_tx_vld  = tx_vld;
+        tx_rdy  = consul_tx_rdy;
+        rx_data = consul_rx_data;
+        rx_vld  = consul_rx_vld;
+    end
+end
 
 wire Clock_100Hz;
 ClockDivider #(
@@ -312,25 +343,25 @@ assign io_output_regs[31:16]  = 16'hAA55;
 assign consul_regs_in = io_input_regs[15:0];
 assign io_output_regs[9:0] = consul_regs_out;
 
-logic consul_tx_rdy;
-logic consul_tx_vld;
-logic consul_tx_rdy_old;
+logic consul_tx_rdy_slow;
+logic consul_tx_vld_slow;
+logic consul_tx_rdy_slow_old;
 
 always @(posedge Clock_1MHz, negedge Rst_n) begin
     if (~Rst_n) begin
-        consul_tx_rdy_old <= 1'b1;
-        tx_rdy <= 1'b1;
-        consul_tx_vld <= 1'b0;
+        consul_tx_rdy_slow_old <= 1'b1;
+        consul_tx_rdy <= 1'b1;
+        consul_tx_vld_slow <= 1'b0;
     end else begin
-        consul_tx_rdy_old <= consul_tx_rdy;
-        if (~consul_tx_rdy_old & consul_tx_rdy) begin
-            tx_rdy <= 1'b1;
-            consul_tx_vld <= 1'b0;
+        consul_tx_rdy_slow_old <= consul_tx_rdy_slow;
+        if (~consul_tx_rdy_slow_old & consul_tx_rdy_slow) begin
+            consul_tx_rdy <= 1'b1;
+            consul_tx_vld_slow <= 1'b0;
         end
         else begin
-            if (tx_vld) begin
-                tx_rdy <= 1'b0;
-                consul_tx_vld <= 1'b1;
+            if (consul_tx_vld) begin
+                consul_tx_rdy <= 1'b0;
+                consul_tx_vld_slow <= 1'b1;
             end
         end
     end
@@ -342,13 +373,12 @@ consul Consul(
     .regs_in(consul_regs_in),
     .regs_out(consul_regs_out),
     .print_data_i(tx_data),
-    .kb_data_o(rx_data),
-    .print_data_vld(consul_tx_vld),
-    .kb_data_vld(rx_vld),
-    .print_data_rdy(consul_tx_rdy)
+    .kb_data_o(consul_rx_data),
+    .print_data_vld(consul_tx_vld_slow),
+    .kb_data_vld(consul_rx_vld),
+    .print_data_rdy(consul_tx_rdy_slow)
 );
-assign tx = rx;
-`else
+
 /* verilator lint_off UNUSEDSIGNAL */
 wire                          rx_pc_pass ;
 /* verilator lint_on UNUSEDSIGNAL */
@@ -358,40 +388,38 @@ assign tx = ~tx_n;
 
 uart_tx#(
     .DATA_WIDTH   ( 7   ) ,
-    .PARITY_CHECK ( "EVEN" ) ,
+    .PARITY_CHECK ( "NONE" ) ,
     .CLK_FREQ     ( 1000000    ) ,
-    .STOP_BITS     (2),
-    .BAUD_RATE    ( 650    )
+    .STOP_BITS     (1),
+    .BAUD_RATE    ( 110    )
 )transmitter(
     .clk    ( Clock_1MHz       ),
     .rst    ( ~Rst_n       ),
-    
-    .i_vld  ( tx_vld    ),
+
+    .i_vld  ( uart_tx_vld    ),
     .i_data ( tx_data[6:0]   ),
-    
-    .o_rdy  ( tx_rdy    ),
+
+    .o_rdy  ( uart_tx_rdy    ),
     .tx     ( tx_n      )
 );
 
 uart_rx#(
     .DATA_WIDTH   ( 7   ) ,
-    .PARITY_CHECK ( "EVEN" ) ,
+    .PARITY_CHECK ( "NONE" ) ,
     .CLK_FREQ     ( 1000000    ) ,
-    .BAUD_RATE    ( 650    )
+    .BAUD_RATE    ( 110    )
 )receiver(
     .clk     ( Clock_1MHz        ),
     .rst     ( ~Rst_n        ),
-    
+
     .rx      ( ~rx         ),
     .i_rdy   ( 1'b1       ),
-    
-    .o_vld   ( rx_vld     ),
+
+    .o_vld   ( uart_rx_vld     ),
     .pc_pass ( rx_pc_pass ),
-    .o_data  ( rx_data[6:0]    )
+    .o_data  ( uart_rx_data[6:0]    )
 ) ;
 
-assign rx_data[7] = 1'b0;
-
-`endif
+assign uart_rx_data[7] = 1'b0;
 
 endmodule
