@@ -44,10 +44,10 @@ RUN apt-get update -y &&  DEBIAN_FRONTEND=noninteractive apt-get install -y \
     libncursesw5-dev && \
     rm -rf /var/lib/apt/lists
 
-RUN wget https://github.com/verilator/verilator/archive/refs/tags/v5.030.tar.gz && \
-    tar -xvf v5.030.tar.gz && cd verilator-5.030 && \
+RUN wget https://github.com/verilator/verilator/archive/refs/tags/v5.040.tar.gz && \
+    tar -xvf v5.040.tar.gz && cd verilator-5.040 && \
     autoconf && ./configure && make -j `nproc` && make install && \
-    cd / && rm -rf /verilator-5.030 && rm -rf v5.030.tar.gz
+    cd / && rm -rf /verilator-5.040 && rm -rf v5.040.tar.gz
 
 
 RUN apt-get update -y &&  DEBIAN_FRONTEND=noninteractive apt-get install -y \
@@ -57,7 +57,7 @@ RUN apt-get update -y &&  DEBIAN_FRONTEND=noninteractive apt-get install -y \
     rm -rf /var/lib/apt/lists
 
 RUN git clone https://github.com/YosysHQ/yosys.git && \
-    cd yosys && git checkout 0.46 && git submodule update --init && \
+    cd yosys && git checkout 0.56 && git submodule update --init && \
     make config-gcc && make -j `nproc` && make install && \
     pip install liberty-parser && \
     cd / && rm -rf /yosys
