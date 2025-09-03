@@ -57,7 +57,7 @@ RUN apt-get update -y &&  DEBIAN_FRONTEND=noninteractive apt-get install -y \
     rm -rf /var/lib/apt/lists
 
 RUN git clone https://github.com/YosysHQ/yosys.git && \
-    cd yosys && git checkout 0.56 && git submodule update --init && \
+    cd yosys && git checkout v0.56 && git submodule update --init && \
     make config-gcc && make -j `nproc` && make install && \
     pip install liberty-parser && \
     cd / && rm -rf /yosys
