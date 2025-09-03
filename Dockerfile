@@ -56,8 +56,8 @@ RUN apt-get update -y &&  DEBIAN_FRONTEND=noninteractive apt-get install -y \
 	libboost-python-dev libboost-filesystem-dev && \
     rm -rf /var/lib/apt/lists
 
-RUN git clone --recurse-submodules https://github.com/YosysHQ/yosys.git && \
-    cd yosys && git checkout 0.46 && \
+RUN git clone https://github.com/YosysHQ/yosys.git && \
+    cd yosys && git checkout 0.46 && git submodule update --init && \
     make config-gcc && make -j `nproc` && make install && \
     pip install liberty-parser && \
     cd / && rm -rf /yosys
