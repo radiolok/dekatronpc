@@ -92,7 +92,6 @@ task compare_ref;
     if ((reference/100) % 10 != data[11:8]) begin
       $fatal(1, "Counter2 Failure REF: %d Out: %d", (reference/100) % 10, data[11:8]);
     end
-    $display($time/1000, "%d", data);
   end
 endtask
 

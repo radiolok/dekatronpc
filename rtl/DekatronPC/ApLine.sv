@@ -36,17 +36,18 @@ reg cnt_data_set;
 reg MemLock;
 assign RamCS = 1'b1;
 
-typedef enum logic [4:0] {
-    IDLE     =  5'b00001,
-    LOAD     =  5'b00010,
-    STORE    =  5'b00100,
-    CIN      =  5'b01000,
-    COUNT     = 5'b10000
+typedef enum logic [2:0] {
+    IDLE     =  3'd0,
+    LOAD     =  3'd1,
+    STORE    =  3'd2,
+    CIN      =  3'd3,
+    COUNT    =  3'd4,
+    DONE     =  3'd5
 } ap_line_state_t;
 
-ap_line_state_t currentState, nextState;
+ap_line_state_t current_state, next_state;
 
-assign Ready = (nextState == IDLE) & cnt_ap_ready & cnt_data_ready;
+assign Ready = ((current_state == IDLE) | (current_state == DONE)) & cnt_ap_ready & cnt_data_ready;
 
 
 wire DataCtrZero;
@@ -75,13 +76,13 @@ DekatronCounter  #(
 
 
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DataCounterIn;
-assign DataCounterIn = (currentState == CIN) ? rx_data_bcd : RamDataOut;
+assign DataCounterIn = (current_state == CIN) ? rx_data_bcd : RamDataOut;
 
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] DataCounterOut;
 //COUT tx_data_bcd
 assign tx_data_bcd = MemLock ? DataCounterOut : RamDataOut;
 
-assign RamDataIn = ( currentState == CIN ) ? rx_data_bcd : DataCounterOut;
+assign RamDataIn = ( current_state == CIN ) ? rx_data_bcd : DataCounterOut;
 
 DekatronCounter  #(
             .D_NUM(DATA_DEKATRON_NUM),
@@ -104,24 +105,24 @@ DekatronCounter  #(
 
 
 always_comb begin
-    nextState = currentState;
-    case (currentState)
+    next_state = current_state;
+    case (current_state)
         IDLE: begin
             if (ApRequest & ram_rdy_i) begin
                 if (MemLock) begin
-                    nextState = STORE;
+                    next_state = STORE;
                 end else begin
-                    nextState = COUNT;
+                    next_state = COUNT;
                 end
             end else begin
                 if (DataRequest & ram_rdy_i) begin
                     if (Cin) begin
-                        nextState = CIN;
+                        next_state = CIN;
                     end else begin
                         if (MemLock) begin
-                            nextState = COUNT;
+                            next_state = COUNT;
                         end else begin
-                            nextState = LOAD;
+                            next_state = LOAD;
                         end
                     end
                 end
@@ -129,38 +130,44 @@ always_comb begin
         end
         CIN: begin
             if (cnt_data_request & cnt_data_ready) begin
-                nextState = IDLE;
+                next_state = DONE;
             end else begin
-                nextState = CIN;
+                next_state = CIN;
             end
         end
         LOAD: begin
             if (cnt_data_request & cnt_data_ready) begin
-                nextState = COUNT;
+                next_state = COUNT;
             end else begin
-                nextState = LOAD;
+                next_state = LOAD;
             end
         end
         STORE: begin//????
-            nextState = COUNT;
+            next_state = COUNT;
         end
         COUNT: begin
             if ((cnt_ap_request & cnt_ap_ready) |
                 (cnt_data_request & cnt_data_ready)) begin
-                nextState = IDLE;
+                next_state = DONE;
             end else begin
-                nextState = COUNT;
+                next_state = COUNT;
             end
         end
-
+        DONE: begin
+            if (~ApRequest || ~DataRequest) begin
+                next_state = IDLE;
+            end else begin
+                next_state = DONE;
+            end
+        end
     endcase
 end
 
 always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
-        currentState <= IDLE;
+        current_state <= IDLE;
     end else begin
-        currentState <= nextState;
+        current_state <= next_state;
     end
 end
 
@@ -173,7 +180,7 @@ always @(posedge Clk, negedge Rst_n) begin
         MemLock <= 1'b0;
     end
     else begin
-        case (nextState)
+        case (next_state)
             IDLE: begin
                 cnt_ap_request   <= 1'b0;
                 cnt_data_request <= 1'b0;
