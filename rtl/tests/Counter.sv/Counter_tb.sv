@@ -48,7 +48,7 @@ DekatronCounter  #(.D_NUM(DEKATRON_NUM),
                 .Out(Out)
             );
 
-initial begin $dumpfile("Counter_tb.vcd"); 
+initial begin $dumpfile("Counter_tb.vcd");
 $dumpvars(0, Counter_tb); end
 initial begin
     Dec <= 0;
@@ -73,7 +73,7 @@ initial begin
         end
         if (((REF/100) % 10 != Out[11:8])|(^Out[11:8] === 1'bx)) begin
             $fatal(1, "Counter2 Up Failure REF: %d Out: %d", (REF/100) % 10, Out[11:8]);
-        end        
+        end
     end
     $display("Decrement test");
     for (integer i=0; i < TEST_NUM; i++) begin
@@ -92,9 +92,9 @@ initial begin
             $fatal(1, "Counter2 Down Failure REF: %d Out: %d", (REF/100) % 10, Out[11:8]);
         end
     end
-    if (Out == 0) 
+    if (Out == 0)
         $display($time/1000, "us Counter Up/Down Test Sussess!");
-    else 
+    else
         $fatal(1, "Must be zero!");
     Dec <= 0;
     for (integer i=0; i < 512; i++) begin
@@ -106,9 +106,9 @@ initial begin
             $fatal(1, "Counter0 Down Failure REF: %d Out: %d", REF % 10, Out[3:0]);
         end
     end
-    if (Out == 0) 
+    if (Out == 0)
         $display($time/1000, "us Counter RollUp Test Sussess!");
-    else 
+    else
         $fatal(1, "Must be zero!");
     Dec <= 1;
     for (integer i=0; i < 512; i++) begin
@@ -120,9 +120,9 @@ initial begin
             $fatal(1, "Counter0 Down Failure REF: %d Out: %d", REF % 10, Out[3:0]);
         end
     end
-    if (Out == 0) 
+    if (Out == 0)
         $display($time/1000, "us Counter RollUp Test Sussess!");
-    else 
+    else
         $fatal(1, "Must be zero!");
     $display($time/1000, "us << Simulation Complete >>");
     $finish;
@@ -144,7 +144,7 @@ always @(posedge Clk) begin
   if (~Rst_n) begin
     CLOCK_TICK <= 0;
   end
-   else 
+   else
        CLOCK_TICK <= CLOCK_TICK + 1;
        if (CLOCK_TICK > 3500)
           $fatal(1, "Timeout");

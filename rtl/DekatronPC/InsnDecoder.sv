@@ -40,7 +40,7 @@ module InsnDecoder(
 
 assign IsHalted = (state == HALT);
 
-//If Debug mode {} check AP 
+//If Debug mode {} check AP
 //In brainfuck mode [] check *AP
 assign LoopValZero = InsnMode ? DataZero : ApZero;
 
@@ -50,7 +50,7 @@ reg InsnMode;
 
 parameter [2:0]
     IDLE    =  3'b001,
-    FETCH   =  3'b0010,
+    FETCH   =  3'b010,
     EXEC    =  3'b011,
     HALT    =  3'b100,
     CIN     =  3'b101,
@@ -66,11 +66,11 @@ always @(posedge Clk, negedge Rst_n) begin
         ApLineCin <= 1'b0;
         ApRequest <= 1'b0;
         DataRequest <= 1'b0;
-        ApLineZero <= 1'b0; 
+        ApLineZero <= 1'b0;
         OneStep <= 1'b0;
         state <= HALT;
         InsnMode <= BRAINFUCK_ISA;//FIX: Debug mode must be by default.
-`ifdef EMULATOR        
+`ifdef EMULATOR
         IRET <= 0;
 `endif
     end
@@ -103,7 +103,7 @@ always @(posedge Clk, negedge Rst_n) begin
                         //5'h03: //INSN_RES1
                         //5'h04: //INSN_RES2
                         //5'h05: //INSN_RES3
-                        5'h?6: begin //[ { 
+                        5'h?6: begin //[ {
                             if (LoopValZero) begin
                                 IpRequest <= 1'b1;
                             end
@@ -126,13 +126,13 @@ always @(posedge Clk, negedge Rst_n) begin
                                 DataRequest <= 1'b1;
                                 ApLineZero <= 1'b1;
                                 state <= EXEC;
-                            end 
+                            end
                         5'h0B:  begin//INSN_CLRA
                                 ApRequest <= 1'b1;
                                 ApLineZero <= 1'b1;
                                 DataRequest <= 1'b0;
                                 state <= EXEC;
-                            end 
+                            end
                         //5'h0C:  //INSN_RES4
                         //5'h0D:  //INSN_RST
                         5'b1001?: begin//+ -
@@ -141,7 +141,7 @@ always @(posedge Clk, negedge Rst_n) begin
                                 ApLineDec <= Insn[0];
                                 state <= EXEC;
                             end
-                        5'b1010?:  begin//< > 
+                        5'b1010?:  begin//< >
                                 ApRequest <= 1'b1;
                                 DataRequest <= 1'b0;
                                 ApLineDec <= Insn[0];
@@ -187,7 +187,7 @@ always @(posedge Clk, negedge Rst_n) begin
                     end
                     `ifdef EMULATOR
                         IRET <= IRET + 1;
-                    `endif 
+                    `endif
                 end
             end
             CIN: begin

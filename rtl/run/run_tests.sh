@@ -88,7 +88,10 @@ parse_params "$@"
 python3 ${root_dir}/Functions/TableGenerate.py -d ${root_dir}/Functions
 python3 ${root_dir}/run/generate_rom.py -f ${root_dir}/programs/looptest.bfk -o ${root_dir}/firmware.hex --hex
 
-if [ ${sim} -ne 0 ]; then	
+count=0
+
+if [ ${sim} -ne 0 ]; then
+	count=1
 
 	DPCfiles=$(cat ${root_dir}/DekatronPC/DPC.files)
 
@@ -97,7 +100,7 @@ if [ ${sim} -ne 0 ]; then
 	verilator --top-module Emulator --lint-only -DEMULATOR=1 -Wall ${EmulFiles} ${DPCfiles}
 
 	verilator --top-module DekatronPC --lint-only  -Wall ${DPCfiles}
-	
+
 	./emul Dekatron
 
 	./emul Counter
@@ -114,7 +117,7 @@ if [ ${sim} -ne 0 ]; then
 	ar rvs libdpcrun.a dpcrun.o
 
 	veremul ${root_dir}/DekatronPC/DPC.files ${bf_file}
-	
+
 	#veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/pi/pi.bfk
 
 	#veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/fractal.bfk
@@ -132,11 +135,14 @@ if [ ${sim} -ne 0 ]; then
 fi
 
 if [ ${cov} -ne 0 ]; then
+	count=1
+
 	verilator_coverage -write-info logs/DPC.info logs/coverage_DPC.dat
 	genhtml logs/DPC.info --output-directory coverage
 fi
 
 if [ ${synt} -ne 0 ]; then
+	count=1
 
 	rm -f *.dot
 	./synth IpLine
@@ -146,6 +152,8 @@ if [ ${synt} -ne 0 ]; then
 fi
 
 if [ ${png} -ne 0 ]; then
+	count=1
+
 	for file in $(ls *.dot); do
 			gvpr -f $script_dir/split $file
 		done
@@ -169,4 +177,8 @@ if [ ${png} -ne 0 ]; then
 
 	mv *.svg sch/
 	mv *.dot sch/
+fi
+
+if [ ${count} -eq 0 ]; then
+	usage
 fi

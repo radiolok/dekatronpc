@@ -68,6 +68,7 @@ ApLine  apLine(
     .RamDataOut(RamDataOut),
     .RamCS(RamCS),
     .RamWE(RamWE),
+    .ram_rdy_i(1'b1),
     .tx_data_bcd(Data)
 );
 
@@ -76,6 +77,24 @@ initial begin $dumpfile("ApLine_tb.vcd"); $dumpvars(0,ApLine_tb); end
 reg [31:0] CLOCK_TICK;
 
 parameter MAX_TICK = 31'd10000;
+
+
+task compare_ref;
+  input [31:0] data;
+  input [31:0] reference;
+  begin
+    if (reference % 10 != data[3:0]) begin
+      $fatal(1, "Counter0 Failure REF: %d Out: %d", reference % 10, data[3:0]);
+    end
+    if ((reference/10) % 10 != data[7:4]) begin
+      $fatal(1, "Counter1 Failure REF: %d Out: %d", (reference/10) % 10, data[7:4]);
+    end
+    if ((reference/100) % 10 != data[11:8]) begin
+      $fatal(1, "Counter2 Failure REF: %d Out: %d", (reference/100) % 10, data[11:8]);
+    end
+    $display($time/1000, "%d", data);
+  end
+endtask
 
 always @(posedge Clk) begin
   if (~Rst_n) begin
@@ -91,10 +110,10 @@ end
 reg [7:0] REFADDR;
 reg [7:0] REFD0;
 reg [7:0] REFD155;
-initial begin 
+initial begin
 Rst_n <= 0;
 ApLineDec <= 0;
-#5 
+#5
 Rst_n <= 1;
 REFADDR <= 0;
 REFD0 <= 0;
@@ -102,108 +121,68 @@ REFD155 <= 0;
 
 ApLineDec <= 1'b0;
 //Addr = 0, Result Data + 15
+$display($time/1000, "Data counter Up!");
 for (integer i = 0; i < 155; i++) begin
-
   repeat(1) @(posedge Clk)
   DataRequest <= 1;
   REFD0 <= REFD0 + 1;
   repeat(1) @(posedge Clk)
-  DataRequest <= 0;
   repeat(1) @(posedge ApLineReady)
   DataRequest <= 0;
-  if (REFD0 % 10 != Data[3:0]) begin
-    $fatal(1, "DataCounter0 Failure REF: %d Out: %d", REFD0 % 10, Data[3:0]);
-  end
-  if ((REFD0/10) % 10 != Data[7:4]) begin
-    $fatal(1, "DataCounter1 Failure REF: %d Out: %d", (REFD0/10) % 10, Data[7:4]);
-  end
-  if ((REFD0/100) % 10 != Data[11:8]) begin
-    $fatal(1, "DataCounter2 Failure REF: %d Out: %d", (REFD0/100) % 10, Data[11:8]);
-  end 
+  compare_ref(Data, REFD0);
 end
 //Addr = 155
+$display($time/1000, "Address counter Up!");
 for (integer i = 0; i < 155; i++) begin
   REFADDR <= REFADDR + 1;
   repeat(1) @(posedge Clk)
   ApRequest <= 1;
   repeat(1) @(posedge Clk)
-  ApRequest <= 0;
   repeat(1) @(posedge ApLineReady)
   ApRequest <= 0;
-  if (REFADDR % 10 != ApAddress[3:0]) begin
-    $fatal(1, "APCounter0 Failure REF: %d Out: %d", REFADDR % 10, ApAddress[3:0]);
-  end
-  if ((REFADDR/10) % 10 != ApAddress[7:4]) begin
-    $fatal(1, "APCounter1 Failure REF: %d Out: %d", (REFADDR/10) % 10, ApAddress[7:4]);
-  end
-  if ((REFADDR/100) % 10 != ApAddress[11:8]) begin
-    $fatal(1, "APCounter2 Failure REF: %d Out: %d", (REFADDR/100) % 10, ApAddress[11:8]);
-  end 
+  compare_ref(ApAddress, REFADDR);
 end
 //Addr 10 - Data + 17
+$display($time/1000, "Data counter Up!");
 for (integer i = 0; i < 17; i++) begin
   REFD155 <= REFD155 + 1;
   repeat(1) @(posedge Clk)
   DataRequest <= 1;
   repeat(1) @(posedge Clk)
-  DataRequest <= 0;
   repeat(1) @(posedge ApLineReady)
   DataRequest <= 0;
-  if (REFD155 % 10 != Data[3:0]) begin
-    $fatal(1, "DataCounter0 Failure REF: %d Out: %d", REFD155 % 10, Data[3:0]);
-  end
-  if ((REFD155/10) % 10 != Data[7:4]) begin
-    $fatal(1, "DataCounter1 Failure REF: %d Out: %d", (REFD155/10) % 10, Data[7:4]);
-  end
-  if ((REFD155/100) % 10 != Data[11:8]) begin
-    $fatal(1, "DataCounter2 Failure REF: %d Out: %d", (REFD155/100) % 10, Data[11:8]);
-  end   
+  compare_ref(Data, REFD155);
 end
 
 ApLineDec <= 1'b1;
-//Addr 0 
+//Addr 0
+$display($time/1000, "Address counter Down!");
 for (integer i = 0; i < 155; i++) begin
-
   repeat(1) @(posedge Clk)
   REFADDR <= REFADDR - 1;
   ApRequest <= 1;
   repeat(1) @(posedge Clk)
-  ApRequest <= 0;
   repeat(1) @(posedge ApLineReady)
   ApRequest <= 0;
-  if (REFADDR % 10 != ApAddress[3:0]) begin
-    $fatal(1, "APCounter0 Failure REF: %d Out: %d", REFADDR % 10, ApAddress[3:0]);
-  end
-  if ((REFADDR/10) % 10 != ApAddress[7:4]) begin
-    $fatal(1, "APCounter1 Failure REF: %d Out: %d", (REFADDR/10) % 10, ApAddress[7:4]);
-  end
-  if ((REFADDR/100) % 10 != ApAddress[11:8]) begin
-    $fatal(1, "APCounter2 Failure REF: %d Out: %d", (REFADDR/100) % 10, ApAddress[11:8]);
-  end 
+  compare_ref(ApAddress, REFADDR);
 end
 
 //Data -15 - Must be 0
+$display($time/1000, "Data counter Down!");
 for (integer i = 0; i < 15; i++) begin
   REFD0 <= REFD0 - 1;
   repeat(1) @(posedge Clk)
   DataRequest <= 1;
   repeat(1) @(posedge Clk)
-  DataRequest <= 0;
   repeat(1) @(posedge ApLineReady)
   DataRequest <= 0;
-  if (REFD0 % 10 != Data[3:0]) begin
-    $fatal(1, "Counter0 Failure REF: %d Out: %d", REFD0 % 10, Data[3:0]);
-  end
-  if ((REFD0/10) % 10 != Data[7:4]) begin
-    $fatal(1, "Counter1 Failure REF: %d Out: %d", (REFD0/10) % 10, Data[7:4]);
-  end
-  if ((REFD0/100) % 10 != Data[11:8]) begin
-    $fatal(1, "Counter2 Failure REF: %d Out: %d", (REFD0/100) % 10, Data[11:8]);
-  end 
+  compare_ref(Data, REFD0);
 end
 
 $finish;
 
 end
+
+
 
 endmodule

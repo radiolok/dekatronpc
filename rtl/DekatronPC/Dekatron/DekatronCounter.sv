@@ -19,24 +19,16 @@ module DekatronCounter #(
     //If Dec = 1, Out <= Out-1
     //Else, Out <= Out + 1
 	input wire Request,
+    output wire Ready,
+
     input wire Dec,
     input wire Set,
 	input wire SetZero,
 
     input wire [WIDTH-1:0] In,
 
-    output wire Ready,
     output wire Zero,
 	output wire [WIDTH-1:0] Out
-);
-
-wire _Request;
-
-Impulse reqPulse(
-	.Rst_n(Rst_n),
-	.Clk(Clk),
-	.En(Request),
-	.Impulse(_Request)
 );
 
 reg [D_NUM-1:0] Zeroes;
@@ -48,20 +40,20 @@ wire [D_NUM-1:0] DekatronBusy;
 
 assign Zero = &Zeroes;
 
-localparam [2:0] 
+localparam [2:0]
 		IDLE = 3'b000,
 		INC = 3'b010,
 		DEC = 3'b011,
 		SET_ZERO = 3'b101,
 		SET_TOP = 3'b110,
 		SET = 3'b111;
-//state[2] - SET
+//current_state[2] - SET
 
-reg [2:0] state, next;
+reg [2:0] current_state, next_state;
 
 always @(posedge Clk, negedge Rst_n) begin
-	if (~Rst_n) state <= 0;
-	else state <= next;
+	if (~Rst_n) current_state <= 0;
+	else current_state <= next_state;
 end
 
 wire SetTop;
@@ -83,47 +75,47 @@ assign SetAny = Set | SetTop | SetZeroInt | SetZero;
 endgenerate
 
 always_comb begin
-	next = IDLE;
-	case(state)
+	next_state = IDLE;
+	case(current_state)
 		IDLE: begin
-			if (_Request) begin
+			if (Request) begin
 				if (~SetAny) begin
 					if (Dec)
-						next = DEC;
+						next_state = DEC;
 					else
-						next = INC;
+						next_state = INC;
 				end
-				else if (Set) next = SET;
-				else if (SetZero) next = SET_ZERO;
+				else if (Set) next_state = SET;
+				else if (SetZero) next_state = SET_ZERO;
 				else if (TOP_LIMIT_MODE) begin
-					if (SetTop) next = SET_TOP;
-					else if (SetZeroInt) next = SET_ZERO;
-					else next = IDLE;
+					if (SetTop) next_state = SET_TOP;
+					else if (SetZeroInt) next_state = SET_ZERO;
+					else next_state = IDLE;
 				end
-				else next = IDLE;
+				else next_state = IDLE;
 			end
 		end
 		SET_TOP: begin
 			if ( writed_n)
-				next = SET_TOP;
+				next_state = SET_TOP;
 		end
 		SET_ZERO: begin
 			if (writed_n)
-				next = SET_ZERO;
+				next_state = SET_ZERO;
 		end
 		SET: begin
 			if (writed_n)
-				next = SET;
+				next_state = SET;
 		end
 		default:
-			next = IDLE;
+			next_state = IDLE;
 	endcase
 end
 
-assign Ready = ~Request & ~(|DekatronBusy) & (state == IDLE);
+assign Ready = ~(|DekatronBusy) & (current_state == IDLE);
 
-wire PulseR = (state == DEC);
-wire PulseF = (state == INC);
+wire PulseR = (current_state == DEC);
+wire PulseF = (current_state == INC);
 wire [1:0] Pulses;
 Impulse pulsesImpDec(
 		.Clk(Clk),
@@ -143,7 +135,7 @@ wire write_set;
 Impulse writeimpulse(
 		.Clk(Clk),
 		.Rst_n(Rst_n),
-		.En(state[2]),
+		.En(current_state[2]),
 		.Impulse(write_set)
 	);
 
@@ -158,9 +150,9 @@ OneShot #(.DELAY(100)
 
 wire [2:0] SetTopZero;
 
-assign SetTopZero[0] = ((state == SET_ZERO) & writed_n);
-assign SetTopZero[1] = ((state == SET_TOP) & writed_n);
-assign SetTopZero[2] = ((state == SET) & writed_n);
+assign SetTopZero[0] = ((current_state == SET_ZERO) & writed_n);
+assign SetTopZero[1] = ((current_state == SET_TOP) & writed_n);
+assign SetTopZero[2] = ((current_state == SET) & writed_n);
 
 
 generate
@@ -210,7 +202,7 @@ for (d = 0; d < D_NUM; d++) begin: dek
 		end
 	end
 
-	assign npulses = ((Nines[d] & (state == INC)) | (Zeroes[d] & (state == DEC))) ? 
+	assign npulses = ((Nines[d] & (current_state == INC)) | (Zeroes[d] & (current_state == DEC))) ?
 						pulses : 2'b0;
 end
 endgenerate
