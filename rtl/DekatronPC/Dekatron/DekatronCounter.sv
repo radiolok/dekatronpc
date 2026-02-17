@@ -8,37 +8,40 @@ module DekatronCounter #(
 	parameter [WIDTH-1:0] TOP_VALUE  = {4'd5, 4'd5, 4'd5}
 	/* verilator lint_on WIDTHEXPAND */
 )(
-	input wire Rst_n,
-	input wire Clk,
+	input logic Rst_n,
+	input logic Clk,
 
 	//highSpeed Clock to emulate delay of dekatron circuits. Clk is hsClk/10
-	input wire hsClk,
+	input logic hsClk,
 
 	// All changes start on Request
     //If Set == 1, Out <= In
-    //If Dec = 1, Out <= Out-1
+    //If wr_dec_i = 1, Out <= Out-1
     //Else, Out <= Out + 1
-	input wire Request,
-    output wire Ready,
+	input  logic 			wr_valid_i,
+    output logic 			wr_ready_o,
 
-    input wire Dec,
-    input wire Set,
-	input wire SetZero,
+    input logic 			wr_dec_i,
+    input logic 			wr_set_i,
+	input logic 			wr_set_zero_i,
+    input logic [WIDTH-1:0] wr_data_i,
 
-    input wire [WIDTH-1:0] In,
 
-    output wire Zero,
-	output wire [WIDTH-1:0] Out
+    output logic 			 rd_cntr_zero_o,
+	output logic [WIDTH-1:0] rd_data_o,
+
+	output logic 			rd_valid_o,
+	input  logic 			rd_ready_i
 );
 
-reg [D_NUM-1:0] Zeroes;
-reg [D_NUM-1:0] Nines;
+logic [D_NUM-1:0] Zeroes;
+logic [D_NUM-1:0] Nines;
 /* verilator lint_off UNUSEDSIGNAL */
-wire [D_NUM-1:0] TopOut;
+logic [D_NUM-1:0] TopOut;
 /* verilator lint_on UNUSEDSIGNAL */
-wire [D_NUM-1:0] DekatronBusy;
+logic [D_NUM-1:0] DekatronBusy;
 
-assign Zero = &Zeroes;
+assign cntr_zero = &Zeroes;
 
 localparam [2:0]
 		IDLE = 3'b000,
@@ -49,74 +52,65 @@ localparam [2:0]
 		SET = 3'b111;
 //current_state[2] - SET
 
-reg [2:0] current_state, next_state;
+logic [2:0] current_state, next_state;
 
 always @(posedge Clk, negedge Rst_n) begin
 	if (~Rst_n) current_state <= 0;
 	else current_state <= next_state;
 end
 
-wire SetTop;
-wire SetZeroInt;
-wire SetAny;
+logic SetTop;
+logic SetZeroInt;
+logic SetAny;
 
 generate
 if (TOP_LIMIT_MODE > 0) begin
-	assign SetTop = Zero & Dec;
-	assign SetZeroInt = (&TopOut & ~Dec);
+	assign SetTop = cntr_zero & wr_dec_i;
+	assign SetZeroInt = (&TopOut & ~wr_dec_i);
 end
 else begin
 	assign SetTop = 1'b0;
 	assign SetZeroInt = 1'b0;
 end
 
-assign SetAny = Set | SetTop | SetZeroInt | SetZero;
+assign SetAny = wr_set_i | SetTop | SetZeroInt | wr_set_zero_i;
 
 endgenerate
 
 always_comb begin
-	next_state = IDLE;
+	next_state = current_state;
 	case(current_state)
 		IDLE: begin
-			if (Request) begin
-				if (~SetAny) begin
-					if (Dec)
+			if (wr_valid_i) begin
+				if (SetAny) begin
+					if (wr_set_i) next_state = SET;
+					else if (wr_set_zero_i) next_state = SET_ZERO;
+					else if (TOP_LIMIT_MODE) begin
+						if (SetTop) next_state = SET_TOP;
+						else if (SetZeroInt) next_state = SET_ZERO;
+					end
+				end else begin
+					if (wr_dec_i)
 						next_state = DEC;
 					else
 						next_state = INC;
 				end
-				else if (Set) next_state = SET;
-				else if (SetZero) next_state = SET_ZERO;
-				else if (TOP_LIMIT_MODE) begin
-					if (SetTop) next_state = SET_TOP;
-					else if (SetZeroInt) next_state = SET_ZERO;
-					else next_state = IDLE;
-				end
-				else next_state = IDLE;
 			end
 		end
-		SET_TOP: begin
-			if ( writed_n)
-				next_state = SET_TOP;
-		end
-		SET_ZERO: begin
-			if (writed_n)
-				next_state = SET_ZERO;
-		end
+		SET_TOP,
+		SET_ZERO,
 		SET: begin
-			if (writed_n)
-				next_state = SET;
+			if ( ~writed_n)
+				next_state = IDLE;
 		end
-		default:
-			next_state = IDLE;
 	endcase
 end
 
-assign Ready = ~(|DekatronBusy) & (current_state == IDLE);
+assign wr_ready_o = ~(|DekatronBusy) & (current_state == IDLE);
 
-wire PulseR = (current_state == DEC);
-wire PulseF = (current_state == INC);
-wire [1:0] Pulses;
+logic PulseR = (current_state == DEC);
+logic PulseF = (current_state == INC);
+logic [1:0] Pulses;
 Impulse pulsesImpDec(
 		.Clk(Clk),
 		.Rst_n(Rst_n),
@@ -131,7 +125,7 @@ Impulse pulsesImpInc(
 		.Impulse(Pulses[0])
 	);
 
-wire write_set;
+logic write_set;
 Impulse writeimpulse(
 		.Clk(Clk),
 		.Rst_n(Rst_n),
@@ -139,7 +133,7 @@ Impulse writeimpulse(
 		.Impulse(write_set)
 	);
 
-wire writed_n;
+logic writed_n;
 OneShot #(.DELAY(100)
 )writeOneShot(
     .Clk(hsClk),
@@ -148,7 +142,7 @@ OneShot #(.DELAY(100)
     .Impulse(writed_n)
 );
 
-wire [2:0] SetTopZero;
+logic [2:0] SetTopZero;
 
 assign SetTopZero[0] = ((current_state == SET_ZERO) & writed_n);
 assign SetTopZero[1] = ((current_state == SET_TOP) & writed_n);
@@ -158,9 +152,9 @@ assign SetTopZero[2] = ((current_state == SET) & writed_n);
 generate
 genvar d;
 for (d = 0; d < D_NUM; d++) begin: dek
-	wire [1:0] pulses;
+	logic [1:0] pulses;
 	/* verilator lint_off UNUSEDSIGNAL */
-	wire [1:0] npulses;
+	logic [1:0] npulses;
 	/* verilator lint_off UNUSEDSIGNAL */
 	if (d == 0) begin
 		assign pulses = Pulses;
@@ -168,9 +162,9 @@ for (d = 0; d < D_NUM; d++) begin: dek
 	else begin
 		assign pulses = dek[d-1].npulses;
 	end
-	wire DekZero;
-	wire DekNine;
-	wire Equal;
+	logic DekZero;
+	logic DekNine;
+	logic Equal;
 	DekatronModule #(
 		.READ(READ),
 		.WRITE(WRITE),
@@ -182,8 +176,8 @@ for (d = 0; d < D_NUM; d++) begin: dek
 		.Set(SetTopZero),
 		.PulseR(pulses[1]),
 		.PulseF(pulses[0]),
-		.In(In[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),
-		.Out(Out[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),
+		.In(wr_data_i[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),
+		.Out(rd_data_o[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),
 		.Zero(DekZero),
 		.Nine(DekNine),
 		.Equal(Equal),

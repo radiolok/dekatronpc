@@ -34,7 +34,7 @@ wire [INSN_WIDTH-1:0] RomData;
 
 IpMemory rom(
         .Rst_n(Rst_n),
-        .Clk(Clk), 
+        .Clk(Clk),
         .Address(Address),
         .InsnOut(RomData),
         .Request(RomRequest),
@@ -69,53 +69,50 @@ always @(posedge Clk) begin
   if (~Rst_n) begin
     CLOCK_TICK <= 0;
   end
-   else 
+   else
        CLOCK_TICK <= CLOCK_TICK + 1;
        if (CLOCK_TICK > 2000)
           $fatal(1, "Timeout");
 end
-initial begin 
+initial begin
 Rst_n <= 0;
 Data <= 0;
 Busy <= 0;
 
-#5 
+#5
 Rst_n <= 1;
-
-
-for (integer i = 0; i < TEST_NUM; i++) begin
-
-  repeat(1) @(posedge Request)
-  repeat(1) @(posedge Ready)
-  $display("IRET:%d Time: %dus Addr: %h Insn: %b, Data: %d(%b)", i, $time/1000, Address, Insn, Data, dataIsZeroed);
-  
-  case (Insn)
-  4'b0010: Data <= Data + 1;
-  4'b0011: Data <= Data - 1;
-  4'b0001: begin 
-        $display ("CLOCKTICK: %dus", CLOCK_TICK); 
-        if (Data) 
-          $fatal(1, "Data not zero");
-        else
-          $finish; 
-  end
-  endcase
-
-  if ((Address > 8'b00010111) | (Address[23:20]))
-    $fatal(1, "Address is out of scope");
-end
-$fatal;
-
 end
 
+logic [16:0] cntr = 0;
 always @(posedge Clk) begin
     if (~Rst_n)
         Request <= 0;
     else
-        if (Ready)
-            Request <= 1'b1;
-        if (Request)
+        if (Request & Ready) begin
             Request <= 1'b0;
+            cntr <= cntr + 1;
+            if (cntr > TEST_NUM)
+                $fatal(1, "to much time");
+            if ((Address > 8'b00010111) | (Address[23:20]))
+                $fatal(1, "Address is out of scope");
+            else begin
+            $display("IRET:%d Time: %dus Addr: %h Insn: %b, Data: %d(%b)", cntr, $time/1000, Address, Insn, Data, dataIsZeroed);
+
+            case (Insn)
+            4'b0010: Data <= Data + 1;
+            4'b0011: Data <= Data - 1;
+            4'b0001: begin
+                    $display ("CLOCKTICK: %dus", CLOCK_TICK);
+                    if (Data)
+                    $fatal(1, "Data not zero");
+                    else
+                    $finish;
+            end
+            endcase
+            end
+        end
+        if (~Request & Ready)
+            Request <= 1'b1;
 end
 
 endmodule

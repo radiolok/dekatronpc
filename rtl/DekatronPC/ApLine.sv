@@ -42,12 +42,13 @@ typedef enum logic [2:0] {
     STORE    =  3'd2,
     CIN      =  3'd3,
     COUNT    =  3'd4,
-    DONE     =  3'd5
+    READY     =  3'd5
 } ap_line_state_t;
 
 ap_line_state_t current_state, next_state;
 
-assign Ready = ((current_state == IDLE) | (current_state == DONE)) & cnt_ap_ready & cnt_data_ready;
+assign Ready = ((current_state == IDLE) | (current_state == READY))
+                & cnt_ap_ready & cnt_data_ready;
 
 
 wire DataCtrZero;
@@ -130,16 +131,12 @@ always_comb begin
         end
         CIN: begin
             if (cnt_data_request & cnt_data_ready) begin
-                next_state = DONE;
-            end else begin
-                next_state = CIN;
+                next_state = READY;
             end
         end
         LOAD: begin
             if (cnt_data_request & cnt_data_ready) begin
                 next_state = COUNT;
-            end else begin
-                next_state = LOAD;
             end
         end
         STORE: begin//????
@@ -148,16 +145,12 @@ always_comb begin
         COUNT: begin
             if ((cnt_ap_request & cnt_ap_ready) |
                 (cnt_data_request & cnt_data_ready)) begin
-                next_state = DONE;
-            end else begin
-                next_state = COUNT;
+                next_state = READY;
             end
         end
-        DONE: begin
+        READY: begin
             if (~ApRequest || ~DataRequest) begin
                 next_state = IDLE;
-            end else begin
-                next_state = DONE;
             end
         end
     endcase

@@ -21,6 +21,12 @@ ClockDivider #(
 	.clock_out(Clk)
 );
 
+
+logic wr_valid;
+logic wr_ready;
+logic rd_valid;
+logic rd_ready;
+
 reg Request = 1'b0;
 reg Dec;
 reg Set;
@@ -32,6 +38,23 @@ wire [DEKATRON_NUM*4-1:0] Out;
 
 reg [7:0] REF;
 
+
+task compare_ref;
+  input [31:0] data;
+  input [31:0] reference;
+  begin
+    if (reference % 10 != data[3:0]) begin
+      $fatal(1, "Counter0 Failure REF: %d Out: %d", reference % 10, data[3:0]);
+    end
+    if ((reference/10) % 10 != data[7:4]) begin
+      $fatal(1, "Counter1 Failure REF: %d Out: %d", (reference/10) % 10, data[7:4]);
+    end
+    if ((reference/100) % 10 != data[11:8]) begin
+      $fatal(1, "Counter2 Failure REF: %d Out: %d", (reference/100) % 10, data[11:8]);
+    end
+  end
+endtask
+
 DekatronCounter  #(.D_NUM(DEKATRON_NUM),
                     .TOP_LIMIT_MODE(1'b1),
                     .TOP_VALUE({4'd2, 4'd5, 4'd5})
@@ -39,13 +62,19 @@ DekatronCounter  #(.D_NUM(DEKATRON_NUM),
                 .Clk(Clk),
                 .hsClk(hsClk),
                 .Rst_n(Rst_n),
-                .Request(Request),
-                .Dec(Dec),
-                .Set(Set),
-                .SetZero(1'b0),
-                .In(In),
-                .Ready(Ready),
-                .Out(Out)
+                .wr_valid_i(wr_valid),
+                .wr_ready_o(wr_ready),
+
+                .rd_valid_o(rd_valid),
+                .rd_ready_i(rd_ready),
+
+                .wr_dec_i(Dec),
+                .wr_set_i(Set),
+                .wr_set_zero_i(1'b0),
+
+                .wr_data_i(In),
+
+                .rd_data_o(Out)
             );
 
 initial begin $dumpfile("Counter_tb.vcd");
@@ -64,16 +93,7 @@ initial begin
         REF <= REF + 1;
         repeat(1) @(posedge Request)
         repeat(1) @(posedge Ready)
-        $display("test %d: Out: %x. REF: %d", i, Out, REF);
-        if ((REF % 10 != Out[3:0])|(^Out[3:0] === 1'bx)) begin
-            $fatal(1, "Counter0 Up Failure REF: %d Out: %d", REF % 10, Out[3:0]);
-        end
-        if (((REF/10) % 10 != Out[7:4])|(^Out[7:4] === 1'bx)) begin
-            $fatal(1, "Counter1 Up Failure REF: %d Out: %d", (REF/10) % 10, Out[7:4]);
-        end
-        if (((REF/100) % 10 != Out[11:8])|(^Out[11:8] === 1'bx)) begin
-            $fatal(1, "Counter2 Up Failure REF: %d Out: %d", (REF/100) % 10, Out[11:8]);
-        end
+        compare_ref(Out, REF);
     end
     $display("Decrement test");
     for (integer i=0; i < TEST_NUM; i++) begin
@@ -81,16 +101,7 @@ initial begin
         Dec <= 1;
         repeat(1) @(posedge Request)
         repeat(1) @(posedge Ready)
-        $display("test %d: Out: %x. REF: %d", i, Out, REF);
-        if ((REF % 10 != Out[3:0])|(^Out[3:0] === 1'bx)) begin
-            $fatal(1, "Counter0 Down Failure REF: %d Out: %d", REF % 10, Out[3:0]);
-        end
-        if (((REF/10) % 10 != Out[7:4])|(^Out[7:4] === 1'bx)) begin
-            $fatal(1, "Counter1 Down Failure REF: %d Out: %d", (REF/10) % 10, Out[7:4]);
-        end
-        if (((REF/100) % 10 != Out[11:8])|(^Out[11:8] === 1'bx)) begin
-            $fatal(1, "Counter2 Down Failure REF: %d Out: %d", (REF/100) % 10, Out[11:8]);
-        end
+        compare_ref(Out, REF);
     end
     if (Out == 0)
         $display($time/1000, "us Counter Up/Down Test Sussess!");
@@ -101,10 +112,7 @@ initial begin
         REF <= REF + 1;
         repeat(1) @(posedge Request)
         repeat(1) @(posedge Ready)
-        $display("test %d: Out: %x. REF: %d", i, Out, REF);
-        if (REF % 10 != Out[3:0]) begin
-            $fatal(1, "Counter0 Down Failure REF: %d Out: %d", REF % 10, Out[3:0]);
-        end
+        compare_ref(Out, REF);
     end
     if (Out == 0)
         $display($time/1000, "us Counter RollUp Test Sussess!");
@@ -115,10 +123,7 @@ initial begin
         REF <= REF - 1;
         repeat(1) @(posedge Request)
         repeat(1) @(posedge Ready)
-        $display("test %d: Out: %x. REF: %d", i, Out, REF);
-        if (REF % 10 != Out[3:0]) begin
-            $fatal(1, "Counter0 Down Failure REF: %d Out: %d", REF % 10, Out[3:0]);
-        end
+        compare_ref(Out, REF);
     end
     if (Out == 0)
         $display($time/1000, "us Counter RollUp Test Sussess!");

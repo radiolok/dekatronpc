@@ -18,9 +18,9 @@ module IpLine (
     output reg[INSN_WIDTH-1:0] Insn
 );
 
-reg IP_Request;
-reg IP_Dec;
-wire IP_Ready;
+reg cnt_ip_request;
+reg cnt_ip_dec;
+wire cnt_ip_ready;
 
 reg [3:0] AppNum;
 reg prevApp;
@@ -49,12 +49,12 @@ DekatronCounter  #(
                 .Clk(Clk),
                 .hsClk(hsClk),
                 .Rst_n(Rst_n),
-                .Request(IP_Request),
-                .Dec(IP_Dec),
+                .Request(cnt_ip_request),
+                .Dec(cnt_ip_dec),
                 .Set(1'b0),
                 .SetZero(1'b0),
                 .In({((IP_DEKATRON_NUM-1)*DEKATRON_WIDTH){1'b0}}),
-                .Ready(IP_Ready),
+                .Ready(cnt_ip_ready),
                 .Out(IpAddress[(IP_DEKATRON_NUM-1)*DEKATRON_WIDTH-1:0]),
                 /* verilator lint_off PINCONNECTEMPTY */
                 .Zero()
@@ -81,10 +81,10 @@ InsnLoopDetector insnLoopDetector(
     .LoopClose(LoopInsnClose)
 );
 
-reg Loop_Request;
-reg Loop_Dec;
+reg cnt_loop_request;
+reg cnt_loop_dec;
 wire Loop_Zero;
-wire Loop_Ready;
+wire cnt_loop_ready;
 
 `ifdef EMULATOR
     parameter LOOP_READ = 1'b1;
@@ -100,21 +100,22 @@ DekatronCounter  #(
                 .Clk(Clk),
                 .hsClk(hsClk),
                 .Rst_n(Rst_n),
-                .Request(Loop_Request),
-                .Dec(Loop_Dec),
+                .Request(cnt_loop_request),
+                .Dec(cnt_loop_dec),
                 .Set(1'b0),
                 .SetZero(1'b0),
                 .In({(LOOP_DEKATRON_NUM*DEKATRON_WIDTH){1'b0}}),
                 /* verilator lint_off PINCONNECTEMPTY */
-                .Ready(Loop_Ready),
+                .Ready(cnt_loop_ready),
                 .Out(LoopCount),
                 /* verilator lint_on PINCONNECTEMPTY */
                 .Zero(Loop_Zero)
             );
 
-assign Ready = ~Request & (state == IDLE);//READY | IDLE
-wire IP_backwardCount = (LoopInsnClose & ~dataIsZeroed); //backward direction for ']' & nonZero
+assign Ready = ((state == IDLE) | (state == READY))
+                & cnt_loop_ready;//READY | IDLE
 
+wire cnt_ip_back = (LoopInsnClose & ~dataIsZeroed); //backward direction for ']' & nonZero
 
 parameter [2:0]
     IDLE      =  3'd0,
@@ -129,10 +130,10 @@ reg [2:0] state;
 always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
         Insn <= {(INSN_WIDTH){1'b0}};
-        IP_Dec <= 1'b0;
-        IP_Request <= 1'b0;
-        Loop_Request <= 1'b0;
-        Loop_Dec <= 1'b0;
+        cnt_ip_dec <= 1'b0;
+        cnt_ip_request <= 1'b0;
+        cnt_loop_request <= 1'b0;
+        cnt_loop_dec <= 1'b0;
         RomRequest <= 1'b0;
         state <= IDLE;
     end
@@ -142,13 +143,14 @@ always @(posedge Clk, negedge Rst_n) begin
                 if (HaltRq) state <= HALT;
                 else if (Request) begin
                     if (RomReady) begin
-                        IP_Dec <= IP_backwardCount; //backward direction for ']' & nonZero
-                        IP_Request <= 1'b1;
+                        RomRequest <= 1'b0;
+                        cnt_ip_dec <= cnt_ip_back; //backward direction for ']' & nonZero
+                        cnt_ip_request <= 1'b1;
                         if ((LoopInsnOpen & dataIsZeroed) |
                             (LoopInsnClose & ~dataIsZeroed)) begin
                             //Let's run loopLookup
-                            Loop_Dec <= 1'b0;
-                            Loop_Request <= 1'b1;
+                            cnt_loop_dec <= 1'b0;
+                            cnt_loop_request <= 1'b1;
                             state <= LOOP_COUNT;
                         end
                         else
@@ -160,39 +162,39 @@ always @(posedge Clk, negedge Rst_n) begin
                     end
                 end
             IP_COUNT: begin
-                IP_Request <= 1'b0;
-                if (IP_Ready) begin
+                if (cnt_ip_request & cnt_ip_ready) begin
+                    cnt_ip_request <= 1'b0;
                     state <= ROM_READ;
                     RomRequest <= 1'b1;
                 end
             end
             ROM_READ: begin
-                    RomRequest <= 1'b0;
-                    if (RomReady) begin
+                    if (RomRequest & RomReady) begin
+                        RomRequest <= 1'b0;
                         if (Loop_Zero) begin
                             state <= READY;
                         end
                         else begin
                             if (LoopInsnOpenInternal | LoopInsnCloseInternal) begin
-                                Loop_Dec <= ((IP_backwardCount & LoopInsnOpenInternal)|
-                                            (~IP_backwardCount & LoopInsnCloseInternal));
-                                Loop_Request <= 1'b1;
+                                cnt_loop_dec <= ((cnt_ip_back & LoopInsnOpenInternal)|
+                                            (~cnt_ip_back & LoopInsnCloseInternal));
+                                cnt_loop_request <= 1'b1;
                                 state <= LOOP_COUNT;
                             end
                             else begin
                                 state <= IP_COUNT;
-                                IP_Dec <= IP_backwardCount; //backward direction for ']' & nonZero
-                                IP_Request <= 1'b1;
+                                cnt_ip_dec <= cnt_ip_back; //backward direction for ']' & nonZero
+                                cnt_ip_request <= 1'b1;
                             end
                         end
                     end
                 end
             LOOP_COUNT: begin
-                Loop_Request <= 1'b0;
-                if (Loop_Ready) begin
+                if (cnt_loop_request & cnt_loop_ready) begin
+                    cnt_loop_request <= 1'b0;
                     if ((LoopInsnOpenInternal | LoopInsnCloseInternal) & ~Loop_Zero) begin
-                        IP_Dec <= IP_backwardCount & ~Loop_Zero; //backward direction for ']' & nonZero
-                        IP_Request <= 1'b1;
+                        cnt_ip_dec <= cnt_ip_back & ~Loop_Zero; //backward direction for ']' & nonZero
+                        cnt_ip_request <= 1'b1;
                     end
                     state <= IP_COUNT;
                 end

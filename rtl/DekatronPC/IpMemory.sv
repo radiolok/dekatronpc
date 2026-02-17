@@ -41,40 +41,33 @@ parameter [1:0]
     READY     =  2'd1,
     BUSY      =  2'd2;
 
-reg [1:0] state, next;
+reg [1:0] current_state, next_state;
 
 always @(posedge Clk, negedge Rst_n) begin
-	if (~Rst_n) state <= INIT;
-	else state <= next;
+	if (~Rst_n) current_state <= INIT;
+	else current_state <= next_state;
 end
 
 wire DataReady = 1; //Not used not, but for ROM delay modelling
 always_comb begin
-case (state)
+next_state = current_state;
+case (current_state)
     INIT: begin
         if (Request)
-            next = BUSY;
-        else
-            next = INIT;
+            next_state = BUSY;
     end
     READY: begin
-        if (Request)
-            next = BUSY;
-        else
-            next = READY;
+        if (~Request)
+            next_state = INIT;
     end
     BUSY: begin
-        if (DataReady)
-            next = READY;
-        else
-            next = BUSY;
+        if (Request & DataReady)
+            next_state = READY;
     end
-    default:
-        next = INIT;
 endcase
 end
 
-assign Ready = ~Request & (state == READY);
+assign Ready = (current_state == READY) | (current_state == INIT);
 
 
 assign InsnOut = (isBootloader) ? RomOutReg : RamOutReg;
@@ -127,7 +120,7 @@ end
             RamOutReg1 <= {INSN_WIDTH{1'b0}};
             RomOutReg1 <= {(INSN_WIDTH){1'b0}};
         end
-        else begin 
+        else begin
             RamOutReg1 <= Mem[Address1Bin];
             RomOutReg1 <= RomOutWire1;
         end
