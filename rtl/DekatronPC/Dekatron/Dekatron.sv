@@ -44,10 +44,10 @@ assign Out[9] = Cathodes[27];
 
 
 //Internal extended InLong signal is used for Writing operation
-wire [29:0] InLong = {{2'b00}, In[9], 2'b00, In[8], 
-                    2'b00, In[7], 2'b00, In[6], 
-                    2'b00, In[5], 2'b00, In[4], 
-                    2'b00, In[3], 2'b00, In[2], 
+wire [29:0] InLong = {{2'b00}, In[9], 2'b00, In[8],
+                    2'b00, In[7], 2'b00, In[6],
+                    2'b00, In[5], 2'b00, In[4],
+                    2'b00, In[3], 2'b00, In[2],
                     2'b00, In[1], 2'b00, In[0]};
 
 always @(posedge hsClk, negedge Rst_n)
@@ -57,12 +57,12 @@ always @(posedge hsClk, negedge Rst_n)
     end
     else
         if (Pulses[0]) begin
-            Cathodes <= (toWrite) ? InLong : 
+            Cathodes <= (toWrite) ? InLong :
                 CathodeGlow ? {Cathodes[28:0], Cathodes[29]} :
                         GuideLeftGlow ? {Cathodes[0], Cathodes[29:1]} : Cathodes;
         end
         else if (Pulses[1]) begin
-            Cathodes <= (toWrite) ? InLong : 
+            Cathodes <= (toWrite) ? InLong :
                 CathodeGlow ? {Cathodes[0], Cathodes[29:1]}:
                 GuideRightGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
         end
@@ -90,16 +90,17 @@ wire [9:0] InPosDek_n;
 generate
 genvar idx;
 for (idx = 0; idx < 10; idx += 1) begin: posDek
-    if (idx == 0) begin
-        if (TOP_WR == 1) 
+    if (idx == 0) begin : pos0
+        if (TOP_WR == 1) begin: top_wr
             assign InPosDek_n[idx] = Set[1];
-        else
+        end else begin : non_top_wr
             assign InPosDek_n[idx] = ~Set[0];
+        end
     end
-    else if ((TOP_WR == 1) & (idx == TOP_PIN_OUT)) begin
+    else if ((TOP_WR == 1) & (idx == TOP_PIN_OUT)) begin : top_wr_top_io
         assign InPosDek_n[idx] = Set[0];
     end
-    else begin
+    else begin : no_top_wr
         assign InPosDek_n[idx] = |Set;
     end
 end

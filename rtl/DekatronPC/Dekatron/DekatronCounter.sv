@@ -48,7 +48,7 @@ wire [D_NUM-1:0] DekatronBusy;
 
 assign Zero = &Zeroes;
 
-localparam [2:0] 
+localparam [2:0]
 		IDLE = 3'b000,
 		INC = 3'b010,
 		DEC = 3'b011,
@@ -69,11 +69,11 @@ wire SetZeroInt;
 wire SetAny;
 
 generate
-if (TOP_LIMIT_MODE > 0) begin
+if (TOP_LIMIT_MODE > 0) begin : top_limit_en
 	assign SetTop = Zero & Dec;
 	assign SetZeroInt = (&TopOut & ~Dec);
 end
-else begin
+else begin : top_limit_dis
 	assign SetTop = 1'b0;
 	assign SetZeroInt = 1'b0;
 end
@@ -170,10 +170,10 @@ for (d = 0; d < D_NUM; d++) begin: dek
 	/* verilator lint_off UNUSEDSIGNAL */
 	wire [1:0] npulses;
 	/* verilator lint_off UNUSEDSIGNAL */
-	if (d == 0) begin
+	if (d == 0) begin : dek0
 		assign pulses = Pulses;
 	end
-	else begin
+	else begin : det_oth
 		assign pulses = dek[d-1].npulses;
 	end
 	wire DekZero;
@@ -210,7 +210,7 @@ for (d = 0; d < D_NUM; d++) begin: dek
 		end
 	end
 
-	assign npulses = ((Nines[d] & (state == INC)) | (Zeroes[d] & (state == DEC))) ? 
+	assign npulses = ((Nines[d] & (state == INC)) | (Zeroes[d] & (state == DEC))) ?
 						pulses : 2'b0;
 end
 endgenerate

@@ -10,7 +10,7 @@ module ClockDivider #(
     output reg clock_out
     );
 
-reg[27:0] counter=28'd0;
+reg[27:0] counter;
 // The frequency of the output clk_out
 //  = The frequency of the input clk_in divided by DIVISOR
 // For example: Fclk_in = 50Mhz, if you want to get 1Hz signal to blink LEDs
@@ -27,7 +27,7 @@ always @(posedge clock_in, negedge Rst_n) begin
         counter <= counter + 28'd1;
         if(counter>=(DIVISOR-1))
         counter <= 28'd0;
-        clock_out <= (counter<((DIVISOR*DUTY_CYCLE)/100))? 1'b1: 1'b0;            
+        clock_out <= (counter<((DIVISOR*DUTY_CYCLE)/100))? 1'b1: 1'b0;
         /* verilator lint_on WIDTHEXPAND */
     end
 end

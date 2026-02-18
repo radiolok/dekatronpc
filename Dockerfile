@@ -1,4 +1,4 @@
-FROM ubuntu:22.04 AS build
+FROM ubuntu:25.10 AS build
 
 RUN rm /bin/sh && ln -s /bin/bash /bin/sh
 
@@ -39,9 +39,13 @@ RUN apt-get update -y && \
 
 RUN apt-get update -y &&  DEBIAN_FRONTEND=noninteractive apt-get install -y \
     gperf g++ bison ccache \
+    libreadline-dev gawk tcl-dev libffi-dev \
+	graphviz xdot pkg-config libboost-system-dev \
+	libboost-python-dev libboost-filesystem-dev \
     libgoogle-perftools-dev numactl perl-doc help2man \
     libfl2 libfl-dev \
-    libncursesw5-dev && \
+    libncursesw5-dev \
+    iverilog yosys && \
     rm -rf /var/lib/apt/lists
 
 RUN wget https://github.com/verilator/verilator/archive/refs/tags/v5.040.tar.gz && \
@@ -49,23 +53,16 @@ RUN wget https://github.com/verilator/verilator/archive/refs/tags/v5.040.tar.gz 
     autoconf && ./configure && make -j `nproc` && make install && \
     cd / && rm -rf /verilator-5.040 && rm -rf v5.040.tar.gz
 
+RUN python -m venv venv && \
+    source venv/bin/activate && \
+    pip install liberty-parser
 
-RUN apt-get update -y &&  DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    libreadline-dev gawk tcl-dev libffi-dev \
-	graphviz xdot pkg-config libboost-system-dev \
-	libboost-python-dev libboost-filesystem-dev && \
-    rm -rf /var/lib/apt/lists
-
-RUN git clone https://github.com/YosysHQ/yosys.git && \
-    cd yosys && git checkout v0.56 && git submodule update --init && \
-    make config-gcc && make -j `nproc` && make install && \
+RUN ln -s /usr/local/share/verilator /usr/share/verilator && \
+    mkdir -p /var/rtl/run && \
+    cd /var/ && \
+    python -m venv venv && \
+    source venv/bin/activate && \
     pip install liberty-parser && \
-    cd / && rm -rf /yosys
+    deactivate
 
-RUN apt-get update -y && DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    iverilog && \
-    rm -rf /var/lib/apt/lists
-
-RUN mkdir -p /var/vhdl
-
-WORKDIR /var/vhdl
+WORKDIR /var/rtl/run

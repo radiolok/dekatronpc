@@ -33,13 +33,13 @@ module BCDCounter #(
     wire [DIGITS-1:0] co;
     generate
         for (i = 0; i < DIGITS; i= i + 1) begin: digits
-            if (i == 0) begin
+            if (i == 0) begin : digit0
                 assign ci[i] = 1'b1;
             end
-            else begin
+            else begin : digit_oth
                 assign ci[i] = co[i-1];
             end
-            if (i == DIGITS-1)begin
+            if (i == DIGITS-1) begin : digit_last
                 /* verilator lint_off UNUSEDSIGNAL */
                 wire co_o = co[i];
                 /* verilator lint_on UNUSEDSIGNAL */

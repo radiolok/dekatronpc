@@ -5,6 +5,7 @@ trap cleanup SIGINT SIGTERM ERR EXIT
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
 root_dir=${script_dir}/..
+echo ${root_dir}
 
 consul=0
 
@@ -76,16 +77,17 @@ bf_file="${bf_file} ${root_dir}/programs/rot13.bfk"
 bf_file="${bf_file} ${root_dir}/programs/triangle.bfk"
 bf_file="${bf_file} ${root_dir}/programs/fractal.bfk"
 python ${root_dir}/run/generate_rom.py -f ${bf_file} -o ${root_dir}/firmware.hex --hex --pack
-#python ${root_dir}/run/generate_rom.py -f ${bf_file} -o ${root_dir}/firmware.sv 
+#python ${root_dir}/run/generate_rom.py -f ${bf_file} -o ${root_dir}/firmware.sv
 
 CONSUL=""
 if [ ${consul} -ne 0 ]; then
 	CONSUL="-CFLAGS -DCONSUL=1 +define+CONSUL"
 fi
 
+cpp_file=${root_dir}/tests/Emulator.sv/Emulator_tb.cpp
 verilator -Wall --trace --top Emulator --clk FPGA_CLK_50 --cc ${EmulFiles} ${DPCfiles} \
 -GDIVIDE_TO_01US=1 --timescale 1us/10ns ${CONSUL} +define+EMULATOR -DVERILATOR=1 \
---exe ${root_dir}/tests/Emulator.sv/Emulator_tb.cpp -LDFLAGS -lncurses
+--exe ${cpp_file} -LDFLAGS -lncurses
 
 make -j`nproc` -C obj_dir -f VEmulator.mk VEmulator
 

@@ -1,69 +1,69 @@
 module DekatronPC (
 `ifdef EMULATOR
-    output wire [31:0] IRET,
+    output logic [31:0] IRET,
     /* verilator lint_off UNDRIVEN */
-    input wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress1,
-    input wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress1,
+    input logic [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress1,
+    input logic [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress1,
     /* verilator lint_on UNDRIVEN */
     /* verilator lint_off UNUSEDSIGNAL */
-    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApData1,
-    output wire [INSN_WIDTH-1:0] RomData1,
+    output logic [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApData1,
+    output logic [INSN_WIDTH-1:0] RomData1,
     /* verilator lint_on UNUSEDSIGNAL */
 
 `endif
     input hsClk,
     input Clk,
-    input Rst_n, 
+    input Rst_n,
     input Halt,
     input Step,
     input Run,
     input key_next_app_i,
 
-    output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
-    output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
+    output logic [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
+    output logic [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
 
-    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd,
-    output wire tx_vld,
-    input wire tx_rdy,
-    
-    input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] rx_data_bcd,
-    input wire rx_vld,
+    output logic [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd,
+    output logic tx_vld,
+    input logic tx_rdy,
 
-    output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
-    output wire [2:0] state,
-    input wire [INSN_WIDTH - 1:0] InsnIn,
-    output wire [INSN_WIDTH - 1:0] Insn,
+    input logic [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] rx_data_bcd,
+    input logic rx_vld,
+
+    output logic [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
+    output logic [2:0] state,
+    input logic [INSN_WIDTH - 1:0] InsnIn,
+    output logic [INSN_WIDTH - 1:0] Insn,
 
 //==========================================================================
 //         Switch panel section
 //==========================================================================
-    input wire EchoMode//When turned on, Symbol from CIN is printed to Cout
+    input logic EchoMode//When turned on, Symbol from CIN is printed to Cout
 );
 
-wire IpRequest;
-wire IpLineReady;
+logic IpRequest;
+logic IpLineReady;
 
-wire DataZero;
-wire ApZero;
+logic DataZero;
+logic ApZero;
 
-wire ApRequest;
-wire DataRequest;
+logic ApRequest;
+logic DataRequest;
 
-wire ApLineZero;
+logic ApLineZero;
 
-wire ApLineReady;
+logic ApLineReady;
 
-wire ApLineDec;
-wire ApLineCin;
+logic ApLineDec;
+logic ApLineCin;
 
-wire LoopValZero;
-wire IsHalted;
+logic LoopValZero;
+logic IsHalted;
 
-wire RomRequest;
-wire RomReady;
-wire [INSN_WIDTH-1:0] RomData;
+logic RomRequest;
+logic RomReady;
+logic [INSN_WIDTH-1:0] RomData;
 
-IpMemory 
+IpMemory
     IpRAM_ROM(
     .Clk(Clk),
     .Rst_n(Rst_n),
@@ -79,20 +79,19 @@ IpMemory
     .InsnOut(RomData)
 );
 
-wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApRamDataIn;
-wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApRamDataOut;
-wire ApRamCS;
-wire ApRamWE;
+logic [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApRamDataIn;
+logic [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApRamDataOut;
+logic ApRamCS;
+logic ApRamWE;
 
 localparam AP_RAM_ROWS_NUM = 30000;
 localparam AP_RAM_BIN_BW = $clog2(AP_RAM_ROWS_NUM-1);
 
-wire [AP_RAM_BIN_BW-1:0] ApAddressBin;
-reg [AP_RAM_BIN_BW-1:0] ApAddressBin_Setup;
-wire [AP_RAM_BIN_BW-1:0] ApAddressBin_Cnt;
+logic [AP_RAM_BIN_BW-1:0] ApAddressBin;
+logic [AP_RAM_BIN_BW-1:0] ApAddressBin_Setup;
+logic [AP_RAM_BIN_BW-1:0] ApAddressBin_Cnt;
 
-
-reg ApRamRdy;
+logic ApRamRdy;
 
 assign ApAddressBin = (ApRamRdy) ? ApAddressBin_Cnt : ApAddressBin_Setup;
 
@@ -105,7 +104,7 @@ BcdToBinEnc #(
 );
 
 `ifdef EMULATOR
-wire [AP_RAM_BIN_BW-1:0] ApAddress1Bin;
+logic [AP_RAM_BIN_BW-1:0] ApAddress1Bin;
 BcdToBinEnc #(
     .DIGITS(AP_DEKATRON_NUM),
     .OUT_WIDTH(AP_RAM_BIN_BW)
@@ -113,23 +112,30 @@ BcdToBinEnc #(
     .bcd(ApAddress1),
     .bin(ApAddress1Bin)
 );
-`endif
-
-always @(posedge Clk, negedge Rst_n) begin
-    if (~Rst_n) begin
-        ApRamRdy <= 1'b0;
-        ApAddressBin_Setup <= AP_RAM_ROWS_NUM - 1;
-    end else begin
-        if (~ApRamRdy) begin
-            if (ApAddressBin_Setup == 0) begin
-                ApRamRdy <= 1;
-            end else begin
-                ApAddressBin_Setup <= ApAddressBin_Setup - 1;
+assign ApAddressBin_Setup = '0;
+assign ApRamRdy = 1'b1;
+`else
+    `ifdef SYNTH
+    assign ApRamRdy = 1'b1;
+    assign ApAddressBin_Setup = '0;
+    `else
+    //This is a Memory cleanup for FPGA
+    always @(posedge Clk, negedge Rst_n) begin
+        if (~Rst_n) begin
+            ApRamRdy <= 1'b0;
+            ApAddressBin_Setup <= AP_RAM_ROWS_NUM - 1;
+        end else begin
+            if (~ApRamRdy) begin
+                if (ApAddressBin_Setup == 0) begin
+                    ApRamRdy <= 1;
+                end else begin
+                    ApAddressBin_Setup <= ApAddressBin_Setup - 1;
+                end
             end
         end
     end
-end
-
+    `endif
+`endif
 RAM #(
     .ROWS(AP_RAM_ROWS_NUM),
     .ADDR_WIDTH(AP_RAM_BIN_BW),
@@ -194,7 +200,7 @@ InsnDecoder insnDecoder(
     .IRET(IRET),
 `endif
 
-    .IpRequest(IpRequest),    
+    .IpRequest(IpRequest),
     .IpLineReady(IpLineReady),
     .ApLineReady(ApLineReady),
     .ApRequest(ApRequest),

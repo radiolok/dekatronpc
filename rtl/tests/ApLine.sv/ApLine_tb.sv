@@ -68,6 +68,7 @@ ApLine  apLine(
     .RamDataOut(RamDataOut),
     .RamCS(RamCS),
     .RamWE(RamWE),
+    .ram_rdy_i(1'b1),
     .tx_data_bcd(Data)
 );
 
@@ -91,10 +92,10 @@ end
 reg [7:0] REFADDR;
 reg [7:0] REFD0;
 reg [7:0] REFD155;
-initial begin 
+initial begin
 Rst_n <= 0;
 ApLineDec <= 0;
-#5 
+#5
 Rst_n <= 1;
 REFADDR <= 0;
 REFD0 <= 0;
@@ -119,7 +120,7 @@ for (integer i = 0; i < 155; i++) begin
   end
   if ((REFD0/100) % 10 != Data[11:8]) begin
     $fatal(1, "DataCounter2 Failure REF: %d Out: %d", (REFD0/100) % 10, Data[11:8]);
-  end 
+  end
 end
 //Addr = 155
 for (integer i = 0; i < 155; i++) begin
@@ -138,7 +139,7 @@ for (integer i = 0; i < 155; i++) begin
   end
   if ((REFADDR/100) % 10 != ApAddress[11:8]) begin
     $fatal(1, "APCounter2 Failure REF: %d Out: %d", (REFADDR/100) % 10, ApAddress[11:8]);
-  end 
+  end
 end
 //Addr 10 - Data + 17
 for (integer i = 0; i < 17; i++) begin
@@ -157,11 +158,11 @@ for (integer i = 0; i < 17; i++) begin
   end
   if ((REFD155/100) % 10 != Data[11:8]) begin
     $fatal(1, "DataCounter2 Failure REF: %d Out: %d", (REFD155/100) % 10, Data[11:8]);
-  end   
+  end
 end
 
 ApLineDec <= 1'b1;
-//Addr 0 
+//Addr 0
 for (integer i = 0; i < 155; i++) begin
 
   repeat(1) @(posedge Clk)
@@ -179,7 +180,7 @@ for (integer i = 0; i < 155; i++) begin
   end
   if ((REFADDR/100) % 10 != ApAddress[11:8]) begin
     $fatal(1, "APCounter2 Failure REF: %d Out: %d", (REFADDR/100) % 10, ApAddress[11:8]);
-  end 
+  end
 end
 
 //Data -15 - Must be 0
@@ -199,7 +200,7 @@ for (integer i = 0; i < 15; i++) begin
   end
   if ((REFD0/100) % 10 != Data[11:8]) begin
     $fatal(1, "Counter2 Failure REF: %d Out: %d", (REFD0/100) % 10, Data[11:8]);
-  end 
+  end
 end
 
 $finish;
