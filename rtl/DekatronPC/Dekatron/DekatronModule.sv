@@ -37,22 +37,24 @@ if (WRITE == 1) begin : Writing
         .Out_n(InPos)
     );
     for (idx = 0; idx < 10; idx += 1) begin: posDek1
-        if (idx == 0)
+        if (idx == 0) begin: dek_idx0
             assign InPosDek_n[idx] = ~((Set[2] & ~InPos[idx]) | Set[0]);
-        else if ((TOP_LIMIT_MODE == 1) & (idx == TOP_PIN_OUT))
+        end else if ((TOP_LIMIT_MODE == 1) & (idx == TOP_PIN_OUT)) begin : dek_top_limit_io
             assign InPosDek_n[idx] = ~((Set[2] & ~InPos[idx]) | Set[1]);
-        else
+        end else begin : oth
             assign InPosDek_n[idx] = ~(Set[2] & ~InPos[idx]);
+        end
     end
 end
-else begin
+else begin : non_writing
     for (idx = 0; idx < 10; idx += 1) begin: posDek2
-        if (idx == 0)
+        if (idx == 0) begin : dek_idx0
             assign InPosDek_n[idx] = ~Set[0];
-        else if ((TOP_LIMIT_MODE == 1) & (idx == TOP_PIN_OUT))
+        end else if ((TOP_LIMIT_MODE == 1) & (idx == TOP_PIN_OUT)) begin : dek_top_limit_io
             assign InPosDek_n[idx] = ~Set[1];
-        else
+        end else begin: oth
             assign InPosDek_n[idx] = 1'b1;
+        end
     end
 end
 endgenerate

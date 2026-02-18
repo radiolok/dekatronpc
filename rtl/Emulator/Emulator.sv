@@ -142,10 +142,10 @@ logic HardRst_n = Rst_n & ~keysCurrentState[KEYBOARD_HARD_RST];
 /* verilator lint_on UNUSEDSIGNAL */
 
 generate
-    if (DIVIDE_TO_01US == 1) begin
+    if (DIVIDE_TO_01US == 1) begin : clock_emulator
         assign Clock_10MHz = FPGA_CLK_50;
     end
-    else begin
+    else begin : clock_fpga
     ClockDivider #(.DIVISOR({DIVIDE_TO_01US})) clock_divider_10MHz(
         .Rst_n(Rst_n),
         .clock_in(FPGA_CLK_50),
