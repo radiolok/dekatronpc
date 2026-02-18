@@ -46,7 +46,7 @@ public:
     ~Consul(){
 
     }
-    
+
     bool ioConnect(vluint64_t time, uint8_t Rout, uint8_t Lout, uint8_t& Rin, uint8_t& Lin){
         bool update = false;
         outchar = Lout & 0x7F;
@@ -83,7 +83,7 @@ public:
 
     void printChar(){
         while(true){
-            if (sync){                
+            if (sync){
                 char char_to_print = outchar;
                 switch(char_to_print){
                     case 0x0e:
@@ -102,7 +102,7 @@ public:
                         block_print = 1;
                         coAcq = 1;
                         break;
-                }            
+                }
             }
             else{
                 block_print = 0;
@@ -150,7 +150,7 @@ public:
         en_n = (~en_n) & 0x03;
         uint8_t reg = (en_n - 1) * 8 + (addr & 0x07);
         uint8_t channel = (en_n << 4)  | (addr & 0x0F);
-        if((channel != channel_old) and (reg < 16)){            
+        if((channel != channel_old) and (reg < 16)){
             channel_old = channel;
             if ((addr >> 3) & 0x01){//write
                 outputRegs[reg] = data;
@@ -166,7 +166,7 @@ public:
     uint8_t read(uint8_t addr){
         return (addr < 16) ? inputRegs[addr] : (addr < 32) ? outputRegs[addr-16] : 0;
     }
-    
+
     void write(uint8_t addr, const uint8_t& data){
         if (addr < 16 ){
             inputRegs[addr] = data;
@@ -237,7 +237,7 @@ public:
             in12High[in12AnodeNum] = In12CathodeToPin[((data >> 4) & 0x0F)] + 0x30;
         }
         in12cathodeWrOld = state;
-        
+
     }
     uint8_t in12AnodeUpdate(bool state, uint8_t data)
     {
@@ -291,7 +291,7 @@ public:
     {
         static int ch_old;
         while(true){
-            
+
             int ch = getch();
             if (ch == KEY_END)
             {
@@ -456,6 +456,7 @@ int main(int argc, char** argv, char** env) {
 #endif
     dut->KEY = 1;
     dut->FPGA_CLK_50 = 0;
+    dut->selector = 0x0f;
     initscr();
     keypad(stdscr, TRUE);
     start_color();

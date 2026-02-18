@@ -68,10 +68,10 @@ module Emulator #(
 	*/
 	output [7:0] emulData,
 
-    output wire Clock_1Hz, //AF18 GPIO1.24
-    output wire Clock_1KHz, //AG23 GPIO1.22
-    output wire Clock_10KHz,
-    output wire Clock_1MHz, //AF25 GPIO1.20
+    output logic Clock_1Hz, //AF18 GPIO1.24
+    output logic Clock_1KHz, //AG23 GPIO1.22
+    output logic Clock_10KHz,
+    output logic Clock_1MHz, //AF25 GPIO1.20
 
 	 /*
 	 A0 - AA18
@@ -79,12 +79,12 @@ module Emulator #(
 	 A2 - AD23
 	 A3 - AE23
 	 */
-    output wire [3:0] io_address,
+    output logic [3:0] io_address,
     /*
 	 EN1 - AG21
 	 EN2 - AH18
 	 */
-	 output wire [1:0] io_enable_n,
+	 output logic [1:0] io_enable_n,
 	 /*
 	 D0 - AE20
 	 D1 - AD19
@@ -95,19 +95,19 @@ module Emulator #(
 	 D6 - AH21
 	 D7 - AH19
 	 */
-    inout wire [7:0] io_data,
+    inout logic [7:0] io_data,
 
-    output wire pwr_selector,
-    input wire [3:0] selector,
+    output logic pwr_selector,
+    input logic [3:0] selector,
 
 `ifdef VERILATOR
-    output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
-    output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
-    output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
-    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd,
+    output logic [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
+    output logic [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
+    output logic [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
+    output logic [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd,
 `endif
 
-    output wire [2:0] DPC_currentState
+    output logic [2:0] DPC_currentState
 );
 
 assign LED[0] = Rst_n;
@@ -116,29 +116,29 @@ assign LED[2] = Clock_1KHz;
 assign LED[6:3] = selector;
 
 `ifndef VERILATOR
-    wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress;
-    wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress;
-    wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount;
-    wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd;
+    logic [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress;
+    logic [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress;
+    logic [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount;
+    logic [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd;
 `endif
 
 /* verilator lint_off UNUSEDSIGNAL */
-wire [31:0] IRET;
-wire [39:0] keysCurrentState;
+logic [31:0] IRET;
+logic [39:0] keysCurrentState;
 /* verilator lint_on UNUSEDSIGNAL */
 
-wire keyHalt = keysCurrentState[KEYBOARD_HALT_KEY];
-wire keyRun = keysCurrentState[KEYBOARD_RUN_KEY];
-wire keyStep = keysCurrentState[KEYBOARD_STEP_KEY];
-wire keyNextApp = keysCurrentState[KEYBOARD_NONAME_KEY];
+logic keyHalt = keysCurrentState[KEYBOARD_HALT_KEY];
+logic keyRun = keysCurrentState[KEYBOARD_RUN_KEY];
+logic keyStep = keysCurrentState[KEYBOARD_STEP_KEY];
+logic keyNextApp = keysCurrentState[KEYBOARD_NONAME_KEY];
 
-wire Rst_n = KEY[0];
+logic Rst_n = KEY[0];
 
-wire Clock_10MHz;
+logic Clock_10MHz;
 /* verilator lint_off UNUSEDSIGNAL */
-wire [INSN_WIDTH - 1:0] Insn;
-wire SoftRst_n = Rst_n & ~keysCurrentState[KEYBOARD_SOFT_RST_KEY];
-wire HardRst_n = Rst_n & ~keysCurrentState[KEYBOARD_HARD_RST];
+logic [INSN_WIDTH - 1:0] Insn;
+logic SoftRst_n = Rst_n & ~keysCurrentState[KEYBOARD_SOFT_RST_KEY];
+logic HardRst_n = Rst_n & ~keysCurrentState[KEYBOARD_HARD_RST];
 /* verilator lint_on UNUSEDSIGNAL */
 
 generate
@@ -179,24 +179,24 @@ ClockDivider #(
 	.clock_out(Clock_1Hz)
 );
 
-wire EchoMode = 1'b1;
+logic EchoMode = 1'b1;
 
-wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] rx_data_bcd;
+logic [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] rx_data_bcd;
 
-wire [7:0] tx_data;
-wire [7:0] rx_data;
+logic [7:0] tx_data;
+logic [7:0] rx_data;
 BcdToAscii bcdToAscii(tx_data_bcd, tx_data);
 
 AsciiToBcd asciiToBcd(rx_data, rx_data_bcd);
 
 /* verilator lint_off UNDRIVEN */
 /* verilator lint_off UNUSEDSIGNAL */
-wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress1;
+logic [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress1;
 /* verilator lint_on UNDRIVEN */
-wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApData1;
+logic [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApData1;
 /* verilator lint_on UNUSEDSIGNAL */
-wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress1;
-wire [INSN_WIDTH-1:0] RomData1;
+logic [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress1;
+logic [INSN_WIDTH-1:0] RomData1;
 
 DekatronPC dekatronPC(
     .IpAddress(IpAddress),
@@ -258,14 +258,14 @@ io_key_display_block #(
 );
 
 /* verilator lint_off UNUSEDSIGNAL */
-wire [127:0] io_input_regs;
+logic [127:0] io_input_regs;
 /* verilator lint_on UNUSEDSIGNAL */
 
 /* verilator lint_off UNDRIVEN */
-wire [127:0] io_output_regs;
+logic [127:0] io_output_regs;
 /* verilator lint_on UNDRIVEN */
 
-//wire Clock_10KHz;
+//logic Clock_10KHz;
 
 ClockDivider #(
     .DIVISOR(100)
@@ -294,7 +294,7 @@ io_register_block #(
 logic                        tx_rdy  ;
 logic                        tx_vld  ;
 //rx signal
-wire                          rx_vld  ;
+logic                          rx_vld  ;
 
 
 logic [7:0] uart_rx_data;
@@ -325,7 +325,7 @@ always_comb begin
     end
 end
 
-wire Clock_100Hz;
+logic Clock_100Hz;
 ClockDivider #(
     .DIVISOR(10)
 ) clock_divider_100Hz(
@@ -334,8 +334,8 @@ ClockDivider #(
 	.clock_out(Clock_100Hz)
 );
 
-wire [15:0] consul_regs_in;
-wire [9:0] consul_regs_out;
+logic [15:0] consul_regs_in;
+logic [9:0] consul_regs_out;
 
 assign io_output_regs[31:16]  = 16'hAA55;
 
@@ -380,9 +380,9 @@ consul Consul(
 );
 
 /* verilator lint_off UNUSEDSIGNAL */
-wire                          rx_pc_pass ;
+logic                          rx_pc_pass ;
 /* verilator lint_on UNUSEDSIGNAL */
-wire tx_n;
+logic tx_n;
 assign tx = ~tx_n;
 
 
