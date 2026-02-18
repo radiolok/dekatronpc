@@ -4,7 +4,7 @@ module IpLine (
     input wire hsClk,
     input wire HaltRq,
 
-    input wire dataIsZeroed, 
+    input wire dataIsZeroed,
     input wire key_next_app_i,
     input wire Request,
     output wire Ready,
@@ -144,14 +144,14 @@ always @(posedge Clk, negedge Rst_n) begin
                     if (RomReady) begin
                         IP_Dec <= IP_backwardCount; //backward direction for ']' & nonZero
                         IP_Request <= 1'b1;
-                        if ((LoopInsnOpen & dataIsZeroed) | 
+                        if ((LoopInsnOpen & dataIsZeroed) |
                             (LoopInsnClose & ~dataIsZeroed)) begin
                             //Let's run loopLookup
                             Loop_Dec <= 1'b0;
                             Loop_Request <= 1'b1;
                             state <= LOOP_COUNT;
                         end
-                        else 
+                        else
                             state <= IP_COUNT;
                     end
                     else begin//Only for IP=0
@@ -180,9 +180,9 @@ always @(posedge Clk, negedge Rst_n) begin
                                 state <= LOOP_COUNT;
                             end
                             else begin
-                                state <= IP_COUNT;  
+                                state <= IP_COUNT;
                                 IP_Dec <= IP_backwardCount; //backward direction for ']' & nonZero
-                                IP_Request <= 1'b1;                         
+                                IP_Request <= 1'b1;
                             end
                         end
                     end
@@ -192,7 +192,7 @@ always @(posedge Clk, negedge Rst_n) begin
                 if (Loop_Ready) begin
                     if ((LoopInsnOpenInternal | LoopInsnCloseInternal) & ~Loop_Zero) begin
                         IP_Dec <= IP_backwardCount & ~Loop_Zero; //backward direction for ']' & nonZero
-                        IP_Request <= 1'b1;    
+                        IP_Request <= 1'b1;
                     end
                     state <= IP_COUNT;
                 end

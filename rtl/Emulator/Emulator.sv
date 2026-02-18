@@ -127,18 +127,25 @@ logic [31:0] IRET;
 logic [39:0] keysCurrentState;
 /* verilator lint_on UNUSEDSIGNAL */
 
-logic keyHalt = keysCurrentState[KEYBOARD_HALT_KEY];
-logic keyRun = keysCurrentState[KEYBOARD_RUN_KEY];
-logic keyStep = keysCurrentState[KEYBOARD_STEP_KEY];
-logic keyNextApp = keysCurrentState[KEYBOARD_NONAME_KEY];
+logic keyHalt;
+logic keyRun;
+logic keyStep;
+logic keyNextApp;
+logic Rst_n;
+logic HardRst_n;
 
-logic Rst_n = KEY[0];
+assign keyHalt = keysCurrentState[KEYBOARD_HALT_KEY];
+assign keyRun = keysCurrentState[KEYBOARD_RUN_KEY];
+assign keyStep = keysCurrentState[KEYBOARD_STEP_KEY];
+assign keyNextApp = keysCurrentState[KEYBOARD_NONAME_KEY];
+
+assign Rst_n = KEY[0];
+assign HardRst_n = Rst_n & ~keysCurrentState[KEYBOARD_HARD_RST];
 
 logic Clock_10MHz;
 /* verilator lint_off UNUSEDSIGNAL */
 logic [INSN_WIDTH - 1:0] Insn;
-logic SoftRst_n = Rst_n & ~keysCurrentState[KEYBOARD_SOFT_RST_KEY];
-logic HardRst_n = Rst_n & ~keysCurrentState[KEYBOARD_HARD_RST];
+
 /* verilator lint_on UNUSEDSIGNAL */
 
 generate
