@@ -1,5 +1,6 @@
 module IpLine (
     input wire Rst_n,
+    input wire HardRst_n,
     input wire Clk,
     input wire hsClk,
     input wire HaltRq,
@@ -24,7 +25,7 @@ wire IP_Ready;
 
 reg [3:0] AppNum;
 reg prevApp;
-assign IpAddress[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:(IP_DEKATRON_NUM-1)*DEKATRON_WIDTH] = AppNum;
+//assign IpAddress[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:(IP_DEKATRON_NUM-1)*DEKATRON_WIDTH] = AppNum;
 always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
         AppNum <= '0;
@@ -43,19 +44,21 @@ always @(posedge Clk, negedge Rst_n) begin
 end
 
 DekatronCounter  #(
-            .D_NUM(IP_DEKATRON_NUM-1),
-		    .WRITE(1'b0)
+            .D_NUM(IP_DEKATRON_NUM),
+		    .WRITE(1'b0),
+            .HARD_RST_D_CNT(IP_DEKATRON_NUM - 2)
             )IP_counter(
                 .Clk(Clk),
                 .hsClk(hsClk),
                 .Rst_n(Rst_n),
+                .HardRst_n(HardRst_n),
                 .Request(IP_Request),
                 .Dec(IP_Dec),
                 .Set(1'b0),
                 .SetZero(1'b0),
-                .In({((IP_DEKATRON_NUM-1)*DEKATRON_WIDTH){1'b0}}),
+                .In({((IP_DEKATRON_NUM)*DEKATRON_WIDTH){1'b0}}),
                 .Ready(IP_Ready),
-                .Out(IpAddress[(IP_DEKATRON_NUM-1)*DEKATRON_WIDTH-1:0]),
+                .Out(IpAddress[(IP_DEKATRON_NUM)*DEKATRON_WIDTH-1:0]),
                 /* verilator lint_off PINCONNECTEMPTY */
                 .Zero()
                 /* verilator lint_on PINCONNECTEMPTY */
@@ -100,6 +103,7 @@ DekatronCounter  #(
                 .Clk(Clk),
                 .hsClk(hsClk),
                 .Rst_n(Rst_n),
+                .HardRst_n(1'b1),
                 .Request(Loop_Request),
                 .Dec(Loop_Dec),
                 .Set(1'b0),

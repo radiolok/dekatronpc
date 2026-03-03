@@ -24,7 +24,6 @@ module ApLine (
 
     input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] rx_data_bcd,
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd
-
 );
 
 reg AP_Request;
@@ -61,6 +60,7 @@ DekatronCounter  #(
                 .Clk(Clk),
                 .hsClk(hsClk),
                 .Rst_n(Rst_n),
+                .HardRst_n(1'b1),
                 .Request(AP_Request),
                 .Dec(Dec),
                 .Set(1'b0),
@@ -90,6 +90,7 @@ DekatronCounter  #(
                 .Clk(Clk),
                 .hsClk(hsClk),
                 .Rst_n(Rst_n),
+                .HardRst_n(1'b1),
                 .Request(Data_Request),
                 .Dec(Dec),
                 .Set(DataCounterSet),

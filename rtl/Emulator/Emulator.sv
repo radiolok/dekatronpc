@@ -132,6 +132,7 @@ logic keyRun;
 logic keyStep;
 logic keyNextApp;
 logic Rst_n;
+logic SoftRst_n;
 logic HardRst_n;
 
 assign keyHalt = keysCurrentState[KEYBOARD_HALT_KEY];
@@ -139,8 +140,9 @@ assign keyRun = keysCurrentState[KEYBOARD_RUN_KEY];
 assign keyStep = keysCurrentState[KEYBOARD_STEP_KEY];
 assign keyNextApp = keysCurrentState[KEYBOARD_NONAME_KEY];
 
-assign Rst_n = KEY[0];
-assign HardRst_n = Rst_n & ~keysCurrentState[KEYBOARD_HARD_RST];
+assign SoftRst_n = ~keysCurrentState[KEYBOARD_SOFT_RST_KEY];
+assign HardRst_n = KEY[0] & ~keysCurrentState[KEYBOARD_HARD_RST];
+assign Rst_n = SoftRst_n & HardRst_n;
 
 logic Clock_10MHz;
 /* verilator lint_off UNUSEDSIGNAL */
@@ -211,7 +213,8 @@ DekatronPC dekatronPC(
     .LoopCount(LoopCount),
     .hsClk(Clock_10MHz),
     .Clk(Clock_1MHz),
-    .Rst_n(HardRst_n),
+    .SoftRst_n(SoftRst_n),
+    .HardRst_n(HardRst_n),
     .Halt(keyHalt),
     .Run(keyRun),
     .InsnIn(4'b0),

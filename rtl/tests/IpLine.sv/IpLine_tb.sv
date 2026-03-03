@@ -3,6 +3,7 @@
 module IpLine_tb (
 );
 reg Rst_n;
+reg HardRst_n;
 reg Clk;
 reg hsClk;
 initial begin
@@ -41,8 +42,9 @@ IpMemory rom(
         .Ready(RomReady)
         );
 
-IpLine  ipLine(
+IpLine ipLine(
     .Rst_n(Rst_n),
+    .HardRst_n(HardRst_n),
     .Clk(Clk),
     .hsClk(hsClk),
     .dataIsZeroed(dataIsZeroed),
@@ -74,7 +76,10 @@ always @(posedge Clk) begin
        if (CLOCK_TICK > 2000)
           $fatal(1, "Timeout");
 end
-initial begin 
+initial begin
+bit valid = 0;
+
+HardRst_n <= 1; 
 Rst_n <= 0;
 Data <= 0;
 Busy <= 0;
@@ -82,8 +87,7 @@ Busy <= 0;
 #5 
 Rst_n <= 1;
 
-
-for (integer i = 0; i < TEST_NUM; i++) begin
+for (integer i = 0; !valid && (i < TEST_NUM); i++) begin
 
   repeat(1) @(posedge Request)
   repeat(1) @(posedge Ready)
@@ -96,14 +100,31 @@ for (integer i = 0; i < TEST_NUM; i++) begin
         $display ("CLOCKTICK: %dus", CLOCK_TICK); 
         if (Data) 
           $fatal(1, "Data not zero");
-        else
-          $finish; 
+        else begin
+          valid = 1;
+        end 
   end
   endcase
 
   if ((Address > 8'b00010111) | (Address[23:20]))
     $fatal(1, "Address is out of scope");
 end
+
+if (valid == 1) begin
+    $display("Hard Reset Test");
+
+    HardRst_n <= 0; Rst_n <= 0;
+    #5 HardRst_n <= 1; Rst_n <= 1;
+    $display("Time: %dus Addr: %h Insn: %b, Data: %d(%b)", $time/1000, Address, Insn, Data, dataIsZeroed);
+
+    if (Address != 24'h999900) begin
+        $fatal(1, "Invalid address %h on Hard Reset. Expected address is 999900", Address);
+    end
+    else begin
+        $finish;
+    end
+end
+
 $fatal;
 
 end

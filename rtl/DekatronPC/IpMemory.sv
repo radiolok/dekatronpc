@@ -17,7 +17,7 @@ module IpMemory #(
 
 `ifndef SYNTH
 localparam ROM_DEKATRONS = 2;
-localparam HIGH_ADDR = (10**(IP_DEKATRON_NUM-ROM_DEKATRONS)-1);
+localparam HIGH_ADDR = {(IP_DEKATRON_NUM-ROM_DEKATRONS){4'h9}};
 wire isBootloader = (Address[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:ROM_DEKATRONS*DEKATRON_WIDTH] == HIGH_ADDR);
 
 wire [INSN_WIDTH-1: 0] RomOutWire;

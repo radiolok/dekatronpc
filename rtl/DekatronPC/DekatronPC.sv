@@ -13,7 +13,8 @@ module DekatronPC (
 `endif
     input hsClk,
     input Clk,
-    input Rst_n,
+    input SoftRst_n,
+    input HardRst_n,
     input Halt,
     input Step,
     input Run,
@@ -39,6 +40,9 @@ module DekatronPC (
 //==========================================================================
     input logic EchoMode//When turned on, Symbol from CIN is printed to Cout
 );
+
+logic Rst_n;
+assign Rst_n = SoftRst_n & HardRst_n;
 
 logic IpRequest;
 logic IpLineReady;
@@ -156,6 +160,7 @@ RAM #(
 
 IpLine ipLine(
     .Rst_n(Rst_n),
+    .HardRst_n(HardRst_n),
     .Clk(Clk),
     .hsClk(hsClk),
     .HaltRq(IsHalted),
