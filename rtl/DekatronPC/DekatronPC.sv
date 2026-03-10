@@ -33,6 +33,10 @@ module DekatronPC (
     output logic [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
     output logic [2:0] state,
     input logic [INSN_WIDTH - 1:0] InsnIn,
+    /* verilator lint_off UNUSEDSIGNAL */
+    input logic InsnInValid,
+    /* verilator lint_on UNUSEDSIGNAL */
+    output logic InsnInReady,
     output logic [INSN_WIDTH - 1:0] Insn,
 
 //==========================================================================
@@ -43,6 +47,8 @@ module DekatronPC (
 
 logic Rst_n;
 assign Rst_n = SoftRst_n & HardRst_n;
+
+assign InsnInReady = 1'b0;
 
 logic IpRequest;
 logic IpLineReady;
@@ -65,7 +71,9 @@ logic IsHalted;
 
 logic RomRequest;
 logic RomReady;
+logic RomWE;
 logic [INSN_WIDTH-1:0] RomData;
+logic [INSN_WIDTH-1:0] RomWriteData;
 
 IpMemory
     IpRAM_ROM(
@@ -73,13 +81,13 @@ IpMemory
     .Rst_n(Rst_n),
     .Request(RomRequest),
     .Ready(RomReady),
-    .WE(1'b0),
+    .WE(RomWE),
 `ifdef EMULATOR
     .Address1(IpAddress1),
     .InsnOut1(RomData1),
 `endif
     .Address(IpAddress),
-    .InsnIn(InsnIn),
+    .InsnIn(RomWriteData),
     .InsnOut(RomData)
 );
 
@@ -173,6 +181,9 @@ IpLine ipLine(
     .RomReady(RomReady),
     .RomData(RomData),
     .key_next_app_i(key_next_app_i),
+    .InsnIn(InsnIn),
+    .RomWriteData(RomWriteData),
+    .RomWE(RomWE),
 	.Insn(Insn)
 );
 

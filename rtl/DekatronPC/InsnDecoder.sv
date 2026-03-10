@@ -103,6 +103,9 @@ always @(posedge Clk, negedge Rst_n) begin
                         //5'h03: //INSN_RES1
                         //5'h04: //INSN_RES2
                         //5'h05: //INSN_RES3
+                        5'h05: begin // INSN_SOT
+                            
+                        end
                         5'h?6: begin //[ { 
                             if (LoopValZero) begin
                                 IpRequest <= 1'b1;

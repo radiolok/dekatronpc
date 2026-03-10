@@ -147,7 +147,7 @@ assign Rst_n = SoftRst_n & HardRst_n;
 logic Clock_10MHz;
 /* verilator lint_off UNUSEDSIGNAL */
 logic [INSN_WIDTH - 1:0] Insn;
-
+logic InsnInReady;
 /* verilator lint_on UNUSEDSIGNAL */
 
 generate
@@ -218,6 +218,8 @@ DekatronPC dekatronPC(
     .Halt(keyHalt),
     .Run(keyRun),
     .InsnIn(4'b0),
+    .InsnInValid(1'b0),
+    .InsnInReady(InsnInReady),
     .EchoMode(EchoMode),
     .tx_data_bcd(tx_data_bcd),
     .tx_vld(tx_vld),

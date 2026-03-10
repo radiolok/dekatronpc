@@ -16,6 +16,10 @@ module IpLine (
     input wire RomReady,
     input wire [INSN_WIDTH-1:0] RomData,
 
+    input logic [INSN_WIDTH - 1:0] InsnIn,
+    output logic [INSN_WIDTH - 1:0] RomWriteData,
+    output logic RomWE,
+
     output reg[INSN_WIDTH-1:0] Insn
 );
 
@@ -119,6 +123,8 @@ DekatronCounter  #(
 assign Ready = ~Request & (state == IDLE);//READY | IDLE
 wire IP_backwardCount = (LoopInsnClose & ~dataIsZeroed); //backward direction for ']' & nonZero
 
+assign RomWriteData = InsnIn;
+
 
 parameter [2:0]
     IDLE      =  3'd0,
@@ -126,6 +132,7 @@ parameter [2:0]
     ROM_READ  =  3'd2,
     LOOP_COUNT = 3'd3,
     READY     =  3'd4,
+    RAM_WRITE =  3'd5,
     HALT      =  3'd7;
 
 reg [2:0] state;
@@ -138,6 +145,7 @@ always @(posedge Clk, negedge Rst_n) begin
         Loop_Request <= 1'b0;
         Loop_Dec <= 1'b0;
         RomRequest <= 1'b0;
+        RomWE <= 1'b0;
         state <= IDLE;
     end
     else begin
@@ -168,6 +176,15 @@ always @(posedge Clk, negedge Rst_n) begin
                 if (IP_Ready) begin
                     state <= ROM_READ;
                     RomRequest <= 1'b1;
+                end
+            end
+            RAM_WRITE: begin
+                RomRequest <= 1'b0;
+                RomWE <= 1'b0;
+                if (RomReady) begin
+                    state <= IP_COUNT;
+                    IP_Request <= 1'b1;
+                    IP_Dec <= 1'b0;
                 end
             end
             ROM_READ: begin
