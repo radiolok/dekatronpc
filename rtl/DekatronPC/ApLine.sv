@@ -131,6 +131,8 @@ always @(posedge Clk, negedge Rst_n) begin
                     end                    
                 end
                 if (DataRequest & ram_rdy_i) begin
+                    Dec_Request <= Dec;
+                    Zero_Request <= Zero;
                     if (Cin) begin
                         currentState <= CIN;
                         DataCounterSet <= 1'b1;
