@@ -1,6 +1,6 @@
 module bootloader #(
 ///mnt/d/radiolok@oc.urlnn.ru/Projects/20180271-DekatronPC/vhdl/programs/bootloader/bootloader.bfk
-parameter portSize = 4,
+parameter portSize = 8,
 parameter dataSize = 4)(
 /* verilator lint_off UNUSEDSIGNAL */
 input wire [portSize-1:0] Address,
@@ -10,15 +10,19 @@ output reg [dataSize-1:0] Data
 always_comb
 /* verilator lint_off WIDTHEXPAND */
   case(Address)
-    4'h0: Data = 4'he; //D 
-    4'h1: Data = 4'hb; //A 
-    4'h2: Data = 4'ha; //0 
-    4'h3: Data = 4'h5; //< 
-    4'h4: Data = 4'h6; //{ 
-    4'h5: Data = 4'h5; //< 
-    4'h6: Data = 4'ha; //0 
-    4'h7: Data = 4'h7; //} 
-    default: Data = {dataSize{1'bx}};
+    8'h00: Data = 4'he; //D 
+    8'h01: Data = 4'hb; //A 
+    8'h02: Data = 4'ha; //0
+    8'h03: Data = 4'hF; //B
+    8'h04: Data = 4'h5; //< 
+    8'h05: Data = 4'he; //D 
+    8'h06: Data = 4'h6; //{ 
+    8'h07: Data = 4'ha; //0 
+    8'h08: Data = 4'hF; //B
+    8'h09: Data = 4'h5; //< 
+    8'h10: Data = 4'he; //D 
+    8'h11: Data = 4'h7; //} 
+    default: Data = {dataSize{1'b0}};
   endcase
 
 /* verilator lint_on WIDTHEXPAND */
