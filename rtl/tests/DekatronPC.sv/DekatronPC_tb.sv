@@ -21,7 +21,10 @@ ClockDivider #(
 reg [INSN_WIDTH-1:0] insnMem [0:255];
 reg [INSN_WIDTH-1:0] insnIn;
 reg [7:0] insnInputAddr;
+reg [7:0] nextInsnInputAddr;
 wire insnInputReady;
+
+assign nextInsnInputAddr = insnInputAddr + 1'b1;
 
 initial begin
     $readmemh("../load_firmware.hex", insnMem);
@@ -33,8 +36,8 @@ always_ff @(posedge Clk or negedge Rst_n) begin
         insnIn <= insnMem[8'b0];
     end
     else if (insnInputReady) begin
-        insnIn <= insnMem[insnInputAddr];
-        insnInputAddr <= insnInputAddr + 1'b1;
+        insnIn <= insnMem[nextInsnInputAddr];
+        insnInputAddr <= nextInsnInputAddr;
     end
 end
 
