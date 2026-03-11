@@ -23,6 +23,7 @@ module InsnDecoder(
     output reg ApLineZero,
     output reg IpRequest,
     output reg DataRequest,
+    output reg InsnMode,
 
     output reg tx_vld,
     input wire tx_rdy,
@@ -46,7 +47,6 @@ assign LoopValZero = InsnMode ? DataZero : ApZero;
 
 reg OneStep;
 reg Echo;
-reg InsnMode;
 
 parameter [2:0]
     IDLE    =  3'b001,
@@ -103,9 +103,6 @@ always @(posedge Clk, negedge Rst_n) begin
                         //5'h03: //INSN_RES1
                         //5'h04: //INSN_RES2
                         //5'h05: //INSN_RES3
-                        5'h05: begin // INSN_SOT
-                            
-                        end
                         5'h?6: begin //[ { 
                             if (LoopValZero) begin
                                 IpRequest <= 1'b1;

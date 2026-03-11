@@ -33,9 +33,7 @@ module DekatronPC (
     output logic [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
     output logic [2:0] state,
     input logic [INSN_WIDTH - 1:0] InsnIn,
-    /* verilator lint_off UNUSEDSIGNAL */
     input logic InsnInValid,
-    /* verilator lint_on UNUSEDSIGNAL */
     output logic InsnInReady,
     output logic [INSN_WIDTH - 1:0] Insn,
 
@@ -47,8 +45,6 @@ module DekatronPC (
 
 logic Rst_n;
 assign Rst_n = SoftRst_n & HardRst_n;
-
-assign InsnInReady = 1'b0;
 
 logic IpRequest;
 logic IpLineReady;
@@ -68,6 +64,8 @@ logic ApLineCin;
 
 logic LoopValZero;
 logic IsHalted;
+
+logic InsnMode;
 
 logic RomRequest;
 logic RomReady;
@@ -180,8 +178,11 @@ IpLine ipLine(
     .RomRequest(RomRequest),
     .RomReady(RomReady),
     .RomData(RomData),
+    .InsnMode(InsnMode),
     .key_next_app_i(key_next_app_i),
     .InsnIn(InsnIn),
+    .InsnInValid(InsnInValid),
+    .InsnInReady(InsnInReady),
     .RomWriteData(RomWriteData),
     .RomWE(RomWE),
 	.Insn(Insn)
@@ -224,6 +225,7 @@ InsnDecoder insnDecoder(
     .ApLineCin(ApLineCin),
     .ApLineZero(ApLineZero),
     .DataRequest(DataRequest),
+    .InsnMode(InsnMode),
 
     .tx_vld(tx_vld),
     .tx_rdy(tx_rdy),

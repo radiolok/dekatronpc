@@ -17,6 +17,27 @@ ClockDivider #(
 	.clock_in(hsClk),
 	.clock_out(Clk)
 );
+
+reg [INSN_WIDTH-1:0] insnMem [0:255];
+reg [INSN_WIDTH-1:0] insnIn;
+reg [7:0] insnInputAddr;
+wire insnInputReady;
+
+initial begin
+    $readmemh("../load_firmware.hex", insnMem);
+end
+
+always_ff @(posedge Clk or negedge Rst_n) begin
+    if (~Rst_n) begin
+        insnInputAddr <= '0;
+        insnIn <= insnMem[8'b0];
+    end
+    else if (insnInputReady) begin
+        insnIn <= insnMem[insnInputAddr];
+        insnInputAddr <= insnInputAddr + 1'b1;
+    end
+end
+
 parameter TEST_NUM=20000;
 reg [$clog2(TEST_NUM):0] test_num=TEST_NUM;
 wire [2:0] state;
@@ -30,7 +51,10 @@ DekatronPC  dekatronPC(
     .Run(Run),
     .Halt(1'b0),
     .Step(1'b0),
-    .state(state)
+    .state(state),
+    .InsnIn(insnIn),
+    .InsnInValid(1'b1),
+    .InsnInReady(insnInputReady)
 );
 initial begin 
     $dumpfile("DekatronPC_tb.vcd"); 
@@ -38,6 +62,7 @@ initial begin
 end
 
 initial begin 
+insnInputAddr <= 0;
 Run <= 0;
 Rst_n <= 0;
 

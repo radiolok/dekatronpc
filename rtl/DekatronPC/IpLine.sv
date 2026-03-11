@@ -16,9 +16,13 @@ module IpLine (
     input wire RomReady,
     input wire [INSN_WIDTH-1:0] RomData,
 
-    input logic [INSN_WIDTH - 1:0] InsnIn,
-    output logic [INSN_WIDTH - 1:0] RomWriteData,
-    output logic RomWE,
+    input wire InsnMode,
+    input wire [INSN_WIDTH - 1:0] InsnIn,
+    input wire InsnInValid,
+    output reg InsnInReady,
+
+    output wire [INSN_WIDTH - 1:0] RomWriteData,
+    output reg RomWE,
 
     output reg[INSN_WIDTH-1:0] Insn
 );
@@ -88,6 +92,18 @@ InsnLoopDetector insnLoopDetector(
     .LoopClose(LoopInsnClose)
 );
 
+wire StartOfTransmission;
+/* verilator lint_off UNUSEDSIGNAL */
+wire EndOfTransmission;
+/* verilator lint_on UNUSEDSIGNAL */
+
+InsnTransmissionDetector insnTransmissionDetector(
+    .InsnMode(InsnMode),
+    .Insn(RomData),
+    .StartOfTransmission(StartOfTransmission),
+    .EndOfTransmission(EndOfTransmission)
+);
+
 reg Loop_Request;
 reg Loop_Dec;
 wire Loop_Zero;
@@ -123,8 +139,9 @@ DekatronCounter  #(
 assign Ready = ~Request & (state == IDLE);//READY | IDLE
 wire IP_backwardCount = (LoopInsnClose & ~dataIsZeroed); //backward direction for ']' & nonZero
 
-assign RomWriteData = InsnIn;
-
+reg insnLoading;
+reg [INSN_WIDTH-1:0] InsnInInternal;
+assign RomWriteData = InsnInInternal;
 
 parameter [2:0]
     IDLE      =  3'd0,
@@ -132,7 +149,8 @@ parameter [2:0]
     ROM_READ  =  3'd2,
     LOOP_COUNT = 3'd3,
     READY     =  3'd4,
-    RAM_WRITE =  3'd5,
+    INSN_READ =  3'd5,
+    RAM_WRITE =  3'd6,
     HALT      =  3'd7;
 
 reg [2:0] state;
@@ -147,6 +165,9 @@ always @(posedge Clk, negedge Rst_n) begin
         RomRequest <= 1'b0;
         RomWE <= 1'b0;
         state <= IDLE;
+        InsnInReady <= 1'b0;
+        InsnInInternal <= {(INSN_WIDTH){1'b0}};
+        insnLoading <= 1'b0;
     end
     else begin
         case (state)
@@ -163,8 +184,10 @@ always @(posedge Clk, negedge Rst_n) begin
                             Loop_Request <= 1'b1;
                             state <= LOOP_COUNT;
                         end
-                        else
+                        else begin
+                            
                             state <= IP_COUNT;
+                        end
                     end
                     else begin//Only for IP=0
                         state <= ROM_READ;
@@ -174,8 +197,30 @@ always @(posedge Clk, negedge Rst_n) begin
             IP_COUNT: begin
                 IP_Request <= 1'b0;
                 if (IP_Ready) begin
-                    state <= ROM_READ;
-                    RomRequest <= 1'b1;
+                    if (insnLoading) begin
+                        state <= INSN_READ;
+                        InsnInReady <= 1'b1;
+                    end
+                    else begin
+                        state <= ROM_READ;
+                        RomRequest <= 1'b1;
+                    end
+                end
+            end
+            INSN_READ: begin
+                if (InsnInValid) begin
+                    InsnInReady <= 1'b0;
+                    if (InsnIn == 4'b0100) begin
+                        insnLoading <= 1'b0;
+                        state <= ROM_READ;
+                        RomRequest <= 1'b1;
+                    end
+                    else begin
+                        InsnInInternal <= InsnIn;
+                        RomRequest <= 1'b1;
+                        RomWE <= 1'b1;
+                        state <= RAM_WRITE;
+                    end
                 end
             end
             RAM_WRITE: begin
@@ -191,7 +236,15 @@ always @(posedge Clk, negedge Rst_n) begin
                     RomRequest <= 1'b0;
                     if (RomReady) begin
                         if (Loop_Zero) begin
-                            state <= READY;
+                            if (StartOfTransmission) begin
+                                insnLoading <= 1'b1;
+                                state <= IP_COUNT;
+                                IP_Request <= 1'b1;
+                                IP_Dec <= 1'b0;
+                            end
+                            else begin
+                                state <= READY;
+                            end
                         end
                         else begin
                             if (LoopInsnOpenInternal | LoopInsnCloseInternal) begin
