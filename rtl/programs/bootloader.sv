@@ -7,6 +7,17 @@ input wire [portSize-1:0] Address,
 /* verilator lint_on UNUSEDSIGNAL */
 output reg [dataSize-1:0] Data
 );
+
+`ifndef SYNTH
+always_comb
+/* verilator lint_off WIDTHEXPAND */
+  case(Address)
+    8'h98: Data = 4'he; // D
+    8'h99: Data = 4'h5; // S
+    default: Data = {dataSize{1'b0}};
+  endcase
+/* verilator lint_on WIDTHEXPAND */
+`else
 always_comb
 /* verilator lint_off WIDTHEXPAND */
   case(Address)
@@ -25,6 +36,7 @@ always_comb
     8'h12: Data = 4'hF; //B 
     default: Data = {dataSize{1'b0}};
   endcase
-
 /* verilator lint_on WIDTHEXPAND */
+`endif
+
 endmodule

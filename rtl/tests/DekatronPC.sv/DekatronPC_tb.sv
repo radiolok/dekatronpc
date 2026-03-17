@@ -47,8 +47,8 @@ wire [2:0] state;
 wire IsHalted;
 assign IsHalted = state == 3'b100;
 DekatronPC  dekatronPC(
-    .SoftRst_n(Rst_n),
-    .HardRst_n(1'b1),
+    .SoftRst_n(1'b1),
+    .HardRst_n(Rst_n),
     .hsClk(hsClk),
     .Clk(Clk),
     .Run(Run),
