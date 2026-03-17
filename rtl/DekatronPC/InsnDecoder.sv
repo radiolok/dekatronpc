@@ -24,6 +24,8 @@ module InsnDecoder(
     output reg IpRequest,
     output reg DataRequest,
     output reg InsnLoading,
+    
+    output reg RstReq,
 
     output reg tx_vld,
     input wire tx_rdy,
@@ -36,7 +38,8 @@ module InsnDecoder(
     //==========================================================================
 //         Switch panel section
 //==========================================================================
-    input wire EchoMode//When turned on, Symbol from CIN is printed to Cout
+    input wire EchoMode, //When turned on, Symbol from CIN is printed to Cout
+    input wire SoftRstOnEOT
 );
 
 assign IsHalted = (state == HALT);
@@ -62,6 +65,7 @@ always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
         tx_vld <= 1'b0;
         Echo <= 1'b0;
+        RstReq <= 1'b0;
         InsnLoading <= 1'b0;
         IpRequest <= 1'b0;
         ApLineDec <= 1'b0;
@@ -106,6 +110,10 @@ always @(posedge Clk, negedge Rst_n) begin
                         5'h04: begin // INSN_EOT
                             InsnLoading <= 1'b0;
                             IpRequest <= 1'b1;
+
+                            if (SoftRstOnEOT) begin
+                                RstReq <= 1'b1;
+                            end
                         end
                         5'h05: begin // INSN_SOT
                             InsnLoading <= 1'b1;

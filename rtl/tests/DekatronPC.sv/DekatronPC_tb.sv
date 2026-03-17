@@ -27,7 +27,7 @@ wire insnInputReady;
 assign nextInsnInputAddr = insnInputAddr + 1'b1;
 
 initial begin
-    $readmemh("../load_firmware.hex", insnMem);
+    $readmemh("../firmware.hex", insnMem);
 end
 
 always_ff @(posedge Clk or negedge Rst_n) begin
@@ -61,7 +61,7 @@ DekatronPC  dekatronPC(
 
     .RunOnHardRst(1'b0),
     .RunOnSoftRst(1'b0),
-    .SoftRstOnEOT(1'b0)
+    .SoftRstOnEOT(1'b1)
 );
 initial begin 
     $dumpfile("DekatronPC_tb.vcd"); 
@@ -75,6 +75,14 @@ Rst_n <= 0;
 
 #5 
 Rst_n <= 1;
+#100
+Run <= 1;
+#100
+Run <= 0;
+
+repeat(1) @(posedge IsHalted)
+
+// After EOT
 #100
 Run <= 1;
 #100

@@ -112,7 +112,7 @@ if [ ${sim} -ne 0 ]; then
 
 	./emul ApLine
 
-	./emul DekatronPC ${root_dir}/programs/bootloader.bfk
+	./emul DekatronPC ${root_dir}/programs/helloworld.bfk
 
 	bf_file=${root_dir}/programs/helloworld.bfk
 	g++ -o dpcrun -DEXEC ${root_dir}/tests/DekatronPC.sv/dpcrun.cpp

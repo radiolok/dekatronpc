@@ -48,8 +48,14 @@ module DekatronPC (
     /* verilator lint_on UNUSEDSIGNAL */
 );
 
+logic RstExtern_n;
+assign RstExtern_n = SoftRst_n & HardRst_n;
+
+logic RstReq;
+logic RstReqLong;
+
 logic Rst_n;
-assign Rst_n = SoftRst_n & HardRst_n;
+assign Rst_n = RstExtern_n & ~RstReqLong;
 
 logic IpRequest;
 logic IpLineReady;
@@ -232,6 +238,8 @@ InsnDecoder insnDecoder(
     .DataRequest(DataRequest),
     .InsnLoading(InsnLoading),
 
+    .RstReq(RstReq),
+
     .tx_vld(tx_vld),
     .tx_rdy(tx_rdy),
     .rx_vld(rx_vld),
@@ -248,7 +256,17 @@ InsnDecoder insnDecoder(
     .Run(Run),
 
     .EchoMode(EchoMode),
+    .SoftRstOnEOT(SoftRstOnEOT),
     .IsHalted(IsHalted)
+);
+
+OneShot #(
+    .DELAY(16)
+) rstOneShot (
+    .Clk(Clk),
+    .Rst_n(RstExtern_n),
+    .En(RstReq),
+    .Impulse(RstReqLong)
 );
 
 endmodule
