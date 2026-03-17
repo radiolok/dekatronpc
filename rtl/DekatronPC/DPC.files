@@ -3,7 +3,6 @@
 ../DekatronPC/IpLine.sv
 ../DekatronPC/ApLine.sv
 ../DekatronPC/InsnLoopDetector.sv
-../DekatronPC/InsnTransmissionDetector.sv
 ../DekatronPC/Dekatron/BcdToBin.v
 ../DekatronPC/Dekatron/BinToBcd.v
 ../DekatronPC/Dekatron/Dekatron.sv
