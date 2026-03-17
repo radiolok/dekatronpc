@@ -18,7 +18,7 @@ module IpLine (
     input wire RomReady,
     input wire [INSN_WIDTH-1:0] RomData,
 
-    input wire InsnMode,
+    input wire InsnLoading,
     input wire [INSN_WIDTH - 1:0] InsnIn,
     input wire InsnInValid,
     output reg InsnInReady,
@@ -129,14 +129,11 @@ DekatronCounter  #(
 assign Ready = ~Request & (state == IDLE);//READY | IDLE
 wire IP_backwardCount = (LoopInsnClose & ~dataIsZeroed); //backward direction for ']' & nonZero
 
-reg InsnLoading;
 reg [INSN_WIDTH-1:0] InsnInInternal;
 assign RomWriteData = InsnInInternal;
 
-wire StartOfTransmission;
 wire EndOfTransmission;
-assign StartOfTransmission = { InsnMode, RomData } == INSN_SOT;
-assign EndOfTransmission = { InsnMode, InsnIn } == INSN_EOT;
+assign EndOfTransmission = { 1'b0, InsnIn } == INSN_EOT;
 
 parameter [2:0]
     IDLE      =  3'd0,
@@ -162,7 +159,6 @@ always @(posedge Clk, negedge Rst_n) begin
         state <= IDLE;
         InsnInReady <= 1'b0;
         InsnInInternal <= {(INSN_WIDTH){1'b0}};
-        InsnLoading <= 1'b0;
     end
     else begin
         case (state)
@@ -204,13 +200,11 @@ always @(posedge Clk, negedge Rst_n) begin
             INSN_READ: begin
                 if (InsnInValid) begin
                     InsnInReady <= 1'b0;
+                    InsnInInternal <= InsnIn;
                     if (EndOfTransmission) begin
-                        InsnLoading <= 1'b0;
-                        state <= ROM_READ;
-                        RomRequest <= 1'b1;
+                        state <= READY;
                     end
                     else begin
-                        InsnInInternal <= InsnIn;
                         RomRequest <= 1'b1;
                         RomWE <= 1'b1;
                         state <= RAM_WRITE;
@@ -230,15 +224,7 @@ always @(posedge Clk, negedge Rst_n) begin
                     RomRequest <= 1'b0;
                     if (RomReady) begin
                         if (Loop_Zero) begin
-                            if (StartOfTransmission) begin
-                                InsnLoading <= 1'b1;
-                                state <= IP_COUNT;
-                                IP_Request <= 1'b1;
-                                IP_Dec <= 1'b0;
-                            end
-                            else begin
-                                state <= READY;
-                            end
+                            state <= READY;
                         end
                         else begin
                             if (LoopInsnOpenInternal | LoopInsnCloseInternal) begin
@@ -266,7 +252,7 @@ always @(posedge Clk, negedge Rst_n) begin
                 end
             end
             READY: begin
-                Insn <= RomData;
+                Insn <= InsnLoading ? InsnInInternal : RomData;
                 if (~Request) begin
                     state <= IDLE;
                 end

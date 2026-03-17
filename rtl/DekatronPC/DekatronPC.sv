@@ -40,7 +40,12 @@ module DekatronPC (
 //==========================================================================
 //         Switch panel section
 //==========================================================================
-    input logic EchoMode//When turned on, Symbol from CIN is printed to Cout
+    input logic EchoMode,//When turned on, Symbol from CIN is printed to Cout
+    /* verilator lint_off UNUSEDSIGNAL */
+    input logic RunOnHardRst,
+    input logic RunOnSoftRst,
+    input logic SoftRstOnEOT
+    /* verilator lint_on UNUSEDSIGNAL */
 );
 
 logic Rst_n;
@@ -65,7 +70,7 @@ logic ApLineCin;
 logic LoopValZero;
 logic IsHalted;
 
-logic InsnMode;
+logic InsnLoading;
 
 logic RomRequest;
 logic RomReady;
@@ -178,7 +183,7 @@ IpLine ipLine(
     .RomRequest(RomRequest),
     .RomReady(RomReady),
     .RomData(RomData),
-    .InsnMode(InsnMode),
+    .InsnLoading(InsnLoading),
     .key_next_app_i(key_next_app_i),
     .InsnIn(InsnIn),
     .InsnInValid(InsnInValid),
@@ -225,7 +230,7 @@ InsnDecoder insnDecoder(
     .ApLineCin(ApLineCin),
     .ApLineZero(ApLineZero),
     .DataRequest(DataRequest),
-    .InsnMode(InsnMode),
+    .InsnLoading(InsnLoading),
 
     .tx_vld(tx_vld),
     .tx_rdy(tx_rdy),

@@ -57,7 +57,11 @@ DekatronPC  dekatronPC(
     .state(state),
     .InsnIn(insnIn),
     .InsnInValid(1'b1),
-    .InsnInReady(insnInputReady)
+    .InsnInReady(insnInputReady),
+
+    .RunOnHardRst(1'b0),
+    .RunOnSoftRst(1'b0),
+    .SoftRstOnEOT(1'b0)
 );
 initial begin 
     $dumpfile("DekatronPC_tb.vcd"); 

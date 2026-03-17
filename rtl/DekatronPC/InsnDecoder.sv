@@ -23,7 +23,7 @@ module InsnDecoder(
     output reg ApLineZero,
     output reg IpRequest,
     output reg DataRequest,
-    output reg InsnMode,
+    output reg InsnLoading,
 
     output reg tx_vld,
     input wire tx_rdy,
@@ -43,6 +43,7 @@ assign IsHalted = (state == HALT);
 
 //If Debug mode {} check AP 
 //In brainfuck mode [] check *AP
+reg InsnMode;
 assign LoopValZero = InsnMode ? DataZero : ApZero;
 
 reg OneStep;
@@ -61,6 +62,7 @@ always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
         tx_vld <= 1'b0;
         Echo <= 1'b0;
+        InsnLoading <= 1'b0;
         IpRequest <= 1'b0;
         ApLineDec <= 1'b0;
         ApLineCin <= 1'b0;
@@ -101,8 +103,14 @@ always @(posedge Clk, negedge Rst_n) begin
                         5'h?1: state <= HALT; //INSN_HALT
                         //5'h02: //INSN_RES0
                         //5'h03: //INSN_RES1
-                        //5'h04: //INSN_RES2
-                        //5'h05: //INSN_RES3
+                        5'h04: begin // INSN_EOT
+                            InsnLoading <= 1'b0;
+                            IpRequest <= 1'b1;
+                        end
+                        5'h05: begin // INSN_SOT
+                            InsnLoading <= 1'b1;
+                            IpRequest <= 1'b1;
+                        end
                         5'h?6: begin //[ { 
                             if (LoopValZero) begin
                                 IpRequest <= 1'b1;
