@@ -122,7 +122,7 @@ if [ ${sim} -ne 0 ]; then
 
 	#veremul ${root_dir}/DekatronPC/DPC.files ${bf_file}
 
-	veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/bootloader.bfk
+	veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/program.bfk
 
 	#veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/pi.bfk
 

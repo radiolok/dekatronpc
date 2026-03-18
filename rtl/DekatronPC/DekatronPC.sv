@@ -109,12 +109,11 @@ localparam AP_RAM_ROWS_NUM = 30000;
 localparam AP_RAM_BIN_BW = $clog2(AP_RAM_ROWS_NUM-1);
 
 logic [AP_RAM_BIN_BW-1:0] ApAddressBin;
-logic [AP_RAM_BIN_BW-1:0] ApAddressBin_Setup;
 logic [AP_RAM_BIN_BW-1:0] ApAddressBin_Cnt;
 
 logic ApRamRdy;
 
-assign ApAddressBin = (ApRamRdy) ? ApAddressBin_Cnt : ApAddressBin_Setup;
+assign ApAddressBin = ApAddressBin_Cnt;
 
 BcdToBinEnc #(
     .DIGITS(AP_DEKATRON_NUM),
@@ -133,17 +132,10 @@ BcdToBinEnc #(
     .bcd(ApAddress1),
     .bin(ApAddress1Bin)
 );
-assign ApAddressBin_Setup = '0;
-assign ApRamRdy = 1'b1;
-`else
-    `ifdef SYNTH
-    assign ApRamRdy = 1'b1;
-    assign ApAddressBin_Setup = '0;
-    `else
-    assign ApRamRdy = 1'b1;
-    assign ApAddressBin_Setup = '0;
-    `endif
 `endif
+
+assign ApRamRdy = 1'b1;
+
 RAM #(
     .ROWS(AP_RAM_ROWS_NUM),
     .ADDR_WIDTH(AP_RAM_BIN_BW),
