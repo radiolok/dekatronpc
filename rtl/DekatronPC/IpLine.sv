@@ -129,6 +129,7 @@ DekatronCounter  #(
 assign Ready = ~Request & (state == IDLE);//READY | IDLE
 wire IP_backwardCount = (LoopInsnClose & ~dataIsZeroed); //backward direction for ']' & nonZero
 
+reg LoadingInsnMode;
 reg [INSN_WIDTH-1:0] InsnInInternal;
 assign RomWriteData = InsnInInternal;
 
@@ -159,6 +160,7 @@ always @(posedge Clk, negedge Rst_n) begin
         state <= IDLE;
         InsnInReady <= 1'b0;
         InsnInInternal <= {(INSN_WIDTH){1'b0}};
+        LoadingInsnMode <= DEBUG_ISA;
     end
     else begin
         case (state)
@@ -201,7 +203,15 @@ always @(posedge Clk, negedge Rst_n) begin
                 if (InsnInValid) begin
                     InsnInReady <= 1'b0;
                     InsnInInternal <= InsnIn;
-                    if (EndOfTransmission) begin
+
+                    if (InsnIn == INSN_DEBUG[INSN_WIDTH-1:0]) begin
+                        LoadingInsnMode <= DEBUG_ISA;
+                    end
+                    else if (InsnIn == INSN_BRAINFUCK[INSN_WIDTH-1:0]) begin
+                        LoadingInsnMode <= BRAINFUCK_ISA;
+                    end
+
+                    if (LoadingInsnMode == DEBUG_ISA & EndOfTransmission) begin
                         state <= READY;
                     end
                     else begin
