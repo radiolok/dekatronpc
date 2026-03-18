@@ -1,7 +1,14 @@
+#include <cstdint>
+#include <cwctype>
+#include <fstream>
+#include <limits>
 #include <stdlib.h>
 #include <iostream>
+#include <string>
 #include <stdio.h>
 #include <ctype.h>
+#include <array>
+#include <limits>
 #include <mutex>
 #include <thread>
 #include <chrono>
@@ -441,9 +448,69 @@ uint8_t Cin(bool state, uint8_t& symbol)
     return update;
 }
 
+class InsnLoader {
+private:
+    size_t insnPtr;
+    std::array<uint8_t, 512> mem;
+    uint8_t prevClk;
+
+    uint8_t charToHex(char c) {
+        c = tolower(c);
+        
+        if (c >= '0' && c <= '9') {
+            return static_cast<uint8_t>(c - '0');
+        }
+        else if (c >= 'a' && c <= 'f') {
+            return static_cast<uint8_t>(10 + (c - 'a'));
+        }
+        else {
+            return std::numeric_limits<uint8_t>::max();
+        }
+    }
+
+    void initMemory() {
+        std::ifstream ifs("../load_firmware.hex");
+
+        size_t ptr = 0;
+        char ch = '\0';
+        while (ifs >> ch) {
+            uint8_t hexVal = charToHex(ch);
+            if (hexVal >= 16) continue;
+
+            mem[ptr++] = hexVal;
+            if (ptr >= mem.size()) {
+                break;
+            }
+        }
+
+        for (; ptr < mem.size(); ptr++) {
+            mem[ptr] = 0;
+        }
+    }
+public:
+    InsnLoader() : insnPtr(0), prevClk(0) {
+        initMemory();
+    }
+
+    void insnUpdate(uint8_t clk, uint8_t ready, uint8_t &valid, uint8_t &insnIn) {
+        valid = 1;
+        if (clk == 1 && prevClk == 0) {
+            insnIn = mem[insnPtr];
+            if (ready) {
+                insnPtr++;
+                if (insnPtr >= mem.size()) {
+                    insnPtr = 0;
+                }
+            }
+        }
+        prevClk = clk;
+    }
+};
+
 int main(int argc, char** argv, char** env) {
     VEmulator *dut = new VEmulator;
     UI *ui = new UI;
+    InsnLoader *loader = new InsnLoader;
     Verilated::traceEverOn(true);
 #ifdef SIM_COV
     Verilated::mkdir("logs");
@@ -457,6 +524,8 @@ int main(int argc, char** argv, char** env) {
     dut->KEY = 1;
     dut->FPGA_CLK_50 = 0;
     dut->selector = 0x0f;
+    dut->InsnIn = 0x04;
+    dut->InsnInValid = 0;
     initscr();
     keypad(stdscr, TRUE);
     start_color();
@@ -479,6 +548,7 @@ int main(int argc, char** argv, char** env) {
         if (sim_time == 20){
             dut->KEY = 1;
         }
+        loader->insnUpdate(dut->Clock_1MHz, dut->InsnInReady, dut->InsnInValid, dut->InsnIn);
         dut->eval();
     #ifdef SIM_TRACE
         if (sim_time < MAX_SIM_TIME)
@@ -498,6 +568,7 @@ int main(int argc, char** argv, char** env) {
         ioregs->write(1, consulRin);
         ioregs->write(0, consulLin);
 #endif
+
         uint8_t needUpdate = 0;
         ui->keyboardUpdate(dut->keyboard_write, dut->emulData, dut->keyboard_data_in);
         needUpdate += ui->in12AnodeUpdate(dut->in12_write_anode, dut->emulData);
@@ -522,6 +593,7 @@ int main(int argc, char** argv, char** env) {
     endwin();
     delete dut;
     delete ui;
+    delete loader;
 #ifdef CONSUL
     delete ioregs;
     delete consul;

@@ -77,7 +77,9 @@ bf_file="${bf_file} ${root_dir}/programs/rot13.bfk"
 bf_file="${bf_file} ${root_dir}/programs/triangle.bfk"
 bf_file="${bf_file} ${root_dir}/programs/fractal.bfk"
 python ${root_dir}/run/generate_rom.py -f ${bf_file} -o ${root_dir}/firmware.hex --hex --pack
-#python ${root_dir}/run/generate_rom.py -f ${bf_file} -o ${root_dir}/firmware.sv
+
+bf_file="${root_dir}/programs/program.bfk"
+python ${root_dir}/run/generate_rom.py -f ${bf_file} -o ${root_dir}/load_firmware.hex --hex
 
 CONSUL=""
 if [ ${consul} -ne 0 ]; then

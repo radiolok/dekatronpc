@@ -105,6 +105,10 @@ module Emulator #(
     output logic [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
     output logic [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
     output logic [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd,
+    
+    input logic [INSN_WIDTH-1:0] InsnIn,
+    input logic InsnInValid,
+    output logic InsnInReady,
 `endif
 
     output logic [2:0] DPC_currentState
@@ -134,11 +138,13 @@ logic keyNextApp;
 logic Rst_n;
 logic SoftRst_n;
 logic HardRst_n;
+logic SoftRstOnEOT;
 
 assign keyHalt = keysCurrentState[KEYBOARD_HALT_KEY];
 assign keyRun = keysCurrentState[KEYBOARD_RUN_KEY];
 assign keyStep = keysCurrentState[KEYBOARD_STEP_KEY];
 assign keyNextApp = keysCurrentState[KEYBOARD_NONAME_KEY];
+assign SoftRstOnEOT = 1'b1;
 
 assign SoftRst_n = ~keysCurrentState[KEYBOARD_SOFT_RST_KEY];
 assign HardRst_n = KEY[0] & ~keysCurrentState[KEYBOARD_HARD_RST];
@@ -147,8 +153,20 @@ assign Rst_n = SoftRst_n & HardRst_n;
 logic Clock_10MHz;
 /* verilator lint_off UNUSEDSIGNAL */
 logic [INSN_WIDTH - 1:0] Insn;
-logic InsnInReady;
 /* verilator lint_on UNUSEDSIGNAL */
+
+logic [INSN_WIDTH - 1:0] InsnInInternal;
+logic InsnInReadyInternal;
+logic InsnInValidInternal;
+
+`ifdef VERILATOR
+assign InsnInInternal = InsnIn;
+assign InsnInValidInternal = InsnInValid;
+assign InsnInReady = InsnInReadyInternal;
+`else
+assign InsnInInternal = '0;
+assign InsnInValidInternal = '0;
+`endif
 
 generate
     if (DIVIDE_TO_01US == 1) begin : clock_emulator
@@ -217,13 +235,13 @@ DekatronPC dekatronPC(
     .HardRst_n(HardRst_n),
     .Halt(keyHalt),
     .Run(keyRun),
-    .InsnIn(4'b0),
-    .InsnInValid(1'b0),
-    .InsnInReady(InsnInReady),
+    .InsnIn(InsnInInternal),
+    .InsnInValid(InsnInValidInternal),
+    .InsnInReady(InsnInReadyInternal),
     .EchoMode(EchoMode),
     .RunOnHardRst(1'b0),
     .RunOnSoftRst(1'b0),
-    .SoftRstOnEOT(1'b0),
+    .SoftRstOnEOT(SoftRstOnEOT),
     .tx_data_bcd(tx_data_bcd),
     .tx_vld(tx_vld),
     .tx_rdy(tx_rdy),
