@@ -61,7 +61,9 @@ DekatronPC  dekatronPC(
 
     .RunOnHardRst(1'b0),
     .RunOnSoftRst(1'b0),
-    .SoftRstOnEOT(1'b1)
+    .SoftRstOnEOT(1'b1),
+
+    .tx_rdy(1'b1)
 );
 initial begin 
     $dumpfile("DekatronPC_tb.vcd"); 

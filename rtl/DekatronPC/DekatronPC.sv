@@ -140,21 +140,8 @@ assign ApRamRdy = 1'b1;
     assign ApRamRdy = 1'b1;
     assign ApAddressBin_Setup = '0;
     `else
-    //This is a Memory cleanup for FPGA
-    always @(posedge Clk, negedge Rst_n) begin
-        if (~Rst_n) begin
-            ApRamRdy <= 1'b0;
-            ApAddressBin_Setup <= AP_RAM_ROWS_NUM - 1;
-        end else begin
-            if (~ApRamRdy) begin
-                if (ApAddressBin_Setup == 0) begin
-                    ApRamRdy <= 1;
-                end else begin
-                    ApAddressBin_Setup <= ApAddressBin_Setup - 1;
-                end
-            end
-        end
-    end
+    assign ApRamRdy = 1'b1;
+    assign ApAddressBin_Setup = '0;
     `endif
 `endif
 RAM #(
@@ -171,7 +158,7 @@ RAM #(
     .Address1(ApAddress1Bin),
     .Out1(ApData1),
 `endif
-    .WE(ApRamWE | ~ApRamRdy),
+    .WE(ApRamWE),
     .CS(ApRamCS)
 );
 
