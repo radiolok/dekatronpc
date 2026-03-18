@@ -1,7 +1,8 @@
 /* verilator lint_off DECLFILENAME */
 module OneShot #(
     parameter DELAY=1'b1,
-    parameter WIDTH=$clog2(DELAY)
+    parameter WIDTH=$clog2(DELAY),
+    parameter IMP_ON_EN = 1'b1
 )(
     input Clk,
     input En,
@@ -11,7 +12,15 @@ module OneShot #(
 `ifndef SYNTH
 localparam DELAY_COMP=DELAY-1;
 reg [WIDTH:0] count;
-assign Impulse = (|count) | En;
+
+generate;
+    if (IMP_ON_EN) begin : gen_imp_on_en_en
+        assign Impulse = (|count) | En;
+    end
+    else begin : gen_imp_on_en_dis
+        assign Impulse = (|count);
+    end
+endgenerate
 
 always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin

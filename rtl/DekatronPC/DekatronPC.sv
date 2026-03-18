@@ -248,7 +248,8 @@ InsnDecoder insnDecoder(
 );
 
 OneShot #(
-    .DELAY(16)
+    .DELAY(16),
+    .IMP_ON_EN(1'b0)
 ) rstOneShot (
     .Clk(Clk),
     .Rst_n(RstExtern_n),

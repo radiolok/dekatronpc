@@ -85,7 +85,7 @@ Run <= 0;
 repeat(1) @(posedge IsHalted)
 
 // After EOT
-#100
+#600
 Run <= 1;
 #100
 Run <= 0;
