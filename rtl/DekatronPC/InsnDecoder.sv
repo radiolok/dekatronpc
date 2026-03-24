@@ -135,7 +135,7 @@ always @(posedge Clk, negedge Rst_n) begin
                             //5'h03: //INSN_RES1
                             5'h05: begin // INSN_SOT
                                 InsnLoading <= 1'b1;
-                                IpRequest <= 1'b1;
+                                state <= EXEC;
                             end
                             5'h?6: begin //[ { 
                                 if (LoopValZero) begin
