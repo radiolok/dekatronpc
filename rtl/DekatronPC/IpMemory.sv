@@ -80,9 +80,12 @@ assign Ready = ~Request & (state == READY);
 assign InsnOut = (isBootloader) ? RomOutReg : RamOutReg;
 
 reg [INSN_WIDTH-1:0] Mem [0:ROWS-1];
+
+`ifdef IPMEMFILE
 initial begin
     $readmemh("../firmware.hex", Mem);
 end
+`endif
 
 bootloader #(
     .portSize(ROM_DEKATRONS*DEKATRON_WIDTH)

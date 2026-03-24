@@ -8,5 +8,5 @@ if [ $# -ge 2 ]; then
     file=${2}
     python3 ${script_dir}/../run/generate_rom.py -f ${file} -o ${script_dir}/../firmware.hex --hex
 fi
-iverilog -g2012 -o ${1}UT -s ${1}_tb ${script_dir}/../tests/${1}.sv/${1}_tb.sv $DPCfiles
+iverilog -g2012 -o ${1}UT -DIPMEMFILE -s ${1}_tb ${script_dir}/../tests/${1}.sv/${1}_tb.sv $DPCfiles
 ./${1}UT

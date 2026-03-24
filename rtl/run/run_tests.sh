@@ -81,7 +81,7 @@ veremul() {
 
 	python3 ${root_dir}/run/generate_rom.py -f ${bf_file} -o ${root_dir}/firmware.hex --hex
 	verilator -Wall ${COVERAGE} ${TRACE} --top DekatronPC --cc ${files} \
-	../libdpcrun.a  -DEMULATOR=1\
+	../libdpcrun.a  -DEMULATOR=1 -DIPMEMFILE\
 	--timescale 1us/1ns \
 	--exe ${root_dir}/tests/DekatronPC.sv/DekatronPC_tb.cpp  -LDFLAGS -lncurses
 
@@ -120,7 +120,7 @@ if [ ${sim} -ne 0 ]; then
 	g++ -c ${root_dir}/tests/DekatronPC.sv/dpcrun.cpp
 	ar rvs libdpcrun.a dpcrun.o
 
-	#veremul ${root_dir}/DekatronPC/DPC.files ${bf_file}
+	veremul ${root_dir}/DekatronPC/DPC.files ${bf_file}
 
 	veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/program.bfk
 
