@@ -23,6 +23,7 @@ module InsnDecoder(
     output reg ApLineZero,
     output reg IpRequest,
     output reg DataRequest,
+    output reg InsnMode,
     output reg InsnLoading,
     
     output reg RstReq,
@@ -46,7 +47,6 @@ assign IsHalted = (state == HALT);
 
 //If Debug mode {} check AP 
 //In brainfuck mode [] check *AP
-reg InsnMode;
 assign LoopValZero = InsnMode ? DataZero : ApZero;
 
 reg OneStep;
@@ -95,99 +95,116 @@ always @(posedge Clk, negedge Rst_n) begin
                 IpRequest <= 1'b0;
                 tx_vld <= 1'b0;
                 if (IpLineReady) begin
-                    casez ({InsnMode,Insn})
-                        5'h?0: begin
-                            if (OneStep) begin
-                                state <= HALT;
-                            end
-                            else begin
-                                state <= IDLE;  //INSN_NOP
-                            end
-                        end
-                        5'h?1: state <= HALT; //INSN_HALT
-                        //5'h02: //INSN_RES0
-                        //5'h03: //INSN_RES1
-                        5'h04: begin // INSN_EOT
-                            InsnLoading <= 1'b0;
+                    if (InsnLoading) begin
+                        casez({InsnMode,Insn})
+                            5'h04: begin // INSN_EOT
+                                InsnLoading <= 1'b0;
 
-                            if (SoftRstOnEOT) begin
-                                RstReq <= 1'b1;
+                                if (SoftRstOnEOT) begin
+                                    RstReq <= 1'b1;
+                                end
+                                else begin
+                                    IpRequest <= 1'b1;
+                                end
                             end
-                            else begin
+                            5'h?E: begin //INSN_DEBUG
+                                InsnMode <= DEBUG_ISA;
+                                state <= EXEC;
+                            end
+                            5'h?F: begin //INSN_BRAINFUCK
+                                InsnMode <= BRAINFUCK_ISA;
+                                state <= EXEC;
+                            end
+                            default: begin
+                                state <= EXEC;
+                            end
+                        endcase
+                    end
+                    else begin
+                        casez ({InsnMode,Insn})
+                            5'h?0: begin
+                                if (OneStep) begin
+                                    state <= HALT;
+                                end
+                                else begin
+                                    state <= IDLE;  //INSN_NOP
+                                end
+                            end
+                            5'h?1: state <= HALT; //INSN_HALT
+                            //5'h02: //INSN_RES0
+                            //5'h03: //INSN_RES1
+                            5'h05: begin // INSN_SOT
+                                InsnLoading <= 1'b1;
                                 IpRequest <= 1'b1;
                             end
-                        end
-                        5'h05: begin // INSN_SOT
-                            InsnLoading <= 1'b1;
-                            IpRequest <= 1'b1;
-                        end
-                        5'h?6: begin //[ { 
-                            if (LoopValZero) begin
-                                IpRequest <= 1'b1;
+                            5'h?6: begin //[ { 
+                                if (LoopValZero) begin
+                                    IpRequest <= 1'b1;
+                                end
+                                else begin
+                                    state <= EXEC;
+                                end
                             end
-                            else begin
+                            5'h?7: begin //] }
+                                if (~LoopValZero) begin
+                                    IpRequest <= 1'b1;
+                                end
+                                else begin
+                                    state <= EXEC;
+                                end
+                            end
+                            //5'h08:  //INSN_CLRL
+                            //5'h09:  //INSN_CLRI
+                            5'h?A: begin//INSN_CLRD
+                                    ApRequest <= 1'b0;
+                                    DataRequest <= 1'b1;
+                                    ApLineZero <= 1'b1;
+                                    state <= EXEC;
+                                end 
+                            5'h0B:  begin//INSN_CLRA
+                                    ApRequest <= 1'b1;
+                                    ApLineZero <= 1'b1;
+                                    DataRequest <= 1'b0;
+                                    state <= EXEC;
+                                end 
+                            //5'h0C:  //INSN_RES4
+                            //5'h0D:  //INSN_RST
+                            5'b1001?: begin//+ -
+                                    ApRequest <= 1'b0;
+                                    DataRequest <= 1'b1;
+                                    ApLineDec <= Insn[0];
+                                    state <= EXEC;
+                                end
+                            5'b1010?:  begin//< > 
+                                    ApRequest <= 1'b1;
+                                    DataRequest <= 1'b0;
+                                    ApLineDec <= Insn[0];
+                                    state <= EXEC;
+                                end
+                            5'h18:   begin //INSN_COUT
+                                tx_vld <= 1'b1;
+                                state <= COUT;
+                            end
+                            5'h19:  begin //INSN_CIN
+                                state <= CIN;
+                            end
+                            //5'h1A:   //INSN_CLRD?
+                            //5'h1B:   //INSN_CLRML
+                            //5'h1C:   //INSN_LOAD
+                            //5'h1D:   //INSN_STORE
+                            5'h?E: begin //INSN_DEBUG
+                                InsnMode <= DEBUG_ISA;
                                 state <= EXEC;
                             end
-                        end
-                        5'h?7: begin //] }
-                            if (~LoopValZero) begin
-                                IpRequest <= 1'b1;
-                            end
-                            else begin
+                            5'h?F: begin //INSN_BRAINFUCK
+                                InsnMode <= BRAINFUCK_ISA;
                                 state <= EXEC;
                             end
-                        end
-                        //5'h08:  //INSN_CLRL
-                        //5'h09:  //INSN_CLRI
-                        5'h?A: begin//INSN_CLRD
-                                ApRequest <= 1'b0;
-                                DataRequest <= 1'b1;
-                                ApLineZero <= 1'b1;
-                                state <= EXEC;
-                            end 
-                        5'h0B:  begin//INSN_CLRA
-                                ApRequest <= 1'b1;
-                                ApLineZero <= 1'b1;
-                                DataRequest <= 1'b0;
-                                state <= EXEC;
-                            end 
-                        //5'h0C:  //INSN_RES4
-                        //5'h0D:  //INSN_RST
-                        5'b1001?: begin//+ -
-                                ApRequest <= 1'b0;
-                                DataRequest <= 1'b1;
-                                ApLineDec <= Insn[0];
+                            default: begin
                                 state <= EXEC;
                             end
-                        5'b1010?:  begin//< > 
-                                ApRequest <= 1'b1;
-                                DataRequest <= 1'b0;
-                                ApLineDec <= Insn[0];
-                                state <= EXEC;
-                            end
-                        5'h18:   begin //INSN_COUT
-                            tx_vld <= 1'b1;
-                            state <= COUT;
-                        end
-                        5'h19:  begin //INSN_CIN
-                            state <= CIN;
-                        end
-                        //5'h1A:   //INSN_CLRD?
-                        //5'h1B:   //INSN_CLRML
-                        //5'h1C:   //INSN_LOAD
-                        //5'h1D:   //INSN_STORE
-                        5'h?E: begin //INSN_DEBUG
-                            InsnMode <= DEBUG_ISA;
-                            state <= EXEC;
-                        end
-                        5'h?F: begin //INSN_BRAINFUCK
-                            InsnMode <= BRAINFUCK_ISA;
-                            state <= EXEC;
-                        end
-                        default: begin
-                            state <= EXEC;
-                        end
-                    endcase
+                        endcase
+                    end
                 end
             end
             EXEC: begin

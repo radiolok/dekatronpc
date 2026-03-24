@@ -77,6 +77,7 @@ logic LoopValZero;
 logic IsHalted;
 
 logic InsnLoading;
+logic InsnMode;
 
 logic RomRequest;
 logic RomReady;
@@ -169,6 +170,7 @@ IpLine ipLine(
     .RomReady(RomReady),
     .RomData(RomData),
     .InsnLoading(InsnLoading),
+    .InsnMode(InsnMode),
     .key_next_app_i(key_next_app_i),
     .InsnIn(InsnIn),
     .InsnInValid(InsnInValid),
@@ -216,6 +218,7 @@ InsnDecoder insnDecoder(
     .ApLineZero(ApLineZero),
     .DataRequest(DataRequest),
     .InsnLoading(InsnLoading),
+    .InsnMode(InsnMode),
 
     .RstReq(RstReq),
 

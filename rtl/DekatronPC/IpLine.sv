@@ -18,6 +18,7 @@ module IpLine (
     input wire RomReady,
     input wire [INSN_WIDTH-1:0] RomData,
 
+    input wire InsnMode,
     input wire InsnLoading,
     input wire [INSN_WIDTH - 1:0] InsnIn,
     input wire InsnInValid,
@@ -129,12 +130,11 @@ DekatronCounter  #(
 assign Ready = ~Request & (state == IDLE);//READY | IDLE
 wire IP_backwardCount = (LoopInsnClose & ~dataIsZeroed); //backward direction for ']' & nonZero
 
-reg LoadingInsnMode;
 reg [INSN_WIDTH-1:0] InsnInInternal;
 assign RomWriteData = InsnInInternal;
 
 wire EndOfTransmission;
-assign EndOfTransmission = { 1'b0, InsnIn } == INSN_EOT;
+assign EndOfTransmission = { InsnMode, InsnIn } == INSN_EOT;
 
 parameter [2:0]
     IDLE      =  3'd0,
@@ -143,7 +143,7 @@ parameter [2:0]
     LOOP_COUNT = 3'd3,
     READY     =  3'd4,
     INSN_READ =  3'd5,
-    RAM_WRITE =  3'd6,
+    ROM_WRITE =  3'd6,
     HALT      =  3'd7;
 
 reg [2:0] state;
@@ -160,7 +160,6 @@ always @(posedge Clk, negedge Rst_n) begin
         state <= IDLE;
         InsnInReady <= 1'b0;
         InsnInInternal <= {(INSN_WIDTH){1'b0}};
-        LoadingInsnMode <= DEBUG_ISA;
     end
     else begin
         case (state)
@@ -170,8 +169,8 @@ always @(posedge Clk, negedge Rst_n) begin
                     if (RomReady) begin
                         IP_Dec <= IP_backwardCount; //backward direction for ']' & nonZero
                         IP_Request <= 1'b1;
-                        if ((LoopInsnOpen & dataIsZeroed) |
-                            (LoopInsnClose & ~dataIsZeroed)) begin
+                        if (~InsnLoading & ((LoopInsnOpen & dataIsZeroed) |
+                            (LoopInsnClose & ~dataIsZeroed))) begin
                             //Let's run loopLookup
                             Loop_Dec <= 1'b0;
                             Loop_Request <= 1'b1;
@@ -204,30 +203,21 @@ always @(posedge Clk, negedge Rst_n) begin
                     InsnInReady <= 1'b0;
                     InsnInInternal <= InsnIn;
 
-                    if (InsnIn == INSN_DEBUG[INSN_WIDTH-1:0]) begin
-                        LoadingInsnMode <= DEBUG_ISA;
-                    end
-                    else if (InsnIn == INSN_BRAINFUCK[INSN_WIDTH-1:0]) begin
-                        LoadingInsnMode <= BRAINFUCK_ISA;
-                    end
-
-                    if (LoadingInsnMode == DEBUG_ISA & EndOfTransmission) begin
+                    if (EndOfTransmission) begin
                         state <= READY;
                     end
                     else begin
                         RomRequest <= 1'b1;
                         RomWE <= 1'b1;
-                        state <= RAM_WRITE;
+                        state <= ROM_WRITE;
                     end
                 end
             end
-            RAM_WRITE: begin
+            ROM_WRITE: begin
                 RomRequest <= 1'b0;
                 RomWE <= 1'b0;
                 if (RomReady) begin
-                    state <= IP_COUNT;
-                    IP_Request <= 1'b1;
-                    IP_Dec <= 1'b0;
+                    state <= READY;
                 end
             end
             ROM_READ: begin
