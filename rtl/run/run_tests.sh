@@ -128,7 +128,7 @@ if [ ${sim} -ne 0 ]; then
 
 	#veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/fractal.bfk
 
-	#veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/rot13/rot13.bfk
+	#veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/rot13.bfk
 
 	if [ ! -d vcd ]; then
 		mkdir vcd
