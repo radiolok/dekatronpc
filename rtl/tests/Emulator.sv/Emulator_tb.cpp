@@ -335,6 +335,8 @@ public:
                 break;
                 case KEY_NPAGE: keyPressed(36); break;//KEYBOARD_INC_KEY
                 case KEY_PPAGE: keyPressed(31); break;//KEYBOARD_DEC_KEY
+                case KEY_LEFT: keyPressed(21); break;//KEYBOARD_ARROW_LEFT_KEY = 21
+                case KEY_RIGHT: keyPressed(23); break;//KEYBOARD_ARROW_RIGHT_KEY = 23
                 default:
                 break;
             }

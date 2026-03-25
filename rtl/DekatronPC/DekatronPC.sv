@@ -18,6 +18,8 @@ module DekatronPC (
     input Halt,
     input Step,
     input Run,
+    input keyNextIp,
+    input keyPrevIp,
     input key_next_app_i,
 
     output logic [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
@@ -41,11 +43,9 @@ module DekatronPC (
 //         Switch panel section
 //==========================================================================
     input logic EchoMode,//When turned on, Symbol from CIN is printed to Cout
-    /* verilator lint_off UNUSEDSIGNAL */
     input logic RunOnHardRst,
     input logic RunOnSoftRst,
     input logic SoftRstOnEOT
-    /* verilator lint_on UNUSEDSIGNAL */
 );
 
 logic RstExtern_n;
@@ -171,6 +171,8 @@ IpLine ipLine(
     .RomData(RomData),
     .InsnLoading(InsnLoading),
     .InsnMode(InsnMode),
+    .keyNextIp(keyNextIp),
+    .keyPrevIp(keyPrevIp),
     .key_next_app_i(key_next_app_i),
     .InsnIn(InsnIn),
     .InsnInValid(InsnInValid),

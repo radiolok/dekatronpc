@@ -8,7 +8,12 @@ module IpLine (
     input wire HaltRq,
 
     input wire dataIsZeroed,
+
+    /* verilator lint_off UNUSEDSIGNAL */
+    input wire keyPrevIp,
+    input wire keyNextIp,
     input wire key_next_app_i,
+    /* verilator lint_on UNUSEDSIGNAL */
     input wire Request,
     output wire Ready,
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
@@ -30,29 +35,11 @@ module IpLine (
     output reg[INSN_WIDTH-1:0] Insn
 );
 
+reg IP_ReqNeedCount;
+reg IP_Move;
 reg IP_Request;
 reg IP_Dec;
 wire IP_Ready;
-
-reg [3:0] AppNum;
-reg prevApp;
-//assign IpAddress[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:(IP_DEKATRON_NUM-1)*DEKATRON_WIDTH] = AppNum;
-always @(posedge Clk, negedge Rst_n) begin
-    if (~Rst_n) begin
-        AppNum <= '0;
-        prevApp <= '0;
-    end else begin
-        if (key_next_app_i) begin
-            if (~prevApp) begin
-                AppNum <= (AppNum < 9) ?  AppNum + 4'b1 : '0;
-                prevApp <= 1'b1;
-            end
-        end
-        else begin
-            prevApp <= 1'b0;
-        end
-    end
-end
 
 DekatronCounter  #(
             .D_NUM(IP_DEKATRON_NUM),
@@ -151,8 +138,10 @@ reg [2:0] state;
 always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
         Insn <= {(INSN_WIDTH){1'b0}};
+        IP_Move <= 1'b0;
         IP_Dec <= 1'b0;
         IP_Request <= 1'b0;
+        IP_ReqNeedCount <= 1'b0;
         Loop_Request <= 1'b0;
         Loop_Dec <= 1'b0;
         RomRequest <= 1'b0;
@@ -166,7 +155,7 @@ always @(posedge Clk, negedge Rst_n) begin
             IDLE:
                 if (HaltRq) state <= HALT;
                 else if (Request) begin
-                    if (RomReady) begin
+                    if (IP_ReqNeedCount) begin
                         IP_Dec <= IP_backwardCount; //backward direction for ']' & nonZero
                         IP_Request <= 1'b1;
                         if (~InsnLoading & ((LoopInsnOpen & dataIsZeroed) |
@@ -180,21 +169,27 @@ always @(posedge Clk, negedge Rst_n) begin
                             state <= IP_COUNT;
                         end
                     end
-                    else begin//Only for IP=0
+                    else begin
                         state <= ROM_READ;
+                        IP_ReqNeedCount <= 1'b1;
                         RomRequest <= 1'b1;
                     end
                 end
             IP_COUNT: begin
                 IP_Request <= 1'b0;
                 if (IP_Ready) begin
-                    if (InsnLoading) begin
-                        state <= INSN_READ;
-                        InsnInReady <= 1'b1;
+                    if (IP_Move) begin
+                        state <= HALT;
                     end
                     else begin
-                        state <= ROM_READ;
-                        RomRequest <= 1'b1;
+                        if (InsnLoading) begin
+                            state <= INSN_READ;
+                            InsnInReady <= 1'b1;
+                        end
+                        else begin
+                            state <= ROM_READ;
+                            RomRequest <= 1'b1;
+                        end
                     end
                 end
             end
@@ -258,10 +253,24 @@ always @(posedge Clk, negedge Rst_n) begin
                 end
             end
             HALT: begin
-                if (HaltRq)
-                    state <= HALT;
-                else
+                if (~HaltRq) begin
                     state <= IDLE;
+                end
+                else begin
+                    if (keyPrevIp | keyNextIp) begin
+                        if (~IP_Move) begin
+                            IP_Move <= 1'b1;
+                            IP_ReqNeedCount <= 1'b0;
+                            IP_Request <= 1'b1;
+                            IP_Dec <= keyPrevIp;
+                            state <= IP_COUNT;
+                        end
+                    end
+
+                    if (IP_Move & ~keyNextIp & ~keyPrevIp) begin
+                        IP_Move <= 1'b0;
+                    end
+                end
             end
             default:
                 state <= IDLE;

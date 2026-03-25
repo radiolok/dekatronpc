@@ -55,7 +55,10 @@ IpLine ipLine(
     .RomReady(RomReady),
     .RomData(RomData),
     .Insn(Insn),
-    .InsnLoading(1'b0)
+    .InsnLoading(1'b0),
+
+    .keyNextIp(1'b0),
+    .keyPrevIp(1'b0)
 );
 initial begin $dumpfile("IpLine_tb.vcd"); $dumpvars(0,IpLine_tb); end
 

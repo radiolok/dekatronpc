@@ -135,16 +135,24 @@ logic keyHalt;
 logic keyRun;
 logic keyStep;
 logic keyNextApp;
+logic keyNextIp;
+logic keyPrevIp;
 logic Rst_n;
 logic SoftRst_n;
 logic HardRst_n;
+logic RunOnSoftRst;
+logic RunOnHardRst;
 logic SoftRstOnEOT;
 
 assign keyHalt = keysCurrentState[KEYBOARD_HALT_KEY];
 assign keyRun = keysCurrentState[KEYBOARD_RUN_KEY];
 assign keyStep = keysCurrentState[KEYBOARD_STEP_KEY];
 assign keyNextApp = keysCurrentState[KEYBOARD_NONAME_KEY];
+assign keyNextIp = keysCurrentState[KEYBOARD_ARROW_RIGHT_KEY];
+assign keyPrevIp = keysCurrentState[KEYBOARD_ARROW_LEFT_KEY];
 assign SoftRstOnEOT = 1'b1;
+assign RunOnHardRst = 1'b0;
+assign RunOnSoftRst = 1'b0;
 
 assign SoftRst_n = ~keysCurrentState[KEYBOARD_SOFT_RST_KEY];
 assign HardRst_n = KEY[0] & ~keysCurrentState[KEYBOARD_HARD_RST];
@@ -239,8 +247,8 @@ DekatronPC dekatronPC(
     .InsnInValid(InsnInValidInternal),
     .InsnInReady(InsnInReadyInternal),
     .EchoMode(EchoMode),
-    .RunOnHardRst(1'b0),
-    .RunOnSoftRst(1'b0),
+    .RunOnHardRst(RunOnHardRst),
+    .RunOnSoftRst(RunOnSoftRst),
     .SoftRstOnEOT(SoftRstOnEOT),
     .tx_data_bcd(tx_data_bcd),
     .tx_vld(tx_vld),
@@ -248,6 +256,8 @@ DekatronPC dekatronPC(
     .rx_data_bcd(rx_data_bcd),
     .rx_vld(rx_vld),
     .Step(keyStep),
+    .keyNextIp(keyNextIp),
+    .keyPrevIp(keyPrevIp),
     .key_next_app_i(keyNextApp),
     .IRET(IRET),
     .IpAddress1(IpAddress1),
