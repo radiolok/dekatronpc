@@ -18,26 +18,26 @@ ClockDivider #(
 	.clock_out(Clk)
 );
 
-reg [INSN_WIDTH-1:0] insnMem [0:255];
-reg [INSN_WIDTH-1:0] insnIn;
-reg [7:0] insnInputAddr;
+reg [INSN_WIDTH-1:0] InsnMem [0:255];
+reg [INSN_WIDTH-1:0] InsnIn;
+reg [7:0] InsnInputAddr;
 reg [7:0] nextInsnInputAddr;
-wire insnInputReady;
+wire InsnInputReady;
 
-assign nextInsnInputAddr = insnInputAddr + 1'b1;
+assign nextInsnInputAddr = InsnInputAddr + 1'b1;
 
 initial begin
-    $readmemh("../firmware.hex", insnMem);
+    $readmemh("../firmware.hex", InsnMem);
 end
 
 always_ff @(posedge Clk or negedge Rst_n) begin
     if (~Rst_n) begin
-        insnInputAddr <= '0;
-        insnIn <= insnMem[8'b0];
+        InsnInputAddr <= '0;
+        InsnIn <= InsnMem[8'b0];
     end
-    else if (insnInputReady) begin
-        insnIn <= insnMem[nextInsnInputAddr];
-        insnInputAddr <= nextInsnInputAddr;
+    else if (InsnInputReady) begin
+        InsnIn <= InsnMem[nextInsnInputAddr];
+        InsnInputAddr <= nextInsnInputAddr;
     end
 end
 
@@ -46,6 +46,10 @@ reg [$clog2(TEST_NUM):0] test_num=TEST_NUM;
 wire [2:0] state;
 wire IsHalted;
 assign IsHalted = state == 3'b100;
+
+reg RunOnSoftRst;
+reg RunOnHardRst;
+
 DekatronPC  dekatronPC(
     .SoftRst_n(1'b1),
     .HardRst_n(Rst_n),
@@ -55,12 +59,12 @@ DekatronPC  dekatronPC(
     .Halt(1'b0),
     .Step(1'b0),
     .state(state),
-    .InsnIn(insnIn),
+    .InsnIn(InsnIn),
     .InsnInValid(1'b1),
-    .InsnInReady(insnInputReady),
+    .InsnInReady(InsnInputReady),
 
-    .RunOnHardRst(1'b0),
-    .RunOnSoftRst(1'b0),
+    .RunOnHardRst(RunOnHardRst),
+    .RunOnSoftRst(RunOnSoftRst),
     .SoftRstOnEOT(1'b1),
 
     .tx_rdy(1'b1)
@@ -71,7 +75,10 @@ initial begin
 end
 
 initial begin 
-insnInputAddr <= 0;
+RunOnHardRst <= 0;
+RunOnSoftRst <= 1;
+
+InsnInputAddr <= 0;
 Run <= 0;
 Rst_n <= 0;
 
@@ -83,12 +90,6 @@ Run <= 1;
 Run <= 0;
 
 repeat(1) @(posedge IsHalted)
-
-// After EOT
-#600
-Run <= 1;
-#100
-Run <= 0;
 
 repeat(1) @(posedge IsHalted)
 $finish;

@@ -204,6 +204,7 @@ ApLine  apLine(
 
 InsnDecoder insnDecoder(
     .Rst_n(Rst_n),
+    .HardRst_n(HardRst_n),
     .Clk(Clk),
 `ifdef EMULATOR
     .IRET(IRET),
@@ -238,6 +239,8 @@ InsnDecoder insnDecoder(
     .Run(Run),
 
     .EchoMode(EchoMode),
+    .RunOnHardRst(RunOnHardRst),
+    .RunOnSoftRst(RunOnSoftRst),
     .SoftRstOnEOT(SoftRstOnEOT),
     .IsHalted(IsHalted)
 );

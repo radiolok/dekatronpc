@@ -1,6 +1,7 @@
 module InsnDecoder(
     input wire Clk,
     input wire Rst_n,
+    input wire HardRst_n,
 
     input wire Halt,
     input wire Step,
@@ -40,6 +41,8 @@ module InsnDecoder(
 //         Switch panel section
 //==========================================================================
     input wire EchoMode, //When turned on, Symbol from CIN is printed to Cout
+    input wire RunOnHardRst,
+    input wire RunOnSoftRst,
     input wire SoftRstOnEOT
 );
 
@@ -52,6 +55,15 @@ assign LoopValZero = InsnMode ? DataZero : ApZero;
 reg OneStep;
 reg Echo;
 
+parameter [1:0]
+    NO_RST   = 2'b00,
+    HARD_RST = 2'b01,
+    SOFT_RST = 2'b10;
+
+reg [1:0] RstType;
+wire RunOnRst;
+assign RunOnRst = (RstType == HARD_RST) & RunOnHardRst | (RstType == SOFT_RST) & RunOnSoftRst;
+
 parameter [2:0]
     IDLE    =  3'b001,
     FETCH   =  3'b0010,
@@ -61,11 +73,12 @@ parameter [2:0]
     COUT    =  3'b110,
     CIO_ACQ =  3'b111;
 
-always @(posedge Clk, negedge Rst_n) begin
-    if (~Rst_n) begin
+always @(posedge Clk, negedge Rst_n, negedge HardRst_n) begin
+    if (~HardRst_n) begin
         tx_vld <= 1'b0;
         Echo <= 1'b0;
         RstReq <= 1'b0;
+        RstType <= HARD_RST;
         InsnLoading <= 1'b0;
         IpRequest <= 1'b0;
         ApLineDec <= 1'b0;
@@ -75,7 +88,26 @@ always @(posedge Clk, negedge Rst_n) begin
         ApLineZero <= 1'b0; 
         OneStep <= 1'b0;
         state <= HALT;
-        InsnMode <= BRAINFUCK_ISA;//FIX: Debug mode must be by default.
+        InsnMode <= DEBUG_ISA;
+`ifdef EMULATOR        
+        IRET <= 0;
+`endif
+    end
+    else if (~Rst_n) begin
+        tx_vld <= 1'b0;
+        Echo <= 1'b0;
+        RstReq <= 1'b0;
+        RstType <= SOFT_RST;
+        InsnLoading <= 1'b0;
+        IpRequest <= 1'b0;
+        ApLineDec <= 1'b0;
+        ApLineCin <= 1'b0;
+        ApRequest <= 1'b0;
+        DataRequest <= 1'b0;
+        ApLineZero <= 1'b0; 
+        OneStep <= 1'b0;
+        state <= HALT;
+        InsnMode <= BRAINFUCK_ISA;
 `ifdef EMULATOR        
         IRET <= 0;
 `endif
@@ -256,9 +288,10 @@ always @(posedge Clk, negedge Rst_n) begin
                 end
             end
             HALT: begin
-                if (Step | Run) begin
+                if (Step | Run | RunOnRst) begin
                     if (~OneStep) begin
                         state <= IDLE;
+                        RstType <= NO_RST;
                         if (Step)
                             OneStep <= 1'b1;
                     end
