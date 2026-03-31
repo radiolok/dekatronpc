@@ -106,9 +106,11 @@ module Emulator #(
     output logic [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
     output logic [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd,
     
+    /* verilator lint_off UNUSEDSIGNAL */
     input logic [INSN_WIDTH-1:0] InsnIn,
     input logic InsnInValid,
     output logic InsnInReady,
+    /* verilator lint_on UNUSEDSIGNAL */
 `endif
 
     output logic [2:0] DPC_currentState
@@ -129,6 +131,7 @@ assign LED[6:3] = selector;
 /* verilator lint_off UNUSEDSIGNAL */
 logic [31:0] IRET;
 logic [39:0] keysCurrentState;
+logic [7:0] keyboardSymbol;
 /* verilator lint_on UNUSEDSIGNAL */
 
 logic keyHalt;
@@ -163,14 +166,23 @@ logic Clock_10MHz;
 logic [INSN_WIDTH - 1:0] Insn;
 /* verilator lint_on UNUSEDSIGNAL */
 
+logic [INSN_WIDTH - 1:0] KeyboardInsn;
+logic KeyboardInsnValid;
+logic KeyboardInsnReady;
+
 logic [INSN_WIDTH - 1:0] InsnInInternal;
 logic InsnInReadyInternal;
 logic InsnInValidInternal;
 
 `ifdef VERILATOR
-assign InsnInInternal = InsnIn;
-assign InsnInValidInternal = InsnInValid;
-assign InsnInReady = InsnInReadyInternal;
+// assign InsnInInternal = InsnIn;
+// assign InsnInValidInternal = InsnInValid;
+// assign InsnInReady = InsnInReadyInternal;
+
+assign InsnInInternal = KeyboardInsn;
+assign InsnInValidInternal = KeyboardInsnValid;
+assign KeyboardInsnReady = InsnInReadyInternal;
+assign InsnInReady = 1'b0;
 `else
 assign InsnInInternal = '0;
 assign InsnInValidInternal = '0;
@@ -282,6 +294,7 @@ io_key_display_block #(
     .keyboard_write(keyboard_write),
     .keyboard_clear(keyboard_clear),
     .keyboard_keysCurrentState(keysCurrentState),
+    .keyboard_symbol(keyboardSymbol),
     .emulData(emulData),
     .ipAddress(IpAddress),
     .ipAddress1(IpAddress1),
@@ -464,5 +477,15 @@ uart_rx#(
 ) ;
 
 assign uart_rx_data[7] = 1'b0;
+
+KeyboardOpcodeInput keyboardOpcodeInput(
+    .Clk(Clock_1MHz),
+    .Rst_n(Rst_n),
+
+    .Symbol(keyboardSymbol),
+    .Opcode(KeyboardInsn),
+    .Ready(KeyboardInsnReady),
+    .Valid(KeyboardInsnValid)  
+);
 
 endmodule

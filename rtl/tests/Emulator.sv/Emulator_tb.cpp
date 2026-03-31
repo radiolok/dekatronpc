@@ -1,5 +1,6 @@
 #include <cstdint>
 #include <cwctype>
+#include <endian.h>
 #include <fstream>
 #include <limits>
 #include <stdlib.h>
@@ -14,6 +15,7 @@
 #include <chrono>
 #include <curses.h>
 #include <verilated.h>
+#include "keycaps.h"
 #include "verilated_vpi.h"
 #include <verilated_vcd_c.h>
 #include "VEmulator.h"
@@ -306,37 +308,93 @@ public:
                 break;
             }
             switch(ch){
-                case KEY_F(1)://step
-                    keyPressed(26);//KEYBOARD_HALT_KEY =  26,
+                case KEY_F(1):
+                    keyPressed(KEYBOARD_HALT_KEY);
                 break;
-                case KEY_F(2)://KEYBOARD_STEP_KEY =  33,
-                    keyPressed(33);
+                case KEY_F(2):
+                    keyPressed(KEYBOARD_STEP_KEY);
                 break;
-                case KEY_F(3)://KEYBOARD_RUN_KEY =  28,
-                    keyPressed(28);
+                case KEY_F(3):
+                    keyPressed(KEYBOARD_RUN_KEY);
                 break;
-                case KEY_F(4)://KEYBOARD_NONAME_KEY =  32,
-                    keyPressed(32);
+                case KEY_F(4):
+                    keyPressed(KEYBOARD_NONAME_KEY);
                 break;
                 case KEY_F(5):
-                    keyPressed(15);// KEYBOARD_IRAM_KEY =  15,
+                    keyPressed(KEYBOARD_IRAM_KEY);
                 break;
                 case KEY_F(6):
-                    keyPressed(10);//KEYBOARD_DRAM_KEY =  10,
+                    keyPressed(KEYBOARD_DRAM_KEY);
                 break;
                 case KEY_F(7):
-                    keyPressed(0);//KEYBOARD_CIO_KEY =  0,
+                    keyPressed(KEYBOARD_CIO_KEY);
                 break;
-                case KEY_F(9)://KEYBOARD_SOFT_RST_KEY  = 38,
-                    keyPressed(38);
+                case KEY_F(9):
+                    keyPressed(KEYBOARD_SOFT_RST_KEY);
                 break;
-                case KEY_F(10)://KEYBOARD_HARD_RST =   37,
-                    keyPressed(37);
+                case KEY_F(10):
+                    keyPressed(KEYBOARD_HARD_RST);
                 break;
-                case KEY_NPAGE: keyPressed(36); break;//KEYBOARD_INC_KEY
-                case KEY_PPAGE: keyPressed(31); break;//KEYBOARD_DEC_KEY
-                case KEY_LEFT: keyPressed(21); break;//KEYBOARD_ARROW_LEFT_KEY = 21
-                case KEY_RIGHT: keyPressed(23); break;//KEYBOARD_ARROW_RIGHT_KEY = 23
+                case KEY_NPAGE:
+                    keyPressed(KEYBOARD_INC_KEY);
+                break;
+                case KEY_PPAGE:
+                    keyPressed(KEYBOARD_DEC_KEY); 
+                break;
+                case KEY_LEFT:
+                    keyPressed(KEYBOARD_ARROW_LEFT_KEY);
+                break;
+                case KEY_RIGHT:
+                    keyPressed(KEYBOARD_ARROW_RIGHT_KEY);
+                break;
+                case '0': 
+                    keyPressed(KEYBOARD_0_KEY);
+                break;
+                case '1': 
+                    keyPressed(KEYBOARD_1_KEY);
+                break;
+                case '2':
+                    keyPressed(KEYBOARD_2_KEY);
+                break;
+                case '3':
+                    keyPressed(KEYBOARD_3_KEY);
+                break;
+                case '4':
+                    keyPressed(KEYBOARD_4_KEY);
+                break;
+                case '5':
+                    keyPressed(KEYBOARD_5_KEY);
+                break;
+                case '6':
+                    keyPressed(KEYBOARD_6_KEY);
+                break;
+                case '7':
+                    keyPressed(KEYBOARD_7_KEY);
+                break;
+                case '8':
+                    keyPressed(KEYBOARD_8_KEY);
+                break;
+                case '9': 
+                    keyPressed(KEYBOARD_9_KEY);
+                break;
+                case 'a':
+                    keyPressed(KEYBOARD_A_KEY);
+                break;
+                case 'b':
+                    keyPressed(KEYBOARD_B_KEY);
+                break;
+                case 'c':
+                    keyPressed(KEYBOARD_C_KEY);
+                break;
+                case 'd':
+                    keyPressed(KEYBOARD_D_KEY);
+                break;
+                case 'e':
+                    keyPressed(KEYBOARD_E_KEY);
+                break;
+                case 'f':
+                    keyPressed(KEYBOARD_F_KEY);
+                break;
                 default:
                 break;
             }

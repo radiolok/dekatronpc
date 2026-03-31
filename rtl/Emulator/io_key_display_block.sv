@@ -17,6 +17,7 @@ module io_key_display_block #(
 	output keyboard_write,
 	output keyboard_clear,
     output wire [39:0] keyboard_keysCurrentState,
+    output wire [7:0] keyboard_symbol,
 
 	output [7:0] emulData,
     input wire [2:0] DPC_currentState,
@@ -165,8 +166,10 @@ wire keyboard_read;
 
 /* verilator lint_off UNUSEDSIGNAL */
 wire [15:0] numericKey;
-wire [7:0] symbol;
 /* verilator lint_on UNUSEDSIGNAL */
+
+wire [7:0] symbol;
+assign keyboard_symbol = symbol;
 
 Keyboard kb(
     .Rst_n(Rst_n),

@@ -9,9 +9,9 @@ module IpLine (
 
     input wire dataIsZeroed,
 
-    /* verilator lint_off UNUSEDSIGNAL */
     input wire keyPrevIp,
     input wire keyNextIp,
+    /* verilator lint_off UNUSEDSIGNAL */
     input wire key_next_app_i,
     /* verilator lint_on UNUSEDSIGNAL */
     input wire Request,

@@ -11,6 +11,7 @@
 ../Logic/Register.sv
 ../Emulator/segment7.sv
 ../Emulator/KeyboardKeys.sv
+../Emulator/KeyboardOpcodeInput.sv
 ../Emulator/MS6205.sv
 ../Emulator/Emulator.sv
 ../Emulator/Keyboard.sv
