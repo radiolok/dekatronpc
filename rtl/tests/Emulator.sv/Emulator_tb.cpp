@@ -203,6 +203,7 @@ public:
         {
             KeypadRaw[i] = 0x00;
         }
+        SelectorIndex = 0x0f;
         for (uint8_t i = 0; i < 160; i++)
         {
             ms6205ram[i] = ' ';
@@ -236,6 +237,13 @@ public:
             }
         }
         keyboardWrOld = state;
+    }
+
+    void selectorUpdate(uint8_t& dataOut) {
+        std::lock_guard<std::mutex> lk(keyUpdateMutex);
+        if (dataOut != SelectorIndex) {
+            dataOut = SelectorIndex;
+        }
     }
 
     void in12CathodeUpdate(bool state, uint8_t data)
@@ -296,6 +304,14 @@ public:
         KeypadRaw[keyCode / 5] = keyRow;
         toUpdate = true;
     }
+
+    void incSelector()
+    {
+        std::lock_guard<std::mutex> lk(keyUpdateMutex);
+        SelectorIndex = (SelectorIndex + 1) & 0x0F;
+        toUpdate = true;
+    }
+
     void keyControl()
     {
         static int ch_old;
@@ -334,6 +350,9 @@ public:
                 break;
                 case KEY_F(10):
                     keyPressed(KEYBOARD_HARD_RST);
+                break;
+                case KEY_HOME:
+                    incSelector();
                 break;
                 case KEY_NPAGE:
                     keyPressed(KEYBOARD_INC_KEY);
@@ -410,6 +429,7 @@ public:
     {
         mvprintw(0,0, "DekatronPC Virtual HDL Emulator");
         mvprintw(1,0, "Status: %s      ", dpcStatus[dut->DPC_currentState]);
+        mvprintw(1,0, "Selector: %02X", dut->selector);
     }
 
     void printFooter(const VEmulator *dut)
@@ -468,14 +488,15 @@ public:
 	    printHeader(dut);
         printMs6205();
         printIn12();
-
         printFooter(dut);
+
         refresh();
     }
 
 private:
     uint8_t KeyCurrentRows;
     uint8_t KeypadRaw[8];
+    uint8_t SelectorIndex;
 
     uint8_t in12AnodeNum;
     char in12High[DIGITS+1];
@@ -631,6 +652,7 @@ int main(int argc, char** argv, char** env) {
 
         uint8_t needUpdate = 0;
         ui->keyboardUpdate(dut->keyboard_write, dut->emulData, dut->keyboard_data_in);
+        ui->selectorUpdate(dut->selector);
         needUpdate += ui->in12AnodeUpdate(dut->in12_write_anode, dut->emulData);
         ui->in12CathodeUpdate(dut->in12_write_cathode, dut->emulData);
         if (needUpdate | toUpdate)

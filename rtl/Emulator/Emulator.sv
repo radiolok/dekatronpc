@@ -169,10 +169,12 @@ logic [INSN_WIDTH - 1:0] Insn;
 logic [INSN_WIDTH - 1:0] KeyboardInsn;
 logic KeyboardInsnValid;
 logic KeyboardInsnReady;
+logic KeyboardReadEnable;
 
 logic [INSN_WIDTH - 1:0] InsnInInternal;
 logic InsnInReadyInternal;
 logic InsnInValidInternal;
+logic InsnInLoading;
 
 `ifdef VERILATOR
 // assign InsnInInternal = InsnIn;
@@ -182,6 +184,7 @@ logic InsnInValidInternal;
 assign InsnInInternal = KeyboardInsn;
 assign InsnInValidInternal = KeyboardInsnValid;
 assign KeyboardInsnReady = InsnInReadyInternal;
+assign KeyboardReadEnable = InsnInLoading;
 assign InsnInReady = 1'b0;
 `else
 assign InsnInInternal = '0;
@@ -258,6 +261,7 @@ DekatronPC dekatronPC(
     .InsnIn(InsnInInternal),
     .InsnInValid(InsnInValidInternal),
     .InsnInReady(InsnInReadyInternal),
+    .InsnInLoading(InsnInLoading),
     .EchoMode(EchoMode),
     .RunOnHardRst(RunOnHardRst),
     .RunOnSoftRst(RunOnSoftRst),
@@ -481,6 +485,8 @@ assign uart_rx_data[7] = 1'b0;
 KeyboardOpcodeInput keyboardOpcodeInput(
     .Clk(Clock_1MHz),
     .Rst_n(Rst_n),
+    
+    .ReadEnable(KeyboardReadEnable),
 
     .Symbol(keyboardSymbol),
     .Opcode(KeyboardInsn),

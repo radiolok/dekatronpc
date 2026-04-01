@@ -36,6 +36,7 @@ module DekatronPC (
     output logic [2:0] state,
     input logic [INSN_WIDTH - 1:0] InsnIn,
     input logic InsnInValid,
+    output logic InsnInLoading,
     output logic InsnInReady,
     output logic [INSN_WIDTH - 1:0] Insn,
 
@@ -84,6 +85,8 @@ logic RomReady;
 logic RomWE;
 logic [INSN_WIDTH-1:0] RomData;
 logic [INSN_WIDTH-1:0] RomWriteData;
+
+assign InsnInLoading = InsnLoading;
 
 IpMemory
     IpRAM_ROM(

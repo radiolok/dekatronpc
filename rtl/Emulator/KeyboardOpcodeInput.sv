@@ -1,6 +1,8 @@
 module KeyboardOpcodeInput(
     input Clk,
     input Rst_n,
+
+    input ReadEnable,
     
     input [7:0] Symbol,
     output reg [3:0] Opcode,
@@ -31,7 +33,7 @@ always_ff @(posedge Clk or negedge Rst_n) begin
             end
         end
         else begin
-            if (symbolInputStart) begin
+            if (ReadEnable & symbolInputStart) begin
                 Valid <= 1'b1;
                 Opcode <= {SymbolToOpcode(.symbol(Symbol), .isa(1'b0))}[3:0];
             end
