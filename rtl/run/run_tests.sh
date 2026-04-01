@@ -5,6 +5,7 @@ trap cleanup SIGINT SIGTERM ERR EXIT
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
 root_dir=${script_dir}/..
+echo ${root_dir}
 
 png=0
 synt=0
@@ -61,6 +62,11 @@ parse_params() {
   return 0
 }
 
+if [ "$#" -eq 0 ]; then
+    echo "Error: No arguments provided."
+    sim=1
+fi
+
 veremul() {
 	#Warning: trace gives ~10% slowdown
 	TRACE="--trace -DSIM_TRACE"
@@ -88,7 +94,7 @@ parse_params "$@"
 python3 ${root_dir}/Functions/TableGenerate.py -d ${root_dir}/Functions
 python3 ${root_dir}/run/generate_rom.py -f ${root_dir}/programs/looptest.bfk -o ${root_dir}/firmware.hex --hex
 
-if [ ${sim} -ne 0 ]; then	
+if [ ${sim} -ne 0 ]; then
 
 	DPCfiles=$(cat ${root_dir}/DekatronPC/DPC.files)
 
@@ -97,7 +103,7 @@ if [ ${sim} -ne 0 ]; then
 	verilator --top-module Emulator --lint-only -DEMULATOR=1 -Wall ${EmulFiles} ${DPCfiles}
 
 	verilator --top-module DekatronPC --lint-only  -Wall ${DPCfiles}
-	
+
 	./emul Dekatron
 
 	./emul Counter
@@ -107,15 +113,14 @@ if [ ${sim} -ne 0 ]; then
 	./emul ApLine
 
 	bf_file=${root_dir}/programs/helloworld.bfk
-
 	g++ -o dpcrun -DEXEC ${root_dir}/tests/DekatronPC.sv/dpcrun.cpp
 	./dpcrun -f ${bf_file}
 	g++ -c ${root_dir}/tests/DekatronPC.sv/dpcrun.cpp
 	ar rvs libdpcrun.a dpcrun.o
 
 	veremul ${root_dir}/DekatronPC/DPC.files ${bf_file}
-	
-	#veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/pi/pi.bfk
+
+	#veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/pi.bfk
 
 	#veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/fractal.bfk
 
