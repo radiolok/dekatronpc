@@ -110,6 +110,7 @@ module Emulator #(
     input logic [INSN_WIDTH-1:0] InsnIn,
     input logic InsnInValid,
     output logic InsnInReady,
+    output logic InsnInReadEnable,
     /* verilator lint_on UNUSEDSIGNAL */
 `endif
 
@@ -175,21 +176,6 @@ logic [INSN_WIDTH - 1:0] InsnInInternal;
 logic InsnInReadyInternal;
 logic InsnInValidInternal;
 logic InsnInLoading;
-
-`ifdef VERILATOR
-// assign InsnInInternal = InsnIn;
-// assign InsnInValidInternal = InsnInValid;
-// assign InsnInReady = InsnInReadyInternal;
-
-assign InsnInInternal = KeyboardInsn;
-assign InsnInValidInternal = KeyboardInsnValid;
-assign KeyboardInsnReady = InsnInReadyInternal;
-assign KeyboardReadEnable = InsnInLoading;
-assign InsnInReady = 1'b0;
-`else
-assign InsnInInternal = '0;
-assign InsnInValidInternal = '0;
-`endif
 
 generate
     if (DIVIDE_TO_01US == 1) begin : clock_emulator
@@ -368,6 +354,32 @@ logic       consul_tx_rdy;
 logic       consul_rx_vld;
 
 assign pwr_selector = 1'b1;
+
+always_comb begin
+    if (selector == 4'b1010) begin
+        InsnInInternal = KeyboardInsn;
+        InsnInValidInternal = KeyboardInsnValid;
+        KeyboardInsnReady = InsnInReadyInternal;
+        KeyboardReadEnable = InsnInLoading;
+`ifdef VERILATOR
+        InsnInReady = 1'b0;
+        InsnInReadEnable = 1'b0;
+`endif
+    end
+    else begin
+`ifdef VERILATOR
+        InsnInInternal = InsnIn;
+        InsnInValidInternal = InsnInValid;
+        InsnInReady = InsnInReadyInternal;
+        InsnInReadEnable = InsnInLoading;
+`else
+        InsnInInternal = 4'b0;
+        InsnInValidInternal = 1'b0;
+`endif
+        KeyboardInsnReady = 1'b0;
+        KeyboardReadEnable = 1'b0;
+    end
+end
 
 always_comb begin
     if (selector == 4'b0001) begin

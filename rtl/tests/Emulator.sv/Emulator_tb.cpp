@@ -203,7 +203,7 @@ public:
         {
             KeypadRaw[i] = 0x00;
         }
-        SelectorIndex = 0x0f;
+        SelectorIndex = 0x0a;
         for (uint8_t i = 0; i < 160; i++)
         {
             ms6205ram[i] = ' ';
@@ -243,6 +243,7 @@ public:
         std::lock_guard<std::mutex> lk(keyUpdateMutex);
         if (dataOut != SelectorIndex) {
             dataOut = SelectorIndex;
+            toUpdate = true;
         }
     }
 
@@ -308,8 +309,7 @@ public:
     void incSelector()
     {
         std::lock_guard<std::mutex> lk(keyUpdateMutex);
-        SelectorIndex = (SelectorIndex + 1) & 0x0F;
-        toUpdate = true;
+        SelectorIndex = (SelectorIndex + 1) % 11;
     }
 
     void keyControl()
@@ -351,7 +351,7 @@ public:
                 case KEY_F(10):
                     keyPressed(KEYBOARD_HARD_RST);
                 break;
-                case KEY_HOME:
+                case KEY_F(11):
                     incSelector();
                 break;
                 case KEY_NPAGE:
@@ -429,7 +429,7 @@ public:
     {
         mvprintw(0,0, "DekatronPC Virtual HDL Emulator");
         mvprintw(1,0, "Status: %s      ", dpcStatus[dut->DPC_currentState]);
-        mvprintw(1,0, "Selector: %02X", dut->selector);
+        mvprintw(2,0, "Selector: %02X", dut->selector);
     }
 
     void printFooter(const VEmulator *dut)
@@ -437,7 +437,7 @@ public:
         std::string status = "RUN";
         if (dut->DPC_currentState == 0x04)
             status = "HALT";
-        mvprintw(LINES-1,0, "Quit(END), F1: HALT, F2: STEP, F3: RUN, F4: APP, F5: IRAM, F6: DRAM, F7: CIO, F9: Soft RST, F10: Hard Rst");
+        mvprintw(LINES-1,0, "Quit(END), F1: HALT, F2: STEP, F3: RUN, F4: APP, F5: IRAM, F6: DRAM, F7: CIO, F9: Soft RST, F10: Hard Rst, F11: Selector");
         mvprintw(LINES-2,0, "IpAddr: %x  Loop: %x ApAddr: %x  Data: %x", dut->IpAddress, dut->LoopCount, dut->ApAddress, dut->tx_data_bcd);
     }
 
@@ -573,8 +573,8 @@ public:
         initMemory();
     }
 
-    void insnUpdate(uint8_t clk, uint8_t ready, uint8_t &valid, uint8_t &insnIn) {
-        valid = 1;
+    void insnUpdate(uint8_t clk, uint8_t readEnable, uint8_t ready, uint8_t &valid, uint8_t &insnIn) {
+        valid = readEnable;
         if (clk == 1 && prevClk == 0) {
             insnIn = mem[insnPtr];
             if (ready) {
@@ -604,7 +604,7 @@ int main(int argc, char** argv, char** env) {
 #endif
     dut->KEY = 1;
     dut->FPGA_CLK_50 = 0;
-    dut->selector = 0x0f;
+    dut->selector = 0x0a;
     dut->InsnIn = 0x04;
     dut->InsnInValid = 0;
     initscr();
@@ -629,7 +629,7 @@ int main(int argc, char** argv, char** env) {
         if (sim_time == 20){
             dut->KEY = 1;
         }
-        loader->insnUpdate(dut->Clock_1MHz, dut->InsnInReady, dut->InsnInValid, dut->InsnIn);
+        loader->insnUpdate(dut->Clock_1MHz, dut->InsnInReadEnable, dut->InsnInReady, dut->InsnInValid, dut->InsnIn);
         dut->eval();
     #ifdef SIM_TRACE
         if (sim_time < MAX_SIM_TIME)
