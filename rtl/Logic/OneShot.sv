@@ -28,7 +28,7 @@ always @(posedge Clk, negedge Rst_n) begin
     end
     else begin
         if (En | Impulse) begin
-            count <= count + 1;
+            count <= count + 1'b1;
             if (count == DELAY_COMP) begin
                 count <= 0;
             end
