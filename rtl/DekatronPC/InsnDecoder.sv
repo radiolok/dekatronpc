@@ -136,7 +136,7 @@ always @(posedge Clk, negedge Rst_n, negedge HardRst_n) begin
                                     RstReq <= 1'b1;
                                 end
                                 else begin
-                                    IpRequest <= 1'b1;
+                                    state <= HALT;
                                 end
                             end
                             5'h?E: begin //INSN_DEBUG

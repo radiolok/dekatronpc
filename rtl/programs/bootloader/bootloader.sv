@@ -34,6 +34,8 @@ always_comb
     8'h10: Data = 4'he; //D 
     8'h11: Data = 4'h7; //}
     8'h12: Data = 4'hF; //B 
+    8'h98: Data = 4'he; //D
+    8'h99: Data = 4'h5; //S
     default: Data = {dataSize{1'b0}};
   endcase
 /* verilator lint_on WIDTHEXPAND */
