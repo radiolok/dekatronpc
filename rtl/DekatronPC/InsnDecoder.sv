@@ -66,7 +66,7 @@ assign RunOnRst = (RstType == HARD_RST) & RunOnHardRst | (RstType == SOFT_RST) &
 
 parameter [2:0]
     IDLE    =  3'b001,
-    FETCH   =  3'b0010,
+    FETCH   =  3'b010,
     EXEC    =  3'b011,
     HALT    =  3'b100,
     CIN     =  3'b101,
@@ -88,7 +88,7 @@ always @(posedge Clk, negedge Rst_n, negedge HardRst_n) begin
         ApLineZero <= 1'b0; 
         OneStep <= 1'b0;
         state <= HALT;
-        InsnMode <= DEBUG_ISA;
+        InsnMode <= HardRst_n;
 `ifdef EMULATOR        
         IRET <= 0;
 `endif
@@ -107,7 +107,7 @@ always @(posedge Clk, negedge Rst_n, negedge HardRst_n) begin
         ApLineZero <= 1'b0; 
         OneStep <= 1'b0;
         state <= HALT;
-        InsnMode <= BRAINFUCK_ISA;
+        InsnMode <= HardRst_n ? BRAINFUCK_ISA : DEBUG_ISA;
 `ifdef EMULATOR        
         IRET <= 0;
 `endif

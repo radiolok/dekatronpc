@@ -153,7 +153,17 @@ always @(posedge Clk, negedge Rst_n) begin
     else begin
         case (state)
             IDLE:
-                if (HaltRq) state <= HALT;
+                if (HaltRq) begin
+                    if (~IP_ReqNeedCount) begin
+                        state <= HALT;
+                    end
+                    else begin
+                        IP_ReqNeedCount <= 1'b0;
+                        IP_Dec <= 1'b0;
+                        IP_Request <= 1'b1;
+                        state <= IP_COUNT;
+                    end
+                end
                 else if (Request) begin
                     if (IP_ReqNeedCount) begin
                         IP_Dec <= IP_backwardCount; //backward direction for ']' & nonZero
@@ -178,7 +188,7 @@ always @(posedge Clk, negedge Rst_n) begin
             IP_COUNT: begin
                 IP_Request <= 1'b0;
                 if (IP_Ready) begin
-                    if (IP_Move) begin
+                    if (~IP_ReqNeedCount) begin
                         state <= HALT;
                     end
                     else begin
@@ -260,7 +270,6 @@ always @(posedge Clk, negedge Rst_n) begin
                     if (keyPrevIp | keyNextIp) begin
                         if (~IP_Move) begin
                             IP_Move <= 1'b1;
-                            IP_ReqNeedCount <= 1'b0;
                             IP_Request <= 1'b1;
                             IP_Dec <= keyPrevIp;
                             state <= IP_COUNT;
