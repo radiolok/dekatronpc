@@ -35,7 +35,7 @@ always_ff @(posedge Clk or negedge Rst_n) begin
         else begin
             if (ReadEnable & symbolInputStart) begin
                 Valid <= 1'b1;
-                Opcode <= {SymbolToOpcode(.symbol(Symbol), .isa(1'b0))}[3:0];
+                Opcode <= 4'(SymbolToOpcode(.symbol(Symbol), .isa(1'b0)));
             end
         end
     end

@@ -95,7 +95,7 @@ module Emulator #(
 	 D6 - AH21
 	 D7 - AH19
 	 */
-    inout logic [7:0] io_data,
+    inout [7:0] io_data,
 
     output logic pwr_selector,
     input logic [3:0] selector,

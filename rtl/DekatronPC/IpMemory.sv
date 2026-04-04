@@ -36,7 +36,7 @@ BcdToBinEnc #(
 );
 
 
-parameter [1:0]
+localparam [1:0]
     INIT      = 2'd0,
     READY     =  2'd1,
     BUSY      =  2'd2;
