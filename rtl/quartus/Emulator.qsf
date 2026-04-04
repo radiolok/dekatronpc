@@ -181,7 +181,7 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to Clock_10KHz
 set_location_assignment PIN_AG28 -to Clock_10KHz
 set_global_assignment -name TIMING_ANALYZER_MULTICORNER_ANALYSIS ON
 set_global_assignment -name SMART_RECOMPILE ON
-set_global_assignment -name SYSTEMVERILOG_FILE ../programs/bootloader.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../programs/bootloader/bootloader.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/consul.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../uart/uart_tx.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../uart/uart_rx.sv
@@ -190,6 +190,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../Functions/BcdToBinEnc.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/Sequencer.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/MS6205.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/KeyToSymbol.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/KeyboardOpcodeInput.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/KeyboardKeys.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/Keyboard.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/io_register_block.sv

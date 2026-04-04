@@ -13,7 +13,7 @@ module OneShot #(
 localparam DELAY_COMP=DELAY-1;
 reg [WIDTH:0] count;
 
-generate;
+generate
     if (IMP_ON_EN) begin : gen_imp_on_en_en
         assign Impulse = (|count) | En;
     end

@@ -88,7 +88,7 @@ fi
 
 cpp_file=${root_dir}/tests/Emulator.sv/Emulator_tb.cpp
 verilator -Wall --trace --top Emulator --clk FPGA_CLK_50 --cc ${EmulFiles} ${DPCfiles} \
--GDIVIDE_TO_01US=1 --timescale 1us/10ns ${CONSUL} +define+EMULATOR -DVERILATOR=1 \
+-GDIVIDE_TO_01US=1 --timescale 1us/10ns ${CONSUL} +define+EMULATOR -DVERILATOR=1 -DSIMPLEBOOT \
 --exe ${cpp_file} -LDFLAGS -lncurses
 
 make -j`nproc` -C obj_dir -f VEmulator.mk VEmulator

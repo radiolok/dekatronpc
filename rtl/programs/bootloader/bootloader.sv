@@ -8,7 +8,7 @@ input wire [portSize-1:0] Address,
 output reg [dataSize-1:0] Data
 );
 
-`ifndef SYNTH
+`ifdef SIMPLEBOOT
 always_comb
 /* verilator lint_off WIDTHEXPAND */
   case(Address)
