@@ -26,8 +26,10 @@ wire Ready;
 
 wire [3:0] Insn;
 
-wire [6*4-1:0] Address;
+wire [IP_DEKATRON_NUM*4-1:0] Address;
+wire [$clog2(10**IP_DEKATRON_NUM-1)-1:0] AddressBin;
 
+localparam [IP_DEKATRON_NUM*4-1:0] BOOTLOADER_ADDR = (10**IP_DEKATRON_NUM - 100);
 
 wire RomRequest;
 wire RomReady;
@@ -80,6 +82,7 @@ always @(posedge Clk) begin
        if (CLOCK_TICK > 2000)
           $fatal(1, "Timeout");
 end
+
 initial begin
 bit valid = 0;
 
@@ -121,8 +124,8 @@ if (valid == 1) begin
     #5 HardRst_n <= 1; Rst_n <= 1;
     $display("Time: %dus Addr: %h Insn: %b, Data: %d(%b)", $time/1000, Address, Insn, Data, dataIsZeroed);
 
-    if (Address != 24'h999900) begin
-        $fatal(1, "Invalid address %h on Hard Reset. Expected address is 999900", Address);
+    if (AddressBin != BOOTLOADER_ADDR) begin
+        $fatal(1, "Invalid address %d on Hard Reset. Expected address is %d", Address, BOOTLOADER_ADDR);
     end
     else begin
         $finish;
@@ -142,5 +145,12 @@ always @(posedge Clk) begin
         if (Request)
             Request <= 1'b0;
 end
+
+BcdToBinEnc #(
+    .DIGITS(IP_DEKATRON_NUM)
+) bcdToBin(
+    .bcd(Address),
+    .bin(Address1Bin)
+);
 
 endmodule
