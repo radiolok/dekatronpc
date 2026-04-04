@@ -194,6 +194,7 @@ public:
     {
         in12High[DIGITS] = 0;
         in12Low[DIGITS] = 0;
+        in12AnodeNum = 0;
         in12anodeWrOld = 0;
         in12cathodeWrOld = 0;
         ms6205addrOld = 0;
