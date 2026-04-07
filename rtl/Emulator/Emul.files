@@ -14,6 +14,7 @@
 ../Emulator/KeyboardOpcodeInput.sv
 ../Emulator/MS6205.sv
 ../Emulator/Emulator.sv
+../Emulator/FirmwareLoader.sv
 ../Emulator/Keyboard.sv
 ../Emulator/KeyToSymbol.sv
 ../Emulator/io_key_display_block.sv

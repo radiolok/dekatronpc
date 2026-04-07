@@ -80,6 +80,10 @@ python ${root_dir}/run/generate_rom.py -f ${bf_file} -o ${root_dir}/firmware.hex
 
 bf_file="${root_dir}/programs/program.bfk"
 python ${root_dir}/run/generate_rom.py -f ${bf_file} -o ${root_dir}/load_firmware.hex --hex
+bf_file="${root_dir}/programs/helloworld.bfk"
+python ${root_dir}/run/generate_rom.py -f ${bf_file} -o ${root_dir}/load_firmware_hello.hex --hex
+bf_file="${root_dir}/programs/pi.bfk"
+python ${root_dir}/run/generate_rom.py -f ${bf_file} -o ${root_dir}/load_firmware_pi.hex --hex
 
 CONSUL=""
 if [ ${consul} -ne 0 ]; then

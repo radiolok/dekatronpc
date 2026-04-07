@@ -172,6 +172,16 @@ logic KeyboardInsnValid;
 logic KeyboardInsnReady;
 logic KeyboardReadEnable;
 
+logic [INSN_WIDTH - 1:0] FirmwareInsn_1;
+logic FirmwareReadEnable_1;
+logic FirmwareValid_1;
+logic FirmwareReady_1;
+
+logic [INSN_WIDTH - 1:0] FirmwareInsn_2;
+logic FirmwareReadEnable_2;
+logic FirmwareValid_2;
+logic FirmwareReady_2;
+
 logic [INSN_WIDTH - 1:0] InsnInInternal;
 logic InsnInReadyInternal;
 logic InsnInValidInternal;
@@ -356,17 +366,37 @@ logic       consul_rx_vld;
 assign pwr_selector = 1'b1;
 
 always_comb begin
-    if (selector == 4'b1010) begin
+    KeyboardReadEnable = 1'b0;
+    KeyboardInsnReady = 1'b0;
+    FirmwareReadEnable_1 = 1'b0;
+    FirmwareReady_1 = 1'b0;
+    FirmwareReadEnable_2 = 1'b0;
+    FirmwareReady_2 = 1'b0;
+`ifdef VERILATOR
+    InsnInReadEnable = 1'b0;
+    InsnInReady = 1'b0;
+`endif
+
+    case (selector)
+    4'b1010: begin
         InsnInInternal = KeyboardInsn;
         InsnInValidInternal = KeyboardInsnValid;
         KeyboardInsnReady = InsnInReadyInternal;
-        KeyboardReadEnable = InsnInLoading;
-`ifdef VERILATOR
-        InsnInReady = 1'b0;
-        InsnInReadEnable = 1'b0;
-`endif
+        KeyboardReadEnable = InsnInReadEnable;
     end
-    else begin
+    4'b1001: begin
+        InsnInInternal = FirmwareInsn_1;
+        InsnInValidInternal = FirmwareValid_1;
+        FirmwareReady_1 = InsnInReadyInternal;
+        FirmwareReadEnable_1 = InsnInLoading;
+    end
+    4'b1000: begin
+        InsnInInternal = FirmwareInsn_2;
+        InsnInValidInternal = FirmwareValid_2;
+        FirmwareReady_2 = InsnInReadyInternal;
+        FirmwareReadEnable_2 = InsnInLoading;
+    end
+    default: begin
 `ifdef VERILATOR
         InsnInInternal = InsnIn;
         InsnInValidInternal = InsnInValid;
@@ -376,9 +406,8 @@ always_comb begin
         InsnInInternal = 4'b0;
         InsnInValidInternal = 1'b0;
 `endif
-        KeyboardInsnReady = 1'b0;
-        KeyboardReadEnable = 1'b0;
     end
+    endcase
 end
 
 always_comb begin
@@ -504,6 +533,34 @@ KeyboardOpcodeInput keyboardOpcodeInput(
     .Opcode(KeyboardInsn),
     .Ready(KeyboardInsnReady),
     .Valid(KeyboardInsnValid)  
+);
+
+FirmwareLoader #(
+    .ROWS(512),
+    .FW_PATH("../load_firmware_hello.hex")
+) firmwareLoader_hello(
+    .Clk(Clock_1MHz),
+    .Rst_n(Rst_n),
+    
+    .Enable(FirmwareReadEnable_1),
+
+    .Valid(FirmwareValid_1),
+    .Ready(FirmwareReady_1),
+    .InsnOut(FirmwareInsn_1)
+);
+
+FirmwareLoader #(
+    .ROWS(650),
+    .FW_PATH("../load_firmware_pi.hex")
+) firmwareLoader_pi(
+    .Clk(Clock_1MHz),
+    .Rst_n(Rst_n),
+    
+    .Enable(FirmwareReadEnable_2),
+
+    .Valid(FirmwareValid_2),
+    .Ready(FirmwareReady_2),
+    .InsnOut(FirmwareInsn_2)
 );
 
 endmodule
