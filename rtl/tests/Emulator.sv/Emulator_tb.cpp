@@ -353,6 +353,12 @@ public:
                     keyPressed(KEYBOARD_HARD_RST);
                 break;
                 case KEY_F(11):
+                    keyPressed(KEYBOARD_IP_KEY);
+                break;
+                case KEY_F(12):
+                    keyPressed(KEYBOARD_AP_KEY);
+                break;
+                case KEY_HOME:
                     incSelector();
                 break;
                 case KEY_NPAGE:

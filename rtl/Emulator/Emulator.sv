@@ -141,6 +141,8 @@ logic keyStep;
 logic keyNextApp;
 logic keyNextIp;
 logic keyPrevIp;
+logic keyInsnLoadingStart;
+logic keyInsnLoadingStop;
 logic Rst_n;
 logic SoftRst_n;
 logic HardRst_n;
@@ -154,6 +156,10 @@ assign keyStep = keysCurrentState[KEYBOARD_STEP_KEY];
 assign keyNextApp = keysCurrentState[KEYBOARD_NONAME_KEY];
 assign keyNextIp = keysCurrentState[KEYBOARD_ARROW_RIGHT_KEY];
 assign keyPrevIp = keysCurrentState[KEYBOARD_ARROW_LEFT_KEY];
+assign keyInsnLoadingStart = keysCurrentState[KEYBOARD_IP_KEY];
+assign keyInsnLoadingStop = keysCurrentState[KEYBOARD_AP_KEY]
+                        | keysCurrentState[KEYBOARD_DATA_KEY]
+                        | keysCurrentState[KEYBOARD_LOOP_KEY];
 assign SoftRstOnEOT = 1'b1;
 assign RunOnHardRst = 1'b0;
 assign RunOnSoftRst = 1'b0;
@@ -186,6 +192,9 @@ logic [INSN_WIDTH - 1:0] InsnInInternal;
 logic InsnInReadyInternal;
 logic InsnInValidInternal;
 logic InsnInLoading;
+
+logic InsnLoadingStartInternal;
+logic InsnLoadingStopInternal;
 
 generate
     if (DIVIDE_TO_01US == 1) begin : clock_emulator
@@ -270,6 +279,8 @@ DekatronPC dekatronPC(
     .Step(keyStep),
     .keyNextIp(keyNextIp),
     .keyPrevIp(keyPrevIp),
+    .InsnLoadingStart(InsnLoadingStartInternal),
+    .InsnLoadingStop(InsnLoadingStopInternal),
     .key_next_app_i(keyNextApp),
     .IRET(IRET),
     .IpAddress1(IpAddress1),
@@ -376,13 +387,18 @@ always_comb begin
     InsnInReadEnable = 1'b0;
     InsnInReady = 1'b0;
 `endif
+    InsnLoadingStartInternal = 1'b0;
+    InsnLoadingStopInternal = 1'b0;
 
     case (selector)
     4'b1010: begin
         InsnInInternal = KeyboardInsn;
         InsnInValidInternal = KeyboardInsnValid;
         KeyboardInsnReady = InsnInReadyInternal;
-        KeyboardReadEnable = InsnInReadEnable;
+        KeyboardReadEnable = InsnInLoading;
+
+        InsnLoadingStartInternal = keyInsnLoadingStart;
+        InsnLoadingStopInternal = keyInsnLoadingStop;
     end
     4'b1001: begin
         InsnInInternal = FirmwareInsn_1;

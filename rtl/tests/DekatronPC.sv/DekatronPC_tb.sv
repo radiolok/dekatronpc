@@ -58,6 +58,8 @@ DekatronPC  dekatronPC(
     .Run(Run),
     .Halt(1'b0),
     .Step(1'b0),
+    .InsnLoadingStart(1'b0),
+    .InsnLoadingStop(1'b0),
     .state(state),
     .InsnIn(InsnIn),
     .InsnInValid(1'b1),

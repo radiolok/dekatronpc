@@ -6,6 +6,9 @@ module InsnDecoder(
     input wire Halt,
     input wire Step,
     input wire Run,
+
+    input wire InsnLoadingStart,
+    input wire InsnLoadingStop,
 `ifdef EMULATOR
     output reg [31:0] IRET,
 `endif
@@ -126,31 +129,38 @@ always @(posedge Clk, negedge Rst_n, negedge HardRst_n) begin
             FETCH: begin
                 IpRequest <= 1'b0;
                 tx_vld <= 1'b0;
+
                 if (IpLineReady) begin
                     if (InsnLoading) begin
-                        casez({InsnMode,Insn})
-                            5'h04: begin // INSN_EOT
-                                InsnLoading <= 1'b0;
+                        if (InsnLoadingStop) begin
+                            InsnLoading <= 1'b0;
+                            state <= HALT;
+                        end
+                        else begin
+                            casez({InsnMode,Insn})
+                                5'h04: begin // INSN_EOT
+                                    InsnLoading <= 1'b0;
 
-                                if (SoftRstOnEOT) begin
-                                    RstReq <= 1'b1;
+                                    if (SoftRstOnEOT) begin
+                                        RstReq <= 1'b1;
+                                    end
+                                    else begin
+                                        state <= HALT;
+                                    end
                                 end
-                                else begin
-                                    state <= HALT;
+                                5'h?E: begin //INSN_DEBUG
+                                    InsnMode <= DEBUG_ISA;
+                                    state <= EXEC;
                                 end
-                            end
-                            5'h?E: begin //INSN_DEBUG
-                                InsnMode <= DEBUG_ISA;
-                                state <= EXEC;
-                            end
-                            5'h?F: begin //INSN_BRAINFUCK
-                                InsnMode <= BRAINFUCK_ISA;
-                                state <= EXEC;
-                            end
-                            default: begin
-                                state <= EXEC;
-                            end
-                        endcase
+                                5'h?F: begin //INSN_BRAINFUCK
+                                    InsnMode <= BRAINFUCK_ISA;
+                                    state <= EXEC;
+                                end
+                                default: begin
+                                    state <= EXEC;
+                                end
+                            endcase
+                        end
                     end
                     else begin
                         casez ({InsnMode,Insn})
@@ -288,7 +298,11 @@ always @(posedge Clk, negedge Rst_n, negedge HardRst_n) begin
                 end
             end
             HALT: begin
-                if (Step | Run | RunOnRst) begin
+                if (Step | Run | RunOnRst | InsnLoadingStart) begin
+                    if (InsnLoadingStart) begin
+                       InsnLoading <= 1'b1; 
+                    end
+
                     if (~OneStep) begin
                         state <= IDLE;
                         RstType <= NO_RST;
