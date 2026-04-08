@@ -89,15 +89,15 @@ always_comb begin
         end
         4'd6: begin
             cathodeHigh = inIPHigh[3];
-            cathodeLow = apAddress[7:4];
+            cathodeLow = apAddress[11:8];
         end
         4'd7: begin
             cathodeHigh = inIPHigh[4];
-            cathodeLow = apAddress[11:8];
+            cathodeLow = apAddress[15:12];
         end
         4'd8: begin
             cathodeHigh = inIPHigh[5];
-            cathodeLow = apAddress[15:12];
+            cathodeLow = apAddress[19:16];
         end
         default: begin
             cathodeHigh = 4'b0;

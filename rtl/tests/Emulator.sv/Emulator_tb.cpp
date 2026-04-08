@@ -35,7 +35,7 @@ std::atomic<char> cinSymbol(0);
 std::mutex keyUpdateMutex;
 vluint64_t sim_time = 0;
 
-uint8_t In12CathodeToPin[] = {1,0,2,3,6,8,9,7,5,4};
+uint8_t In12CathodeToPin[] = {1,0,2,3,9,8,4,7,5,6};
 
 const char* dpcStatus[] = {"NONE", "IDLE", "RUN", "RUN", "HALT", "CIN", "COUT", "CIO_ACQ"};
 
@@ -252,8 +252,8 @@ public:
     {
         if (state & !in12cathodeWrOld)
         {
-            in12Low[in12AnodeNum]  = In12CathodeToPin[(data & 0x0F)] + 0x30;
-            in12High[in12AnodeNum] = In12CathodeToPin[((data >> 4) & 0x0F)] + 0x30;
+            in12High[in12AnodeNum]  = In12CathodeToPin[(data & 0x0F)] + 0x30;
+            in12Low[in12AnodeNum] = In12CathodeToPin[((data >> 4) & 0x0F)] + 0x30;
         }
         in12cathodeWrOld = state;
 
@@ -444,7 +444,7 @@ public:
         std::string status = "RUN";
         if (dut->DPC_currentState == 0x04)
             status = "HALT";
-        mvprintw(LINES-1,0, "Quit(END), F1: HALT, F2: STEP, F3: RUN, F4: APP, F5: IRAM, F6: DRAM, F7: CIO, F9: Soft RST, F10: Hard Rst, F11: Selector");
+        mvprintw(LINES-1,0, "Quit(END), F1: HALT, F2: STEP, F3: RUN, F4: APP, F5: IRAM, F6: DRAM, F7: CIO, F9: Soft RST, F10: Hard Rst, F11: IP, F12: AP");
         mvprintw(LINES-2,0, "IpAddr: %x  Loop: %x ApAddr: %x  Data: %x", dut->IpAddress, dut->LoopCount, dut->ApAddress, dut->tx_data_bcd);
     }
 
@@ -478,13 +478,13 @@ public:
         int row = LINES/4-1;
         int col = COLS/2;
         mvprintw(row,col+2, "IP: ");
-        for (uint8_t i = 7; i > 1; i--)
+        for (uint8_t i = 8; i > 2; i--)
             printw("%c", in12High[i]);
         mvprintw(row+1,col+2, "AP: ");
         for (uint8_t i = 8; i > 3; i--)
             printw("%c", in12Low[i]);
         mvprintw(row,col+16, "Loop: ");
-        for (uint8_t i = 1; i < 10; i--)
+        for (uint8_t i = 2; i < 10; i--)
             printw("%c", in12High[i]);
         mvprintw(row+1,col+15, "Data: ");
         for (uint8_t i = 2; i < 10; i--)
@@ -492,6 +492,7 @@ public:
     }
     void updateScreen(const VEmulator *dut)
     {
+        clear();
 	    printHeader(dut);
         printMs6205();
         printIn12();
