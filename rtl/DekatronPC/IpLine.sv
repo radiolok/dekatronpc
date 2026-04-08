@@ -224,6 +224,21 @@ always @(posedge Clk, negedge Rst_n) begin
                         state <= ROM_WRITE;
                     end
                 end
+                else begin
+                    if (keyPrevIp | keyNextIp) begin
+                        if (~IP_Move) begin
+                            InsnInReady <= 1'b0;
+                            IP_Move <= 1'b1;
+                            IP_Request <= 1'b1;
+                            IP_Dec <= keyPrevIp;
+                            state <= IP_COUNT;
+                        end
+                    end
+
+                    if (IP_Move & ~keyNextIp & ~keyPrevIp) begin
+                        IP_Move <= 1'b0;
+                    end
+                end
             end
             ROM_WRITE: begin
                 RomRequest <= 1'b0;

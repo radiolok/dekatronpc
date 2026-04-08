@@ -154,8 +154,10 @@ assign keyHalt = keysCurrentState[KEYBOARD_HALT_KEY];
 assign keyRun = keysCurrentState[KEYBOARD_RUN_KEY];
 assign keyStep = keysCurrentState[KEYBOARD_STEP_KEY];
 assign keyNextApp = keysCurrentState[KEYBOARD_NONAME_KEY];
-assign keyNextIp = keysCurrentState[KEYBOARD_ARROW_RIGHT_KEY];
-assign keyPrevIp = keysCurrentState[KEYBOARD_ARROW_LEFT_KEY];
+assign keyNextIp = keysCurrentState[KEYBOARD_ARROW_RIGHT_KEY]
+                | keysCurrentState[KEYBOARD_INC_KEY];
+assign keyPrevIp = keysCurrentState[KEYBOARD_ARROW_LEFT_KEY]
+                | keysCurrentState[KEYBOARD_DEC_KEY];
 assign keyInsnLoadingStart = keysCurrentState[KEYBOARD_IP_KEY];
 assign keyInsnLoadingStop = keysCurrentState[KEYBOARD_AP_KEY]
                         | keysCurrentState[KEYBOARD_DATA_KEY]
