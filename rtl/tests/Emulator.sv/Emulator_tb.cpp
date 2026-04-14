@@ -492,7 +492,7 @@ public:
     }
     void updateScreen(const VEmulator *dut)
     {
-        clear();
+        //clear();
 	    printHeader(dut);
         printMs6205();
         printIn12();

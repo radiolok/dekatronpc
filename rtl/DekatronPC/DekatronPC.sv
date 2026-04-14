@@ -175,7 +175,6 @@ IpLine ipLine(
     .RomReady(RomReady),
     .RomData(RomData),
     .InsnLoading(InsnLoading),
-    .InsnLoadingStop(InsnLoadingStop),
     .InsnMode(InsnMode),
     .keyNextIp(keyNextIp),
     .keyPrevIp(keyPrevIp),
@@ -245,8 +244,8 @@ InsnDecoder insnDecoder(
     .Halt(Halt),
     .Step(Step),
     .Run(Run),
-    .InsnLoadingStart(InsnLoadingStart),
-    .InsnLoadingStop(InsnLoadingStop),
+    .keyInsnLoadingStart(InsnLoadingStart),
+    .keyInsnLoadingStop(InsnLoadingStop),
 
     .EchoMode(EchoMode),
     .RunOnHardRst(RunOnHardRst),

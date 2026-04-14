@@ -4,7 +4,7 @@ function [4:0] SymbolToOpcode (
     );
 
   casez(symbol)
-    "N": SymbolToOpcode = {isa, 4'h0};
+    " ": SymbolToOpcode = {isa, 4'h0};
     "H": SymbolToOpcode = {isa, 4'h1};
     "\a": SymbolToOpcode = 5'h02;
     "E": SymbolToOpcode =  5'h04;

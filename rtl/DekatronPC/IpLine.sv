@@ -24,7 +24,6 @@ module IpLine (
     input wire [INSN_WIDTH-1:0] RomData,
 
     input wire InsnMode,
-    input wire InsnLoadingStop,
     input wire InsnLoading,
     input wire [INSN_WIDTH - 1:0] InsnIn,
     input wire InsnInValid,
@@ -211,11 +210,11 @@ always @(posedge Clk, negedge Rst_n) begin
                 end
             end
             INSN_READ: begin
-                if (InsnInValid | InsnLoadingStop) begin
+                if (InsnInValid | ~InsnLoading) begin
                     InsnInReady <= 1'b0;
                     InsnInInternal <= InsnIn;
 
-                    if (EndOfTransmission | InsnLoadingStop) begin
+                    if (EndOfTransmission | ~InsnLoading) begin
                         state <= READY;
                     end
                     else begin
