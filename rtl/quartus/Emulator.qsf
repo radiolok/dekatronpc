@@ -197,6 +197,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/io_register_block.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/io_key_display_block.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/input_regs.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/Emulator.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Emulator/FirmwareLoader.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../parameters.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Functions/SymbolToOpcode.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Functions/OpcodeToSymbol.sv
