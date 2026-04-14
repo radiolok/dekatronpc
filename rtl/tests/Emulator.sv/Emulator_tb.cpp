@@ -11,6 +11,7 @@
 #include <array>
 #include <limits>
 #include <mutex>
+#include <unordered_map>
 #include <thread>
 #include <chrono>
 #include <curses.h>
@@ -38,6 +39,40 @@ vluint64_t sim_time = 0;
 uint8_t In12CathodeToPin[] = {1,0,2,3,9,8,4,7,5,6};
 
 const char* dpcStatus[] = {"NONE", "IDLE", "RUN", "RUN", "HALT", "CIN", "COUT", "CIO_ACQ"};
+
+const std::unordered_map<int, uint8_t> keys = {
+    { KEY_F(1), KEYBOARD_HALT_KEY },
+    { KEY_F(2), KEYBOARD_STEP_KEY },
+    { KEY_F(3), KEYBOARD_RUN_KEY },
+    { KEY_F(4), KEYBOARD_NONAME_KEY },
+    { KEY_F(5), KEYBOARD_IRAM_KEY },
+    { KEY_F(6), KEYBOARD_DRAM_KEY },
+    { KEY_F(7), KEYBOARD_CIO_KEY },
+    { KEY_F(9), KEYBOARD_SOFT_RST_KEY },
+    { KEY_F(10), KEYBOARD_HARD_RST },
+    { KEY_F(11), KEYBOARD_IP_KEY },
+    { KEY_F(12), KEYBOARD_AP_KEY },
+    { KEY_NPAGE, KEYBOARD_INC_KEY },
+    { KEY_PPAGE, KEYBOARD_DEC_KEY }, 
+    { KEY_LEFT, KEYBOARD_ARROW_LEFT_KEY },
+    { KEY_RIGHT, KEYBOARD_ARROW_RIGHT_KEY },
+    { '0',  KEYBOARD_0_KEY },
+    { '1',  KEYBOARD_1_KEY },
+    { '2', KEYBOARD_2_KEY },
+    { '3', KEYBOARD_3_KEY },
+    { '4', KEYBOARD_4_KEY },
+    { '5', KEYBOARD_5_KEY },
+    { '6', KEYBOARD_6_KEY },
+    { '7', KEYBOARD_7_KEY },
+    { '8', KEYBOARD_8_KEY },
+    { '9',  KEYBOARD_9_KEY },
+    { 'a', KEYBOARD_A_KEY },
+    { 'b', KEYBOARD_B_KEY },
+    { 'c', KEYBOARD_C_KEY },
+    { 'd', KEYBOARD_D_KEY },
+    { 'e', KEYBOARD_E_KEY },
+    { 'f', KEYBOARD_F_KEY },
+};
 
 #define EXIT 0xFF
 
@@ -195,6 +230,7 @@ public:
         in12High[DIGITS] = 0;
         in12Low[DIGITS] = 0;
         in12AnodeNum = 0;
+        in12AnodeNumNew = false;
         in12anodeWrOld = 0;
         in12cathodeWrOld = 0;
         ms6205addrOld = 0;
@@ -214,6 +250,7 @@ public:
 
     ~UI()
     {
+        printDeInit();
     }
 
     void keyboardUpdate(bool state, uint8_t data, uint8_t& dataOut)
@@ -252,8 +289,11 @@ public:
     {
         if (state & !in12cathodeWrOld)
         {
-            in12High[in12AnodeNum]  = In12CathodeToPin[(data & 0x0F)] + 0x30;
-            in12Low[in12AnodeNum] = In12CathodeToPin[((data >> 4) & 0x0F)] + 0x30;
+            if (in12AnodeNumNew) {
+                in12High[in12AnodeNum]  = In12CathodeToPin[(data & 0x0F)] + 0x30;
+                in12Low[in12AnodeNum] = In12CathodeToPin[((data >> 4) & 0x0F)] + 0x30;
+                in12AnodeNumNew = false;
+            }
         }
         in12cathodeWrOld = state;
 
@@ -263,7 +303,11 @@ public:
         uint8_t status = 0;
         if (state & !in12anodeWrOld)
         {
-            in12AnodeNum = data & 0x0F;
+            uint8_t num = data & 0x0F;
+            if (num != in12AnodeNum) {
+                in12AnodeNumNew = true;
+                in12AnodeNum = num;
+            }
             //if (!in12AnodeNum)
                 status = 1;
         }
@@ -293,10 +337,20 @@ public:
 
     void printInit()
     {
+        initscr();
+        nodelay(stdscr, TRUE);
+        keypad(stdscr, TRUE);
+
         init_color(COLOR_WHITE, 190,190,190);
         init_pair(1, COLOR_RED, COLOR_WHITE);
         init_pair(2, COLOR_GREEN, COLOR_WHITE);
         init_pair(3, COLOR_RED, COLOR_WHITE);
+        start_color();
+    }
+
+    void printDeInit()
+    {
+        endwin();
     }
 
     void keyPressed(uint8_t keyCode)
@@ -316,120 +370,29 @@ public:
     void keyControl()
     {
         static int ch_old;
-        while(true){
 
-            int ch = getch();
-            if (ch == KEY_END)
-            {
-                toExit = true;
-                break;
-            }
-            switch(ch){
-                case KEY_F(1):
-                    keyPressed(KEYBOARD_HALT_KEY);
-                break;
-                case KEY_F(2):
-                    keyPressed(KEYBOARD_STEP_KEY);
-                break;
-                case KEY_F(3):
-                    keyPressed(KEYBOARD_RUN_KEY);
-                break;
-                case KEY_F(4):
-                    keyPressed(KEYBOARD_NONAME_KEY);
-                break;
-                case KEY_F(5):
-                    keyPressed(KEYBOARD_IRAM_KEY);
-                break;
-                case KEY_F(6):
-                    keyPressed(KEYBOARD_DRAM_KEY);
-                break;
-                case KEY_F(7):
-                    keyPressed(KEYBOARD_CIO_KEY);
-                break;
-                case KEY_F(9):
-                    keyPressed(KEYBOARD_SOFT_RST_KEY);
-                break;
-                case KEY_F(10):
-                    keyPressed(KEYBOARD_HARD_RST);
-                break;
-                case KEY_F(11):
-                    keyPressed(KEYBOARD_IP_KEY);
-                break;
-                case KEY_F(12):
-                    keyPressed(KEYBOARD_AP_KEY);
-                break;
-                case KEY_HOME:
-                    incSelector();
-                break;
-                case KEY_NPAGE:
-                    keyPressed(KEYBOARD_INC_KEY);
-                break;
-                case KEY_PPAGE:
-                    keyPressed(KEYBOARD_DEC_KEY); 
-                break;
-                case KEY_LEFT:
-                    keyPressed(KEYBOARD_ARROW_LEFT_KEY);
-                break;
-                case KEY_RIGHT:
-                    keyPressed(KEYBOARD_ARROW_RIGHT_KEY);
-                break;
-                case '0': 
-                    keyPressed(KEYBOARD_0_KEY);
-                break;
-                case '1': 
-                    keyPressed(KEYBOARD_1_KEY);
-                break;
-                case '2':
-                    keyPressed(KEYBOARD_2_KEY);
-                break;
-                case '3':
-                    keyPressed(KEYBOARD_3_KEY);
-                break;
-                case '4':
-                    keyPressed(KEYBOARD_4_KEY);
-                break;
-                case '5':
-                    keyPressed(KEYBOARD_5_KEY);
-                break;
-                case '6':
-                    keyPressed(KEYBOARD_6_KEY);
-                break;
-                case '7':
-                    keyPressed(KEYBOARD_7_KEY);
-                break;
-                case '8':
-                    keyPressed(KEYBOARD_8_KEY);
-                break;
-                case '9': 
-                    keyPressed(KEYBOARD_9_KEY);
-                break;
-                case 'a':
-                    keyPressed(KEYBOARD_A_KEY);
-                break;
-                case 'b':
-                    keyPressed(KEYBOARD_B_KEY);
-                break;
-                case 'c':
-                    keyPressed(KEYBOARD_C_KEY);
-                break;
-                case 'd':
-                    keyPressed(KEYBOARD_D_KEY);
-                break;
-                case 'e':
-                    keyPressed(KEYBOARD_E_KEY);
-                break;
-                case 'f':
-                    keyPressed(KEYBOARD_F_KEY);
-                break;
-                default:
-                break;
-            }
-            if (ch < 256 & cinReq){
-                cioAcq = true;
-                cinSymbol = ch;
-            }
-            ch_old = ch;
+        int ch = getch();
+        if (ch == ERR) {
+            return;
         }
+
+        if (ch == KEY_END)
+        {
+            toExit = true;
+            return;
+        }
+        else if (ch == KEY_HOME) {
+            incSelector();
+        }
+        else if (auto iter = keys.find(ch); iter != keys.end()) {
+            keyPressed(iter->second);
+        }
+
+        if (ch < 256 & cinReq){
+            cioAcq = true;
+            cinSymbol = ch;
+        }
+        ch_old = ch;
     }
 
     void printHeader(const VEmulator *dut)
@@ -445,7 +408,7 @@ public:
         if (dut->DPC_currentState == 0x04)
             status = "HALT";
         mvprintw(LINES-1,0, "Quit(END), F1: HALT, F2: STEP, F3: RUN, F4: APP, F5: IRAM, F6: DRAM, F7: CIO, F9: Soft RST, F10: Hard Rst, F11: IP, F12: AP");
-        mvprintw(LINES-2,0, "IpAddr: %x  Loop: %x ApAddr: %x  Data: %x", dut->IpAddress, dut->LoopCount, dut->ApAddress, dut->tx_data_bcd);
+        mvprintw(LINES-2,0, "IpAddr: %x  Loop: %x ApAddr: %x  Data: %x ", dut->IpAddress, dut->LoopCount, dut->ApAddress, dut->tx_data_bcd);
     }
 
     void rectangle(int y1, int x1, int y2, int x2)
@@ -480,15 +443,19 @@ public:
         mvprintw(row,col+2, "IP: ");
         for (uint8_t i = 8; i > 2; i--)
             printw("%c", in12High[i]);
+        addch(' ');
         mvprintw(row+1,col+2, "AP: ");
         for (uint8_t i = 8; i > 3; i--)
             printw("%c", in12Low[i]);
+        addch(' ');
         mvprintw(row,col+16, "Loop: ");
         for (uint8_t i = 2; i < 10; i--)
             printw("%c", in12High[i]);
+        addch(' ');
         mvprintw(row+1,col+15, "Data: ");
         for (uint8_t i = 2; i < 10; i--)
             printw("%c", in12Low[i]);
+        addch(' ');
     }
     void updateScreen(const VEmulator *dut)
     {
@@ -507,6 +474,7 @@ private:
     uint8_t SelectorIndex;
 
     uint8_t in12AnodeNum;
+    bool in12AnodeNumNew;
     char in12High[DIGITS+1];
     char in12Low[DIGITS+1];
     bool in12anodeWrOld;
@@ -615,10 +583,6 @@ int main(int argc, char** argv, char** env) {
     dut->selector = 0x0a;
     dut->InsnIn = 0x04;
     dut->InsnInValid = 0;
-    initscr();
-    keypad(stdscr, TRUE);
-    start_color();
-    std::thread keyControl(&UI::keyControl, ui);
 #ifdef CONSUL
     ioRegs *ioregs = new ioRegs;
     Consul *consul = new Consul;
@@ -637,6 +601,7 @@ int main(int argc, char** argv, char** env) {
         if (sim_time == 20){
             dut->KEY = 1;
         }
+        ui->keyControl();
         loader->insnUpdate(dut->Clock_1MHz, dut->InsnInReadEnable, dut->InsnInReady, dut->InsnInValid, dut->InsnIn);
         dut->eval();
     #ifdef SIM_TRACE
@@ -657,12 +622,11 @@ int main(int argc, char** argv, char** env) {
         ioregs->write(1, consulRin);
         ioregs->write(0, consulLin);
 #endif
-
         uint8_t needUpdate = 0;
         ui->keyboardUpdate(dut->keyboard_write, dut->emulData, dut->keyboard_data_in);
         ui->selectorUpdate(dut->selector);
-        needUpdate += ui->in12AnodeUpdate(dut->in12_write_anode, dut->emulData);
         ui->in12CathodeUpdate(dut->in12_write_cathode, dut->emulData);
+        needUpdate += ui->in12AnodeUpdate(dut->in12_write_anode, dut->emulData);
         if (needUpdate | toUpdate)
         {
             ui->updateScreen(dut);
@@ -679,8 +643,6 @@ int main(int argc, char** argv, char** env) {
 #ifdef SIM_TRACE
     m_trace->close();
 #endif
-    keyControl.join();
-    endwin();
     delete dut;
     delete ui;
     delete loader;
