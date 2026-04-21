@@ -32,9 +32,9 @@ assign Valid = ValidInternal & Enable;
 
 always_ff @(posedge Clk or negedge Rst_n) begin
     if (~Rst_n) begin
-        ValidInternal <= 1'b1;
+        ValidInternal <= 1'b0;
         Address <= '0;
-        InsnOut <= Mem[1];
+        InsnOut <= '0;
     end
     else if (~Enable) begin
         ValidInternal <= 1'b1;
