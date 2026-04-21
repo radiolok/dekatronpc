@@ -18,6 +18,11 @@ reg hasSymbolReg;
 wire symbolInputStart;
 assign symbolInputStart = hasSymbol & ~hasSymbolReg;
 
+/* verilator lint_off UNUSEDSIGNAL */
+wire [4:0] opcodeWide;
+/* verilator lint_on UNUSEDSIGNAL */
+assign opcodeWide = SymbolToOpcode(Symbol, 1'b0);
+
 always_ff @(posedge Clk or negedge Rst_n) begin
     if (~Rst_n) begin
         Valid <= 1'b0;
@@ -35,7 +40,7 @@ always_ff @(posedge Clk or negedge Rst_n) begin
         else begin
             if (ReadEnable & symbolInputStart) begin
                 Valid <= 1'b1;
-                Opcode <= 4'(SymbolToOpcode(.symbol(Symbol), .isa(1'b0)));
+                Opcode <= opcodeWide[3:0];
             end
         end
     end

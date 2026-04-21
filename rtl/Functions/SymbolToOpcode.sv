@@ -1,4 +1,4 @@
-function [4:0] SymbolToOpcode (
+function logic [4:0] SymbolToOpcode (
     input [7:0] symbol,
     input [0:0] isa
     );
