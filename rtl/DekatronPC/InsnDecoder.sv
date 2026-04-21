@@ -91,7 +91,7 @@ always @(posedge Clk, negedge Rst_n, negedge HardRst_n) begin
         ApLineZero <= 1'b0; 
         OneStep <= 1'b0;
         state <= HALT;
-        InsnMode <= HardRst_n;
+        InsnMode <= DEBUG_ISA;
 `ifdef EMULATOR        
         IRET <= 0;
 `endif
@@ -110,7 +110,7 @@ always @(posedge Clk, negedge Rst_n, negedge HardRst_n) begin
         ApLineZero <= 1'b0; 
         OneStep <= 1'b0;
         state <= HALT;
-        InsnMode <= HardRst_n ? BRAINFUCK_ISA : DEBUG_ISA;
+        InsnMode <= BRAINFUCK_ISA;
 `ifdef EMULATOR        
         IRET <= 0;
 `endif
