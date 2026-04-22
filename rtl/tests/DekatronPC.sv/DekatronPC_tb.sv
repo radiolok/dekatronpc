@@ -1,5 +1,17 @@
 `timescale 100 ns / 100 ps
 
+`ifdef ADDINCLUDE
+`include `ADDINCLUDE
+`endif
+
+`ifndef PROGRAM_PATH
+`define PROGRAM_PATH "../firmware.hex"
+`endif
+
+`ifndef TIMEOUT
+`define TIMEOUT 200000
+`endif
+
 module DekatronPC_tb;
 
 reg SoftRst_n;
@@ -38,7 +50,7 @@ ClockDivider #(
 	.clock_out(Clk)
 );
 
-reg [INSN_WIDTH-1:0] InsnMem [0:255];
+reg [INSN_WIDTH-1:0] InsnMem [0:2048];
 reg [INSN_WIDTH-1:0] InsnIn;
 reg [7:0] InsnInputAddr;
 reg [7:0] nextInsnInputAddr;
@@ -49,7 +61,7 @@ reg InsnInValid;
 assign nextInsnInputAddr = InsnInputAddr + 1'b1;
 
 initial begin
-    $readmemh("../firmware.hex", InsnMem);
+    $readmemh(`PROGRAM_PATH, InsnMem);
 end
 
 always_ff @(posedge Clk or negedge Rst_n) begin
@@ -77,7 +89,7 @@ initial begin
     end
 end
 
-string expected_tx = "Hello World!\n";
+string expected_tx = `EXPECTED_OUTPUT;
 reg tx_rdy;
 wire tx_vld;
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd;
@@ -105,6 +117,7 @@ task read_tx();
 
         tx_rdy <= 1'b0;
 
+        $display("%c", tx_data);
         tx_q.push_back(tx_data);
     end
 endtask
@@ -144,10 +157,6 @@ DekatronPC  dekatronPC(
     .tx_vld(tx_vld),
     .tx_rdy(1'b1)
 );
-initial begin 
-    $dumpfile("DekatronPC_tb.vcd"); 
-    $dumpvars(0,DekatronPC_tb); 
-end
 
 task soft_rst();
     SoftRst_n <= 1'b0;
@@ -301,13 +310,25 @@ initial begin
     keyPrevIp <= 0;
 
     check_bootloader();
+
+`ifndef DISABLE_CHECK_IP_MOVIND
     check_ip_moving();
+`endif
+
+`ifndef DISABLE_CHECK_STEPS
     check_steps();
+`endif
 
     $finish;
 end
 
-parameter TIMEOUT = 1000000;
+`ifndef NO_VCD
+initial begin 
+    $dumpfile("DekatronPC_tb.vcd"); 
+    $dumpvars(0,DekatronPC_tb); 
+end
+`endif
+
 int clk_cnt;
 
 initial begin
@@ -317,7 +338,7 @@ initial begin
         @(posedge Clk);
         clk_cnt <= clk_cnt + 1;
 
-        if (clk_cnt >= TIMEOUT) begin
+        if (clk_cnt >= `TIMEOUT) begin
             $error("TIMEOUT");
             $finish;
         end

@@ -112,7 +112,8 @@ if [ ${sim} -ne 0 ]; then
 
 	./emul ApLine
 
-	./emul DekatronPC ${root_dir}/programs/helloworld.bfk
+	./emul DekatronPC ${root_dir}/programs/helloworld.bfk ${root_dir}/tests/DekatronPC.sv/DekatronPC_tb_cfg_hello.svh
+	./emul DekatronPC ${root_dir}/programs/program.bfk ${root_dir}/tests/DekatronPC.sv/DekatronPC_tb_cfg_program.svh
 
 	bf_file=${root_dir}/programs/helloworld.bfk
 	g++ -o dpcrun -DEXEC ${root_dir}/tests/DekatronPC.sv/dpcrun.cpp
@@ -124,7 +125,7 @@ if [ ${sim} -ne 0 ]; then
 
 	veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/program.bfk
 
-	veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/pi.bfk
+	#veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/pi.bfk
 
 	#veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/fractal.bfk
 

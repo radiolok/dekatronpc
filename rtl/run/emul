@@ -13,5 +13,12 @@ if [ -f ${script_dir}/../tests/${1}.sv/${1}_tb.files ]; then
     DPCfiles="$DPCfiles $(cat ${script_dir}/../tests/${1}.sv/${1}_tb.files)"
 fi
 
-iverilog -g2012 -o ${1}UT -DIPMEMFILE -DSIMPLEBOOT -s ${1}_tb ${script_dir}/../tests/${1}.sv/${1}_tb.sv $DPCfiles
+AdditionalInc=""
+if [ $# -ge 3 ]; then
+    file=${3}
+    cp ${file} ${script_dir}/../tests/${1}.sv/${1}_tb.svh
+    AdditionalInc="-DADDINCLUDE=\"${script_dir}/../tests/${1}.sv/${1}_tb.svh\""
+fi
+
+iverilog -g2012 -o ${1}UT -DIPMEMFILE -DSIMPLEBOOT $AdditionalInc -s ${1}_tb ${script_dir}/../tests/${1}.sv/${1}_tb.sv $DPCfiles
 ./${1}UT
