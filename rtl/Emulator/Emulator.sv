@@ -323,7 +323,8 @@ io_key_display_block #(
     .Rst_n(Rst_n),
     .tx_data(tx_data),
     .tx_vld(tx_vld),
-    .DPC_currentState(DPC_currentState)
+    .DPC_currentState(DPC_currentState),
+    .InsnLoading(InsnInLoading)
 );
 
 /* verilator lint_off UNUSEDSIGNAL */

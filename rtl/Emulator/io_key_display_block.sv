@@ -21,6 +21,7 @@ module io_key_display_block #(
 
 	output [7:0] emulData,
     input wire [2:0] DPC_currentState,
+    input wire InsnLoading,
 
     input wire [7:0] tx_data,
     input wire tx_vld,
@@ -186,7 +187,7 @@ Keyboard kb(
 
 wire ms6205_marker_en;
 
-assign ms6205_marker = ms6205_marker_en & Clock_1s;
+assign ms6205_marker = ms6205_marker_en & (DPC_currentState == 3'd4 | InsnLoading & Clock_1s);
 
 MS6205 ms6205(
     .Rst_n(Rst_n),

@@ -233,6 +233,7 @@ public:
         in12AnodeNumNew = false;
         in12anodeWrOld = 0;
         in12cathodeWrOld = 0;
+        ms6205markerAddr = 255;
         ms6205addrOld = 0;
         ms6205dataOld = 0;
         keyboardWrOld = 0;
@@ -319,7 +320,13 @@ public:
         if (!state & ms6205addrOld)
         {
             ms6205addr = data;
-            ms6205marker = marker;
+
+            if (marker) {
+                ms6205markerAddr = ms6205addr;
+            }
+            else if (ms6205addr == ms6205markerAddr) {
+                ms6205markerAddr = 255;
+            }
         }
         ms6205addrOld = state;
         return 1;
@@ -329,7 +336,13 @@ public:
         if (ms6205dataOld & !state)
         {
             ms6205ram[ms6205addr] = (0xFF - data) & 0x7F;
-            ms6205marker = marker;
+            
+            if (marker) {
+                ms6205markerAddr = ms6205addr;
+            }
+            else if (ms6205addr == ms6205markerAddr) {
+                ms6205markerAddr = 255;
+            }
         }
         ms6205dataOld = state;
         return 1;
@@ -434,6 +447,9 @@ public:
             }
         }
         rectangle(LINES/4-6, COLS/4-9, LINES/4+6, COLS/4+9);
+
+        curs_set(ms6205markerAddr != 255);
+        move(LINES/4-5 + ms6205markerAddr / 16, COLS/4-8 + ms6205markerAddr % 16);
     }
 
     void printIn12()
@@ -461,9 +477,9 @@ public:
     {
         //clear();
 	    printHeader(dut);
-        printMs6205();
         printIn12();
         printFooter(dut);
+        printMs6205();
 
         refresh();
     }
@@ -482,6 +498,7 @@ private:
 
     uint8_t ms6205ram[16*10];
     uint8_t ms6205addr;
+    uint8_t ms6205markerAddr;
     bool ms6205marker;
     bool ms6205addrOld;
     bool ms6205dataOld;

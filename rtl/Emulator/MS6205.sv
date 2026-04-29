@@ -23,7 +23,9 @@ module MS6205(
 
     input wire tx_switch_view_i, //if 1 enable automatic switch on MS6205
 
+    /* verilator lint_off UNUSEDSIGNAL */
     input wire [2:0] DPC_State
+    /* verilator lint_on UNUSEDSIGNAL */
 );
 
 reg [2:0] ms6205_currentView;
@@ -41,7 +43,8 @@ parameter [2:0]
 
 reg [2:0] ms6205_nextView;
 
-assign marker = (ms6205_currentView == MS6205_IRAM) & (DPC_State == 2);
+reg showMarker;
+assign marker = showMarker;
 
 always_comb begin
     if (ms6205_currentView == MS6205_RESTART) begin
@@ -129,6 +132,7 @@ always_ff @(negedge Clock_1ms, negedge Rst_n) begin
         ms6205Pos <= 8'h00;
         stdioData <= 8'h00;
         address <= 8'h00;
+        showMarker <= 1'b0;
     end
     else begin
         ipAddress1[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:2*DEKATRON_WIDTH] <= ipAddress[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:2*DEKATRON_WIDTH];
@@ -137,6 +141,7 @@ always_ff @(negedge Clock_1ms, negedge Rst_n) begin
         apAddress1[1*DEKATRON_WIDTH-1:0] <= ms6205Pos[6:3];
         ms6205Pos <= ms6205Pos  + 8'h1;
         address <= ms6205Pos;
+        showMarker <= (ms6205Pos == ipAddress[2*DEKATRON_WIDTH-1:0] + 8'd6) & (ms6205_currentView == MS6205_IRAM);
         if (ms6205Pos == MAX_POS -1) begin
             ms6205Pos <= 8'h0;
         end
