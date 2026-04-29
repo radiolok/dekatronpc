@@ -187,7 +187,7 @@ Keyboard kb(
 
 wire ms6205_marker_en;
 
-assign ms6205_marker = ms6205_marker_en & (DPC_currentState == 3'd4 | InsnLoading & Clock_1s);
+assign ms6205_marker = ms6205_marker_en & InsnLoading & Clock_1s;
 
 MS6205 ms6205(
     .Rst_n(Rst_n),
