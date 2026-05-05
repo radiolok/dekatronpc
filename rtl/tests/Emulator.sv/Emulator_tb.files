@@ -24,4 +24,3 @@
 ../uart/uart_tx.sv
 ../uart/uart_rx.sv
 ../Emulator/consul.sv
-

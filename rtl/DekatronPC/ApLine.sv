@@ -24,8 +24,10 @@ module ApLine (
 
     input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] rx_data_bcd,
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd
-
 );
+
+reg Dec_Request;
+reg Zero_Request;
 
 reg AP_Request;
 wire AP_Ready;
@@ -61,10 +63,11 @@ DekatronCounter  #(
                 .Clk(Clk),
                 .hsClk(hsClk),
                 .Rst_n(Rst_n),
+                .HardRst_n(1'b1),
                 .Request(AP_Request),
-                .Dec(Dec),
+                .Dec(Dec_Request),
                 .Set(1'b0),
-                .SetZero(Zero),
+                .SetZero(Zero_Request),
                 .In({(AP_DEKATRON_NUM*DEKATRON_WIDTH){1'b0}}),
                 .Ready(AP_Ready),
                 .Out(Address),
@@ -90,10 +93,11 @@ DekatronCounter  #(
                 .Clk(Clk),
                 .hsClk(hsClk),
                 .Rst_n(Rst_n),
+                .HardRst_n(1'b1),
                 .Request(Data_Request),
-                .Dec(Dec),
+                .Dec(Dec_Request),
                 .Set(DataCounterSet),
-                .SetZero(Zero),
+                .SetZero(Zero_Request),
                 .In(DataCounterIn),
                 .Ready(Data_Ready),
                 .Out(DataCounterOut),
@@ -104,6 +108,8 @@ always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
         AP_Request <= 1'b0;
         Data_Request <= 1'b0;
+        Dec_Request <= 1'b0;
+        Zero_Request <= 1'b0;
         RamWE <= 1'b0;
         MemLock <= 1'b0;
         DataCounterSet <= 1'b0;
@@ -113,6 +119,8 @@ always @(posedge Clk, negedge Rst_n) begin
         case (currentState)
             IDLE: begin
                 if (ApRequest & ram_rdy_i) begin
+                    Dec_Request <= Dec;
+                    Zero_Request <= Zero;
                     if (MemLock) begin 
                         currentState <= STORE;
                         RamWE <= 1'b1;
@@ -123,6 +131,8 @@ always @(posedge Clk, negedge Rst_n) begin
                     end                    
                 end
                 if (DataRequest & ram_rdy_i) begin
+                    Dec_Request <= Dec;
+                    Zero_Request <= Zero;
                     if (Cin) begin
                         currentState <= CIN;
                         DataCounterSet <= 1'b1;

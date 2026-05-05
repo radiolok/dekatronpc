@@ -6,13 +6,13 @@ typedef enum bit [0:0]{
     INSN_BRAINFUCK_MODE = 1'b1
 } mode_t;
 
-typedef enum bit [4:0]  {
+typedef enum logic [4:0]  {
     INSN_NOP            = 5'hx0,//No operation - Must be in both ISA set
     INSN_HALT           = 5'hx1,//Stop machine - Must be in both ISA set
   //INSN_RES0           = 5'h02,
   //INSN_RES1           = 5'h03,
-  //INSN_RES2           = 5'h04,
-  //INSN_RES3           = 5'h05,
+    INSN_EOT            = 5'h04,
+    INSN_SOT            = 5'h05,
     INSN_LABEG          = 5'h06,//If AP==0 skip loop
     INSN_LAEND          = 5'h07,//If AP!=0 repeat loop
     INSN_CLRL           = 5'h08,//Reset Loop Counter

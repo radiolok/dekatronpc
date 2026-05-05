@@ -6,6 +6,7 @@ module MS6205(
     input wire tx_vld_i,
     output reg [7:0] address,
     output wire [7:0] data_n,
+    output wire data_valid_n,
     input wire [INSN_WIDTH-1:0] RomData1,
     input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apData,
     input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apData1,
@@ -23,7 +24,9 @@ module MS6205(
 
     input wire tx_switch_view_i, //if 1 enable automatic switch on MS6205
 
+    /* verilator lint_off UNUSEDSIGNAL */
     input wire [2:0] DPC_State
+    /* verilator lint_on UNUSEDSIGNAL */
 );
 
 reg [2:0] ms6205_currentView;
@@ -41,7 +44,8 @@ parameter [2:0]
 
 reg [2:0] ms6205_nextView;
 
-assign marker = (ms6205_currentView == MS6205_IRAM) & (DPC_State == 2);
+reg showMarker;
+assign marker = showMarker;
 
 always_comb begin
     if (ms6205_currentView == MS6205_RESTART) begin
@@ -71,6 +75,8 @@ end
 
 //wire PressedKey = |symbol;
 
+reg [7:0] displayRam [0: MAX_POS-1];
+
 reg [7:0] stdioRam [0: MAX_POS-1];
 /* verilator lint_off UNDRIVEN */
 reg [3:0] insnRam [0: MAX_POS-1];
@@ -81,6 +87,7 @@ reg [11:0] dataRam [0: 9];
 reg [7:0] stdioAddr;
 
 initial begin
+    $readmemh("../Emulator/MSmemZero.hex", displayRam);
     $readmemh("../Emulator/MSmemZero.hex", stdioRam);
     $readmemh("../Emulator/MSmemZero.hex", insnRam);
 end
@@ -114,12 +121,18 @@ always @(negedge Clock_1us, negedge Rst_n) begin
 end
 
 reg [7:0] stdioData;
-reg [7:0] ms6205Pos;
+reg [7:0] stdioNextData;
+reg stdioDataValid_n;
+
 wire [7:0] data;
 
-assign data_n = ~data;
+reg [7:0] ms6205Pos;
+wire [7:0] ms6205NextPos;
+assign ms6205NextPos = (ms6205Pos == MAX_POS - 1) ? 8'h0 : ms6205Pos + 8'h1;
 
 assign data = stdioData;
+assign data_n = ~data;
+assign data_valid_n = stdioDataValid_n;
 
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] currentDataRam0 = dataRam[ms6205Pos[7:4]*2];
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] currentDataRam1 = dataRam[ms6205Pos[7:4]*2+1];
@@ -129,94 +142,109 @@ always_ff @(negedge Clock_1ms, negedge Rst_n) begin
         ms6205Pos <= 8'h00;
         stdioData <= 8'h00;
         address <= 8'h00;
+        showMarker <= 1'b0;
+        stdioDataValid_n <= 1'b1;
     end
     else begin
         ipAddress1[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:2*DEKATRON_WIDTH] <= ipAddress[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:2*DEKATRON_WIDTH];
         apAddress1[AP_DEKATRON_NUM*DEKATRON_WIDTH-1:1*DEKATRON_WIDTH] <= apAddress[AP_DEKATRON_NUM*DEKATRON_WIDTH-1:1*DEKATRON_WIDTH];
         ipAddress1[2*DEKATRON_WIDTH-1:0] <= ms6205Pos;
         apAddress1[1*DEKATRON_WIDTH-1:0] <= ms6205Pos[6:3];
-        ms6205Pos <= ms6205Pos  + 8'h1;
-        address <= ms6205Pos;
-        if (ms6205Pos == MAX_POS -1) begin
-            ms6205Pos <= 8'h0;
+        
+        ms6205Pos <= ms6205NextPos;
+        displayRam[ms6205Pos] <= stdioNextData;
+        if (displayRam[ms6205Pos] != stdioNextData) begin
+            address <= ms6205Pos;
+            stdioData <= stdioNextData;
+            showMarker <= 1'b0;
+            stdioDataValid_n <= 1'b0;
         end
-        case (ms6205_currentView)
-            (MS6205_IRAM): begin
-                case (ms6205Pos[3:0])
-                    (0): begin
-                        stdioData <= {4'b0, ipAddress1[19:16]} + 8'h30;
-                    end
-                    (1): begin
-                        stdioData <= {4'b0, ipAddress1[15:12]} + 8'h30;
-                    end
-                    (2): begin
-                        stdioData <= {4'b0, ipAddress1[11:8]} + 8'h30;
-                    end
-                    (3): begin
-                        stdioData <= {4'b0, ipAddress1[7:4]} + 8'h30;
-                    end
-                    (4): begin
-                        stdioData <= 8'h30;
-                    end
-                    (5): begin
-                        stdioData <= ":";
-                    end
-                    default: begin
-                        stdioData <= OpcodeToSymbol({1'b1, insnRam[ms6205Pos]});
-                    end
-                endcase
-            end
-            (MS6205_DRAM): begin
-                if (ms6205Pos < 80) begin
-                    case (ms6205Pos[3:0])
-                        (0): begin
-                            stdioData <= {4'b0, apAddress1[19:16]} + 8'h30;
-                        end
-                        (1): begin
-                            stdioData <= {4'b0, apAddress1[15:12]} + 8'h30;
-                        end
-                        (2): begin
-                            stdioData <= {4'b0, apAddress1[11:8]} + 8'h30;
-                        end
-                        (3): begin
-                            stdioData <= {4'b0, apAddress1[7:4]} + 8'h30;
-                        end
-                        (4): begin
-                            stdioData <= {3'b0, ms6205Pos[7:4], 1'b0} + 8'h30;
-                        end
-                        (5): begin
-                            stdioData <= ":";
-                        end
-                        (7): begin
-                            stdioData <= {4'b0, currentDataRam0[11:8]} + 8'h30;
-                        end
-                        (8): begin
-                            stdioData <= {4'b0, currentDataRam0[7:4]} + 8'h30;
-                        end
-                        (9): begin
-                            stdioData <= {4'b0, currentDataRam0[3:0]} + 8'h30;
-                        end
-                        (12): begin
-                            stdioData <= {4'b0, currentDataRam1[11:8]} + 8'h30;
-                        end
-                        (13): begin
-                            stdioData <= {4'b0, currentDataRam1[7:4]} + 8'h30;
-                        end
-                        (14): begin
-                            stdioData <= {4'b0, currentDataRam1[3:0]} + 8'h30;
-                        end
-                        default: begin
-                            stdioData <= " ";
-                        end
-                    endcase
-                end else begin
-                    stdioData <= " ";
-                end
-            end
-            default: begin
-                stdioData <= stdioRam[ms6205Pos];
-            end
-        endcase
+        else begin
+            address <= ipAddress[2*DEKATRON_WIDTH-1:0] + 8'd6;
+            showMarker <= ms6205_currentView == MS6205_IRAM;
+            stdioDataValid_n <= 1'b1;
+        end
     end
 end
+
+always_comb begin
+    case (ms6205_currentView)
+        (MS6205_IRAM): begin
+            case (ms6205Pos[3:0])
+                (0): begin
+                    stdioNextData = {4'b0, ipAddress1[19:16]} + 8'h30;
+                end
+                (1): begin
+                    stdioNextData = {4'b0, ipAddress1[15:12]} + 8'h30;
+                end
+                (2): begin
+                    stdioNextData = {4'b0, ipAddress1[11:8]} + 8'h30;
+                end
+                (3): begin
+                    stdioNextData = {4'b0, ipAddress1[7:4]} + 8'h30;
+                end
+                (4): begin
+                    stdioNextData = 8'h30;
+                end
+                (5): begin
+                    stdioNextData = ":";
+                end
+                default: begin
+                    stdioNextData = OpcodeToSymbol({1'b1, insnRam[ms6205Pos]});
+                end
+            endcase
+        end
+        (MS6205_DRAM): begin
+            if (ms6205Pos < 80) begin
+                case (ms6205Pos[3:0])
+                    (0): begin
+                        stdioNextData = {4'b0, apAddress1[19:16]} + 8'h30;
+                    end
+                    (1): begin
+                        stdioNextData = {4'b0, apAddress1[15:12]} + 8'h30;
+                    end
+                    (2): begin
+                        stdioNextData = {4'b0, apAddress1[11:8]} + 8'h30;
+                    end
+                    (3): begin
+                        stdioNextData = {4'b0, apAddress1[7:4]} + 8'h30;
+                    end
+                    (4): begin
+                        stdioNextData = {3'b0, ms6205Pos[7:4], 1'b0} + 8'h30;
+                    end
+                    (5): begin
+                        stdioNextData = ":";
+                    end
+                    (7): begin
+                        stdioNextData = {4'b0, currentDataRam0[11:8]} + 8'h30;
+                    end
+                    (8): begin
+                        stdioNextData = {4'b0, currentDataRam0[7:4]} + 8'h30;
+                    end
+                    (9): begin
+                        stdioNextData = {4'b0, currentDataRam0[3:0]} + 8'h30;
+                    end
+                    (12): begin
+                        stdioNextData = {4'b0, currentDataRam1[11:8]} + 8'h30;
+                    end
+                    (13): begin
+                        stdioNextData = {4'b0, currentDataRam1[7:4]} + 8'h30;
+                    end
+                    (14): begin
+                        stdioNextData = {4'b0, currentDataRam1[3:0]} + 8'h30;
+                    end
+                    default: begin
+                        stdioNextData = " ";
+                    end
+                endcase
+            end else begin
+                stdioNextData = " ";
+            end
+        end
+        default: begin
+            stdioNextData = stdioRam[ms6205Pos];
+        end
+    endcase
+end
+
 endmodule

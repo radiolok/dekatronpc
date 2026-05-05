@@ -1,0 +1,2 @@
+`define EXPECTED_OUTPUT "3.141\n"
+`define DISABLE_CHECK_STEPS

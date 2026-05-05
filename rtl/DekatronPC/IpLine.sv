@@ -1,11 +1,19 @@
+`include "../DekatronPC/insnValues.sv"
+
 module IpLine (
     input wire Rst_n,
+    input wire HardRst_n,
     input wire Clk,
     input wire hsClk,
     input wire HaltRq,
 
     input wire dataIsZeroed,
+
+    input wire keyPrevIp,
+    input wire keyNextIp,
+    /* verilator lint_off UNUSEDSIGNAL */
     input wire key_next_app_i,
+    /* verilator lint_on UNUSEDSIGNAL */
     input wire Request,
     output wire Ready,
     output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
@@ -15,47 +23,40 @@ module IpLine (
     input wire RomReady,
     input wire [INSN_WIDTH-1:0] RomData,
 
+    input wire InsnMode,
+    input wire InsnLoading,
+    input wire [INSN_WIDTH - 1:0] InsnIn,
+    input wire InsnInValid,
+    output reg InsnInReady,
+
+    output wire [INSN_WIDTH - 1:0] RomWriteData,
+    output reg RomWE,
+
     output reg[INSN_WIDTH-1:0] Insn
 );
 
+reg IP_ReqNeedCount;
+reg IP_Move;
 reg IP_Request;
 reg IP_Dec;
 wire IP_Ready;
 
-reg [3:0] AppNum;
-reg prevApp;
-assign IpAddress[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:(IP_DEKATRON_NUM-1)*DEKATRON_WIDTH] = AppNum;
-always @(posedge Clk, negedge Rst_n) begin
-    if (~Rst_n) begin
-        AppNum <= '0;
-        prevApp <= '0;
-    end else begin
-        if (key_next_app_i) begin
-            if (~prevApp) begin
-                AppNum <= (AppNum < 9) ?  AppNum + 4'b1 : '0;
-                prevApp <= 1'b1;
-            end
-        end
-        else begin
-            prevApp <= 1'b0;
-        end
-    end
-end
-
 DekatronCounter  #(
-            .D_NUM(IP_DEKATRON_NUM-1),
-		    .WRITE(1'b0)
+            .D_NUM(IP_DEKATRON_NUM),
+		    .WRITE(1'b0),
+            .HARD_RST_D_CNT(IP_DEKATRON_NUM - 2)
             )IP_counter(
                 .Clk(Clk),
                 .hsClk(hsClk),
                 .Rst_n(Rst_n),
+                .HardRst_n(HardRst_n),
                 .Request(IP_Request),
                 .Dec(IP_Dec),
                 .Set(1'b0),
                 .SetZero(1'b0),
-                .In({((IP_DEKATRON_NUM-1)*DEKATRON_WIDTH){1'b0}}),
+                .In({((IP_DEKATRON_NUM)*DEKATRON_WIDTH){1'b0}}),
                 .Ready(IP_Ready),
-                .Out(IpAddress[(IP_DEKATRON_NUM-1)*DEKATRON_WIDTH-1:0]),
+                .Out(IpAddress[(IP_DEKATRON_NUM)*DEKATRON_WIDTH-1:0]),
                 /* verilator lint_off PINCONNECTEMPTY */
                 .Zero()
                 /* verilator lint_on PINCONNECTEMPTY */
@@ -100,6 +101,7 @@ DekatronCounter  #(
                 .Clk(Clk),
                 .hsClk(hsClk),
                 .Rst_n(Rst_n),
+                .HardRst_n(1'b1),
                 .Request(Loop_Request),
                 .Dec(Loop_Dec),
                 .Set(1'b0),
@@ -115,6 +117,11 @@ DekatronCounter  #(
 assign Ready = ~Request & (state == IDLE);//READY | IDLE
 wire IP_backwardCount = (LoopInsnClose & ~dataIsZeroed); //backward direction for ']' & nonZero
 
+reg [INSN_WIDTH-1:0] InsnInInternal;
+assign RomWriteData = InsnInInternal;
+
+wire EndOfTransmission;
+assign EndOfTransmission = { InsnMode, InsnIn } == INSN_EOT;
 
 parameter [2:0]
     IDLE      =  3'd0,
@@ -122,6 +129,8 @@ parameter [2:0]
     ROM_READ  =  3'd2,
     LOOP_COUNT = 3'd3,
     READY     =  3'd4,
+    INSN_READ =  3'd5,
+    ROM_WRITE =  3'd6,
     HALT      =  3'd7;
 
 reg [2:0] state;
@@ -129,41 +138,112 @@ reg [2:0] state;
 always @(posedge Clk, negedge Rst_n) begin
     if (~Rst_n) begin
         Insn <= {(INSN_WIDTH){1'b0}};
+        IP_Move <= 1'b0;
         IP_Dec <= 1'b0;
         IP_Request <= 1'b0;
+        IP_ReqNeedCount <= 1'b0;
         Loop_Request <= 1'b0;
         Loop_Dec <= 1'b0;
         RomRequest <= 1'b0;
+        RomWE <= 1'b0;
         state <= IDLE;
+        InsnInReady <= 1'b0;
+        InsnInInternal <= {(INSN_WIDTH){1'b0}};
     end
     else begin
         case (state)
             IDLE:
-                if (HaltRq) state <= HALT;
+                if (HaltRq) begin
+                    if (~IP_ReqNeedCount) begin
+                        state <= HALT;
+                    end
+                    else begin
+                        IP_ReqNeedCount <= 1'b0;
+                        IP_Dec <= 1'b0;
+                        IP_Request <= 1'b1;
+                        state <= IP_COUNT;
+                    end
+                end
                 else if (Request) begin
-                    if (RomReady) begin
+                    if (IP_ReqNeedCount) begin
                         IP_Dec <= IP_backwardCount; //backward direction for ']' & nonZero
                         IP_Request <= 1'b1;
-                        if ((LoopInsnOpen & dataIsZeroed) |
-                            (LoopInsnClose & ~dataIsZeroed)) begin
+                        if (~InsnLoading & ((LoopInsnOpen & dataIsZeroed) |
+                            (LoopInsnClose & ~dataIsZeroed))) begin
                             //Let's run loopLookup
                             Loop_Dec <= 1'b0;
                             Loop_Request <= 1'b1;
                             state <= LOOP_COUNT;
                         end
-                        else
+                        else begin
                             state <= IP_COUNT;
+                        end
                     end
-                    else begin//Only for IP=0
-                        state <= ROM_READ;
-                        RomRequest <= 1'b1;
+                    else begin
+                        IP_ReqNeedCount <= 1'b1;
+                        if (InsnLoading) begin
+                            state <= INSN_READ;
+                            InsnInReady <= 1'b1;    
+                        end
+                        else begin
+                            state <= ROM_READ;
+                            RomRequest <= 1'b1;
+                        end
                     end
                 end
             IP_COUNT: begin
                 IP_Request <= 1'b0;
                 if (IP_Ready) begin
-                    state <= ROM_READ;
-                    RomRequest <= 1'b1;
+                    if (~IP_ReqNeedCount) begin
+                        state <= HALT;
+                    end
+                    else begin
+                        if (InsnLoading) begin
+                            state <= INSN_READ;
+                            InsnInReady <= 1'b1;
+                        end
+                        else begin
+                            state <= ROM_READ;
+                            RomRequest <= 1'b1;
+                        end
+                    end
+                end
+            end
+            INSN_READ: begin
+                if (InsnInValid | ~InsnLoading) begin
+                    InsnInReady <= 1'b0;
+                    InsnInInternal <= InsnIn;
+
+                    if (EndOfTransmission | ~InsnLoading) begin
+                        state <= READY;
+                    end
+                    else begin
+                        RomRequest <= 1'b1;
+                        RomWE <= 1'b1;
+                        state <= ROM_WRITE;
+                    end
+                end
+                else begin
+                    if (keyPrevIp | keyNextIp) begin
+                        if (~IP_Move) begin
+                            InsnInReady <= 1'b0;
+                            IP_Move <= 1'b1;
+                            IP_Request <= 1'b1;
+                            IP_Dec <= keyPrevIp;
+                            state <= IP_COUNT;
+                        end
+                    end
+
+                    if (IP_Move & ~keyNextIp & ~keyPrevIp) begin
+                        IP_Move <= 1'b0;
+                    end
+                end
+            end
+            ROM_WRITE: begin
+                RomRequest <= 1'b0;
+                RomWE <= 1'b0;
+                if (RomReady) begin
+                    state <= READY;
                 end
             end
             ROM_READ: begin
@@ -198,16 +278,29 @@ always @(posedge Clk, negedge Rst_n) begin
                 end
             end
             READY: begin
-                Insn <= RomData;
+                Insn <= InsnLoading ? InsnInInternal : RomData;
                 if (~Request) begin
                     state <= IDLE;
                 end
             end
             HALT: begin
-                if (HaltRq)
-                    state <= HALT;
-                else
+                if (~HaltRq) begin
                     state <= IDLE;
+                end
+                else begin
+                    if (keyPrevIp | keyNextIp) begin
+                        if (~IP_Move) begin
+                            IP_Move <= 1'b1;
+                            IP_Request <= 1'b1;
+                            IP_Dec <= keyPrevIp;
+                            state <= IP_COUNT;
+                        end
+                    end
+
+                    if (IP_Move & ~keyNextIp & ~keyPrevIp) begin
+                        IP_Move <= 1'b0;
+                    end
+                end
             end
             default:
                 state <= IDLE;

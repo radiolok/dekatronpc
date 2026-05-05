@@ -1,10 +1,14 @@
 module InsnDecoder(
     input wire Clk,
     input wire Rst_n,
+    input wire HardRst_n,
 
     input wire Halt,
     input wire Step,
     input wire Run,
+
+    input wire keyInsnLoadingStart,
+    input wire keyInsnLoadingStop,
 `ifdef EMULATOR
     output reg [31:0] IRET,
 `endif
@@ -23,6 +27,10 @@ module InsnDecoder(
     output reg ApLineZero,
     output reg IpRequest,
     output reg DataRequest,
+    output reg InsnMode,
+    output reg InsnLoading,
+    
+    output reg RstReq,
 
     output reg tx_vld,
     input wire tx_rdy,
@@ -35,7 +43,10 @@ module InsnDecoder(
     //==========================================================================
 //         Switch panel section
 //==========================================================================
-    input wire EchoMode//When turned on, Symbol from CIN is printed to Cout
+    input wire EchoMode, //When turned on, Symbol from CIN is printed to Cout
+    input wire RunOnHardRst,
+    input wire RunOnSoftRst,
+    input wire SoftRstOnEOT
 );
 
 assign IsHalted = (state == HALT);
@@ -46,21 +57,32 @@ assign LoopValZero = InsnMode ? DataZero : ApZero;
 
 reg OneStep;
 reg Echo;
-reg InsnMode;
+
+parameter [1:0]
+    NO_RST   = 2'b00,
+    HARD_RST = 2'b01,
+    SOFT_RST = 2'b10;
+
+reg [1:0] RstType;
+wire RunOnRst;
+assign RunOnRst = (RstType == HARD_RST) & RunOnHardRst | (RstType == SOFT_RST) & RunOnSoftRst;
 
 parameter [2:0]
     IDLE    =  3'b001,
-    FETCH   =  3'b0010,
+    FETCH   =  3'b010,
     EXEC    =  3'b011,
     HALT    =  3'b100,
     CIN     =  3'b101,
     COUT    =  3'b110,
     CIO_ACQ =  3'b111;
 
-always @(posedge Clk, negedge Rst_n) begin
-    if (~Rst_n) begin
+always @(posedge Clk, negedge Rst_n, negedge HardRst_n) begin
+    if (~HardRst_n) begin
         tx_vld <= 1'b0;
         Echo <= 1'b0;
+        RstReq <= 1'b0;
+        RstType <= HARD_RST;
+        InsnLoading <= 1'b0;
         IpRequest <= 1'b0;
         ApLineDec <= 1'b0;
         ApLineCin <= 1'b0;
@@ -69,7 +91,26 @@ always @(posedge Clk, negedge Rst_n) begin
         ApLineZero <= 1'b0; 
         OneStep <= 1'b0;
         state <= HALT;
-        InsnMode <= BRAINFUCK_ISA;//FIX: Debug mode must be by default.
+        InsnMode <= DEBUG_ISA;
+`ifdef EMULATOR        
+        IRET <= 0;
+`endif
+    end
+    else if (~Rst_n) begin
+        tx_vld <= 1'b0;
+        Echo <= 1'b0;
+        RstReq <= 1'b0;
+        RstType <= SOFT_RST;
+        InsnLoading <= 1'b0;
+        IpRequest <= 1'b0;
+        ApLineDec <= 1'b0;
+        ApLineCin <= 1'b0;
+        ApRequest <= 1'b0;
+        DataRequest <= 1'b0;
+        ApLineZero <= 1'b0; 
+        OneStep <= 1'b0;
+        state <= HALT;
+        InsnMode <= BRAINFUCK_ISA;
 `ifdef EMULATOR        
         IRET <= 0;
 `endif
@@ -88,88 +129,124 @@ always @(posedge Clk, negedge Rst_n) begin
             FETCH: begin
                 IpRequest <= 1'b0;
                 tx_vld <= 1'b0;
-                if (IpLineReady) begin
-                    casez ({InsnMode,Insn})
-                        5'h?0: begin
-                            if (OneStep) begin
-                                state <= HALT;
+
+                if (InsnLoading & (keyInsnLoadingStop | Halt)) begin
+                    InsnLoading <= 1'b0;
+                    state <= HALT;
+                end
+
+                else if (IpLineReady) begin
+                    if (InsnLoading) begin
+                        casez({InsnMode,Insn})
+                            5'h04: begin // INSN_EOT
+                                InsnLoading <= 1'b0;
+
+                                if (SoftRstOnEOT) begin
+                                    RstReq <= 1'b1;
+                                end
+                                else begin
+                                    state <= HALT;
+                                end
                             end
-                            else begin
-                                state <= IDLE;  //INSN_NOP
-                            end
-                        end
-                        5'h?1: state <= HALT; //INSN_HALT
-                        //5'h02: //INSN_RES0
-                        //5'h03: //INSN_RES1
-                        //5'h04: //INSN_RES2
-                        //5'h05: //INSN_RES3
-                        5'h?6: begin //[ { 
-                            if (LoopValZero) begin
-                                IpRequest <= 1'b1;
-                            end
-                            else begin
+                            5'h?E: begin //INSN_DEBUG
+                                InsnMode <= DEBUG_ISA;
                                 state <= EXEC;
                             end
-                        end
-                        5'h?7: begin //] }
-                            if (~LoopValZero) begin
-                                IpRequest <= 1'b1;
-                            end
-                            else begin
+                            5'h?F: begin //INSN_BRAINFUCK
+                                InsnMode <= BRAINFUCK_ISA;
                                 state <= EXEC;
                             end
-                        end
-                        //5'h08:  //INSN_CLRL
-                        //5'h09:  //INSN_CLRI
-                        5'h?A: begin//INSN_CLRD
-                                ApRequest <= 1'b0;
-                                DataRequest <= 1'b1;
-                                ApLineZero <= 1'b1;
-                                state <= EXEC;
-                            end 
-                        5'h0B:  begin//INSN_CLRA
-                                ApRequest <= 1'b1;
-                                ApLineZero <= 1'b1;
-                                DataRequest <= 1'b0;
-                                state <= EXEC;
-                            end 
-                        //5'h0C:  //INSN_RES4
-                        //5'h0D:  //INSN_RST
-                        5'b1001?: begin//+ -
-                                ApRequest <= 1'b0;
-                                DataRequest <= 1'b1;
-                                ApLineDec <= Insn[0];
+                            default: begin
                                 state <= EXEC;
                             end
-                        5'b1010?:  begin//< > 
-                                ApRequest <= 1'b1;
-                                DataRequest <= 1'b0;
-                                ApLineDec <= Insn[0];
+                        endcase
+                    end
+                    else begin
+                        casez ({InsnMode,Insn})
+                            5'h?0: begin
+                                if (OneStep) begin
+                                    state <= HALT;
+                                end
+                                else begin
+                                    state <= IDLE;  //INSN_NOP
+                                end
+                            end
+                            5'h?1: state <= HALT; //INSN_HALT
+                            //5'h02: //INSN_RES0
+                            //5'h03: //INSN_RES1
+                            5'h05: begin // INSN_SOT
+                                InsnLoading <= 1'b1;
+                                InsnMode <= BRAINFUCK_ISA;
                                 state <= EXEC;
                             end
-                        5'h18:   begin //INSN_COUT
-                            tx_vld <= 1'b1;
-                            state <= COUT;
-                        end
-                        5'h19:  begin //INSN_CIN
-                            state <= CIN;
-                        end
-                        //5'h1A:   //INSN_CLRD?
-                        //5'h1B:   //INSN_CLRML
-                        //5'h1C:   //INSN_LOAD
-                        //5'h1D:   //INSN_STORE
-                        5'h?E: begin //INSN_DEBUG
-                            InsnMode <= DEBUG_ISA;
-                            state <= EXEC;
-                        end
-                        5'h?F: begin //INSN_BRAINFUCK
-                            InsnMode <= BRAINFUCK_ISA;
-                            state <= EXEC;
-                        end
-                        default: begin
-                            state <= EXEC;
-                        end
-                    endcase
+                            5'h?6: begin //[ { 
+                                if (LoopValZero) begin
+                                    IpRequest <= 1'b1;
+                                end
+                                else begin
+                                    state <= EXEC;
+                                end
+                            end
+                            5'h?7: begin //] }
+                                if (~LoopValZero) begin
+                                    IpRequest <= 1'b1;
+                                end
+                                else begin
+                                    state <= EXEC;
+                                end
+                            end
+                            //5'h08:  //INSN_CLRL
+                            //5'h09:  //INSN_CLRI
+                            5'h?A: begin//INSN_CLRD
+                                    ApRequest <= 1'b0;
+                                    DataRequest <= 1'b1;
+                                    ApLineZero <= 1'b1;
+                                    state <= EXEC;
+                                end 
+                            5'h0B:  begin//INSN_CLRA
+                                    ApRequest <= 1'b1;
+                                    ApLineZero <= 1'b1;
+                                    DataRequest <= 1'b0;
+                                    state <= EXEC;
+                                end 
+                            //5'h0C:  //INSN_RES4
+                            //5'h0D:  //INSN_RST
+                            5'b1001?: begin//+ -
+                                    ApRequest <= 1'b0;
+                                    DataRequest <= 1'b1;
+                                    ApLineDec <= Insn[0];
+                                    state <= EXEC;
+                                end
+                            5'b1010?:  begin//< > 
+                                    ApRequest <= 1'b1;
+                                    DataRequest <= 1'b0;
+                                    ApLineDec <= Insn[0];
+                                    state <= EXEC;
+                                end
+                            5'h18:   begin //INSN_COUT
+                                tx_vld <= 1'b1;
+                                state <= COUT;
+                            end
+                            5'h19:  begin //INSN_CIN
+                                state <= CIN;
+                            end
+                            //5'h1A:   //INSN_CLRD?
+                            //5'h1B:   //INSN_CLRML
+                            //5'h1C:   //INSN_LOAD
+                            //5'h1D:   //INSN_STORE
+                            5'h?E: begin //INSN_DEBUG
+                                InsnMode <= DEBUG_ISA;
+                                state <= EXEC;
+                            end
+                            5'h?F: begin //INSN_BRAINFUCK
+                                InsnMode <= BRAINFUCK_ISA;
+                                state <= EXEC;
+                            end
+                            default: begin
+                                state <= EXEC;
+                            end
+                        endcase
+                    end
                 end
             end
             EXEC: begin
@@ -220,9 +297,14 @@ always @(posedge Clk, negedge Rst_n) begin
                 end
             end
             HALT: begin
-                if (Step | Run) begin
+                if (Step | Run | RunOnRst | keyInsnLoadingStart) begin
+                    if (keyInsnLoadingStart) begin
+                       InsnLoading <= 1'b1; 
+                    end
+
                     if (~OneStep) begin
                         state <= IDLE;
+                        RstType <= NO_RST;
                         if (Step)
                             OneStep <= 1'b1;
                     end

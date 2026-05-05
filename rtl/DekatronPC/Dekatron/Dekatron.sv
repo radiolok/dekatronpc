@@ -1,6 +1,11 @@
-module Dekatron(
+module Dekatron #(
+    parameter EN_HARD_RST = 1'b0
+)(
     input wire hsClk,
     input wire Rst_n,
+    /* verilator lint_off UNUSEDSIGNAL */
+	input wire HardRst_n,
+	/* verilator lint_on UNUSEDSIGNAL */
     input wire [1:0] Pulses,
     input wire [9:0] In_n,
     output wire [9:0] Out
@@ -50,27 +55,58 @@ wire [29:0] InLong = {{2'b00}, In[9], 2'b00, In[8],
                     2'b00, In[3], 2'b00, In[2],
                     2'b00, In[1], 2'b00, In[0]};
 
-always @(posedge hsClk, negedge Rst_n)
- begin
-    if (~Rst_n) begin
-        Cathodes <= 30'b1;
+generate
+    if (EN_HARD_RST == 1'b1) begin : hard_rst_en
+        always @(posedge hsClk, negedge Rst_n, negedge HardRst_n)
+        begin
+            if (~HardRst_n) begin
+                Cathodes <= {3'b001, 27'b0};
+            end
+            else if (~Rst_n) begin
+                Cathodes <= 30'b1;
+            end
+            else
+                if (Pulses[0]) begin
+                    Cathodes <= (toWrite) ? InLong :
+                        CathodeGlow ? {Cathodes[28:0], Cathodes[29]} :
+                                GuideLeftGlow ? {Cathodes[0], Cathodes[29:1]} : Cathodes;
+                end
+                else if (Pulses[1]) begin
+                    Cathodes <= (toWrite) ? InLong :
+                        CathodeGlow ? {Cathodes[0], Cathodes[29:1]}:
+                        GuideRightGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
+                end
+                else begin
+                    Cathodes <= (toWrite) ? InLong : GuideRightGlow ? {Cathodes[0], Cathodes[29:1]}:
+                    GuideLeftGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
+                end
+        end
     end
-    else
-        if (Pulses[0]) begin
-            Cathodes <= (toWrite) ? InLong :
-                CathodeGlow ? {Cathodes[28:0], Cathodes[29]} :
-                        GuideLeftGlow ? {Cathodes[0], Cathodes[29:1]} : Cathodes;
+    else begin : hard_rst_dis
+        always @(posedge hsClk, negedge Rst_n)
+        begin
+            if (~Rst_n) begin
+                Cathodes <= 30'b1;
+            end
+            else
+                if (Pulses[0]) begin
+                    Cathodes <= (toWrite) ? InLong :
+                        CathodeGlow ? {Cathodes[28:0], Cathodes[29]} :
+                                GuideLeftGlow ? {Cathodes[0], Cathodes[29:1]} : Cathodes;
+                end
+                else if (Pulses[1]) begin
+                    Cathodes <= (toWrite) ? InLong :
+                        CathodeGlow ? {Cathodes[0], Cathodes[29:1]}:
+                        GuideRightGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
+                end
+                else begin
+                    Cathodes <= (toWrite) ? InLong : GuideRightGlow ? {Cathodes[0], Cathodes[29:1]}:
+                    GuideLeftGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
+                end
         end
-        else if (Pulses[1]) begin
-            Cathodes <= (toWrite) ? InLong :
-                CathodeGlow ? {Cathodes[0], Cathodes[29:1]}:
-                GuideRightGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
-        end
-        else begin
-            Cathodes <= (toWrite) ? InLong : GuideRightGlow ? {Cathodes[0], Cathodes[29:1]}:
-            GuideLeftGlow ? {Cathodes[28:0], Cathodes[29]} : Cathodes;
-        end
- end
+    end
+endgenerate
+
 `endif
 endmodule
 
@@ -81,6 +117,7 @@ module DekatronWr#(
 )(
     input wire hsClk,
     input wire Rst_n,
+    input wire HardRst_n,
     input wire [1:0] Pulses,
     input wire [TOP_WR:0] Set,
     output wire [9:0] Out
@@ -109,6 +146,7 @@ endgenerate
 Dekatron dekatron(
     .hsClk(hsClk),
     .Rst_n(Rst_n),
+    .HardRst_n(HardRst_n),
 	.Pulses(Pulses),
     .In_n(InPosDek_n),
     .Out(Out)
