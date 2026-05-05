@@ -186,7 +186,10 @@ Keyboard kb(
 );
 
 wire ms6205_marker_en;
+wire ms6205_data_valid_n;
+wire seq_ms6205_write_data_n;
 
+assign ms6205_write_data_n = seq_ms6205_write_data_n | ms6205_data_valid_n;
 assign ms6205_marker = ms6205_marker_en & InsnLoading & Clock_1s;
 
 MS6205 ms6205(
@@ -195,6 +198,7 @@ MS6205 ms6205(
     .Clock_1ms(Clock_1ms),
     .address(ms6205_addr),
     .data_n(ms6205_data),
+    .data_valid_n(ms6205_data_valid_n),
     .ipAddress(ipAddress),
     .ipAddress1(ipAddress1),
     .apAddress(apAddress),
@@ -218,7 +222,7 @@ Sequencer sequencer(
 	.Enable(Clock_1ms),
 	.Rst_n(Rst_n),
 	.ms6205_write_addr_n(ms6205_write_addr_n),
-	.ms6205_write_data_n(ms6205_write_data_n),
+	.ms6205_write_data_n(seq_ms6205_write_data_n),
 	.in12_write_anode(in12_write_anode),
 	.in12_write_cathode(in12_write_cathode),
 	.in12_clear_n(in12_clear_n),
