@@ -17,9 +17,11 @@ module io_key_display_block #(
 	output keyboard_write,
 	output keyboard_clear,
     output wire [39:0] keyboard_keysCurrentState,
+    output wire [7:0] keyboard_symbol,
 
 	output [7:0] emulData,
     input wire [2:0] DPC_currentState,
+    input wire InsnLoading,
 
     input wire [7:0] tx_data,
     input wire tx_vld,
@@ -88,15 +90,15 @@ always_comb begin
         end
         4'd6: begin
             cathodeHigh = inIPHigh[3];
-            cathodeLow = apAddress[7:4];
+            cathodeLow = apAddress[11:8];
         end
         4'd7: begin
             cathodeHigh = inIPHigh[4];
-            cathodeLow = apAddress[11:8];
+            cathodeLow = apAddress[15:12];
         end
         4'd8: begin
             cathodeHigh = inIPHigh[5];
-            cathodeLow = apAddress[15:12];
+            cathodeLow = apAddress[19:16];
         end
         default: begin
             cathodeHigh = 4'b0;
@@ -165,8 +167,10 @@ wire keyboard_read;
 
 /* verilator lint_off UNUSEDSIGNAL */
 wire [15:0] numericKey;
-wire [7:0] symbol;
 /* verilator lint_on UNUSEDSIGNAL */
+
+wire [7:0] symbol;
+assign keyboard_symbol = symbol;
 
 Keyboard kb(
     .Rst_n(Rst_n),
@@ -182,8 +186,11 @@ Keyboard kb(
 );
 
 wire ms6205_marker_en;
+wire ms6205_data_valid_n;
+wire seq_ms6205_write_data_n;
 
-assign ms6205_marker = ms6205_marker_en & Clock_1s;
+assign ms6205_write_data_n = seq_ms6205_write_data_n | ms6205_data_valid_n;
+assign ms6205_marker = ms6205_marker_en & InsnLoading & Clock_1s;
 
 MS6205 ms6205(
     .Rst_n(Rst_n),
@@ -191,6 +198,7 @@ MS6205 ms6205(
     .Clock_1ms(Clock_1ms),
     .address(ms6205_addr),
     .data_n(ms6205_data),
+    .data_valid_n(ms6205_data_valid_n),
     .ipAddress(ipAddress),
     .ipAddress1(ipAddress1),
     .apAddress(apAddress),
@@ -214,7 +222,7 @@ Sequencer sequencer(
 	.Enable(Clock_1ms),
 	.Rst_n(Rst_n),
 	.ms6205_write_addr_n(ms6205_write_addr_n),
-	.ms6205_write_data_n(ms6205_write_data_n),
+	.ms6205_write_data_n(seq_ms6205_write_data_n),
 	.in12_write_anode(in12_write_anode),
 	.in12_write_cathode(in12_write_cathode),
 	.in12_clear_n(in12_clear_n),
