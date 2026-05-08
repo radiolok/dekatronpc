@@ -244,7 +244,7 @@ public:
         SelectorIndex = 0x0a;
         for (uint8_t i = 0; i < 160; i++)
         {
-            ms6205ram[i] = ' ';
+            ms6205ram[i] = '$';
         }
         printInit();
     }

@@ -87,7 +87,7 @@ reg [11:0] dataRam [0: 9];
 reg [7:0] stdioAddr;
 
 initial begin
-    $readmemh("../Emulator/MSmemZero.hex", displayRam);
+    $readmemh("../Emulator/MSDisplayNull.hex", displayRam);
     $readmemh("../Emulator/MSmemZero.hex", stdioRam);
     $readmemh("../Emulator/MSmemZero.hex", insnRam);
 end
