@@ -3,6 +3,7 @@
 module IpLine_tb (
 );
 reg Rst_n;
+reg HardRst_n;
 reg Clk;
 reg hsClk;
 initial begin
@@ -25,8 +26,10 @@ wire Ready;
 
 wire [3:0] Insn;
 
-wire [6*4-1:0] Address;
+wire [IP_DEKATRON_NUM*4-1:0] Address;
+wire [$clog2(10**IP_DEKATRON_NUM-1)-1:0] AddressBin;
 
+localparam [IP_DEKATRON_NUM*4-1:0] BOOTLOADER_ADDR = (10**IP_DEKATRON_NUM - 100);
 
 wire RomRequest;
 wire RomReady;
@@ -41,8 +44,9 @@ IpMemory rom(
         .Ready(RomReady)
         );
 
-IpLine  ipLine(
+IpLine ipLine(
     .Rst_n(Rst_n),
+    .HardRst_n(HardRst_n),
     .Clk(Clk),
     .hsClk(hsClk),
     .dataIsZeroed(dataIsZeroed),
@@ -52,7 +56,11 @@ IpLine  ipLine(
     .RomRequest(RomRequest),
     .RomReady(RomReady),
     .RomData(RomData),
-    .Insn(Insn)
+    .Insn(Insn),
+    .InsnLoading(1'b0),
+
+    .keyNextIp(1'b0),
+    .keyPrevIp(1'b0)
 );
 initial begin $dumpfile("IpLine_tb.vcd"); $dumpvars(0,IpLine_tb); end
 
@@ -74,7 +82,11 @@ always @(posedge Clk) begin
        if (CLOCK_TICK > 2000)
           $fatal(1, "Timeout");
 end
-initial begin 
+
+initial begin
+bit valid = 0;
+
+HardRst_n <= 1; 
 Rst_n <= 0;
 Data <= 0;
 Busy <= 0;
@@ -82,8 +94,7 @@ Busy <= 0;
 #5 
 Rst_n <= 1;
 
-
-for (integer i = 0; i < TEST_NUM; i++) begin
+for (integer i = 0; !valid && (i < TEST_NUM); i++) begin
 
   repeat(1) @(posedge Request)
   repeat(1) @(posedge Ready)
@@ -96,14 +107,31 @@ for (integer i = 0; i < TEST_NUM; i++) begin
         $display ("CLOCKTICK: %dus", CLOCK_TICK); 
         if (Data) 
           $fatal(1, "Data not zero");
-        else
-          $finish; 
+        else begin
+          valid = 1;
+        end 
   end
   endcase
 
   if ((Address > 8'b00010111) | (Address[23:20]))
     $fatal(1, "Address is out of scope");
 end
+
+if (valid == 1) begin
+    $display("Hard Reset Test");
+
+    HardRst_n <= 0; Rst_n <= 0;
+    #5 HardRst_n <= 1; Rst_n <= 1;
+    $display("Time: %dus Addr: %h Insn: %b, Data: %d(%b)", $time/1000, Address, Insn, Data, dataIsZeroed);
+
+    if (AddressBin != BOOTLOADER_ADDR) begin
+        $fatal(1, "Invalid address %d on Hard Reset. Expected address is %d", Address, BOOTLOADER_ADDR);
+    end
+    else begin
+        $finish;
+    end
+end
+
 $fatal;
 
 end
@@ -117,5 +145,12 @@ always @(posedge Clk) begin
         if (Request)
             Request <= 1'b0;
 end
+
+BcdToBinEnc #(
+    .DIGITS(IP_DEKATRON_NUM)
+) bcdToBin(
+    .bcd(Address),
+    .bin(Address1Bin)
+);
 
 endmodule

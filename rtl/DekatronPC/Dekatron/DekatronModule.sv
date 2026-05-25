@@ -2,9 +2,11 @@
     parameter READ = 1'b1,
     parameter WRITE = 1'd1,
     parameter TOP_LIMIT_MODE=1'd1,
-    parameter TOP_PIN_OUT = 4'd9
+    parameter TOP_PIN_OUT = 4'd9,
+    parameter EN_HARD_RST = 1'b0
 )(
     input wire Rst_n,
+	input wire HardRst_n,
     input wire hsClk,
 /* verilator lint_off UNUSEDSIGNAL */
     input wire[3:0] In,
@@ -71,9 +73,12 @@ DekatronPulseSender pulseSender(
 	.Pulses(Pulses)
 );
 
-Dekatron dekatron(
+Dekatron #(
+    .EN_HARD_RST(EN_HARD_RST)
+) dekatron(
     .hsClk(hsClk),
     .Rst_n(Rst_n),
+    .HardRst_n(HardRst_n),
 	.Pulses(Pulses),
     .In_n(InPosDek_n),
     .Out(_OutPos)

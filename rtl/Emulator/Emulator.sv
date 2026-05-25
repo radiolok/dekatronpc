@@ -95,7 +95,7 @@ module Emulator #(
 	 D6 - AH21
 	 D7 - AH19
 	 */
-    inout logic [7:0] io_data,
+    inout [7:0] io_data,
 
     output logic pwr_selector,
     input logic [3:0] selector,
@@ -105,6 +105,13 @@ module Emulator #(
     output logic [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
     output logic [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
     output logic [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd,
+    
+    /* verilator lint_off UNUSEDSIGNAL */
+    input logic [INSN_WIDTH-1:0] InsnIn,
+    input logic InsnInValid,
+    output logic InsnInReady,
+    output logic InsnInReadEnable,
+    /* verilator lint_on UNUSEDSIGNAL */
 `endif
 
     output logic [2:0] DPC_currentState
@@ -125,28 +132,71 @@ assign LED[6:3] = selector;
 /* verilator lint_off UNUSEDSIGNAL */
 logic [31:0] IRET;
 logic [39:0] keysCurrentState;
+logic [7:0] keyboardSymbol;
 /* verilator lint_on UNUSEDSIGNAL */
 
 logic keyHalt;
 logic keyRun;
 logic keyStep;
 logic keyNextApp;
+logic keyNextIp;
+logic keyPrevIp;
+logic keyInsnLoadingStart;
+logic keyInsnLoadingStop;
 logic Rst_n;
+logic SoftRst_n;
 logic HardRst_n;
+logic RunOnSoftRst;
+logic RunOnHardRst;
+logic SoftRstOnEOT;
 
 assign keyHalt = keysCurrentState[KEYBOARD_HALT_KEY];
 assign keyRun = keysCurrentState[KEYBOARD_RUN_KEY];
 assign keyStep = keysCurrentState[KEYBOARD_STEP_KEY];
 assign keyNextApp = keysCurrentState[KEYBOARD_NONAME_KEY];
+assign keyNextIp = keysCurrentState[KEYBOARD_ARROW_RIGHT_KEY]
+                | keysCurrentState[KEYBOARD_INC_KEY];
+assign keyPrevIp = keysCurrentState[KEYBOARD_ARROW_LEFT_KEY]
+                | keysCurrentState[KEYBOARD_DEC_KEY];
+assign keyInsnLoadingStart = keysCurrentState[KEYBOARD_IP_KEY];
+assign keyInsnLoadingStop = keysCurrentState[KEYBOARD_AP_KEY]
+                        | keysCurrentState[KEYBOARD_DATA_KEY]
+                        | keysCurrentState[KEYBOARD_LOOP_KEY];
+assign SoftRstOnEOT = 1'b1;
+assign RunOnHardRst = 1'b0;
+assign RunOnSoftRst = 1'b0;
 
-assign Rst_n = KEY[0];
-assign HardRst_n = Rst_n & ~keysCurrentState[KEYBOARD_HARD_RST];
+assign SoftRst_n = ~keysCurrentState[KEYBOARD_SOFT_RST_KEY];
+assign HardRst_n = KEY[0] & ~keysCurrentState[KEYBOARD_HARD_RST];
+assign Rst_n = SoftRst_n & HardRst_n;
 
 logic Clock_10MHz;
 /* verilator lint_off UNUSEDSIGNAL */
 logic [INSN_WIDTH - 1:0] Insn;
-
 /* verilator lint_on UNUSEDSIGNAL */
+
+logic [INSN_WIDTH - 1:0] KeyboardInsn;
+logic KeyboardInsnValid;
+logic KeyboardInsnReady;
+logic KeyboardReadEnable;
+
+logic [INSN_WIDTH - 1:0] FirmwareInsn_1;
+logic FirmwareReadEnable_1;
+logic FirmwareValid_1;
+logic FirmwareReady_1;
+
+logic [INSN_WIDTH - 1:0] FirmwareInsn_2;
+logic FirmwareReadEnable_2;
+logic FirmwareValid_2;
+logic FirmwareReady_2;
+
+logic [INSN_WIDTH - 1:0] InsnInInternal;
+logic InsnInReadyInternal;
+logic InsnInValidInternal;
+logic InsnInLoading;
+
+logic InsnLoadingStartInternal;
+logic InsnLoadingStopInternal;
 
 generate
     if (DIVIDE_TO_01US == 1) begin : clock_emulator
@@ -211,17 +261,28 @@ DekatronPC dekatronPC(
     .LoopCount(LoopCount),
     .hsClk(Clock_10MHz),
     .Clk(Clock_1MHz),
-    .Rst_n(HardRst_n),
+    .SoftRst_n(SoftRst_n),
+    .HardRst_n(HardRst_n),
     .Halt(keyHalt),
     .Run(keyRun),
-    .InsnIn(4'b0),
+    .InsnIn(InsnInInternal),
+    .InsnInValid(InsnInValidInternal),
+    .InsnInReady(InsnInReadyInternal),
+    .InsnInLoading(InsnInLoading),
     .EchoMode(EchoMode),
+    .RunOnHardRst(RunOnHardRst),
+    .RunOnSoftRst(RunOnSoftRst),
+    .SoftRstOnEOT(SoftRstOnEOT),
     .tx_data_bcd(tx_data_bcd),
     .tx_vld(tx_vld),
     .tx_rdy(tx_rdy),
     .rx_data_bcd(rx_data_bcd),
     .rx_vld(rx_vld),
     .Step(keyStep),
+    .keyNextIp(keyNextIp),
+    .keyPrevIp(keyPrevIp),
+    .InsnLoadingStart(InsnLoadingStartInternal),
+    .InsnLoadingStop(InsnLoadingStopInternal),
     .key_next_app_i(keyNextApp),
     .IRET(IRET),
     .IpAddress1(IpAddress1),
@@ -246,6 +307,7 @@ io_key_display_block #(
     .keyboard_write(keyboard_write),
     .keyboard_clear(keyboard_clear),
     .keyboard_keysCurrentState(keysCurrentState),
+    .keyboard_symbol(keyboardSymbol),
     .emulData(emulData),
     .ipAddress(IpAddress),
     .ipAddress1(IpAddress1),
@@ -261,7 +323,8 @@ io_key_display_block #(
     .Rst_n(Rst_n),
     .tx_data(tx_data),
     .tx_vld(tx_vld),
-    .DPC_currentState(DPC_currentState)
+    .DPC_currentState(DPC_currentState),
+    .InsnLoading(InsnInLoading)
 );
 
 /* verilator lint_off UNUSEDSIGNAL */
@@ -315,6 +378,56 @@ logic       consul_tx_rdy;
 logic       consul_rx_vld;
 
 assign pwr_selector = 1'b1;
+
+always_comb begin
+    KeyboardReadEnable = 1'b0;
+    KeyboardInsnReady = 1'b0;
+    FirmwareReadEnable_1 = 1'b0;
+    FirmwareReady_1 = 1'b0;
+    FirmwareReadEnable_2 = 1'b0;
+    FirmwareReady_2 = 1'b0;
+`ifdef VERILATOR
+    InsnInReadEnable = 1'b0;
+    InsnInReady = 1'b0;
+`endif
+    InsnLoadingStartInternal = 1'b0;
+    InsnLoadingStopInternal = 1'b0;
+
+    case (selector)
+    4'b1010: begin
+        InsnInInternal = KeyboardInsn;
+        InsnInValidInternal = KeyboardInsnValid;
+        KeyboardInsnReady = InsnInReadyInternal;
+        KeyboardReadEnable = InsnInLoading;
+
+        InsnLoadingStartInternal = keyInsnLoadingStart;
+        InsnLoadingStopInternal = keyInsnLoadingStop;
+    end
+    4'b1001: begin
+        InsnInInternal = FirmwareInsn_1;
+        InsnInValidInternal = FirmwareValid_1;
+        FirmwareReady_1 = InsnInReadyInternal;
+        FirmwareReadEnable_1 = InsnInLoading;
+    end
+    4'b1000: begin
+        InsnInInternal = FirmwareInsn_2;
+        InsnInValidInternal = FirmwareValid_2;
+        FirmwareReady_2 = InsnInReadyInternal;
+        FirmwareReadEnable_2 = InsnInLoading;
+    end
+    default: begin
+`ifdef VERILATOR
+        InsnInInternal = InsnIn;
+        InsnInValidInternal = InsnInValid;
+        InsnInReady = InsnInReadyInternal;
+        InsnInReadEnable = InsnInLoading;
+`else
+        InsnInInternal = 4'b0;
+        InsnInValidInternal = 1'b0;
+`endif
+    end
+    endcase
+end
 
 always_comb begin
     if (selector == 4'b0001) begin
@@ -428,5 +541,45 @@ uart_rx#(
 ) ;
 
 assign uart_rx_data[7] = 1'b0;
+
+KeyboardOpcodeInput keyboardOpcodeInput(
+    .Clk(Clock_1MHz),
+    .Rst_n(Rst_n),
+    
+    .ReadEnable(KeyboardReadEnable),
+
+    .Symbol(keyboardSymbol),
+    .Opcode(KeyboardInsn),
+    .Ready(KeyboardInsnReady),
+    .Valid(KeyboardInsnValid)  
+);
+
+FirmwareLoader #(
+    .ROWS(512),
+    .FW_PATH("../load_firmware_hello.hex")
+) firmwareLoader_hello(
+    .Clk(Clock_1MHz),
+    .Rst_n(Rst_n),
+    
+    .Enable(FirmwareReadEnable_1),
+
+    .Valid(FirmwareValid_1),
+    .Ready(FirmwareReady_1),
+    .InsnOut(FirmwareInsn_1)
+);
+
+FirmwareLoader #(
+    .ROWS(650),
+    .FW_PATH("../load_firmware_pi.hex")
+) firmwareLoader_pi(
+    .Clk(Clock_1MHz),
+    .Rst_n(Rst_n),
+    
+    .Enable(FirmwareReadEnable_2),
+
+    .Valid(FirmwareValid_2),
+    .Ready(FirmwareReady_2),
+    .InsnOut(FirmwareInsn_2)
+);
 
 endmodule

@@ -77,7 +77,13 @@ bf_file="${bf_file} ${root_dir}/programs/rot13.bfk"
 bf_file="${bf_file} ${root_dir}/programs/triangle.bfk"
 bf_file="${bf_file} ${root_dir}/programs/fractal.bfk"
 python ${root_dir}/run/generate_rom.py -f ${bf_file} -o ${root_dir}/firmware.hex --hex --pack
-#python ${root_dir}/run/generate_rom.py -f ${bf_file} -o ${root_dir}/firmware.sv
+
+bf_file="${root_dir}/programs/program.bfk"
+python ${root_dir}/run/generate_rom.py -f ${bf_file} -o ${root_dir}/load_firmware.hex --hex
+bf_file="${root_dir}/programs/helloworld.bfk"
+python ${root_dir}/run/generate_rom.py -f ${bf_file} -o ${root_dir}/load_firmware_hello.hex --hex
+bf_file="${root_dir}/programs/pi.bfk"
+python ${root_dir}/run/generate_rom.py -f ${bf_file} -o ${root_dir}/load_firmware_pi.hex --hex
 
 CONSUL=""
 if [ ${consul} -ne 0 ]; then
@@ -86,7 +92,7 @@ fi
 
 cpp_file=${root_dir}/tests/Emulator.sv/Emulator_tb.cpp
 verilator -Wall --trace --top Emulator --clk FPGA_CLK_50 --cc ${EmulFiles} ${DPCfiles} \
--GDIVIDE_TO_01US=1 --timescale 1us/10ns ${CONSUL} +define+EMULATOR -DVERILATOR=1 \
+-GDIVIDE_TO_01US=1 -GDIVIDE_TO_1MS=20 --timescale 1us/10ns ${CONSUL} +define+EMULATOR -DVERILATOR=1 -DSIMPLEBOOT \
 --exe ${cpp_file} -LDFLAGS -lncurses
 
 make -j`nproc` -C obj_dir -f VEmulator.mk VEmulator

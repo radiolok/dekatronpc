@@ -17,7 +17,7 @@ module IpMemory #(
 
 `ifndef SYNTH
 localparam ROM_DEKATRONS = 2;
-localparam HIGH_ADDR = (10**(IP_DEKATRON_NUM-ROM_DEKATRONS)-1);
+localparam HIGH_ADDR = {(IP_DEKATRON_NUM-ROM_DEKATRONS){4'h9}};
 wire isBootloader = (Address[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:ROM_DEKATRONS*DEKATRON_WIDTH] == HIGH_ADDR);
 
 wire [INSN_WIDTH-1: 0] RomOutWire;
@@ -36,7 +36,7 @@ BcdToBinEnc #(
 );
 
 
-parameter [1:0]
+localparam [1:0]
     INIT      = 2'd0,
     READY     =  2'd1,
     BUSY      =  2'd2;
@@ -80,9 +80,12 @@ assign Ready = ~Request & (state == READY);
 assign InsnOut = (isBootloader) ? RomOutReg : RamOutReg;
 
 reg [INSN_WIDTH-1:0] Mem [0:ROWS-1];
+
+`ifdef IPMEMFILE
 initial begin
     $readmemh("../firmware.hex", Mem);
 end
+`endif
 
 bootloader #(
     .portSize(ROM_DEKATRONS*DEKATRON_WIDTH)

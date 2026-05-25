@@ -3,12 +3,14 @@ module DekatronCounter #(
 	parameter WIDTH = D_NUM * DEKATRON_WIDTH,
 	parameter READ = 1'b1,
     parameter WRITE = 1'b1,
+	parameter HARD_RST_D_CNT = 0,
 	parameter TOP_LIMIT_MODE = 1'b0,
 	/* verilator lint_off WIDTHEXPAND */
 	parameter [WIDTH-1:0] TOP_VALUE  = {4'd5, 4'd5, 4'd5}
 	/* verilator lint_on WIDTHEXPAND */
 )(
 	input wire Rst_n,
+	input wire HardRst_n,
 	input wire Clk,
 
 	//highSpeed Clock to emulate delay of dekatron circuits. Clk is hsClk/10
@@ -183,9 +185,11 @@ for (d = 0; d < D_NUM; d++) begin: dek
 		.READ(READ),
 		.WRITE(WRITE),
 		.TOP_LIMIT_MODE(TOP_LIMIT_MODE),
-		.TOP_PIN_OUT(TOP_VALUE[(d+1)*DEKATRON_WIDTH-1:d*DEKATRON_WIDTH])
+		.TOP_PIN_OUT(TOP_VALUE[(d+1)*DEKATRON_WIDTH-1:d*DEKATRON_WIDTH]),
+		.EN_HARD_RST(d + HARD_RST_D_CNT >= D_NUM)
 	)dModule (
 		.Rst_n(Rst_n),
+		.HardRst_n(HardRst_n),
 		.hsClk(hsClk),
 		.Set(SetTopZero),
 		.PulseR(pulses[1]),
