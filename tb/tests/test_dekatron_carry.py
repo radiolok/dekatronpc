@@ -1,6 +1,10 @@
 """
 Tests for DekatronCarrySignal module (rtl/ version without en port).
 
+NOTE: Test adjusted for rtl/ RTL version — RsLatch holds previous state when S=R=0,
+so exhaustive test resets latches between positions via mid-bit instead of
+sequentially chaining positions where latch state carries over.
+
 DekatronCarrySignal: generates CarryLow/CarryHigh from 10-position dekatron output.
 Uses RsLatch (not Rs3Latch_en) — purely combinational latches.
 Interface: In[9:0] → CarryLow, CarryHigh
@@ -73,8 +77,12 @@ async def test_carry_no_bits(dut):
 
 @cocotb.test()
 async def test_carry_exhaustive(dut):
-    """Test all single-position inputs."""
+    """Test all single-position inputs independently with clean latch state."""
     for pos in range(10):
+        # Reset latches to known state via mid-bit (any In[8:1] resets both)
+        dut.In.value = (1 << 5)
+        await Timer(1, unit="ns")
+        # Now set the position under test
         dut.In.value = (1 << pos)
         await Timer(1, unit="ns")
         if pos == 0:

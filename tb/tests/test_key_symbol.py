@@ -1,6 +1,9 @@
 """
 Tests for KeyToSymbol module — combinational conversion of numeric key to symbol.
 
+NOTE: Test adjusted for rtl/ RTL version — OpcodeToSymbol now uses casez with
+5'h?0 → space " " (0x20) instead of 'N'. Key 0 (BFISA=0 or 1) now produces space.
+
 KeyToSymbol uses OpcodeToSymbol({BFISA, BinaryToHex(numericKey)}) to map
 a one-hot encoded numeric key (0-F) plus ISA selection to an ASCII symbol.
 """
@@ -14,14 +17,14 @@ log = logging.getLogger(__name__)
 
 @cocotb.test()
 async def test_key_symbol_zero(dut):
-    """Key 0 (one-hot bit 0) with BFISA=1 should produce symbol '0'."""
+    """Key 0 (one-hot bit 0) with BFISA=1 should produce symbol space ' '."""
     dut.numericKey.value = 0x0001  # key 0
     dut.BFISA.value = 1
     await Timer(1, unit="ns")
     sym = int(dut.symbol.value)
     log.info(f"Key 0, BFISA=1 -> symbol={sym:#x} ({chr(sym) if 32 <= sym < 127 else '?'})")
-    # OpcodeToSymbol({1, 4'h0}) = "N" (5'h10 → 0x4E)
-    assert sym == ord("N"), f"Expected 'N' (0x4E), got {sym:#x}"
+    # OpcodeToSymbol({1, 4'h0}) = " " (5'h10 → 0x20)
+    assert sym == ord(" "), f"Expected ' ' (0x20), got {sym:#x}"
 
 
 @cocotb.test()
@@ -59,24 +62,24 @@ async def test_key_symbol_bfisa_minus(dut):
 
 @cocotb.test()
 async def test_key_symbol_debug_isa(dut):
-    """Key 0 with BFISA=0 (debug ISA) -> 'N'."""
+    """Key 0 with BFISA=0 (debug ISA) -> space ' '."""
     dut.numericKey.value = 0x0001  # key 0
     dut.BFISA.value = 0
     await Timer(1, unit="ns")
     sym = int(dut.symbol.value)
-    # OpcodeToSymbol({0, 4'h0}) = "N" (5'h00 → casez 5'h?0 → "N")
-    assert sym == ord("N"), f"Expected 'N' (0x4E), got {sym:#x}"
+    # OpcodeToSymbol({0, 4'h0}) = " " (5'h00 → casez 5'h?0 → space)
+    assert sym == ord(" "), f"Expected ' ' (0x20), got {sym:#x}"
 
 
 @cocotb.test()
 async def test_key_symbol_no_key(dut):
-    """When numericKey=0, symbol should be 'N' (via BinaryToHex default)."""
+    """When numericKey=0, symbol should be space ' ' (via BinaryToHex default)."""
     dut.numericKey.value = 0x0000
     dut.BFISA.value = 1
     await Timer(1, unit="ns")
     sym = int(dut.symbol.value)
-    # BinaryToHex(0) = 0, OpcodeToSymbol({1, 0}) = "N"
-    assert sym == ord("N"), f"Expected 'N' (0x4E) for no key, got {sym:#x}"
+    # BinaryToHex(0) = 0, OpcodeToSymbol({1, 0}) = " "
+    assert sym == ord(" "), f"Expected ' ' (0x20) for no key, got {sym:#x}"
 
 
 @cocotb.test()
@@ -84,13 +87,13 @@ async def test_key_symbol_all_hex_digits(dut):
     """Test all 16 one-hot keys (0-F) with BFISA=1."""
     # Expected symbols from OpcodeToSymbol for opcodes {1, hex_digit}
     # 5'h10..5'h1F (BFISA=1)
-    # casez mappings: 5'h?0→"N", 5'h?1→"H", 5'h02→"+", 5'h03→"-",
+    # casez mappings: 5'h?0→" ", 5'h?1→"H", 5'h02→"+", 5'h03→"-",
     #   5'h04→">", 5'h05→"<", 5'h06→"[", 5'h07→"]",
     #   5'h08→".", 5'h09→",", 5'h?A→"0", 5'h0B→"A",
     #   5'h0C→"R", 5'h0D→"r", 5'h?E→"D", 5'h?F→"B",
     #   5'h1B→"M" (exact match overrides casez ?A for 5'h0B)
     expected_bf = {
-        0:  "N",  1:  "H",  2:  "+",  3:  "-",
+        0:  " ",  1:  "H",  2:  "+",  3:  "-",
         4:  ">",  5:  "<",  6:  "[",  7:  "]",
         8:  ".",  9:  ",",  10: "0",  11: "M",
         12: "G",  13: "P",  14: "D",  15: "B",
