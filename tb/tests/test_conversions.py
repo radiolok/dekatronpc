@@ -4,6 +4,11 @@ BinaryToHex, OpcodeToSymbol, SymbolToOpcode, In12CathodeToPin.
 All modules are combinational. Each test checks for the expected ports
 and skips silently if the wrong TOPLEVEL is instantiated.
 
+NOTE: Test adjusted for rtl/ RTL version — OpcodeToSymbol now uses 5-bit
+opcodes with casez: 5'h?0 and 5'h10 both map to space " " (0x20), not 'N'.
+SymbolToOpcode was updated accordingly: " " maps to {isa, 4'h0}.
+KeyToSymbol test adjusted to match.
+
 AsciiToBcd converts an 8-bit binary value (0-255) to its 12-bit packed BCD
 representation. BcdToAscii does the reverse.
 """
@@ -261,7 +266,7 @@ async def test_opcode_to_symbol_all(dut):
     # Expected mapping from source (casez with wildcards)
     # Format: opcode → ASCII char, byte value
     expected = {
-        0x00: (ord('N'), "N"),
+        0x00: (ord(' '), " "),
         0x01: (ord('H'), "H"),
         0x02: (0x07, "\\a"),
         0x03: (0x00, "\\0"),
@@ -277,7 +282,7 @@ async def test_opcode_to_symbol_all(dut):
         0x0D: (ord('r'), "r"),
         0x0E: (ord('D'), "D"),
         0x0F: (ord('B'), "B"),
-        0x10: (ord('N'), "N"),  # ?0 wildcard
+        0x10: (ord(' '), " "),  # ?0 wildcard
         0x11: (ord('H'), "H"),  # ?1 wildcard
         0x12: (ord('+'), "+"),
         0x13: (ord('-'), "-"),
@@ -321,7 +326,7 @@ async def test_symbol_to_opcode_roundtrip_isa0(dut):
         return
 
     opcode_to_symbol_map = {
-        0x00: ord('N'), 0x01: ord('H'), 0x02: 0x07,
+        0x00: ord(' '), 0x01: ord('H'), 0x02: 0x07,
         0x04: ord('E'), 0x05: ord('S'), 0x06: ord('{'), 0x07: ord('}'),
         0x08: ord('L'), 0x09: ord('I'), 0x0A: ord('0'), 0x0B: ord('A'),
         0x0C: ord('R'), 0x0D: ord('r'), 0x0E: ord('D'), 0x0F: ord('B'),
@@ -344,7 +349,7 @@ async def test_symbol_to_opcode_roundtrip_isa1(dut):
     if not _has_ports(dut, "Symbol", "Opcode", "isa"):
         return
     wildcard_isa1 = [
-        (0x10, ord('N')),  # 0x10 → N → {1, 4'h0} = 0x10
+        (0x10, ord(' ')),  # 0x10 → space → {1, 4'h0} = 0x10
         (0x11, ord('H')),  # 0x11 → H → {1, 4'h1} = 0x11
         (0x1A, ord('0')),  # 0x1A → 0 → {1, 4'hA} = 0x1A
         (0x1E, ord('D')),  # 0x1E → D → {1, 4'hE} = 0x1E
@@ -370,7 +375,7 @@ async def test_symbol_to_opcode_all_defined(dut):
 
     # All defined symbols and their expected opcodes for isa=0
     defined = [
-        (ord('N'), 0x00),
+        (ord(' '), 0x00),
         (ord('H'), 0x01),
         (0x07, 0x02),        # \a
         (ord('E'), 0x04),

@@ -130,7 +130,7 @@ test_dekatron_module:  sim
 
 test_dek_counter:      MODULE = tests.test_dekatron_counter
 test_dek_counter:      TOPLEVEL = DekatronCounter
-test_dek_counter:      VERILOG_SOURCES = $(VHDL_ROOT)/parameters.sv $(LOGIC_PATH)/Impulse.sv $(LOGIC_PATH)/OneShot.sv $(DEKATRON_PATH)/BcdToBin.v $(DEKATRON_PATH)/BinToBcd.v $(DEKATRON_PATH)/Dekatron.sv $(DEKATRON_PATH)/DekatronPulseSender.sv $(DEKATRON_PATH)/DekatronCarrySignal.sv $(LOGIC_PATH)/RsLatch.sv $(DEKATRON_PATH)/DekatronWriteAmp.sv $(DEKATRON_PATH)/DekatronModule.sv $(DEKATRON_PATH)/DekatronCounter.sv $(LOGIC_PATH)/ClockDivider.sv $(FUNC_PATH)/BcdToBinEnc.sv
+test_dek_counter:      VERILOG_SOURCES = $(VHDL_ROOT)/parameters.sv $(LOGIC_PATH)/Compare.sv $(LOGIC_PATH)/Impulse.sv $(LOGIC_PATH)/OneShot.sv $(DEKATRON_PATH)/BcdToBin.v $(DEKATRON_PATH)/BinToBcd.v $(DEKATRON_PATH)/Dekatron.sv $(DEKATRON_PATH)/DekatronPulseSender.sv $(DEKATRON_PATH)/DekatronCarrySignal.sv $(LOGIC_PATH)/RsLatch.sv $(DEKATRON_PATH)/DekatronWriteAmp.sv $(DEKATRON_PATH)/DekatronModule.sv $(DEKATRON_PATH)/DekatronCounter.sv $(LOGIC_PATH)/ClockDivider.sv $(FUNC_PATH)/BcdToBinEnc.sv
 test_dek_counter:      sim
 
 # --- Phase 3: Memory Subsystem ---
@@ -271,28 +271,57 @@ sim:
 		-f $(shell cocotb-config --makefile)/Makefile.sim
 
 # =====================================================================
-# Pytest-based regression runner
+# Pytest-based regression runner with coverage summary
 # =====================================================================
 regression:
 	@echo "=== DekatronPC UVM Regression ==="
 	@echo ""
-	@FAIL_COUNT=0; PASS_COUNT=0; \
-	for t in compare impulse oneshot rs_latch add bcd_counter up_counter clock_divider \
-	         bcd_to_bin bin_to_bcd dek_carry pulse_sender dekatron_unit dek_counter \
-	         ram ip_memory rom \
-	         loop_detect insn_decoder \
-	         sequencer ms6205 keyboard io_register uart uart_rx uart_loopback key_symbol seg7 \
-	         ascii_bcd bcd_ascii bcd_bin bin_hex opcode_to_sym sym_to_opcode in12; do \
-	    echo -n "$$t: "; \
-	    rm -rf sim_build; \
-	    if make test_$$t SIM=icarus 2>&1 | grep -q "FAIL=0"; then \
-	        echo "PASS"; PASS_COUNT=$$((PASS_COUNT+1)); \
-	    else \
-	        echo "FAIL"; FAIL_COUNT=$$((FAIL_COUNT+1)); \
-	    fi; \
+	@TMPFILE=$$(mktemp /tmp/dek_regress.XXXXXX); \
+	MODULES="Logic:compare impulse oneshot rs_latch add bcd_counter up_counter clock_divider \
+	         Dekatron:bcd_to_bin bin_to_bcd dek_carry pulse_sender dekatron_unit dek_counter \
+	         Memory:ram ip_memory rom \
+	         DPC:loop_detect insn_decoder \
+	         Emulator:sequencer ms6205 keyboard io_register uart uart_rx uart_loopback key_symbol seg7 \
+	         Functions:ascii_bcd bcd_ascii bcd_bin bin_hex opcode_to_sym sym_to_opcode in12"; \
+	for group in $$MODULES; do \
+	    grp=$${group%%:*}; \
+	    tests=$${group##*:}; \
+	    for t in $$tests; do \
+	        rm -rf sim_build; \
+	        printf "  %-28s " "$$t:"; \
+	        if make test_$$t SIM=icarus >/dev/null 2>&1; then \
+	            echo "PASS"; \
+	            echo "$$grp|$$t|PASS" >> $$TMPFILE; \
+	        else \
+	            echo "FAIL"; \
+	            echo "$$grp|$$t|FAIL" >> $$TMPFILE; \
+	        fi; \
+	    done; \
 	done; \
 	echo ""; \
-	echo "=== Results: $$PASS_COUNT passed, $$FAIL_COUNT failed ==="
+	echo "=================================="; \
+	echo "  COVERAGE SUMMARY"; \
+	echo "=================================="; \
+	printf "  %-18s %7s %7s %7s %8s\n" "Module" "Tests" "Pass" "Fail" "Coverage"; \
+	printf "  %-18s %7s %7s %7s %8s\n" "----------------" "------" "------" "------" "--------"; \
+	TOTAL_TESTS=0; TOTAL_PASS=0; TOTAL_FAIL=0; \
+	current_module=""; module_tests=0; module_pass=0; module_fail=0; \
+	sorted_groups=$$(cut -d'|' -f1 $$TMPFILE | uniq); \
+	for grp in $$sorted_groups; do \
+	    tests=$$(grep "^$$grp|" $$TMPFILE | wc -l); \
+	    pass=$$(grep "^$$grp|" $$TMPFILE | grep -c "PASS"); \
+	    fail=$$(grep "^$$grp|" $$TMPFILE | grep -c "FAIL"); \
+	    pct=$$(( pass * 100 / (pass + fail) )); \
+	    printf "  %-18s %7d %7d %7d %7d%%\n" "$$grp" "$$tests" "$$pass" "$$fail" "$$pct"; \
+	    TOTAL_TESTS=$$((TOTAL_TESTS + tests)); \
+	    TOTAL_PASS=$$((TOTAL_PASS + pass)); \
+	    TOTAL_FAIL=$$((TOTAL_FAIL + fail)); \
+	done; \
+	printf "  %-18s %7s %7s %7s %8s\n" "----------------" "------" "------" "------" "--------"; \
+	TOTAL_PCT=$$(( TOTAL_PASS * 100 / (TOTAL_PASS + TOTAL_FAIL) )); \
+	printf "  %-18s %7d %7d %7d %7d%%\n" "TOTAL" "$$TOTAL_TESTS" "$$TOTAL_PASS" "$$TOTAL_FAIL" "$$TOTAL_PCT"; \
+	echo ""; \
+	rm -f $$TMPFILE
 
 # =====================================================================
 # Clean
