@@ -321,7 +321,8 @@ regression:
 	TOTAL_PCT=$$(( TOTAL_PASS * 100 / (TOTAL_PASS + TOTAL_FAIL) )); \
 	printf "  %-18s %7d %7d %7d %7d%%\n" "TOTAL" "$$TOTAL_TESTS" "$$TOTAL_PASS" "$$TOTAL_FAIL" "$$TOTAL_PCT"; \
 	echo ""; \
-	rm -f $$TMPFILE
+	rm -f $$TMPFILE; \
+	if [ "$$TOTAL_FAIL" -gt 0 ]; then exit 1; fi
 
 # =====================================================================
 # Clean
