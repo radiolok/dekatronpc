@@ -6,9 +6,9 @@ DekatronPC is a homebrew vacuum-tube computer built from Soviet-era miniature tu
 
 ## Overview
 
-The tool takes a synthesized structural Verilog netlist and a Liberty cell library as input, then guides the user through:
+The tool takes synthesized structural Verilog netlists and a Liberty cell library as input, then guides the user through:
 
-1. **Parsing** — import flat gate-level Verilog (Yosys output) and `.lib` cell definitions
+1. **Parsing** — import flat gate-level Verilog (Yosys output) and `.lib` cell definitions. **Multi-block:** 2-3 netlists per project, each creating its own block (IpLine, ApLine, MachineCtrl) sharing the same liberty/modules/chassis.
 2. **Elements** — define custom elements not covered by the liberty file (submodules, power supplies, dekatrons)
 3. **Modules** — configure hardware PCBs (140×140 mm, 2×36 pin connector) with slot assignments
 4. **Placement** — drag-and-drop modules onto a 3-row chassis grid (920×420 mm, 12 mm pitch); auto-place with simulated annealing and Hungarian algorithm
