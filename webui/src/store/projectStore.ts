@@ -429,40 +429,54 @@ export function createProjectStore(
       past: [],
       future: [],
 
+      // pushHistory uses deferred set() to avoid nested-set conflicts.
+      // When called inside an action's set() callback, the history mutation
+      // is deferred to a microtask — it runs after the outer set() commits,
+      // so get() returns the fully-updated, Immer-frozen state and set()
+      // executes standalone (no nesting).
       pushHistory: (label: string) => {
         if (_suppressHistory) return;
+        // Capture snapshot synchronously — when called from inside a set()
+        // callback, get() returns the pre-mutation state (not frozen yet).
         const snapshot = cloneProjectState(get());
-        set((s) => {
-          s.past.push({ state: snapshot, label });
-          if (s.past.length > MAX_HISTORY) s.past.shift();
-          s.future = [];
+        // Defer the actual history mutation so it runs after the outer
+        // set() commits — avoids nested set() conflicts and frozen state.
+        queueMicrotask(() => {
+          if (_suppressHistory) return;
+          set((draft) => {
+            draft.past.push({ state: snapshot, label });
+            if (draft.past.length > MAX_HISTORY) draft.past.shift();
+            draft.future = [];
+          });
         });
       },
 
       undo: () => {
-        const current = get();
-        if (current.past.length === 0) return;
-        const futureSnapshot = cloneProjectState(current);
+        const s = get();
+        if (s.past.length === 0) return;
+        const prev = s.past[s.past.length - 1];
+        const futureSnapshot = cloneProjectState(s);
         _suppressHistory = true;
-        set((s) => {
-          if (s.past.length === 0) return;
-          const prev = s.past.pop()!;
-          s.future.push({ state: futureSnapshot, label: prev.label });
-          Object.assign(s, prev.state);
+        set((draft) => {
+          if (draft.past.length === 0) return;
+          const popped = draft.past.pop()!;
+          draft.future.push({ state: futureSnapshot, label: popped.label });
+          Object.assign(draft, popped.state);
         });
         _suppressHistory = false;
       },
 
       redo: () => {
-        const current = get();
-        if (current.future.length === 0) return;
-        const pastSnapshot = cloneProjectState(current);
+        const s = get();
+        if (s.future.length === 0) return;
+        const next = s.future[s.future.length - 1];
+        const pastSnapshot = cloneProjectState(s);
         _suppressHistory = true;
-        set((s) => {
-          if (s.future.length === 0) return;
-          const next = s.future.pop()!;
-          s.past.push({ state: pastSnapshot, label: next.label });
-          Object.assign(s, next.state);
+        set((draft) => {
+          if (draft.future.length === 0) return;
+          const popped = draft.future.pop()!;
+          draft.past.push({ state: pastSnapshot, label: popped.label });
+          Object.assign(draft, popped.state);
         });
         _suppressHistory = false;
       },
