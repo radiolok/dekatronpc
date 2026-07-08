@@ -2,12 +2,20 @@
 // NetlistPanel — Load & view Verilog netlist + Liberty file
 // ============================================================================
 
-import { useCallback, useState, useMemo } from 'react';
+import { useCallback, useState, useMemo, useRef } from 'react';
 import { useProjectStore } from '@/store';
 import { parseVerilogNetlist, parseLiberty, validateCellTypes } from '@/services/parsers';
 import { getAllCellTypes } from '@/types';
 
 type SubTab = 'overview' | 'instances' | 'nets' | 'liberty';
+
+/** Read a file from a file input and call setText with its contents */
+function loadFileContent(file: File, setText: (s: string) => void) {
+  const reader = new FileReader();
+  reader.onload = () => setText(reader.result as string);
+  reader.onerror = () => alert(`Failed to read file: ${file.name}`);
+  reader.readAsText(file);
+}
 
 export function NetlistPanel() {
   const [subTab, setSubTab] = useState<SubTab>('overview');
@@ -15,10 +23,29 @@ export function NetlistPanel() {
   const [libertyText, setLibertyText] = useState('');
   const [parseError, setParseError] = useState<string | null>(null);
 
+  const verilogInputRef = useRef<HTMLInputElement>(null);
+  const libertyInputRef = useRef<HTMLInputElement>(null);
+
   const netlist = useProjectStore(s => s.netlist);
   const liberty = useProjectStore(s => s.liberty);
   const setNetlist = useProjectStore(s => s.setNetlist);
   const setLiberty = useProjectStore(s => s.setLiberty);
+
+  const handleOpenVerilog = useCallback(() => verilogInputRef.current?.click(), []);
+  const handleOpenLiberty = useCallback(() => libertyInputRef.current?.click(), []);
+
+  const handleVerilogFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) loadFileContent(file, setVerilogText);
+    // Reset so re-selecting the same file triggers onChange again
+    e.target.value = '';
+  }, []);
+
+  const handleLibertyFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) loadFileContent(file, setLibertyText);
+    e.target.value = '';
+  }, []);
 
   const handleParseVerilog = useCallback(() => {
     try {
@@ -94,7 +121,17 @@ export function NetlistPanel() {
             <div className="panel">
               <h2>Verilog Netlist</h2>
               <div className="form-group">
-                <label>Paste structural Verilog</label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <label style={{ margin: 0 }}>Paste structural Verilog or open a file</label>
+                  <button className="btn btn-small" onClick={handleOpenVerilog}>Open File...</button>
+                </div>
+                <input
+                  ref={verilogInputRef}
+                  type="file"
+                  accept=".v,.sv,.txt"
+                  onChange={handleVerilogFile}
+                  style={{ display: 'none' }}
+                />
                 <textarea
                   value={verilogText}
                   onChange={e => setVerilogText(e.target.value)}
@@ -110,7 +147,17 @@ export function NetlistPanel() {
             <div className="panel">
               <h2>Liberty File</h2>
               <div className="form-group">
-                <label>Paste Liberty (.lib) content</label>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <label style={{ margin: 0 }}>Paste Liberty (.lib) content or open a file</label>
+                  <button className="btn btn-small" onClick={handleOpenLiberty}>Open File...</button>
+                </div>
+                <input
+                  ref={libertyInputRef}
+                  type="file"
+                  accept=".lib,.txt"
+                  onChange={handleLibertyFile}
+                  style={{ display: 'none' }}
+                />
                 <textarea
                   value={libertyText}
                   onChange={e => setLibertyText(e.target.value)}
