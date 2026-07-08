@@ -12,11 +12,22 @@ export type PinDirection = 'input' | 'output' | 'inout' | 'internal';
 export interface LibertyPin {
   name: string;
   direction: PinDirection;
+  function?: string;
+  driverType?: string;
+  fanoutLoad?: number;
+  maxFanout?: number;
+  isClock?: boolean;
 }
 
 export interface LibertyCell {
   name: string;
   pins: LibertyPin[];
+  area?: number;
+  heatCurrent?: number;
+  currentUnit?: string;
+  tubes?: Record<string, number>;
+  isFlipFlop?: boolean;
+  isLatch?: boolean;
 }
 
 // ---------------------------------------------------------------------------

@@ -10,6 +10,7 @@ export function ElementEditor() {
   const externalElements = useProjectStore(s => s.externalElements);
   const liberty = useProjectStore(s => s.liberty);
   const addExternalElement = useProjectStore(s => s.addExternalElement);
+  const updateExternalElement = useProjectStore(s => s.updateExternalElement);
   const removeExternalElement = useProjectStore(s => s.removeExternalElement);
 
   const [editName, setEditName] = useState('');
@@ -50,13 +51,18 @@ export function ElementEditor() {
       alert('At least one pin is required');
       return;
     }
-    addExternalElement({
+    const element: ExternalElement = {
       name: editName.trim(),
       description: editDesc.trim() || undefined,
       pins: validPins.map(p => ({ ...p, name: p.name.trim() })),
-    });
+    };
+    if (externalElements[editName.trim()]) {
+      updateExternalElement(editName.trim(), element);
+    } else {
+      addExternalElement(element);
+    }
     resetForm();
-  }, [editName, editDesc, editPins, addExternalElement, resetForm]);
+  }, [editName, editDesc, editPins, addExternalElement, updateExternalElement, externalElements, resetForm]);
 
   const handleRemove = useCallback((name: string) => {
     if (confirm(`Delete element "${name}"?`)) {
