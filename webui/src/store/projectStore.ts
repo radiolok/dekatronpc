@@ -24,6 +24,13 @@ import type {
 
 const MAX_HISTORY = 50;
 
+/** Extract a deep-cloned snapshot of only the ProjectState data fields */
+function cloneProjectState(s: ProjectStore): ProjectState {
+  // Pick only data properties — skip action functions that break structuredClone
+  const { meta, liberty, externalElements, modules, block, netlist, placement, routing } = s;
+  return structuredClone({ meta, liberty, externalElements, modules, block, netlist, placement, routing });
+}
+
 interface HistoryEntry {
   state: ProjectState;
   label: string;
@@ -424,7 +431,7 @@ export function createProjectStore(
         const s = get();
         // Avoid pushing history during undo/redo or initial load
         if ((s as any)._suppressHistory) return;
-        s.past.push({ state: structuredClone(s as unknown as ProjectState), label });
+        s.past.push({ state: cloneProjectState(s), label });
         if (s.past.length > MAX_HISTORY) s.past.shift();
         s.future = [];
       },
@@ -433,7 +440,7 @@ export function createProjectStore(
         const s = get();
         if (s.past.length === 0) return;
         const prev = s.past.pop()!;
-        s.future.push({ state: structuredClone(s as unknown as ProjectState), label: prev.label });
+        s.future.push({ state: cloneProjectState(s), label: prev.label });
         (s as any)._suppressHistory = true;
         Object.assign(s, prev.state, { past: s.past, future: s.future });
         (s as any)._suppressHistory = false;
@@ -443,7 +450,7 @@ export function createProjectStore(
         const s = get();
         if (s.future.length === 0) return;
         const next = s.future.pop()!;
-        s.past.push({ state: structuredClone(s as unknown as ProjectState), label: next.label });
+        s.past.push({ state: cloneProjectState(s), label: next.label });
         (s as any)._suppressHistory = true;
         Object.assign(s, next.state, { past: s.past, future: s.future });
         (s as any)._suppressHistory = false;
