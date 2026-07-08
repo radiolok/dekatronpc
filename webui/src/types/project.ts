@@ -222,6 +222,31 @@ export interface ProjectMeta {
 }
 
 // ---------------------------------------------------------------------------
+// Block — a computational unit with its own netlist, placement and routing
+// ---------------------------------------------------------------------------
+
+export interface Block {
+  name: string;
+  netlist: ParsedNetlist;
+  placement: {
+    modules: ModulePlacement[];
+    elements: ElementPlacement[];
+  };
+  routing: {
+    nets: RoutedNet[];
+  };
+}
+
+export function createDefaultBlock(name: string): Block {
+  return {
+    name,
+    netlist: { instances: [], nets: [] },
+    placement: { modules: [], elements: [] },
+    routing: { nets: [] },
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Top-level Project State
 // ---------------------------------------------------------------------------
 
@@ -231,14 +256,8 @@ export interface ProjectState {
   externalElements: Record<string, ExternalElement>;
   modules: HardwareModule[];
   block: BlockConfig;
-  netlist: ParsedNetlist;
-  placement: {
-    modules: ModulePlacement[];
-    elements: ElementPlacement[];
-  };
-  routing: {
-    nets: RoutedNet[];
-  };
+  /** Multiple computational blocks sharing the same liberty/modules/chassis */
+  blocks: Record<string, Block>;
 }
 
 // ---------------------------------------------------------------------------
@@ -263,20 +282,13 @@ export function createDefaultProject(name: string = 'New Project'): ProjectState
       projectName: name,
       createdAt: now,
       updatedAt: now,
-      version: '0.1.0',
+      version: '0.2.0',
     },
     liberty: {},
     externalElements: {},
     modules: [],
     block: { ...DEFAULT_BLOCK_CONFIG },
-    netlist: { instances: [], nets: [] },
-    placement: {
-      modules: [],
-      elements: [],
-    },
-    routing: {
-      nets: [],
-    },
+    blocks: {},
   };
 }
 

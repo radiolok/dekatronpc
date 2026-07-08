@@ -1,5 +1,5 @@
 // ============================================================================
-// NetlistPanel — Load & view Verilog netlist + Liberty file
+// NetlistPanel — Load & view Verilog netlists + Liberty file, multi-block
 // ============================================================================
 
 import { useCallback, useState, useMemo, useRef } from 'react';
@@ -17,27 +17,48 @@ function loadFileContent(file: File, setText: (s: string) => void) {
   reader.readAsText(file);
 }
 
+/** Derive block name from filename: "IpLine_synth.v" → "IpLine" */
+function deriveBlockName(filename: string): string {
+  return filename.replace(/\.[^.]+$/, '').replace(/_synth$/, '');
+}
+
 export function NetlistPanel() {
   const [subTab, setSubTab] = useState<SubTab>('overview');
   const [verilogText, setVerilogText] = useState('');
   const [libertyText, setLibertyText] = useState('');
   const [parseError, setParseError] = useState<string | null>(null);
+  const [newBlockName, setNewBlockName] = useState('');
 
   const verilogInputRef = useRef<HTMLInputElement>(null);
   const libertyInputRef = useRef<HTMLInputElement>(null);
 
-  const netlist = useProjectStore(s => s.netlist);
+  const blocks = useProjectStore(s => s.blocks);
+  const activeBlockId = useProjectStore(s => s.activeBlockId);
   const liberty = useProjectStore(s => s.liberty);
-  const setNetlist = useProjectStore(s => s.setNetlist);
   const setLiberty = useProjectStore(s => s.setLiberty);
+  const setBlockNetlist = useProjectStore(s => s.setBlockNetlist);
+  const addBlock = useProjectStore(s => s.addBlock);
+  const setActiveBlock = useProjectStore(s => s.setActiveBlock);
+  const removeBlock = useProjectStore(s => s.removeBlock);
+
+  // Derive active block data for display
+  const activeBlock = activeBlockId ? blocks[activeBlockId] : null;
+  const activeNetlist = activeBlock?.netlist ?? { instances: [], nets: [] };
+
+  const blockIds = Object.keys(blocks).sort();
+
+  // Store the filename for block naming
+  const [lastVerilogFilename, setLastVerilogFilename] = useState('');
 
   const handleOpenVerilog = useCallback(() => verilogInputRef.current?.click(), []);
   const handleOpenLiberty = useCallback(() => libertyInputRef.current?.click(), []);
 
   const handleVerilogFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) loadFileContent(file, setVerilogText);
-    // Reset so re-selecting the same file triggers onChange again
+    if (file) {
+      setLastVerilogFilename(file.name);
+      loadFileContent(file, setVerilogText);
+    }
     e.target.value = '';
   }, []);
 
@@ -51,11 +72,12 @@ export function NetlistPanel() {
     try {
       setParseError(null);
       const parsed = parseVerilogNetlist(verilogText);
-      setNetlist(parsed);
+      const blockName = deriveBlockName(lastVerilogFilename) || 'Block_' + Date.now();
+      setBlockNetlist(blockName, parsed);
     } catch (err) {
       setParseError(`Verilog parse error: ${(err as Error).message}`);
     }
-  }, [verilogText, setNetlist]);
+  }, [verilogText, lastVerilogFilename, setBlockNetlist]);
 
   const handleParseLiberty = useCallback(() => {
     try {
@@ -67,22 +89,63 @@ export function NetlistPanel() {
     }
   }, [libertyText, setLiberty]);
 
-  // Validate cell types referenced in netlist
+  const handleAddBlock = useCallback(() => {
+    const name = newBlockName.trim();
+    if (name) {
+      addBlock(name);
+      setNewBlockName('');
+    }
+  }, [newBlockName, addBlock]);
+
+  // Validate cell types against ALL blocks (shared liberty)
   const missingTypes = useMemo(() => {
-    if (netlist.instances.length === 0) return [];
+    if (activeNetlist.instances.length === 0) return [];
     const knownTypes = new Set(getAllCellTypes(useProjectStore.getState()).map(c => c.name));
-    return validateCellTypes(netlist, knownTypes);
-  }, [netlist]);
+    return validateCellTypes(activeNetlist, knownTypes);
+  }, [activeNetlist]);
 
   const subTabs: { id: SubTab; label: string }[] = [
     { id: 'overview', label: 'Overview' },
-    { id: 'instances', label: `Instances (${netlist.instances.length})` },
-    { id: 'nets', label: `Nets (${netlist.nets.length})` },
+    { id: 'instances', label: `Instances (${activeNetlist.instances.length})` },
+    { id: 'nets', label: `Nets (${activeNetlist.nets.length})` },
     { id: 'liberty', label: `Liberty (${Object.keys(liberty).length})` },
   ];
 
   return (
     <div>
+      {/* Block selector */}
+      <div className="panel" style={{ marginBottom: 16, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+        <span style={{ fontWeight: 600, fontSize: 13, whiteSpace: 'nowrap' }}>Block:</span>
+        <select
+          value={activeBlockId ?? ''}
+          onChange={e => setActiveBlock(e.target.value || null)}
+          style={{ minWidth: 140, fontFamily: 'var(--font-mono)', fontSize: 12 }}
+        >
+          <option value="">— none —</option>
+          {blockIds.map(id => (
+            <option key={id} value={id}>{id} ({blocks[id].netlist.instances.length} inst)</option>
+          ))}
+        </select>
+
+        <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          <input
+            type="text"
+            value={newBlockName}
+            onChange={e => setNewBlockName(e.target.value)}
+            placeholder="Block name"
+            style={{ width: 120, padding: '3px 6px', fontSize: 12 }}
+            onKeyDown={e => { if (e.key === 'Enter') handleAddBlock(); }}
+          />
+          <button className="btn btn-small" onClick={handleAddBlock}>+ New</button>
+        </div>
+
+        {blockIds.length > 0 && activeBlockId && (
+          <span style={{ fontSize: 11, color: 'var(--text-secondary)', marginLeft: 'auto' }}>
+            {blockIds.length} block{blockIds.length !== 1 ? 's' : ''}
+          </span>
+        )}
+      </div>
+
       {/* Sub-tabs */}
       <div className="app-tabs" style={{ marginBottom: 16 }}>
         {subTabs.map(t => (
@@ -142,6 +205,11 @@ export function NetlistPanel() {
               <button className="btn btn-primary" onClick={handleParseVerilog}>
                 Parse Verilog
               </button>
+              {lastVerilogFilename && (
+                <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-secondary)' }}>
+                  Block: <span style={{ fontFamily: 'var(--font-mono)' }}>{deriveBlockName(lastVerilogFilename)}</span>
+                </span>
+              )}
             </div>
 
             <div className="panel">
@@ -175,20 +243,44 @@ export function NetlistPanel() {
             <h2>Parse Summary</h2>
             <table className="data-table">
               <tbody>
-                <tr><td>Instances</td><td>{netlist.instances.length}</td></tr>
-                <tr><td>Nets</td><td>{netlist.nets.length}</td></tr>
+                <tr><td>Blocks</td><td>{blockIds.length}</td></tr>
+                <tr><td>Instances</td><td>{activeNetlist.instances.length}</td></tr>
+                <tr><td>Nets</td><td>{activeNetlist.nets.length}</td></tr>
                 <tr><td>Liberty cells</td><td>{Object.keys(liberty).length}</td></tr>
               </tbody>
             </table>
+            {blockIds.length > 1 && (
+              <div style={{ marginTop: 12 }}>
+                <h3 style={{ fontSize: 13, marginBottom: 6 }}>All Blocks</h3>
+                <table className="data-table">
+                  <thead>
+                    <tr><th>Block</th><th>Instances</th><th>Nets</th></tr>
+                  </thead>
+                  <tbody>
+                    {blockIds.map(id => (
+                      <tr key={id} style={id === activeBlockId ? { background: 'var(--bg-active)' } : {}}>
+                        <td style={{ fontFamily: 'var(--font-mono)' }}>{id}</td>
+                        <td>{blocks[id].netlist.instances.length}</td>
+                        <td>{blocks[id].netlist.nets.length}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
 
-      {/* Instances */}
+      {/* Instances — only shown when block is active */}
       {subTab === 'instances' && (
         <div className="panel">
-          <h2>Netlist Instances</h2>
-          {netlist.instances.length === 0 ? (
+          <h2>Netlist Instances {activeBlockId ? `— ${activeBlockId}` : ''}</h2>
+          {!activeBlockId ? (
+            <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+              Select or create a block first.
+            </p>
+          ) : activeNetlist.instances.length === 0 ? (
             <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>No instances parsed.</p>
           ) : (
             <table className="data-table">
@@ -200,7 +292,7 @@ export function NetlistPanel() {
                 </tr>
               </thead>
               <tbody>
-                {netlist.instances.map(inst => (
+                {activeNetlist.instances.map(inst => (
                   <tr key={inst.name}>
                     <td style={{ fontFamily: 'var(--font-mono)' }}>{inst.name}</td>
                     <td>
@@ -224,8 +316,12 @@ export function NetlistPanel() {
       {/* Nets */}
       {subTab === 'nets' && (
         <div className="panel">
-          <h2>Nets</h2>
-          {netlist.nets.length === 0 ? (
+          <h2>Nets {activeBlockId ? `— ${activeBlockId}` : ''}</h2>
+          {!activeBlockId ? (
+            <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+              Select or create a block first.
+            </p>
+          ) : activeNetlist.nets.length === 0 ? (
             <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>No nets parsed.</p>
           ) : (
             <table className="data-table">
@@ -237,7 +333,7 @@ export function NetlistPanel() {
                 </tr>
               </thead>
               <tbody>
-                {netlist.nets.map(net => (
+                {activeNetlist.nets.map(net => (
                   <tr key={net.name}>
                     <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--success)' }}>{net.name}</td>
                     <td style={{ fontFamily: 'var(--font-mono)', fontSize: 11 }}>

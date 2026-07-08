@@ -16,10 +16,32 @@ export function serializeProject(state: ProjectState): string {
 }
 
 /**
+ * Migrate old single-netlist project to multi-block format.
+ */
+function migrateProject(state: any): ProjectState {
+  // Detect old format: top-level 'netlist' field exists but 'blocks' doesn't
+  if (state.netlist && !state.blocks) {
+    const block: any = {
+      name: 'Legacy',
+      netlist: state.netlist,
+      placement: state.placement || { modules: [], elements: [] },
+      routing: state.routing || { nets: [] },
+    };
+    state.blocks = { Legacy: block };
+    delete state.netlist;
+    delete state.placement;
+    delete state.routing;
+    if (state.meta) state.meta.version = '0.2.0';
+  }
+  return state as ProjectState;
+}
+
+/**
  * Deserialize JSON string to ProjectState.
  */
 export function deserializeProject(json: string): ProjectState {
-  return JSON.parse(json) as ProjectState;
+  const raw = JSON.parse(json);
+  return migrateProject(raw);
 }
 
 /**

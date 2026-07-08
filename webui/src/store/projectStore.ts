@@ -6,6 +6,7 @@ import { create, type StateCreator } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type {
   ProjectState,
+  Block,
   HardwareModule,
   ModuleSlot,
   ModulePlacement,
@@ -17,6 +18,7 @@ import type {
   RouteSegment,
   SlotInstance,
 } from '@/types';
+import { createDefaultBlock } from '@/types';
 
 // ---------------------------------------------------------------------------
 // History / Undo-Redo
@@ -29,8 +31,8 @@ let _suppressHistory = false;
 
 /** Extract a deep-cloned snapshot of only the ProjectState data fields */
 function cloneProjectState(s: ProjectStore): ProjectState {
-  const { meta, liberty, externalElements, modules, block, netlist, placement, routing } = s;
-  return structuredClone({ meta, liberty, externalElements, modules, block, netlist, placement, routing });
+  const { meta, liberty, externalElements, modules, block, blocks } = s;
+  return structuredClone({ meta, liberty, externalElements, modules, block, blocks });
 }
 
 interface HistoryEntry {
@@ -57,6 +59,12 @@ export interface ProjectActions {
   loadProject: (state: ProjectState) => void;
   setProjectName: (name: string) => void;
 
+  // Blocks (multi-netlist support)
+  addBlock: (name: string) => void;
+  removeBlock: (blockId: string) => void;
+  setActiveBlock: (blockId: string | null) => void;
+  setBlockNetlist: (blockId: string, netlist: ParsedNetlist) => void;
+
   // Liberty
   setLiberty: (cells: Record<string, LibertyCell>) => void;
   addLibertyCell: (name: string, cell: LibertyCell) => void;
@@ -74,16 +82,13 @@ export interface ProjectActions {
   updateSlotInModule: (moduleId: string, slotIndex: number, slot: Partial<ModuleSlot>) => void;
   removeSlotFromModule: (moduleId: string, slotIndex: number) => void;
 
-  // Netlist
-  setNetlist: (netlist: ParsedNetlist) => void;
-
-  // Placement — modules
+  // Placement — modules (active block)
   setModulePlacements: (placements: ModulePlacement[]) => void;
   placeModule: (placement: ModulePlacement) => void;
   lockModule: (moduleId: string, locked: boolean) => void;
   removeModulePlacement: (moduleId: string) => void;
 
-  // Placement — elements
+  // Placement — elements (active block)
   setElementPlacements: (placements: ElementPlacement[]) => void;
   placeElement: (placement: ElementPlacement) => void;
   lockElement: (instanceName: string, locked: boolean) => void;
@@ -92,7 +97,7 @@ export interface ProjectActions {
   // Slot instances
   setSlotInstance: (moduleId: string, slotIndex: number, instanceName: string | null) => void;
 
-  // Routing
+  // Routing (active block)
   setRoutedNets: (nets: RoutedNet[]) => void;
   addRoutedNet: (net: RoutedNet) => void;
   updateRoutedNet: (netName: string, updates: Partial<RoutedNet>) => void;
@@ -106,7 +111,10 @@ export interface ProjectActions {
 // Combined store type
 // ---------------------------------------------------------------------------
 
-export type ProjectStore = ProjectState & HistorySlice & ProjectActions;
+export type ProjectStore = ProjectState & HistorySlice & ProjectActions & {
+  /** Currently selected block — UI state, not part of history snapshots */
+  activeBlockId: string | null;
+};
 
 // ---------------------------------------------------------------------------
 // Store creator
@@ -123,6 +131,7 @@ function createProjectSlice(
       set((s) => {
         const fresh = createDefaultProject(name);
         Object.assign(s, fresh);
+        s.activeBlockId = null;
         s.past = [];
         s.future = [];
         s.pushHistory('New project');
@@ -132,6 +141,7 @@ function createProjectSlice(
     loadProject: (state: ProjectState) => {
       set((s) => {
         Object.assign(s, state);
+        s.activeBlockId = null;
         s.past = [];
         s.future = [];
       });
@@ -141,6 +151,42 @@ function createProjectSlice(
       set((s) => {
         s.meta.projectName = name;
         s.meta.updatedAt = new Date().toISOString();
+      });
+    },
+
+    // --- Blocks ---
+    addBlock: (name: string) => {
+      set((s) => {
+        if (!s.blocks[name]) {
+          s.blocks[name] = createDefaultBlock(name);
+        }
+        s.activeBlockId = name;
+        s.pushHistory(`Add block: ${name}`);
+      });
+    },
+
+    removeBlock: (blockId: string) => {
+      set((s) => {
+        delete s.blocks[blockId];
+        if (s.activeBlockId === blockId) {
+          s.activeBlockId = null;
+        }
+        s.pushHistory(`Remove block: ${blockId}`);
+      });
+    },
+
+    setActiveBlock: (blockId: string | null) => {
+      set((s) => { s.activeBlockId = blockId; });
+    },
+
+    setBlockNetlist: (blockId: string, netlist: ParsedNetlist) => {
+      set((s) => {
+        if (!s.blocks[blockId]) {
+          s.blocks[blockId] = createDefaultBlock(blockId);
+        }
+        s.blocks[blockId].netlist = netlist;
+        s.activeBlockId = blockId;
+        s.pushHistory(`Set netlist for block: ${blockId}`);
       });
     },
 
@@ -206,9 +252,11 @@ function createProjectSlice(
           s.pushHistory(`Remove module: ${s.modules[idx].name}`);
           s.modules.splice(idx, 1);
         }
-        // Also remove placements referencing this module
-        s.placement.modules = s.placement.modules.filter(p => p.moduleId !== id);
-        s.placement.elements = s.placement.elements.filter(p => p.moduleId !== id);
+        // Remove placements referencing this module from ALL blocks
+        for (const b of Object.values(s.blocks)) {
+          b.placement.modules = b.placement.modules.filter(p => p.moduleId !== id);
+          b.placement.elements = b.placement.elements.filter(p => p.moduleId !== id);
+        }
       });
     },
 
@@ -240,29 +288,25 @@ function createProjectSlice(
       });
     },
 
-    // --- Netlist ---
-    setNetlist: (netlist: ParsedNetlist) => {
-      set((s) => {
-        s.netlist = netlist;
-        s.pushHistory('Set netlist');
-      });
-    },
-
-    // --- Module placements ---
+    // --- Placement — modules (active block) ---
     setModulePlacements: (placements: ModulePlacement[]) => {
       set((s) => {
-        s.placement.modules = placements;
+        const b = s.activeBlockId ? s.blocks[s.activeBlockId] : null;
+        if (!b) return;
+        b.placement.modules = placements;
         s.pushHistory('Set module placements');
       });
     },
 
     placeModule: (placement: ModulePlacement) => {
       set((s) => {
-        const idx = s.placement.modules.findIndex(p => p.moduleId === placement.moduleId);
+        const b = s.activeBlockId ? s.blocks[s.activeBlockId] : null;
+        if (!b) return;
+        const idx = b.placement.modules.findIndex(p => p.moduleId === placement.moduleId);
         if (idx !== -1) {
-          s.placement.modules[idx] = placement;
+          b.placement.modules[idx] = placement;
         } else {
-          s.placement.modules.push(placement);
+          b.placement.modules.push(placement);
         }
         s.pushHistory(`Place module: ${placement.moduleId}`);
       });
@@ -270,35 +314,43 @@ function createProjectSlice(
 
     lockModule: (moduleId: string, locked: boolean) => {
       set((s) => {
-        const p = s.placement.modules.find(m => m.moduleId === moduleId);
+        const b = s.activeBlockId ? s.blocks[s.activeBlockId] : null;
+        if (!b) return;
+        const p = b.placement.modules.find(m => m.moduleId === moduleId);
         if (p) p.locked = locked;
       });
     },
 
     removeModulePlacement: (moduleId: string) => {
       set((s) => {
-        s.placement.modules = s.placement.modules.filter(p => p.moduleId !== moduleId);
+        const b = s.activeBlockId ? s.blocks[s.activeBlockId] : null;
+        if (!b) return;
+        b.placement.modules = b.placement.modules.filter(p => p.moduleId !== moduleId);
         s.pushHistory(`Remove module placement: ${moduleId}`);
       });
     },
 
-    // --- Element placements ---
+    // --- Placement — elements (active block) ---
     setElementPlacements: (placements: ElementPlacement[]) => {
       set((s) => {
-        s.placement.elements = placements;
+        const b = s.activeBlockId ? s.blocks[s.activeBlockId] : null;
+        if (!b) return;
+        b.placement.elements = placements;
         s.pushHistory('Set element placements');
       });
     },
 
     placeElement: (placement: ElementPlacement) => {
       set((s) => {
-        const idx = s.placement.elements.findIndex(
+        const b = s.activeBlockId ? s.blocks[s.activeBlockId] : null;
+        if (!b) return;
+        const idx = b.placement.elements.findIndex(
           p => p.instanceName === placement.instanceName,
         );
         if (idx !== -1) {
-          s.placement.elements[idx] = placement;
+          b.placement.elements[idx] = placement;
         } else {
-          s.placement.elements.push(placement);
+          b.placement.elements.push(placement);
         }
         s.pushHistory(`Place element: ${placement.instanceName}`);
       });
@@ -306,14 +358,18 @@ function createProjectSlice(
 
     lockElement: (instanceName: string, locked: boolean) => {
       set((s) => {
-        const p = s.placement.elements.find(e => e.instanceName === instanceName);
+        const b = s.activeBlockId ? s.blocks[s.activeBlockId] : null;
+        if (!b) return;
+        const p = b.placement.elements.find(e => e.instanceName === instanceName);
         if (p) p.locked = locked;
       });
     },
 
     removeElementPlacement: (instanceName: string) => {
       set((s) => {
-        s.placement.elements = s.placement.elements.filter(
+        const b = s.activeBlockId ? s.blocks[s.activeBlockId] : null;
+        if (!b) return;
+        b.placement.elements = b.placement.elements.filter(
           p => p.instanceName !== instanceName,
         );
         s.pushHistory(`Remove element placement: ${instanceName}`);
@@ -329,7 +385,6 @@ function createProjectSlice(
         if (si) {
           si.instanceName = instanceName;
         } else {
-          // Determine which slot definition this belongs to
           let count = 0;
           let slotDefIndex = 0;
           for (let i = 0; i < mod.slots.length; i++) {
@@ -348,42 +403,52 @@ function createProjectSlice(
       });
     },
 
-    // --- Routing ---
+    // --- Routing (active block) ---
     setRoutedNets: (nets: RoutedNet[]) => {
       set((s) => {
-        s.routing.nets = nets;
+        const b = s.activeBlockId ? s.blocks[s.activeBlockId] : null;
+        if (!b) return;
+        b.routing.nets = nets;
         s.pushHistory('Set routing');
       });
     },
 
     addRoutedNet: (net: RoutedNet) => {
       set((s) => {
-        s.routing.nets.push(net);
+        const b = s.activeBlockId ? s.blocks[s.activeBlockId] : null;
+        if (!b) return;
+        b.routing.nets.push(net);
         s.pushHistory(`Add routed net: ${net.netName}`);
       });
     },
 
     updateRoutedNet: (netName: string, updates: Partial<RoutedNet>) => {
       set((s) => {
-        const net = s.routing.nets.find(n => n.netName === netName);
+        const b = s.activeBlockId ? s.blocks[s.activeBlockId] : null;
+        if (!b) return;
+        const net = b.routing.nets.find(n => n.netName === netName);
         if (net) Object.assign(net, updates);
       });
     },
 
     addRouteSegment: (netName: string, segment: RouteSegment) => {
       set((s) => {
-        const net = s.routing.nets.find(n => n.netName === netName);
+        const b = s.activeBlockId ? s.blocks[s.activeBlockId] : null;
+        if (!b) return;
+        const net = b.routing.nets.find(n => n.netName === netName);
         if (net) {
           net.segments.push(segment);
         } else {
-          s.routing.nets.push({ netName, color: '#3388ff', segments: [segment] });
+          b.routing.nets.push({ netName, color: '#3388ff', segments: [segment] });
         }
       });
     },
 
     updateRouteSegment: (netName: string, segmentId: string, updates: Partial<RouteSegment>) => {
       set((s) => {
-        const net = s.routing.nets.find(n => n.netName === netName);
+        const b = s.activeBlockId ? s.blocks[s.activeBlockId] : null;
+        if (!b) return;
+        const net = b.routing.nets.find(n => n.netName === netName);
         if (!net) return;
         const seg = net.segments.find(s => s.id === segmentId);
         if (seg) Object.assign(seg, updates);
@@ -392,19 +457,22 @@ function createProjectSlice(
 
     removeRouteSegment: (netName: string, segmentId: string) => {
       set((s) => {
-        const net = s.routing.nets.find(n => n.netName === netName);
+        const b = s.activeBlockId ? s.blocks[s.activeBlockId] : null;
+        if (!b) return;
+        const net = b.routing.nets.find(n => n.netName === netName);
         if (!net) return;
         net.segments = net.segments.filter(s => s.id !== segmentId);
-        // Remove net if no segments left
         if (net.segments.length === 0) {
-          s.routing.nets = s.routing.nets.filter(n => n.netName !== netName);
+          b.routing.nets = b.routing.nets.filter(n => n.netName !== netName);
         }
       });
     },
 
     markSegmentAssembled: (netName: string, segmentId: string, assembled: boolean) => {
       set((s) => {
-        const net = s.routing.nets.find(n => n.netName === netName);
+        const b = s.activeBlockId ? s.blocks[s.activeBlockId] : null;
+        if (!b) return;
+        const net = b.routing.nets.find(n => n.netName === netName);
         if (!net) return;
         const seg = net.segments.find(s => s.id === segmentId);
         if (seg) seg.assembled = assembled;
@@ -489,7 +557,7 @@ export function createProjectStore(
       },
     };
 
-    return { ...initialState, ...actions, ...historySlice };
+    return { ...initialState, ...actions, ...historySlice, activeBlockId: null };
   };
 
   return create<ProjectStore>()(immer(stateCreator));

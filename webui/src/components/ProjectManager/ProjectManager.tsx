@@ -146,24 +146,28 @@ export function ProjectManager() {
                 <td>{useProjectStore.getState().modules.length}</td>
               </tr>
               <tr>
-                <td>Netlist instances</td>
-                <td>{useProjectStore.getState().netlist.instances.length}</td>
+                <td>Blocks</td>
+                <td>{Object.keys(useProjectStore.getState().blocks).length}</td>
               </tr>
               <tr>
-                <td>Nets</td>
-                <td>{useProjectStore.getState().netlist.nets.length}</td>
+                <td>Netlist instances (total)</td>
+                <td>{Object.values(useProjectStore.getState().blocks).reduce((sum, b) => sum + b.netlist.instances.length, 0)}</td>
               </tr>
               <tr>
-                <td>Modules placed</td>
-                <td>{useProjectStore.getState().placement.modules.length}</td>
+                <td>Nets (total)</td>
+                <td>{Object.values(useProjectStore.getState().blocks).reduce((sum, b) => sum + b.netlist.nets.length, 0)}</td>
               </tr>
               <tr>
-                <td>Elements placed</td>
-                <td>{useProjectStore.getState().placement.elements.length}</td>
+                <td>Modules placed (total)</td>
+                <td>{Object.values(useProjectStore.getState().blocks).reduce((sum, b) => sum + b.placement.modules.length, 0)}</td>
               </tr>
               <tr>
-                <td>Routed nets</td>
-                <td>{useProjectStore.getState().routing.nets.length}</td>
+                <td>Elements placed (total)</td>
+                <td>{Object.values(useProjectStore.getState().blocks).reduce((sum, b) => sum + b.placement.elements.length, 0)}</td>
+              </tr>
+              <tr>
+                <td>Routed nets (total)</td>
+                <td>{Object.values(useProjectStore.getState().blocks).reduce((sum, b) => sum + b.routing.nets.length, 0)}</td>
               </tr>
             </tbody>
           </table>
