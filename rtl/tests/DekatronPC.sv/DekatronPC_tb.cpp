@@ -36,7 +36,8 @@ public:
 #ifdef SIM_TRACE
         trace = new VerilatedVcdC;
 #endif
-        dut->Rst_n = 1;
+        dut->SoftRst_n = 1;
+        dut->HardRst_n = 1;
         dut->hsClk = 0;
         dut->Clk = 0;
         dut->EchoMode = 1;
@@ -102,10 +103,10 @@ int stepVerilog(VerilogMachine &state){
     while(true){
         static int prev_state = state.dut->state;
         if (state.PLL_CLK == 1){
-            state.dut->Rst_n = 0;
+            state.dut->SoftRst_n = 0;
         }
         if (state.PLL_CLK == SLOW_P*2){
-            state.dut->Rst_n = 1;
+            state.dut->SoftRst_n = 1;
         }
         if (state.PLL_CLK == SLOW_P*4){
             state.dut->Run = 1;

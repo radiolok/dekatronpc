@@ -1,10 +1,10 @@
-function [4:0] SymbolToOpcode (
+function logic [4:0] SymbolToOpcode (
     input [7:0] symbol,
     input [0:0] isa
     );
 
   casez(symbol)
-    "N": SymbolToOpcode = {isa, 4'h0};
+    " ": SymbolToOpcode = {isa, 4'h0};
     "H": SymbolToOpcode = {isa, 4'h1};
     "\a": SymbolToOpcode = 5'h02;
     "E": SymbolToOpcode =  5'h04;

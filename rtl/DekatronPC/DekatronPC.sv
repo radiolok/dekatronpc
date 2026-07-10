@@ -13,10 +13,15 @@ module DekatronPC (
 `endif
     input hsClk,
     input Clk,
-    input Rst_n,
+    input SoftRst_n,
+    input HardRst_n,
     input Halt,
     input Step,
     input Run,
+    input InsnLoadingStart,
+    input InsnLoadingStop,
+    input keyNextIp,
+    input keyPrevIp,
     input key_next_app_i,
 
     output logic [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
@@ -32,13 +37,28 @@ module DekatronPC (
     output logic [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
     output logic [2:0] state,
     input logic [INSN_WIDTH - 1:0] InsnIn,
+    input logic InsnInValid,
+    output logic InsnInLoading,
+    output logic InsnInReady,
     output logic [INSN_WIDTH - 1:0] Insn,
 
 //==========================================================================
 //         Switch panel section
 //==========================================================================
-    input logic EchoMode//When turned on, Symbol from CIN is printed to Cout
+    input logic EchoMode,//When turned on, Symbol from CIN is printed to Cout
+    input logic RunOnHardRst,
+    input logic RunOnSoftRst,
+    input logic SoftRstOnEOT
 );
+
+logic RstExtern_n;
+assign RstExtern_n = SoftRst_n & HardRst_n;
+
+logic RstReq;
+logic RstReqLong;
+
+logic Rst_n;
+assign Rst_n = RstExtern_n & ~RstReqLong;
 
 logic IpRequest;
 logic IpLineReady;
@@ -59,9 +79,16 @@ logic ApLineCin;
 logic LoopValZero;
 logic IsHalted;
 
+logic InsnLoading;
+logic InsnMode;
+
 logic RomRequest;
 logic RomReady;
+logic RomWE;
 logic [INSN_WIDTH-1:0] RomData;
+logic [INSN_WIDTH-1:0] RomWriteData;
+
+assign InsnInLoading = InsnLoading;
 
 IpMemory
     IpRAM_ROM(
@@ -69,13 +96,13 @@ IpMemory
     .Rst_n(Rst_n),
     .Request(RomRequest),
     .Ready(RomReady),
-    .WE(1'b0),
+    .WE(RomWE),
 `ifdef EMULATOR
     .Address1(IpAddress1),
     .InsnOut1(RomData1),
 `endif
     .Address(IpAddress),
-    .InsnIn(InsnIn),
+    .InsnIn(RomWriteData),
     .InsnOut(RomData)
 );
 
@@ -88,12 +115,11 @@ localparam AP_RAM_ROWS_NUM = 30000;
 localparam AP_RAM_BIN_BW = $clog2(AP_RAM_ROWS_NUM-1);
 
 logic [AP_RAM_BIN_BW-1:0] ApAddressBin;
-logic [AP_RAM_BIN_BW-1:0] ApAddressBin_Setup;
 logic [AP_RAM_BIN_BW-1:0] ApAddressBin_Cnt;
 
 logic ApRamRdy;
 
-assign ApAddressBin = (ApRamRdy) ? ApAddressBin_Cnt : ApAddressBin_Setup;
+assign ApAddressBin = ApAddressBin_Cnt;
 
 BcdToBinEnc #(
     .DIGITS(AP_DEKATRON_NUM),
@@ -112,30 +138,10 @@ BcdToBinEnc #(
     .bcd(ApAddress1),
     .bin(ApAddress1Bin)
 );
-assign ApAddressBin_Setup = '0;
-assign ApRamRdy = 1'b1;
-`else
-    `ifdef SYNTH
-    assign ApRamRdy = 1'b1;
-    assign ApAddressBin_Setup = '0;
-    `else
-    //This is a Memory cleanup for FPGA
-    always @(posedge Clk, negedge Rst_n) begin
-        if (~Rst_n) begin
-            ApRamRdy <= 1'b0;
-            ApAddressBin_Setup <= AP_RAM_ROWS_NUM - 1;
-        end else begin
-            if (~ApRamRdy) begin
-                if (ApAddressBin_Setup == 0) begin
-                    ApRamRdy <= 1;
-                end else begin
-                    ApAddressBin_Setup <= ApAddressBin_Setup - 1;
-                end
-            end
-        end
-    end
-    `endif
 `endif
+
+assign ApRamRdy = 1'b1;
+
 RAM #(
     .ROWS(AP_RAM_ROWS_NUM),
     .ADDR_WIDTH(AP_RAM_BIN_BW),
@@ -150,12 +156,13 @@ RAM #(
     .Address1(ApAddress1Bin),
     .Out1(ApData1),
 `endif
-    .WE(ApRamWE | ~ApRamRdy),
+    .WE(ApRamWE),
     .CS(ApRamCS)
 );
 
 IpLine ipLine(
     .Rst_n(Rst_n),
+    .HardRst_n(HardRst_n),
     .Clk(Clk),
     .hsClk(hsClk),
     .HaltRq(IsHalted),
@@ -167,7 +174,16 @@ IpLine ipLine(
     .RomRequest(RomRequest),
     .RomReady(RomReady),
     .RomData(RomData),
+    .InsnLoading(InsnLoading),
+    .InsnMode(InsnMode),
+    .keyNextIp(keyNextIp),
+    .keyPrevIp(keyPrevIp),
     .key_next_app_i(key_next_app_i),
+    .InsnIn(InsnIn),
+    .InsnInValid(InsnInValid),
+    .InsnInReady(InsnInReady),
+    .RomWriteData(RomWriteData),
+    .RomWE(RomWE),
 	.Insn(Insn)
 );
 
@@ -195,6 +211,7 @@ ApLine  apLine(
 
 InsnDecoder insnDecoder(
     .Rst_n(Rst_n),
+    .HardRst_n(HardRst_n),
     .Clk(Clk),
 `ifdef EMULATOR
     .IRET(IRET),
@@ -208,6 +225,10 @@ InsnDecoder insnDecoder(
     .ApLineCin(ApLineCin),
     .ApLineZero(ApLineZero),
     .DataRequest(DataRequest),
+    .InsnLoading(InsnLoading),
+    .InsnMode(InsnMode),
+
+    .RstReq(RstReq),
 
     .tx_vld(tx_vld),
     .tx_rdy(tx_rdy),
@@ -223,9 +244,24 @@ InsnDecoder insnDecoder(
     .Halt(Halt),
     .Step(Step),
     .Run(Run),
+    .keyInsnLoadingStart(InsnLoadingStart),
+    .keyInsnLoadingStop(InsnLoadingStop),
 
     .EchoMode(EchoMode),
+    .RunOnHardRst(RunOnHardRst),
+    .RunOnSoftRst(RunOnSoftRst),
+    .SoftRstOnEOT(SoftRstOnEOT),
     .IsHalted(IsHalted)
+);
+
+OneShot #(
+    .DELAY(16),
+    .IMP_ON_EN(1'b0)
+) rstOneShot (
+    .Clk(Clk),
+    .Rst_n(RstExtern_n),
+    .En(RstReq),
+    .Impulse(RstReqLong)
 );
 
 endmodule
