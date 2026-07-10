@@ -3,7 +3,7 @@ function [7:0] OpcodeToSymbol (
 );
 
     casez(opcode)
-      5'h?0: OpcodeToSymbol = "N";
+      5'h?0: OpcodeToSymbol = " ";
       5'h?1: OpcodeToSymbol = "H";
       5'h02: OpcodeToSymbol = "\a";
       5'h03: OpcodeToSymbol = "\0";

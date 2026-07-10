@@ -26,5 +26,8 @@ vhdl/share/
 *conflicted copy*.sv
 rtl/firmware.sv
 rtl/firmware.hex
+rtl/load_firmware.sv
+rtl/load_firmware.hex
+rtl/run/*.json
 run/*.json
 *.dip~

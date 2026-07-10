@@ -1,4 +1,5 @@
 `timescale 100 ns / 100 ps
+`define EMULATOR
 
 module Emulator_tb(
 );
@@ -11,7 +12,7 @@ end
 parameter TEST_NUM=20000;
 reg [$clog2(TEST_NUM):0] test_num=TEST_NUM;
 
-Emulator #(.DIVIDE_TO_1US(1)) emulator(
+Emulator #(.DIVIDE_TO_01US(1)) emulator(
     .KEY({1'b0,Rst_n}),
     .FPGA_CLK_50(hsClk)
 );
@@ -21,9 +22,11 @@ initial begin
 end
 
 initial begin 
-Rst_n <= 0;
 
-#5 
+Rst_n <= 1;
+#5000
+Rst_n <= 0;
+#5000
 Rst_n <= 1;
 
 #100000
