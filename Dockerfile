@@ -13,9 +13,10 @@ RUN apt-get update -y && \
     make \
     libncurses-dev \
     graphviz \
+    cocotb pyuvm pytest \
     && rm -rf /var/lib/apt/lists
 
 RUN python3 -m venv /var/venv && \
-    /var/venv/bin/pip install liberty-parser cocotb pyuvm pytest
+    /var/venv/bin/pip install liberty-parser
 
 WORKDIR /var/rtl/run
