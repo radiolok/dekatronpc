@@ -10,14 +10,14 @@ jobs:
   build-image:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         submodules: recursive
     - name: Build Docker image
       run: docker build . --file Dockerfile --tag dekatron-pc-ci:latest
     - name: Save Docker image
       run: docker save dekatron-pc-ci:latest -o /tmp/image.tar
-    - uses: actions/upload-artifact@v4
+    - uses: actions/upload-artifact@v5
       with:
         name: docker-image
         path: /tmp/image.tar
@@ -28,10 +28,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         submodules: recursive
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@v5
       with:
         name: docker-image
         path: /tmp
@@ -49,10 +49,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         submodules: recursive
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@v5
       with:
         name: docker-image
         path: /tmp
@@ -70,10 +70,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         submodules: recursive
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@v5
       with:
         name: docker-image
         path: /tmp
