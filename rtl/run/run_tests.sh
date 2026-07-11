@@ -14,8 +14,9 @@ sim=0
 cov=0
 
 cleanup() {
+    local exit_code=$?
     trap - SIGINT SIGTERM ERR EXIT
-    exit
+    exit $exit_code
 
 }
 
