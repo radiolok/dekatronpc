@@ -6,6 +6,7 @@ RUN apt-get update -y && \
     python-is-python3 \
     python3-pip \
     python3-venv \
+    python3-dev \
     verilator \
     yosys \
     iverilog \
@@ -13,10 +14,9 @@ RUN apt-get update -y && \
     make \
     libncurses-dev \
     graphviz \
-    cocotb pyuvm pytest \
     && rm -rf /var/lib/apt/lists
 
 RUN python3 -m venv /var/venv && \
-    /var/venv/bin/pip install liberty-parser
+    COCOTB_IGNORE_PYTHON_REQUIRES=1 /var/venv/bin/pip install liberty-parser cocotb pyuvm pytest
 
 WORKDIR /var/rtl/run
