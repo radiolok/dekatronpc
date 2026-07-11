@@ -1,4 +1,4 @@
-name: Docker Image CI
+name: DekatronPC CI
 
 on:
   push:
@@ -22,6 +22,27 @@ jobs:
         name: docker-image
         path: /tmp/image.tar
         retention-days: 1
+
+  uvm:
+    needs: build-image
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    - uses: actions/download-artifact@v4
+      with:
+        name: docker-image
+        path: /tmp
+    - name: Load Docker image
+      run: docker load -i /tmp/image.tar
+    - name: Run UVM regression
+      run: |
+        docker run --rm \
+          -v ${{ github.workspace }}:/var/rtl/run \
+          dekatron-pc-ci:latest \
+          bash -c "source /var/venv/bin/activate && cd /var/rtl/run/tb && make regression"
 
   sim:
     needs: build-image

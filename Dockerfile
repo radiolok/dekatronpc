@@ -16,6 +16,6 @@ RUN apt-get update -y && \
     && rm -rf /var/lib/apt/lists
 
 RUN python3 -m venv /var/venv && \
-    /var/venv/bin/pip install liberty-parser
+    /var/venv/bin/pip install liberty-parser cocotb pyuvm pytest
 
 WORKDIR /var/rtl/run
