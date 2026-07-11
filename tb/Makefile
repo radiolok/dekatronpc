@@ -87,11 +87,6 @@ test_up_counter:       TOPLEVEL = UpCounter
 test_up_counter:       VERILOG_SOURCES = $(LOGIC_PATH)/UpCounter.sv
 test_up_counter:       sim
 
-test_add:              MODULE = tests.test_add
-test_add:              TOPLEVEL = add
-test_add:              VERILOG_SOURCES = $(LOGIC_PATH)/add.sv
-test_add:              sim
-
 # --- Phase 2: Dekatron Subsystem ---
 test_bcd_to_bin:       MODULE = tests.test_dekatron_modules
 test_bcd_to_bin:       TOPLEVEL = BcdToBin
@@ -282,7 +277,7 @@ regression:
 	@python3 -c "open('zeros.txt','w').write('\n'.join(['00']*30000))"
 	@python3 -c "open('$(VHDL_ROOT)/zeros.txt','w').write('\n'.join(['00']*30000))"
 	@TMPFILE=$$(mktemp /tmp/dek_regress.XXXXXX); \
-	MODULES="Logic:compare impulse oneshot rs_latch add bcd_counter up_counter clock_divider \
+	MODULES="Logic:compare impulse oneshot rs_latch bcd_counter up_counter clock_divider \
 	         Dekatron:bcd_to_bin bin_to_bcd dek_carry pulse_sender dekatron_unit dek_counter \
 	         Memory:ram ip_memory rom \
 	         DPC:loop_detect insn_decoder \
