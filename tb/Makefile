@@ -146,7 +146,7 @@ test_ip_memory:        sim
 
 test_rom:              MODULE = tests.test_rom
 test_rom:              TOPLEVEL = ROM
-test_rom:              VERILOG_SOURCES = $(VHDL_ROOT)/parameters.sv $(DPC_PATH)/ROM.sv
+test_rom:              VERILOG_SOURCES = $(VHDL_ROOT)/parameters.sv $(DPC_PATH)/ROM.sv $(VHDL_ROOT)/programs/firmware.sv
 test_rom:              sim
 
 # --- Phase 4: DPC Core ---
@@ -276,6 +276,8 @@ sim:
 regression:
 	@echo "=== DekatronPC UVM Regression ==="
 	@echo ""
+	@echo "Generating firmware ROM..."
+	@python3 $(VHDL_ROOT)/run/generate_rom.py -f $(VHDL_ROOT)/programs/looptest.bfk -o $(VHDL_ROOT)/programs/firmware.sv
 	@TMPFILE=$$(mktemp /tmp/dek_regress.XXXXXX); \
 	MODULES="Logic:compare impulse oneshot rs_latch add bcd_counter up_counter clock_divider \
 	         Dekatron:bcd_to_bin bin_to_bcd dek_carry pulse_sender dekatron_unit dek_counter \
