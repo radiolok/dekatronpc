@@ -4,6 +4,7 @@ set -Eeuo pipefail
 trap cleanup SIGINT SIGTERM ERR EXIT
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
+cd "${script_dir}"
 root_dir=${script_dir}/..
 echo ${root_dir}
 
@@ -13,8 +14,9 @@ sim=0
 cov=0
 
 cleanup() {
+    local exit_code=$?
     trap - SIGINT SIGTERM ERR EXIT
-    exit
+    exit $exit_code
 
 }
 
