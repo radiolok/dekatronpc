@@ -12,6 +12,7 @@ png=0
 synt=0
 sim=0
 cov=0
+uvm=0
 
 cleanup() {
     local exit_code=$?
@@ -38,6 +39,7 @@ usage() {
 	 msg "-s synt"
 	 msg "-c coverage"
 	 msg "-t sim"
+	 msg "-u uvm"
 }
 
 parse_params() {
@@ -53,6 +55,7 @@ parse_params() {
 	-s | --synt) synt=1 ;;
 	-c | --coverage) cov=1 ;;
 	-t | --sim) sim=1 ;;
+	-u | --uvm) uvm=1 ;;
     -?*) die "Unknown option: $1" ;;
     *) break ;;
     esac
@@ -93,6 +96,7 @@ veremul() {
 
 parse_params "$@"
 
+python3 -c "open('${root_dir}/zeros.txt','w').write('\n'.join(['00']*30000))"
 python3 ${root_dir}/Functions/TableGenerate.py -d ${root_dir}/Functions
 python3 ${root_dir}/run/generate_rom.py -f ${root_dir}/programs/looptest.bfk -o ${root_dir}/firmware.hex --hex
 
@@ -181,4 +185,10 @@ if [ ${png} -ne 0 ]; then
 
 	mv *.svg sch/
 	mv *.dot sch/
+fi
+
+if [ ${uvm} -ne 0 ]; then
+	tb_dir=${root_dir}/../tb
+	[ -f /var/venv/bin/activate ] && source /var/venv/bin/activate
+	make -C ${tb_dir} regression
 fi

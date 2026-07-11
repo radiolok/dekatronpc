@@ -278,6 +278,9 @@ regression:
 	@echo ""
 	@echo "Generating firmware ROM..."
 	@python3 $(VHDL_ROOT)/run/generate_rom.py -f $(VHDL_ROOT)/programs/looptest.bfk -o $(VHDL_ROOT)/programs/firmware.sv
+	@echo "Generating zeros.txt..."
+	@python3 -c "open('zeros.txt','w').write('\n'.join(['00']*30000))"
+	@python3 -c "open('$(VHDL_ROOT)/zeros.txt','w').write('\n'.join(['00']*30000))"
 	@TMPFILE=$$(mktemp /tmp/dek_regress.XXXXXX); \
 	MODULES="Logic:compare impulse oneshot rs_latch add bcd_counter up_counter clock_divider \
 	         Dekatron:bcd_to_bin bin_to_bcd dek_carry pulse_sender dekatron_unit dek_counter \

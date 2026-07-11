@@ -24,22 +24,23 @@
 
     assign Out = CS ? Data : {DATA_WIDTH{1'bz}};
 
+//synopsys translate_off
+`ifndef VERILATOR
+    initial begin
+        integer i;
+        for (i = 0; i < ROWS; i++)
+            Mem[i] = {DATA_WIDTH{1'b0}};
+    end
+`endif
+//synopsys translate_on
+
     always @(posedge Clk, negedge Rst_n) begin
         if (~Rst_n) begin
-    //TODO:  Bootloader should cleanUp Memory itself
-	 //synopsys translate_off
-    /* verilator lint_off BLKSEQ */
-          integer  i;
-          for (i=0; i < ROWS; i++) 
-            Mem[i] = {DATA_WIDTH{1'b0}};
-    /* verilator lint_off BLKSEQ */
-			Data <= {DATA_WIDTH{1'b0}};
-			//synopsys translate_on
+            Data <= {DATA_WIDTH{1'b0}};
         end
         else if (WE) Mem[Address] <= In;
-          else Data <= Mem[Address];
+        else Data <= Mem[Address];
     end
-
 
     `ifdef EMULATOR
       reg [DATA_WIDTH-1:0] Data1;

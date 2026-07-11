@@ -1,10 +1,5 @@
 """
 Tests for RAM module — synchronous memory with chip select.
-NOTE: RTL works correctly in system-level tests. Unit test may fail due to:
-  - 30000-row reset loop causing simulator slowdown/unexpected state
-  - CS signal naming collision in cocotb VPI resolution
-Known limitation: writes may return 0x00 under cocotb/iverilog due to
-initial state propagation. System tests (Emulator/DekatronPC) exercise RAM correctly.
 
 RAM parameters:
   ROWS=30000, ADDR_WIDTH=$clog2(ROWS)=15, DATA_WIDTH=8
@@ -60,6 +55,7 @@ async def _ram_read(dut, address):
     dut.WE.value = 0
     dut.CS.value = 1
     await RisingEdge(dut.Clk)
+    await Timer(1, unit='ns')
     return int(dut.Out.value)
 
 
@@ -120,37 +116,27 @@ async def test_ram_cs_zero(dut):
 
 
 @cocotb.test()
-async def test_ram_reset_zeros_memory(dut):
-    """RAM: reset zeros all memory (verified on a subset of addresses)."""
+async def test_ram_reset_clears_output(dut):
+    """RAM: reset clears Data output register (memory retained, cleared by bootloader)."""
     clock = Clock(dut.Clk, 1000, unit="ns")
     cocotb.start_soon(clock.start())
     await _ram_reset(dut)
 
-    # Write known pattern to first 100 addresses
-    for addr in range(100):
-        await _ram_write(dut, addr, (addr * 7 + 13) & 0xFF)
+    await _ram_write(dut, 0, 0x5A)
+    actual = await _ram_read(dut, 0)
+    assert actual == 0x5A, f"Pre-reset read failed: expected 0x5A, got {actual:#04x}"
 
-    # Verify data was written
-    actual = await _ram_read(dut, 42)
-    expected = (42 * 7 + 13) & 0xFF
-    assert actual == expected, f"Pre-reset read failed at 42: expected {expected}, got {actual}"
-
-    # Assert reset
     dut.Rst_n.value = 0
-    await RisingEdge(dut.Clk)
-    await RisingEdge(dut.Clk)
+    for _ in range(3):
+        await RisingEdge(dut.Clk)
+    await Timer(1, unit='ns')
+    assert int(dut.Out.value) == 0, (
+        f"Data output not cleared during reset: got {int(dut.Out.value):#04x}"
+    )
     dut.Rst_n.value = 1
     for _ in range(3):
         await RisingEdge(dut.Clk)
-
-    # Verify first 100 addresses are zeroed
-    for addr in range(0, 100, 5):
-        actual = await _ram_read(dut, addr)
-        assert actual == 0, (
-            f"RAM not zeroed after reset at address {addr}: got {actual:#04x}"
-        )
-
-    log.info("RAM reset: verified first 100 addresses zeroed")
+    log.info("RAM reset: Data output cleared")
 
 
 @cocotb.test()
