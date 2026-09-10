@@ -1,12 +1,12 @@
 module InsnLoopDetector(
-    input wire [INSN_WIDTH-1:0] Insn,
+    input wire [3:0] Insn,
     output wire LoopOpen,
     output wire LoopClose
 );
 
 wire isLoopInsn;
 
-//Loop codes: 4'b0110 for [ 
+//Loop codes: 4'b0110 for [
 //            4'b0111 for ]
 assign isLoopInsn = ~Insn[3] & Insn[2] & Insn[1];
 

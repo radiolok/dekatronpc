@@ -1,5 +1,8 @@
+//verilator lint_off DECLFILENAME
 module BinToBcd(
+    //verilator lint_off UNUSEDSIGNAL
     input wire [9:0] In,//position
+    //verilator lint_on UNUSEDSIGNAL
     output wire [3:0] Out//8-4-2-1
     );
 
@@ -14,7 +17,7 @@ module BcdToBin(
     input wire [3:0] In,//8-4-2-1
     output reg [9:0] Out//position
 );
-   
+
 always @(*)
     case (In)
         4'b0000: Out = 10'b0000000001;
@@ -32,12 +35,12 @@ always @(*)
 endmodule
 
 module BcdToBinEn(
-    input wire [3:0] In,//8-4-2-1
-    input wire En,
-    output wire [9:0] Out//position
+    input  logic [3:0] In,//8-4-2-1
+    input  logic En,
+    output logic [9:0] Out//position
 );
 
-output reg [9:0] _Out//position
+logic [9:0] _Out;//position
 assign Out = En ? _Out : 10'd0;
 
 always @(*)

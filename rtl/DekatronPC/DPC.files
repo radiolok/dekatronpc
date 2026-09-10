@@ -1,12 +1,13 @@
 ../parameters.sv
-../DekatronPC/InsnDecoder.sv
 ../DekatronPC/IpLine.sv
 ../DekatronPC/ApLine.sv
+../DekatronPC/MachineCtrl.sv
 ../DekatronPC/InsnLoopDetector.sv
-../DekatronPC/Dekatron/BcdToBin.v
+../DekatronPC/Dekatron/BcdToBinEn.sv
 ../DekatronPC/Dekatron/BinToBcd.v
-../DekatronPC/Dekatron/Dekatron.sv
-../DekatronPC/Dekatron/DekatronWriteAmp.sv
+../DekatronPC/Dekatron/DekatronPhaseGen.sv
+../DekatronPC/Dekatron/DekatronTubeV2_assertions.sv
+../DekatronPC/Dekatron/DekatronTubeV2.sv
 ../DekatronPC/Dekatron/DekatronCarrySignal.sv
 ../DekatronPC/Dekatron/DekatronCounter.sv
 ../DekatronPC/Dekatron/DekatronModule.sv

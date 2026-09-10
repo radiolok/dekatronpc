@@ -1,311 +1,615 @@
+//======================================================================
+// IpLine — блок выборки инструкций
+//----------------------------------------------------------------------
+// Содержит счётчик инструкций, счётчик глубины вложенности циклов и
+// ведёт обмен с памятью программ по APB. Предоставляет вышестоящему
+// блоку Valid/Ready.
+//
+//----------------------------------------------------------------------
+// ПРОМОТКА ЦИКЛОВ
+//
+// Сумматора в машине нет, поэтому парную скобку приходится искать
+// пошаговым перебором. Счётчик вложенности позволяет не сбиться на
+// вложенных циклах:
+//
+//   старт: на своей скобке счётчик +1
+//   шаг:   сдвинуть IP в сторону поиска, прочитать инструкцию
+//          своя скобка   -> счётчик +1
+//          ответная      -> счётчик -1
+//          счётчик == 0  -> промотка завершена
+//
+// Промотка останавливается НА парной скобке, а не за ней. Дальше её
+// обрабатывает обычная выборка: ']' при нулевой ячейке просто идёт
+// дальше, '[' при ненулевой входит в тело.
+//
+// Счётчик вложенности самоочищается: к концу промотки он снова нуль.
+//
+//----------------------------------------------------------------------
+// ПЕРВАЯ ВЫБОРКА ПОСЛЕ СБРОСА
+//
+// Сразу после сброса на выходе счётчика уже стоит нужный адрес, и
+// инструкцию по нему надо прочитать БЕЗ инкремента. За это отвечает
+// флаг ip_counted_q: пока он снят, очередная выборка не двигает IP.
+//
+//----------------------------------------------------------------------
+// ЗАГРУЗКА ПРОГРАММЫ
+//
+// В режиме insn_loading блок принимает опкоды по insn_in_valid /
+// insn_in_ready, пишет их в память по текущему адресу и продвигает IP.
+// Приём EOT завершает загрузку.
+//======================================================================
+
 `include "../DekatronPC/insnValues.sv"
 
-module IpLine (
-    input wire Rst_n,
-    input wire HardRst_n,
-    input wire Clk,
-    input wire hsClk,
-    input wire HaltRq,
+`default_nettype none
 
-    input wire dataIsZeroed,
+module IpLine #(
+    // Сколько старших декад аппаратный сброс ставит в девятку.
+    // Для пяти декатронов это даёт 99900 — начало загрузчика.
+    parameter unsigned HARD_RST_D_CNT    = IP_DEKATRON_NUM - 2,
 
-    input wire keyPrevIp,
-    input wire keyNextIp,
-    /* verilator lint_off UNUSEDSIGNAL */
-    input wire key_next_app_i,
-    /* verilator lint_on UNUSEDSIGNAL */
-    input wire Request,
-    output wire Ready,
-    output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress,
-    output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
+    // Чтение счётчика циклов нужно только для индикации в эмуляторе
+    parameter bit          LOOP_READ         = 1'b0,
 
-    output reg RomRequest,
-    input wire RomReady,
-    input wire [INSN_WIDTH-1:0] RomData,
+    parameter bit          EN_ASSERTIONS     = 1'b1
+)(
+    input  wire rst_n,        // сброс логики; разряд декатронов не двигает
+    input  wire clk,
+    input  wire hs_clk,
 
-    input wire InsnMode,
-    input wire InsnLoading,
-    input wire [INSN_WIDTH - 1:0] InsnIn,
-    input wire InsnInValid,
-    output reg InsnInReady,
+    // Физические линии сброса счётчиков (удерживает реле времени)
+    input  wire soft_rst,
+    input  wire hard_rst,
 
-    output wire [INSN_WIDTH - 1:0] RomWriteData,
-    output reg RomWE,
+    //------------------------------------------------------------------
+    // Командный интерфейс
+    //------------------------------------------------------------------
+    input  wire       valid,
+    output wire       ready,
+    input  wire [1:0] op,
 
-    output reg[INSN_WIDTH-1:0] Insn
+    // Состояние проверяемой циклом величины. В Brainfuck ISA это признак
+    // нуля текущей ячейки, в Debug ISA — признак нуля счётчика адреса.
+    // Выбор делает блок управления, сюда приходит уже готовый признак.
+    input  wire       loop_val_zero,
+
+    //------------------------------------------------------------------
+    // Выборка
+    //------------------------------------------------------------------
+    output wire [INSN_WIDTH-1:0] insn,
+    output wire                  insn_valid,
+
+    //------------------------------------------------------------------
+    // Останов и ручное перемещение по программе
+    //------------------------------------------------------------------
+    input  wire halt_rq,
+    input  wire key_prev_ip,
+    input  wire key_next_ip,
+
+    //------------------------------------------------------------------
+    // Загрузка программы
+    //------------------------------------------------------------------
+    input  wire                  insn_loading,
+    input  wire                  insn_mode,
+    input  wire [INSN_WIDTH-1:0] insn_in,
+    input  wire                  insn_in_valid,
+    output wire                  insn_in_ready,
+
+    //------------------------------------------------------------------
+    // Состояние для блока управления и индикации
+    //------------------------------------------------------------------
+    output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0]   ip_addr,
+    output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] loop_count,
+    output wire                                        loop_overflow,
+
+    //------------------------------------------------------------------
+    // Память программ, APB
+    //------------------------------------------------------------------
+    output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] mem_addr,
+    output wire [INSN_WIDTH-1:0]                     mem_wr_data,
+    input  wire [INSN_WIDTH-1:0]                     mem_rd_data,
+    output logic                                     mem_valid,
+    input  wire                                      mem_ready,
+    output logic                                     mem_wr,
+    input  wire                                      mem_rd_valid,
+/* verilator lint_off UNUSEDSIGNAL */
+    input  wire                                      mem_err
+/* verilator lint_on UNUSEDSIGNAL */
 );
 
-reg IP_ReqNeedCount;
-reg IP_Move;
-reg IP_Request;
-reg IP_Dec;
-wire IP_Ready;
+    localparam int unsigned IP_W   = IP_DEKATRON_NUM   * DEKATRON_WIDTH;
+    localparam int unsigned LOOP_W = LOOP_DEKATRON_NUM * DEKATRON_WIDTH;
 
-DekatronCounter  #(
-            .D_NUM(IP_DEKATRON_NUM),
-		    .WRITE(1'b0),
-            .HARD_RST_D_CNT(IP_DEKATRON_NUM - 2)
-            )IP_counter(
-                .Clk(Clk),
-                .hsClk(hsClk),
-                .Rst_n(Rst_n),
-                .HardRst_n(HardRst_n),
-                .Request(IP_Request),
-                .Dec(IP_Dec),
-                .Set(1'b0),
-                .SetZero(1'b0),
-                .In({((IP_DEKATRON_NUM)*DEKATRON_WIDTH){1'b0}}),
-                .Ready(IP_Ready),
-                .Out(IpAddress[(IP_DEKATRON_NUM)*DEKATRON_WIDTH-1:0]),
-                /* verilator lint_off PINCONNECTEMPTY */
-                .Zero()
-                /* verilator lint_on PINCONNECTEMPTY */
-            );
+    //------------------------------------------------------------------
+    // Коды операций
+    //------------------------------------------------------------------
+    localparam logic [1:0]
+        OP_NEXT     = 2'd0,   // выдать следующую инструкцию
+        OP_CLR_IP   = 2'd1,   // CLRI — счётчик инструкций в нуль
+        OP_CLR_LOOP = 2'd2;   // CLRL — счётчик циклов в нуль
 
-//This two highligh loop insn on the ROM output to control loopLookup
-wire LoopInsnOpenInternal;
-wire LoopInsnCloseInternal;
+    //------------------------------------------------------------------
+    // Состояния
+    //------------------------------------------------------------------
+    localparam logic [3:0]
+        S_IDLE        = 4'd0,
+        S_IP_OP       = 4'd1,   // шаг счётчика инструкций
+        S_IP_WAIT     = 4'd2,
+        S_FETCH       = 4'd3,   // чтение инструкции из памяти
+        S_SCAN_EVAL   = 4'd5,   // разбор прочитанной скобки
+        S_LOOP_OP     = 4'd6,   // шаг счётчика вложенности
+        S_LOOP_WAIT   = 4'd7,
+        S_INSN_IN     = 4'd8,   // приём опкода при загрузке
+        S_WRITE       = 4'd9,   // запись опкода в память
+        S_CLR_OP      = 4'd11,  // сброс одного из счётчиков
+        S_CLR_WAIT    = 4'd12,
+        S_HALT        = 4'd13;
 
-InsnLoopDetector insnLoopDetectorInternal(
-    .Insn(RomData),
-    .LoopOpen(LoopInsnOpenInternal),
-    .LoopClose(LoopInsnCloseInternal)
-);
+    logic [3:0] state;
 
-//This two highligh loop insn on the output to begin loopLookup
-wire LoopInsnOpen;
-wire LoopInsnClose;
+    logic                  ip_counted_q;   // IP уже сдвинут под текущую инструкцию
+    logic                  scanning_q;     // идёт промотка тела цикла
+    logic                  scan_dec_q;     // направление промотки: 1 — назад
+    logic                  loop_init_q;    // текущий шаг счётчика циклов — стартовый
+    logic                  key_moved_q;    // ручной шаг уже сделан, ждём отпускания
+    logic                  halt_pending_q;
+    logic                  clr_is_loop_q;  // сбрасываем счётчик циклов, а не IP
+    logic                  overflow_q;
+    logic [INSN_WIDTH-1:0] insn_q;
+    logic                  insn_valid_q;
+    logic [INSN_WIDTH-1:0] insn_in_q;
 
-InsnLoopDetector insnLoopDetector(
-    .Insn(Insn),
-    .LoopOpen(LoopInsnOpen),
-    .LoopClose(LoopInsnClose)
-);
+    //------------------------------------------------------------------
+    // Счётчик инструкций
+    //------------------------------------------------------------------
+    logic           ip_valid;
+    wire            ip_ready;
+    logic           ip_dec;
+    logic           ip_set_zero;
+    wire [IP_W-1:0] ip_out;
+    wire            ip_out_valid;
 
-reg Loop_Request;
-reg Loop_Dec;
-wire Loop_Zero;
-wire Loop_Ready;
+    DekatronCounter #(
+        .D_NUM          (IP_DEKATRON_NUM),
+        .READ           (1'b1),
+        .WRITE          (1'b0),
+        .TOP_LIMIT_MODE (1'b0),
+        .HARD_RST_D_CNT (HARD_RST_D_CNT),
+        .EN_ASSERTIONS  (EN_ASSERTIONS)
+    ) ip_counter (
+        .rst_n     (rst_n),
+        .clk       (clk),
+        .hs_clk    (hs_clk),
+        .soft_rst  (soft_rst),
+        .hard_rst  (hard_rst),
+        .valid     (ip_valid),
+        .ready     (ip_ready),
+        .dec       (ip_dec),
+        .set       (1'b0),
+        .set_zero  (ip_set_zero),
+        .in        ({IP_W{1'b0}}),
+        .out       (ip_out),
+        .out_valid (ip_out_valid),
+        .zero      (),
+        .at_top    ()
+    );
 
-`ifdef EMULATOR
-    parameter LOOP_READ = 1'b1;
-`else
-    parameter LOOP_READ = 1'b0;
-`endif
+    assign ip_addr  = ip_out;
+    assign mem_addr = ip_out;
 
-DekatronCounter  #(
-            .D_NUM(LOOP_DEKATRON_NUM),
-            .READ(LOOP_READ),
-		    .WRITE(1'b0)
-            )Loop_counter(
-                .Clk(Clk),
-                .hsClk(hsClk),
-                .Rst_n(Rst_n),
-                .HardRst_n(1'b1),
-                .Request(Loop_Request),
-                .Dec(Loop_Dec),
-                .Set(1'b0),
-                .SetZero(1'b0),
-                .In({(LOOP_DEKATRON_NUM*DEKATRON_WIDTH){1'b0}}),
-                /* verilator lint_off PINCONNECTEMPTY */
-                .Ready(Loop_Ready),
-                .Out(LoopCount),
-                /* verilator lint_on PINCONNECTEMPTY */
-                .Zero(Loop_Zero)
-            );
+    //------------------------------------------------------------------
+    // Счётчик глубины вложенности циклов
+    //------------------------------------------------------------------
+    logic             loop_valid;
+    wire              loop_ready;
+    logic             loop_dec;
+    logic             loop_set_zero;
+    wire [LOOP_W-1:0] loop_out;
+    wire              loop_out_valid;
+    wire              loop_is_zero;
 
-assign Ready = ~Request & (state == IDLE);//READY | IDLE
-wire IP_backwardCount = (LoopInsnClose & ~dataIsZeroed); //backward direction for ']' & nonZero
+    DekatronCounter #(
+        .D_NUM          (LOOP_DEKATRON_NUM),
+        .READ           (LOOP_READ),
+        .WRITE          (1'b0),
+        .TOP_LIMIT_MODE (1'b0),
+        .HARD_RST_D_CNT (0),
+        .EN_ASSERTIONS  (EN_ASSERTIONS)
+    ) loop_counter (
+        .rst_n     (rst_n),
+        .clk       (clk),
+        .hs_clk    (hs_clk),
+        .soft_rst  (soft_rst),
+        .hard_rst  (hard_rst),
+        .valid     (loop_valid),
+        .ready     (loop_ready),
+        .dec       (loop_dec),
+        .set       (1'b0),
+        .set_zero  (loop_set_zero),
+        .in        ({LOOP_W{1'b0}}),
+        .out       (loop_out),
+        .out_valid (loop_out_valid),
+        .zero      (loop_is_zero),
+        .at_top    ()
+    );
 
-reg [INSN_WIDTH-1:0] InsnInInternal;
-assign RomWriteData = InsnInInternal;
+    assign loop_count    = loop_out;
+    assign loop_overflow = overflow_q;
 
-wire EndOfTransmission;
-assign EndOfTransmission = { InsnMode, InsnIn } == INSN_EOT;
+    //------------------------------------------------------------------
+    // Распознавание скобок
+    //
+    // Детектор один: он разбирает регистр insn_q, а тот в разные моменты
+    // держит либо текущую инструкцию (решение о начале промотки), либо
+    // только что прочитанную в ходе промотки. Опкоды скобок одинаковы в
+    // обоих наборах команд, поэтому режим ISA здесь не нужен.
+    //------------------------------------------------------------------
+    wire insn_loop_open, insn_loop_close;
 
-parameter [2:0]
-    IDLE      =  3'd0,
-    IP_COUNT  =  3'd1,
-    ROM_READ  =  3'd2,
-    LOOP_COUNT = 3'd3,
-    READY     =  3'd4,
-    INSN_READ =  3'd5,
-    ROM_WRITE =  3'd6,
-    HALT      =  3'd7;
+    InsnLoopDetector loopDetector (
+        .Insn      (insn_q),
+        .LoopOpen  (insn_loop_open),
+        .LoopClose (insn_loop_close)
+    );
 
-reg [2:0] state;
+    // Условия начала промотки
+    wire scan_fwd_req  = insn_loop_open  &  loop_val_zero;   // '[' и ноль
+    wire scan_back_req = insn_loop_close & ~loop_val_zero;   // ']' и не ноль
+    wire scan_req      = scan_fwd_req | scan_back_req;
 
-always @(posedge Clk, negedge Rst_n) begin
-    if (~Rst_n) begin
-        Insn <= {(INSN_WIDTH){1'b0}};
-        IP_Move <= 1'b0;
-        IP_Dec <= 1'b0;
-        IP_Request <= 1'b0;
-        IP_ReqNeedCount <= 1'b0;
-        Loop_Request <= 1'b0;
-        Loop_Dec <= 1'b0;
-        RomRequest <= 1'b0;
-        RomWE <= 1'b0;
-        state <= IDLE;
-        InsnInReady <= 1'b0;
-        InsnInInternal <= {(INSN_WIDTH){1'b0}};
-    end
-    else begin
-        case (state)
-            IDLE:
-                if (HaltRq) begin
-                    if (~IP_ReqNeedCount) begin
-                        state <= HALT;
-                    end
-                    else begin
-                        IP_ReqNeedCount <= 1'b0;
-                        IP_Dec <= 1'b0;
-                        IP_Request <= 1'b1;
-                        state <= IP_COUNT;
-                    end
-                end
-                else if (Request) begin
-                    if (IP_ReqNeedCount) begin
-                        IP_Dec <= IP_backwardCount; //backward direction for ']' & nonZero
-                        IP_Request <= 1'b1;
-                        if (~InsnLoading & ((LoopInsnOpen & dataIsZeroed) |
-                            (LoopInsnClose & ~dataIsZeroed))) begin
-                            //Let's run loopLookup
-                            Loop_Dec <= 1'b0;
-                            Loop_Request <= 1'b1;
-                            state <= LOOP_COUNT;
-                        end
-                        else begin
-                            state <= IP_COUNT;
-                        end
-                    end
-                    else begin
-                        IP_ReqNeedCount <= 1'b1;
-                        if (InsnLoading) begin
-                            state <= INSN_READ;
-                            InsnInReady <= 1'b1;    
-                        end
-                        else begin
-                            state <= ROM_READ;
-                            RomRequest <= 1'b1;
-                        end
-                    end
-                end
-            IP_COUNT: begin
-                IP_Request <= 1'b0;
-                if (IP_Ready) begin
-                    if (~IP_ReqNeedCount) begin
-                        state <= HALT;
-                    end
-                    else begin
-                        if (InsnLoading) begin
-                            state <= INSN_READ;
-                            InsnInReady <= 1'b1;
-                        end
-                        else begin
-                            state <= ROM_READ;
-                            RomRequest <= 1'b1;
-                        end
-                    end
-                end
+    //------------------------------------------------------------------
+    // APB-мастер
+    //------------------------------------------------------------------
+    assign mem_wr_data = insn_in_q;
+
+    //------------------------------------------------------------------
+    // Выходы и готовность
+    //------------------------------------------------------------------
+    assign insn          = insn_q;
+    assign insn_valid    = insn_valid_q;
+    assign insn_in_ready = (state == S_INSN_IN);
+
+    assign ready = (state == S_IDLE) & ~halt_rq &
+                   ip_ready & loop_ready & mem_ready;
+
+    wire accept = valid & ready;
+
+    wire end_of_transmission = ({insn_mode, insn_in} == INSN_EOT);
+
+    //------------------------------------------------------------------
+    // Основной автомат
+    //------------------------------------------------------------------
+    always_ff @(posedge clk, negedge rst_n) begin
+        if (~rst_n) begin
+            state          <= S_IDLE;
+            ip_counted_q   <= 1'b0;
+            scanning_q     <= 1'b0;
+            scan_dec_q     <= 1'b0;
+            loop_init_q    <= 1'b0;
+            key_moved_q    <= 1'b0;
+            halt_pending_q <= 1'b0;
+            clr_is_loop_q  <= 1'b0;
+            overflow_q     <= 1'b0;
+            insn_q         <= '0;
+            insn_valid_q   <= 1'b0;
+            insn_in_q      <= '0;
+            ip_valid       <= 1'b0;
+            ip_dec         <= 1'b0;
+            ip_set_zero    <= 1'b0;
+            loop_valid     <= 1'b0;
+            loop_dec       <= 1'b0;
+            loop_set_zero  <= 1'b0;
+            mem_valid      <= 1'b0;
+            mem_wr         <= 1'b0;
+        end
+        else begin
+            ip_valid   <= 1'b0;
+            loop_valid <= 1'b0;
+            mem_valid  <= 1'b0;
+
+            // Физический сброс счётчиков обнуляет и состояние выборки:
+            // адрес ушёл на начало, прочитанная инструкция недостоверна
+            if (soft_rst | hard_rst) begin
+                state         <= S_IDLE;
+                ip_counted_q  <= 1'b0;
+                scanning_q    <= 1'b0;
+                insn_valid_q  <= 1'b0;
+                overflow_q    <= 1'b0;
+                ip_set_zero   <= 1'b0;
+                loop_set_zero <= 1'b0;
+                mem_wr        <= 1'b0;
             end
-            INSN_READ: begin
-                if (InsnInValid | ~InsnLoading) begin
-                    InsnInReady <= 1'b0;
-                    InsnInInternal <= InsnIn;
+            else begin
+                case (state)
 
-                    if (EndOfTransmission | ~InsnLoading) begin
-                        state <= READY;
-                    end
-                    else begin
-                        RomRequest <= 1'b1;
-                        RomWE <= 1'b1;
-                        state <= ROM_WRITE;
-                    end
-                end
-                else begin
-                    if (keyPrevIp | keyNextIp) begin
-                        if (~IP_Move) begin
-                            InsnInReady <= 1'b0;
-                            IP_Move <= 1'b1;
-                            IP_Request <= 1'b1;
-                            IP_Dec <= keyPrevIp;
-                            state <= IP_COUNT;
-                        end
-                    end
-
-                    if (IP_Move & ~keyNextIp & ~keyPrevIp) begin
-                        IP_Move <= 1'b0;
-                    end
-                end
-            end
-            ROM_WRITE: begin
-                RomRequest <= 1'b0;
-                RomWE <= 1'b0;
-                if (RomReady) begin
-                    state <= READY;
-                end
-            end
-            ROM_READ: begin
-                    RomRequest <= 1'b0;
-                    if (RomReady) begin
-                        if (Loop_Zero) begin
-                            state <= READY;
+                //------------------------------------------------------
+                S_IDLE: begin
+                    if (halt_rq) begin
+                        // При останове продвигаем IP на следующую
+                        // инструкцию и снимаем признак выборки, чтобы
+                        // после возобновления читать заново
+                        if (ip_counted_q) begin
+                            ip_counted_q   <= 1'b0;
+                            halt_pending_q <= 1'b1;
+                            ip_dec         <= 1'b0;
+                            ip_valid       <= 1'b1;
+                            state          <= S_IP_OP;
                         end
                         else begin
-                            if (LoopInsnOpenInternal | LoopInsnCloseInternal) begin
-                                Loop_Dec <= ((IP_backwardCount & LoopInsnOpenInternal)|
-                                            (~IP_backwardCount & LoopInsnCloseInternal));
-                                Loop_Request <= 1'b1;
-                                state <= LOOP_COUNT;
+                            state <= S_HALT;
+                        end
+                    end
+                    else if (accept) begin
+                        case (op)
+
+                        OP_CLR_IP: begin
+                            clr_is_loop_q <= 1'b0;
+                            ip_set_zero   <= 1'b1;
+                            ip_valid      <= 1'b1;
+                            ip_counted_q  <= 1'b0;
+                            insn_valid_q  <= 1'b0;
+                            state         <= S_CLR_OP;
+                        end
+
+                        OP_CLR_LOOP: begin
+                            clr_is_loop_q <= 1'b1;
+                            loop_set_zero <= 1'b1;
+                            loop_valid    <= 1'b1;
+                            overflow_q    <= 1'b0;
+                            state         <= S_CLR_OP;
+                        end
+
+                        default: begin   // OP_NEXT
+                            if (~ip_counted_q) begin
+                                // Первая выборка после сброса: читаем по
+                                // текущему адресу, счётчик не двигаем
+                                ip_counted_q <= 1'b1;
+                                if (insn_loading) state <= S_INSN_IN;
+                                else              begin mem_valid <= 1'b1; mem_wr <= 1'b0; state <= S_FETCH; end
+                            end
+                            else if (insn_loading) begin
+                                ip_dec   <= 1'b0;
+                                ip_valid <= 1'b1;
+                                state    <= S_IP_OP;
+                            end
+                            else if (scan_req) begin
+                                // Начало промотки: своя скобка учитывается
+                                // в счётчике вложенности
+                                scanning_q  <= 1'b1;
+                                scan_dec_q  <= scan_back_req;
+                                loop_init_q <= 1'b1;
+                                loop_dec    <= 1'b0;
+                                loop_valid  <= 1'b1;
+                                state       <= S_LOOP_OP;
                             end
                             else begin
-                                state <= IP_COUNT;
-                                IP_Dec <= IP_backwardCount; //backward direction for ']' & nonZero
-                                IP_Request <= 1'b1;
+                                ip_dec   <= 1'b0;
+                                ip_valid <= 1'b1;
+                                state    <= S_IP_OP;
                             end
                         end
+                        endcase
                     end
                 end
-            LOOP_COUNT: begin
-                Loop_Request <= 1'b0;
-                if (Loop_Ready) begin
-                    if ((LoopInsnOpenInternal | LoopInsnCloseInternal) & ~Loop_Zero) begin
-                        IP_Dec <= IP_backwardCount & ~Loop_Zero; //backward direction for ']' & nonZero
-                        IP_Request <= 1'b1;
-                    end
-                    state <= IP_COUNT;
+
+                //------------------------------------------------------
+                // Шаг счётчика инструкций
+                //------------------------------------------------------
+                S_IP_OP: begin
+                    if (ip_ready) state <= S_IP_WAIT;
+                    else          ip_valid <= 1'b1;
                 end
-            end
-            READY: begin
-                Insn <= InsnLoading ? InsnInInternal : RomData;
-                if (~Request) begin
-                    state <= IDLE;
-                end
-            end
-            HALT: begin
-                if (~HaltRq) begin
-                    state <= IDLE;
-                end
-                else begin
-                    if (keyPrevIp | keyNextIp) begin
-                        if (~IP_Move) begin
-                            IP_Move <= 1'b1;
-                            IP_Request <= 1'b1;
-                            IP_Dec <= keyPrevIp;
-                            state <= IP_COUNT;
+
+                S_IP_WAIT: begin
+                    if (ip_ready & ip_out_valid) begin
+                        if (halt_pending_q) begin
+                            halt_pending_q <= 1'b0;
+                            insn_valid_q   <= 1'b0;
+                            state          <= S_HALT;
+                        end
+                        else if (insn_loading & ~scanning_q) begin
+                            state <= S_INSN_IN;
+                        end
+                        else begin
+                            begin mem_valid <= 1'b1; mem_wr <= 1'b0; state <= S_FETCH; end
                         end
                     end
+                end
 
-                    if (IP_Move & ~keyNextIp & ~keyPrevIp) begin
-                        IP_Move <= 1'b0;
+                //------------------------------------------------------
+                // Чтение инструкции
+                //------------------------------------------------------
+                S_FETCH: begin
+                    if (mem_ready & mem_rd_valid) begin
+                        insn_q       <= mem_rd_data;
+                        insn_valid_q <= 1'b1;
+                        if (scanning_q) state <= S_SCAN_EVAL;
+                        else            state <= S_IDLE;
+                    end
+                    else if (mem_ready) begin
+                        mem_valid <= 1'b1;    // удерживаем до приёма
+                        mem_wr    <= 1'b0;
                     end
                 end
+
+                //------------------------------------------------------
+                // Разбор прочитанной инструкции в ходе промотки
+                //------------------------------------------------------
+                S_SCAN_EVAL: begin
+                    if (insn_loop_open | insn_loop_close) begin
+                        // Своя скобка углубляет вложенность, ответная
+                        // поднимает: направление зависит от того, куда
+                        // идёт промотка
+                        loop_init_q <= 1'b0;
+                        loop_dec    <= scan_dec_q ? insn_loop_open
+                                                  : insn_loop_close;
+                        loop_valid  <= 1'b1;
+                        state       <= S_LOOP_OP;
+                    end
+                    else begin
+                        // Обычная инструкция: шагаем дальше
+                        ip_dec   <= scan_dec_q;
+                        ip_valid <= 1'b1;
+                        state    <= S_IP_OP;
+                    end
+                end
+
+                //------------------------------------------------------
+                // Шаг счётчика вложенности
+                //------------------------------------------------------
+                S_LOOP_OP: begin
+                    if (loop_ready) state <= S_LOOP_WAIT;
+                    else            loop_valid <= 1'b1;
+                end
+
+                S_LOOP_WAIT: begin
+                    if (loop_ready & loop_out_valid) begin
+                        // Обнуление счётчика при инкременте означает, что
+                        // он перевалил через 999 — глубина вложенности
+                        // превысила возможности машины
+                        if (~loop_dec & loop_is_zero) begin
+                            // Промотку обязательно прервать: парная скобка
+                            // уже не найдётся, и машина зависла бы в
+                            // бесконечном переборе адресов
+                            overflow_q <= 1'b1;
+                            scanning_q <= 1'b0;
+                            state      <= S_IDLE;
+                        end
+                        else if (~loop_init_q & loop_dec & loop_is_zero) begin
+                            // Парная скобка найдена, стоим на ней
+                            scanning_q <= 1'b0;
+                            state      <= S_IDLE;
+                        end
+                        else begin
+                            ip_dec   <= scan_dec_q;
+                            ip_valid <= 1'b1;
+                            state    <= S_IP_OP;
+                        end
+                    end
+                end
+
+                //------------------------------------------------------
+                // Приём опкода при загрузке программы
+                //------------------------------------------------------
+                S_INSN_IN: begin
+                    if (insn_in_valid) begin
+                        insn_in_q    <= insn_in;
+                        insn_q       <= insn_in;
+                        insn_valid_q <= 1'b1;
+
+                        if (end_of_transmission | ~insn_loading) begin
+                            state <= S_IDLE;      // загрузка завершена
+                        end
+                        else begin
+                            mem_valid <= 1'b1;
+                            mem_wr    <= 1'b1;
+                            state     <= S_WRITE;
+                        end
+                    end
+                    else if (~insn_loading) begin
+                        state <= S_IDLE;
+                    end
+                    else if ((key_prev_ip | key_next_ip) & ~key_moved_q) begin
+                        // Ручное перемещение по программе во время загрузки
+                        key_moved_q <= 1'b1;
+                        ip_dec      <= key_prev_ip;
+                        ip_valid    <= 1'b1;
+                        state       <= S_IP_OP;
+                    end
+                    else if (~key_prev_ip & ~key_next_ip) begin
+                        key_moved_q <= 1'b0;
+                    end
+                end
+
+                //------------------------------------------------------
+                // Запись опкода в память
+                //------------------------------------------------------
+                S_WRITE: begin
+                    if (mem_ready & mem_rd_valid) begin
+                        mem_wr <= 1'b0;
+                        state  <= S_IDLE;
+                    end
+                    else if (mem_ready) begin
+                        mem_valid <= 1'b1;
+                        mem_wr    <= 1'b1;
+                    end
+                end
+
+                //------------------------------------------------------
+                // Сброс счётчика по команде
+                //------------------------------------------------------
+                S_CLR_OP: begin
+                    if (clr_is_loop_q) begin
+                        if (loop_ready) begin
+                            loop_set_zero <= 1'b0;
+                            state         <= S_CLR_WAIT;
+                        end
+                        else loop_valid <= 1'b1;
+                    end
+                    else begin
+                        if (ip_ready) begin
+                            ip_set_zero <= 1'b0;
+                            state       <= S_CLR_WAIT;
+                        end
+                        else ip_valid <= 1'b1;
+                    end
+                end
+
+                S_CLR_WAIT: begin
+                    if (clr_is_loop_q) begin
+                        if (loop_ready & loop_out_valid) state <= S_IDLE;
+                    end
+                    else begin
+                        if (ip_ready & ip_out_valid) state <= S_IDLE;
+                    end
+                end
+
+                //------------------------------------------------------
+                // Останов с возможностью ручного перемещения
+                //------------------------------------------------------
+                S_HALT: begin
+                    if (~halt_rq) begin
+                        state <= S_IDLE;
+                    end
+                    else if ((key_prev_ip | key_next_ip) & ~key_moved_q) begin
+                        key_moved_q <= 1'b1;
+                        ip_dec      <= key_prev_ip;
+                        ip_valid    <= 1'b1;
+                        state       <= S_IP_OP;
+                        // После ручного шага инструкция читается заново
+                        halt_pending_q <= 1'b1;
+                    end
+                    else if (~key_prev_ip & ~key_next_ip) begin
+                        key_moved_q <= 1'b0;
+                    end
+                end
+
+                default: state <= S_IDLE;
+                endcase
             end
-            default:
-                state <= IDLE;
-        endcase
+        end
     end
-end
+
+`ifndef SYNTH
+    generate
+        if (EN_ASSERTIONS) begin : g_assertions
+            always @(posedge clk) begin
+                if (rst_n && valid && (op > OP_CLR_LOOP))
+                    $error("IpLine: неизвестный код операции %0d", op);
+                if (rst_n && $past(valid) && !$past(ready) && !valid)
+                    $error("IpLine: valid снят до handshake");
+                if (rst_n && mem_err)
+                    $error("IpLine: ошибка обращения к памяти программ");
+                if (rst_n && overflow_q && !$past(overflow_q))
+                    $error("IpLine: переполнение счётчика вложенности циклов");
+                // Одновременная работа обоих счётчиков не предусмотрена
+                if (rst_n && ip_valid && loop_valid)
+                    $error("IpLine: одновременный запрос к обоим счётчикам");
+            end
+        end
+    endgenerate
+`endif
 
 endmodule
+
+`default_nettype wire

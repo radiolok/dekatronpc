@@ -104,7 +104,7 @@ BcdToAscii bcd_to_ascii(
 task read_tx();
     tx_rdy <= 1'b0;
     wait(Rst_n);
-    
+
     forever begin
         repeat($urandom_range(0, 10)) @(posedge Clk);
 
@@ -129,8 +129,7 @@ wire IsHalted;
 assign IsHalted = state == 3'b100;
 
 DekatronPC  dekatronPC(
-    .SoftRst_n(SoftRst_n),
-    .HardRst_n(HardRst_n),
+    .rst_n(HardRst_n),
     .hsClk(hsClk),
     .Clk(Clk),
     .Run(Run),
@@ -297,7 +296,7 @@ initial begin
     read_tx();
 end
 
-initial begin 
+initial begin
     RunOnHardRst <= 0;
     RunOnSoftRst <= 1;
     SoftRstOnEOT <= 1;
@@ -323,9 +322,9 @@ initial begin
 end
 
 `ifndef NO_VCD
-initial begin 
-    $dumpfile("DekatronPC_tb.vcd"); 
-    $dumpvars(0,DekatronPC_tb); 
+initial begin
+    $dumpfile("DekatronPC_tb.vcd");
+    $dumpvars(0,DekatronPC_tb);
 end
 `endif
 

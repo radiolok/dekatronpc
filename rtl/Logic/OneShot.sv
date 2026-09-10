@@ -29,7 +29,7 @@ always @(posedge Clk, negedge Rst_n) begin
     else begin
         if (En | Impulse) begin
             count <= count + 1'b1;
-            if (count == DELAY_COMP) begin
+            if (count == (WIDTH+1)'(DELAY_COMP)) begin
                 count <= 0;
             end
         end
@@ -47,7 +47,7 @@ wire Impulse;
 
 //synopsys translate_off
 
-initial begin $dumpfile("OneShot_tb.vcd"); 
+initial begin $dumpfile("OneShot_tb.vcd");
 $dumpvars(0,OneShot_tb); end
 
 OneShot #(.DELAY(10)
@@ -68,7 +68,7 @@ begin
 	#3
 	Rst_n <= 1'b1;
 	$display($time, " << Starting Simulation >> ");
-	
+
 	#400;
 	$display($time, "<< Simulation Complete >>");
 	$finish;

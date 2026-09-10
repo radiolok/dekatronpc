@@ -1,141 +1,140 @@
+//======================================================================
+// IpMemory — память программ
+//----------------------------------------------------------------------
+// Тот же банковый Ram с шириной ячейки в один опкод. Начальный загрузчик
+// накладывается через входы ovl_* самого Ram, поэтому отдельного
+// автомата обращений здесь нет и выходной регистр остаётся один.
+//
+// Загрузчик занимает старшие 100 адресов — при пяти декатронах это
+// 99900..99999, ровно один банк 10x10. Записи в эту область не
+// выполняются и поднимают признак ошибки.
+//======================================================================
+
+`default_nettype none
+
 module IpMemory #(
-    parameter ROWS = 10**IP_DEKATRON_NUM
+    parameter unsigned D_NUM         = 32'd5,
+    parameter unsigned READ_CYCLES   = 1,
+    parameter unsigned WRITE_CYCLES  = 1,
+    parameter           EN_BOOTLOADER = 1'b1,
+    parameter           INIT_ZERO     = 1'b1,
+    parameter           EN_DBG_PORT   = 1'b0,
+    parameter           EN_ASSERTIONS = 1'b1,
+    parameter unsigned ADDR_WIDTH    = 4 * D_NUM
 )(
-    input wire Clk,
-    input wire Rst_n,
-    input wire Request,
-    output wire Ready,
-    input wire WE,
-`ifdef EMULATOR
-    input wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Address1,
-    output wire [INSN_WIDTH-1:0] InsnOut1,
-`endif
-    input wire [INSN_WIDTH-1:0] InsnIn,
-    output wire [INSN_WIDTH-1:0] InsnOut,
-    input wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] Address
+    input  wire                     clk,
+    input  wire                     rst_n,
+
+    // Valid/Ready
+    input  wire                     valid,
+    output wire                     ready,
+    input  wire                     wr,
+    input  wire [ADDR_WIDTH-1:0]    addr,
+    input  wire [INSN_WIDTH-1:0]    wr_data,
+
+    output wire [INSN_WIDTH-1:0]    rd_data,
+    output wire                     rd_valid,
+    output wire                     err,
+
+    // Второй порт чтения — только эмулятор
+    input  wire [ADDR_WIDTH-1:0]    dbg_addr,
+    output wire [INSN_WIDTH-1:0]    dbg_data,
+
+    output wire                     is_bootloader
 );
+
+    localparam unsigned ROM_DIGITS = 2;               // банк 10x10
+    localparam unsigned ROM_AW     = ROM_DIGITS * 4;
+    localparam unsigned TOP_DIGITS = D_NUM - ROM_DIGITS;
+    localparam unsigned TOP_AW     = TOP_DIGITS * 4;
+
+    localparam logic [TOP_AW-1:0] TOP_ALL_NINES = {TOP_DIGITS{4'h9}};
+
+    // Попадание в загрузчик: девятки во всех старших тетрадах
+    wire is_boot     = EN_BOOTLOADER &
+                       (addr    [ADDR_WIDTH-1 -: TOP_AW] == TOP_ALL_NINES);
+    wire is_boot_dbg = EN_BOOTLOADER &
+                       (dbg_addr[ADDR_WIDTH-1 -: TOP_AW] == TOP_ALL_NINES);
+
+    assign is_bootloader = is_boot;
+
+    //------------------------------------------------------------------
+    // ПЗУ загрузчика
+    //------------------------------------------------------------------
+    wire [INSN_WIDTH-1:0] rom_data;
+    wire [INSN_WIDTH-1:0] rom_data_dbg;
+
+    generate
+        if (EN_BOOTLOADER) begin : g_boot
+
+            bootloader #(
+                .portSize (ROM_AW)
+            ) storage (
+                .Address (addr[ROM_AW-1:0]),
+                .Data    (rom_data)
+            );
+
+            if (EN_DBG_PORT) begin : g_boot_dbg
+                bootloader #(
+                    .portSize (ROM_AW)
+                ) storage_dbg (
+                    .Address (dbg_addr[ROM_AW-1:0]),
+                    .Data    (rom_data_dbg)
+                );
+            end
+            else begin : g_no_boot_dbg
+                assign rom_data_dbg = '0;
+            end
+
+        end
+        else begin : g_no_boot
+            assign rom_data     = '0;
+            assign rom_data_dbg = '0;
+        end
+    endgenerate
+
+    //------------------------------------------------------------------
+    // Банковая память с наложением
+    //------------------------------------------------------------------
+    wire [INSN_WIDTH-1:0] ram_dbg;
+
+    Ram #(
+        .D_NUM         (D_NUM),
+        .DATA_WIDTH    (INSN_WIDTH),
+        .READ_CYCLES   (READ_CYCLES),
+        .WRITE_CYCLES  (WRITE_CYCLES),
+        .INIT_ZERO     (INIT_ZERO),
+        .EN_DBG_PORT   (EN_DBG_PORT),
+        .EN_OVERLAY    (EN_BOOTLOADER),
+        .EN_ASSERTIONS (EN_ASSERTIONS)
+    ) ram (
+        .clk      (clk),
+        .rst_n    (rst_n),
+        .valid    (valid),
+        .ready    (ready),
+        .wr       (wr),
+        .addr     (addr),
+        .wr_data  (wr_data),
+        .rd_data  (rd_data),
+        .rd_valid (rd_valid),
+        .err      (err),
+        .ovl_hit  (is_boot),
+        .ovl_data (rom_data),
+        .dbg_addr (dbg_addr),
+        .dbg_data (ram_dbg)
+    );
+
+    assign dbg_data = is_boot_dbg ? rom_data_dbg : ram_dbg;
 
 `ifndef SYNTH
-localparam ROM_DEKATRONS = 2;
-localparam HIGH_ADDR = {(IP_DEKATRON_NUM-ROM_DEKATRONS){4'h9}};
-wire isBootloader = (Address[IP_DEKATRON_NUM*DEKATRON_WIDTH-1:ROM_DEKATRONS*DEKATRON_WIDTH] == HIGH_ADDR);
-
-wire [INSN_WIDTH-1: 0] RomOutWire;
-reg [INSN_WIDTH-1: 0] RomOutReg;
-reg [INSN_WIDTH-1: 0] RamOutReg;
-
-localparam IP_RAM_BIN_BW = $clog2(ROWS-1);
-wire [IP_RAM_BIN_BW-1:0] AddressBin;
-
-BcdToBinEnc #(
-    .DIGITS(IP_DEKATRON_NUM),
-    .OUT_WIDTH(IP_RAM_BIN_BW)
-) ApRAM_address_enc (
-    .bcd(Address),
-    .bin(AddressBin)
-);
-
-
-localparam [1:0]
-    INIT      = 2'd0,
-    READY     =  2'd1,
-    BUSY      =  2'd2;
-
-reg [1:0] state, next;
-
-always @(posedge Clk, negedge Rst_n) begin
-	if (~Rst_n) state <= INIT;
-	else state <= next;
-end
-
-wire DataReady = 1; //Not used not, but for ROM delay modelling
-always_comb begin
-case (state)
-    INIT: begin
-        if (Request)
-            next = BUSY;
-        else
-            next = INIT;
+    initial begin
+        if (D_NUM < 3)
+            $error("IpMemory: D_NUM (%0d) < 3 — под загрузчик нужен отдельный старший банк", D_NUM);
+        if (EN_BOOTLOADER)
+            $display("IpMemory: загрузчик занимает старший банк, 100 инструкций");
     end
-    READY: begin
-        if (Request)
-            next = BUSY;
-        else
-            next = READY;
-    end
-    BUSY: begin
-        if (DataReady)
-            next = READY;
-        else
-            next = BUSY;
-    end
-    default:
-        next = INIT;
-endcase
-end
-
-assign Ready = ~Request & (state == READY);
-
-
-assign InsnOut = (isBootloader) ? RomOutReg : RamOutReg;
-
-reg [INSN_WIDTH-1:0] Mem [0:ROWS-1];
-
-`ifdef IPMEMFILE
-initial begin
-    $readmemh("../firmware.hex", Mem);
-end
-`endif
-
-bootloader #(
-    .portSize(ROM_DEKATRONS*DEKATRON_WIDTH)
-    )storage(
-        .Address(Address[ROM_DEKATRONS*DEKATRON_WIDTH-1:0]),
-        .Data(RomOutWire));
-
-always @(posedge Clk, negedge Rst_n) begin
-    if (~Rst_n) begin
-      RamOutReg <= {INSN_WIDTH{1'b0}};
-      RomOutReg <= {(INSN_WIDTH){1'b0}};
-    end
-    else if (WE) Mem[AddressBin] <= InsnIn;
-      else begin
-        RamOutReg <= Mem[AddressBin];
-        RomOutReg <= RomOutWire;
-    end
-end
-
-`ifdef EMULATOR
-    wire [IP_RAM_BIN_BW-1:0] Address1Bin;
-    BcdToBinEnc #(
-        .DIGITS(IP_DEKATRON_NUM),
-        .OUT_WIDTH(IP_RAM_BIN_BW)
-    ) ApRAM1_address_enc (
-        .bcd(Address1),
-        .bin(Address1Bin)
-    );
-    wire [INSN_WIDTH-1: 0] RomOutWire1;
-    reg [INSN_WIDTH-1: 0] RomOutReg1;
-    reg [INSN_WIDTH-1: 0] RamOutReg1;
-    assign InsnOut1 = (isBootloader) ? RomOutReg1 : RamOutReg1;
-
-    bootloader #(
-        .portSize(ROM_DEKATRONS*DEKATRON_WIDTH)
-        )storage1(
-            .Address(Address1[ROM_DEKATRONS*DEKATRON_WIDTH-1:0]),
-            .Data(RomOutWire1));
-
-    always @(posedge Clk, negedge Rst_n) begin
-        if (~Rst_n) begin
-            RamOutReg1 <= {INSN_WIDTH{1'b0}};
-            RomOutReg1 <= {(INSN_WIDTH){1'b0}};
-        end
-        else begin 
-            RamOutReg1 <= Mem[Address1Bin];
-            RomOutReg1 <= RomOutWire1;
-        end
-    end
-`endif
 `endif
 
 endmodule
+
+`default_nettype wire
