@@ -8,15 +8,18 @@
 //   Request/Ready/Set/SetZero/In/Out ->
 //   valid/ready/set/set_zero/in/out/out_valid/zero/at_top
 //
-// ВАЖНО (найдено при прогоне, RTL не правился):
-//   Любая операция класса «запись» (set / set_zero / автопереход через
-//   верхний предел) подвешивает iverilog нуль-задержечной петлёй:
-//     accept -> write_req -> write_start(Impulse) -> writing(OneShot)
-//            -> ready -> accept.
-//   Verilator подтверждает UNOPTFLAT на DekatronCounter.sv:241
-//   (write_req) и :194 (accept). Поэтому rollover и set* здесь не
-//   выполняются; счёт проверяется в диапазоне 0..255, а обнуление —
-//   физической линией soft_rst. См. отчёт.
+// ШАГ 1 (исправлено в RTL): нуль-задержечная петля
+//   accept -> write_req -> write_start(Impulse) -> writing(OneShot)
+//          -> ready -> accept
+// устранена: ready больше не зависит от writing. iverilog больше не
+// подвисает, Verilator не выдаёт UNOPTFLAT на accept/write_req.
+//
+// ШАГ 2 (остаётся): операции записи всё ещё не срабатывают. wr_zero/wr_top
+// включаются состоянием ST_* на такт clk позже старта окна writing, а окно
+// равно max(WRITE_MIN_HS,RESET_MIN_HS)+4 = 104 hs. Фактически линия держится
+// 104 - HS_PER_CLK = 94 hs < RESET_MIN_HS = 100, и декатрон её игнорирует.
+// Поэтому rollover и set*/set_zero дают неверный результат (не зависание,
+// а молчаливое отсутствие операции). Тест это фиксирует: см. FAIL ниже.
 //----------------------------------------------------------------------
 module Counter_tb #(
     parameter DEKATRON_NUM = 3
@@ -81,16 +84,28 @@ DekatronCounter  #(.D_NUM(DEKATRON_NUM),
 // valid выставляется по фронту clk и держится ровно один такт: только
 // так StepF/StepR покрывает весь такт вместе с обеими фазами.
 //----------------------------------------------------------------------
-task automatic do_op(input bit d);
+task automatic do_op_full(input bit d, input bit s, input bit sz,
+                         input [WIDTH-1:0] v);
     while (!Ready) @(posedge Clk);
     @(posedge Clk);
     valid   <= 1'b1;
     Dec     <= d;
-    Set     <= 1'b0;
-    SetZero <= 1'b0;
+    Set     <= s;
+    SetZero <= sz;
+    In      <= v;
     @(posedge Clk);
     valid   <= 1'b0;
-    while (!OutValid) @(posedge Clk);
+    Set     <= 1'b0;
+    SetZero <= 1'b0;
+    // Ждать именно завершения операции: в начале окна записи выход ещё
+    // не замаскирован, поэтому одного !OutValid недостаточно.
+    @(posedge Clk);
+    while (!(Ready & OutValid)) @(posedge Clk);
+    @(posedge Clk);          // дать признакам zero/at_top установиться
+endtask
+
+task automatic do_op(input bit d);
+    do_op_full(d, 1'b0, 1'b0, {WIDTH{1'b0}});
 endtask
 
 //----------------------------------------------------------------------
@@ -149,6 +164,25 @@ initial begin
         if (i != TOP) do_op(1'b1);
         check_out(i);
     end
+
+    $display("Top-limit wrap test");
+    do_op(1'b0);                 // 0..255 -> 255
+    repeat (255-1) do_op(1'b0);
+    check_out(TOP);
+    repeat (2) @(posedge Clk);   // at_top регистровый
+    do_op(1'b0);                 // 255 + 1 -> 0
+    check_out(0);
+    repeat (2) @(posedge Clk);
+    do_op(1'b1);                 // 0 - 1 -> 255
+    check_out(TOP);
+
+    $display("Set value test");
+    do_op_full(1'b0, 1'b1, 1'b0, exp_to_bcd(42));
+    check_out(42);
+
+    $display("Set zero test");
+    do_op_full(1'b0, 1'b0, 1'b1, {WIDTH{1'b0}});
+    check_out(0);
 
     $display("Soft reset test");
     do_op(1'b0);

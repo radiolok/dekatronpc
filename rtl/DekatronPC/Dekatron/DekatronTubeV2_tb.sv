@@ -65,13 +65,14 @@ module DekatronTubeV2_tb_core #(
 
     DekatronTubeV2 #(
         .HS_PER_CLK       (10),
+        // Чистая физическая модель: без компенсации цифровой задержки
+        // квалификации запроса (она добавляется на уровне счётчика)
+        .WR_SYNC_HS       (0),
         .GUIDE_STEP_HS    (GUIDE_STEP_HS),
         .FALL_STEP_HS     (FALL_STEP_HS),
         .GUIDE_MAX_HS     (GUIDE_MAX_HS),
         .WRITE_MIN_HS     (WRITE_MIN_HS),
-        .WRITE_MAX_HS     (200),
         .RESET_MIN_HS     (RESET_MIN_HS),
-        .RESET_MAX_HS     (200),
         .EN_RESETN        (EN_RESETN),
         .RESET_N_POS      (RESET_N_POS),
         .INIT_DIGIT       (INIT_DIGIT),

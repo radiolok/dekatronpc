@@ -130,6 +130,10 @@ function automatic [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ap_bcd(input int unsigne
     return r;
 endfunction
 
+function automatic [11:0] data_bcd(input int unsigned v);
+    data_bcd = {4'((v/100)%10), 4'((v/10)%10), 4'(v%10)};
+endfunction
+
 initial begin $dumpfile("ApLine_tb.vcd"); $dumpvars(0, ApLine_tb); end
 
 reg [31:0] CLOCK_TICK;
@@ -212,20 +216,42 @@ initial begin
         $display("FAIL: tx_data_bcd after COUT = %0d, expected 0", tx_data_bcd);
     end
 
-    //------------------------------------------------------------------
-    // ВНИМАНИЕ. Операции OP_DATA_STEP / OP_LOAD / OP_CIN / OP_DATA_ZERO
-    // и OP_AP_ZERO выполняются через операцию set/set_zero счётчика
-    // DekatronCounter, а та подвешивает iverilog (см. отчёт и
-    // Verilator UNOPTFLAT на DekatronCounter.sv:241). Поэтому здесь они
-    // не запускаются. Проверены AP-счётчик, чтение памяти (TEST/COUT)
-    // и признак data_zero.
-    //------------------------------------------------------------------
-    $display("Data/AP set-operations are blocked by DekatronCounter comb loop (see report)");
+    $display("Data step test (lazy read)");
+    for (int i = 1; i <= 10; i++) begin
+        do_op(OP_DATA_STEP, 1'b0, 12'd0);
+        if (tx_data_bcd[11:0] !== data_bcd(i)) begin
+            errors++;
+            $display("FAIL: data + -> %0d, expected %0d", tx_data_bcd, i);
+        end
+    end
+    for (int i = 9; i >= 6; i--) begin
+        do_op(OP_DATA_STEP, 1'b1, 12'd0);
+        if (tx_data_bcd[11:0] !== data_bcd(i)) begin
+            errors++;
+            $display("FAIL: data - -> %0d, expected %0d", tx_data_bcd, i);
+        end
+    end
+
+    $display("AP move flushes cell, LOAD reads it back");
+    do_op(OP_AP_STEP, 1'b0, 12'd0);        // AP 0->1, cell0 := 6
+    do_op(OP_AP_STEP, 1'b1, 12'd0);        // AP 1->0, cell1 := 0
+    do_op(OP_LOAD,     1'b0, 12'd0);        // Data := cell0
+    if (tx_data_bcd[11:0] !== data_bcd(6)) begin
+        errors++;
+        $display("FAIL: LOAD -> %0d, expected 6", tx_data_bcd);
+    end
+
+    $display("DATA_ZERO test");
+    do_op(OP_DATA_ZERO, 1'b0, 12'd0);
+    if (tx_data_bcd[11:0] !== 12'd0) begin
+        errors++;
+        $display("FAIL: DATA_ZERO -> %0d, expected 0", tx_data_bcd);
+    end
 
     if (errors)
         $display($time/1000, "us << Simulation Complete >> errors=%0d", errors);
     else
-        $display($time/1000, "us ApLine Test (partial) Success!");
+        $display($time/1000, "us ApLine Test Success!");
     if (errors) $fatal(1, "ApLine test failed");
     $finish;
 end

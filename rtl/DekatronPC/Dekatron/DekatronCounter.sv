@@ -76,7 +76,7 @@
 `default_nettype none
 
 module DekatronCounter #(
-    parameter unsigned D_NUM          = 4'd3,
+    parameter unsigned D_NUM          = 3,
     parameter unsigned WIDTH          = D_NUM * DEKATRON_WIDTH,
 
     // Состав обвязки декад
@@ -104,6 +104,7 @@ module DekatronCounter #(
     parameter unsigned HS_PER_CLK     = 10,
     parameter unsigned PHASE1_HS      = 3,
     parameter unsigned PHASE2_HS      = 4
+
 )(
     input  wire             rst_n,      // сброс логики счётчика; разряд НЕ двигает
     input  wire             clk,        // такт счёта
@@ -137,7 +138,7 @@ module DekatronCounter #(
     output wire             at_top      // счётчик равен TOP_VALUE
 );
 
-    localparam int unsigned DW = DEKATRON_WIDTH;
+    localparam unsigned DW = DEKATRON_WIDTH;
 
     //------------------------------------------------------------------
     // Состояния
@@ -235,7 +236,7 @@ module DekatronCounter #(
     // Медленный путь: окно записи на hs_clk
     //------------------------------------------------------------------
     // Запас поверх минимальной длительности, требуемой декатроном
-    localparam int unsigned WR_WINDOW_HS =
+    localparam unsigned WR_WINDOW_HS =
         ((WRITE_MIN_HS > RESET_MIN_HS) ? WRITE_MIN_HS : RESET_MIN_HS) + 4;
 
     wire write_req = accept & set_any;
@@ -301,7 +302,22 @@ module DekatronCounter #(
     end
 
     // ready не зависит от valid. В быстром пути не снимается вовсе.
-    assign ready = (state == ST_IDLE) & ~writing & settled_q & ~rst_active;
+    //
+    // ВАЖНО: ready НЕ должен зависеть от writing. Окно записи запускается
+    // от accept, а accept — от ready, поэтому такая зависимость замыкает
+    // нуль-задержечную комбинационную петлю
+    //
+    //   ready -> accept -> write_req -> Impulse -> OneShot -> writing -> ready
+    //
+    // Петля возникала при любой операции записи, включая автопереходы
+    // через верхний предел, и делала set, set_zero и rollover
+    // неработоспособными: iverilog зацикливался, Verilator выдавал
+    // UNOPTFLAT, синтез был бы некорректен.
+    //
+    // Условие избыточно: автомат покидает ST_IDLE при приёме операции
+    // записи и возвращается только по окончании окна, поэтому состояние
+    // уже несёт нужную информацию.
+    assign ready = (state == ST_IDLE) & settled_q & ~rst_active;
 
     //------------------------------------------------------------------
     // Линии записи на декады
@@ -349,7 +365,7 @@ module DekatronCounter #(
             //   в режиме верхнего предела — цифра TOP_VALUE,
             //   для предустановки — девятка,
             //   иначе линия не ставится вовсе.
-            localparam int unsigned RESET_N_POS_D =
+            localparam unsigned RESET_N_POS_D =
                 TOP_LIMIT_MODE ? int'(TOP_VALUE[(d+1)*DW-1 -: DW]) :
                 (IS_HARD_DEC   ? 9 : 0);
 
@@ -423,12 +439,19 @@ module DekatronCounter #(
         if (HARD_RST_D_CNT > D_NUM)
             $error("DekatronCounter: HARD_RST_D_CNT (%0d) больше числа декад (%0d)",
                    HARD_RST_D_CNT, D_NUM);
+        // Окно записи обязано быть заметно длиннее такта счёта: автомат
+        // проверяет writing по фронту clk, и если окно короче такта, он
+        // может увидеть его уже снятым и прервать операцию записи
+        if (WR_WINDOW_HS <= HS_PER_CLK)
+            $error("DekatronCounter: окно записи (%0d hs) не длиннее такта счёта (%0d hs) — операция записи может быть прервана",
+                   WR_WINDOW_HS, HS_PER_CLK);
         if (WIDTH != D_NUM * DEKATRON_WIDTH)
             $error("DekatronCounter: WIDTH (%0d) не соответствует D_NUM*DEKATRON_WIDTH (%0d)",
                    WIDTH, D_NUM * DEKATRON_WIDTH);
         if (!WRITE)
             $display("DekatronCounter: WRITE=0, операция set недоступна (схема записи не ставится)");
     end
+
 
 `ifdef ASSERTIONS
     always @(posedge clk) begin

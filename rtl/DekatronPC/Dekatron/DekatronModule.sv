@@ -187,7 +187,7 @@ module DekatronModule #(
     // Декатрон
     //------------------------------------------------------------------
     DekatronTubeV2 #(
-        //.HS_PER_CLK       (10),
+        .HS_PER_CLK       (HS_PER_CLK),
         .GUIDE_STEP_HS    (GUIDE_STEP_HS),
         .FALL_STEP_HS     (FALL_STEP_HS),
         .GUIDE_MAX_HS     (GUIDE_MAX_HS),

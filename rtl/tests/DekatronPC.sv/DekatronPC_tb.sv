@@ -108,6 +108,9 @@ always_ff @(posedge Clk or negedge rst_n) begin
         InsnIn        <= InsnMem[InsnInputAddr + 12'd1];
         InsnInValid   <= 1'b1;
     end
+    else if (~InsnInValid) begin
+        InsnInValid <= 1'b1;
+    end
 end
 
 //----------------------------------------------------------------------
@@ -296,8 +299,14 @@ task automatic check_bootloader();
     end
 
     @(posedge InsnInLoading);
+    $display("  bootloader: loading started"); $fflush;
     @(negedge InsnInLoading);
+    $display("  bootloader: loading finished"); $fflush;
+    $display("  state=%0d IP=%h Insn=%h mode=%b", state, IpAddress, Insn,
+             dekatronPC.machineCtrl.insn_mode); $fflush;
     @(posedge IsHalted);
+    $display("  bootloader: halted"); $fflush;
+    $display("  state=%0d IP=%h Insn=%h", state, IpAddress, Insn); $fflush;
     repeat (20) @(posedge Clk);
 
     if (tx_q.size() !== expected_tx.len()) begin

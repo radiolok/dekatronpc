@@ -52,8 +52,15 @@
 `default_nettype none
 
 module DekatronTubeV2 #(
-    // Отношение временных баз (справочное)
-    //parameter unsigned HS_PER_CLK       = 10,
+    // Отношение временных баз: тактов hsClk на один такт clk. Нужно, чтобы
+    // учесть цифровую задержку квалификации внешнего запроса (см. wr_min_hs).
+    parameter unsigned HS_PER_CLK       = 10,
+
+    // Компенсация задержки квалификации запроса, тактов hsClk. Внешний
+    // формирователь окна (DekatronCounter) выставляет окно на такт clk
+    // позже его старта, поэтому до катодной линии доходит на столько
+    // тактов меньше. Чистая физическая модель тестируется с WR_SYNC_HS=0.
+    parameter unsigned WR_SYNC_HS       = HS_PER_CLK,
 
     // Время перехода между соседними электродами при активном подкатоде.
     // Играет роль GUIDE_MIN_HS из TRS v0.1: импульс короче не даёт шага.
@@ -220,8 +227,22 @@ module DekatronTubeV2 #(
         end
     end
 
-    wire [CNT_W-1:0] wr_min_hs = write_en_i ? CNT_W'(WRITE_MIN_HS)
-                                            : CNT_W'(RESET_MIN_HS);
+    //------------------------------------------------------------------
+    // Действующая минимальная длительность воздействия.
+    //
+    // Запрос приходит из домена clk и выставляется на катодную линию на
+    // один такт clk позже старта окна: DekatronCounter держит окно
+    // max(WRITE_MIN_HS, RESET_MIN_HS) + 4 тактов hsClk, но линия
+    // стробируется состоянием автомата и потому короче на HS_PER_CLK
+    // тактов. Это цифровая задержка квалификации, а не часть физического
+    // воздействия, поэтому физическая модель вычитает её из минимума.
+    // Запас +4 в формирователе окна остаётся допуском на фазу clk/hsClk.
+    //------------------------------------------------------------------
+    wire [CNT_W-1:0] wr_min_raw = write_en_i ? CNT_W'(WRITE_MIN_HS)
+                                             : CNT_W'(RESET_MIN_HS);
+    wire [CNT_W-1:0] wr_min_hs  = (wr_min_raw > CNT_W'(WR_SYNC_HS))
+                                  ? (wr_min_raw - CNT_W'(WR_SYNC_HS))
+                                  : CNT_W'(1);
 
     //------------------------------------------------------------------
     // Требуемое перемещение разряда
@@ -443,6 +464,19 @@ module DekatronTubeV2 #(
         .resetN_i    (resetN_i),
         .cathodes_q  (cathodes_q)
     );
+`endif
+
+`ifndef SYNTH
+    initial begin
+        // Минимум должен превышать задержку квалификации запроса,
+        // иначе вычитание в wr_min_hs не имеет физического смысла
+        if (WRITE_MIN_HS <= WR_SYNC_HS)
+            $error("DekatronTubeV2: WRITE_MIN_HS (%0d) должен быть больше WR_SYNC_HS (%0d)",
+                   WRITE_MIN_HS, WR_SYNC_HS);
+        if (RESET_MIN_HS <= WR_SYNC_HS)
+            $error("DekatronTubeV2: RESET_MIN_HS (%0d) должен быть больше WR_SYNC_HS (%0d)",
+                   RESET_MIN_HS, WR_SYNC_HS);
+    end
 `endif
 
 endmodule
