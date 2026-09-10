@@ -213,7 +213,6 @@ module Ram #(
     parameter bit          INIT_ZERO     = 1'b1,
     parameter bit          EN_DBG_PORT   = 1'b0,
     parameter bit          EN_OVERLAY    = 1'b0,   // наложение ПЗУ
-    parameter bit          EN_ASSERTIONS = 1'b1,
     parameter unsigned ADDR_WIDTH    = 4 * D_NUM
 )(
     input  wire                     clk,
@@ -367,16 +366,14 @@ module Ram #(
                      D_NUM, 10**(D_NUM-2));
     end
 
-    generate
-        if (EN_ASSERTIONS) begin : g_assertions
-            always @(posedge clk) begin
-                if (rst_n && err)
-                    $error("Ram: недопустимое обращение по адресу %h", addr_q);
-                if (rst_n && accept && $isunknown({addr, wr}))
-                    $error("Ram: неопределённые значения на входах запроса");
-            end
-        end
-    endgenerate
+`ifdef ASSERTIONS
+    always @(posedge clk) begin
+        if (rst_n && err)
+            $error("Ram: недопустимое обращение по адресу %h", addr_q);
+        if (rst_n && accept && $isunknown({addr, wr}))
+            $error("Ram: неопределённые значения на входах запроса");
+    end
+`endif
 `endif
 
     /* verilator lint_off UNUSEDSIGNAL */

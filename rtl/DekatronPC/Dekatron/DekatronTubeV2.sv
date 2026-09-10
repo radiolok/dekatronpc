@@ -90,7 +90,6 @@ module DekatronTubeV2 #(
     // инициализации симуляции/эмулятора и отладки
     parameter bit          EN_SIM_PRESET    = 1'b1,
 
-    parameter bit          EN_ASSERTIONS    = 1'b1,
     parameter bit          EN_DEBUG_OUTPUTS = 1'b1
 )(
     input  wire         hsClk,
@@ -432,22 +431,18 @@ module DekatronTubeV2 #(
     // Assertions (TRS v0.1 §13)
     //------------------------------------------------------------------
 `ifdef ASSERTIONS
-    generate
-        if (EN_ASSERTIONS) begin : g_assertions
-            DekatronTubeV2_assertions #(
-                .EN_RESETN (EN_RESETN)
-            ) u_assertions (
-                .hsClk       (hsClk),
-                .guide_a_i   (guide_a_i),
-                .guide_b_i   (guide_b_i),
-                .write_en_i  (write_en_i),
-                .write_pos_i (write_pos_i),
-                .reset0_i    (reset0_i),
-                .resetN_i    (resetN_i),
-                .cathodes_q  (cathodes_q)
-            );
-        end
-    endgenerate
+    DekatronTubeV2_assertions #(
+        .EN_RESETN (EN_RESETN)
+    ) u_assertions (
+        .hsClk       (hsClk),
+        .guide_a_i   (guide_a_i),
+        .guide_b_i   (guide_b_i),
+        .write_en_i  (write_en_i),
+        .write_pos_i (write_pos_i),
+        .reset0_i    (reset0_i),
+        .resetN_i    (resetN_i),
+        .cathodes_q  (cathodes_q)
+    );
 `endif
 
 endmodule

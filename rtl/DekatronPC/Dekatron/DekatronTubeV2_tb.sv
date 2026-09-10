@@ -77,7 +77,6 @@ module DekatronTubeV2_tb_core #(
         .INIT_DIGIT       (INIT_DIGIT),
         .INC_BY_A_THEN_B  (INC_BY_A_THEN_B),
         .EN_SIM_PRESET    (1'b1),
-        .EN_ASSERTIONS    (1'b1),
         .EN_DEBUG_OUTPUTS (1'b1)
     ) dut (
         .hsClk                 (hsClk),

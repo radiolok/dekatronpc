@@ -85,9 +85,7 @@ module DekatronModule #(
     parameter bit          EXT_PHASES      = 1'b0,
 
     // Порядок фаз, дающий инкремент
-    parameter bit          INC_BY_A_THEN_B = 1'b1,
-
-    parameter bit          EN_ASSERTIONS   = 1'b1
+    parameter bit          INC_BY_A_THEN_B = 1'b1
 )(
     input  wire       hsClk,     // временная база модели декатрона
     input  wire       Clk,       // тактовая частота счёта
@@ -202,7 +200,6 @@ module DekatronModule #(
         .INIT_DIGIT       (INIT_DIGIT),
         .INC_BY_A_THEN_B  (INC_BY_A_THEN_B),
         .EN_SIM_PRESET    (1'b0),
-        .EN_ASSERTIONS    (EN_ASSERTIONS),
         .EN_DEBUG_OUTPUTS (1'b0)
     ) dekatron (
         .hsClk                 (hsClk),

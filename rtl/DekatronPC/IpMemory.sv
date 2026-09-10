@@ -19,7 +19,6 @@ module IpMemory #(
     parameter           EN_BOOTLOADER = 1'b1,
     parameter           INIT_ZERO     = 1'b1,
     parameter           EN_DBG_PORT   = 1'b0,
-    parameter           EN_ASSERTIONS = 1'b1,
     parameter unsigned ADDR_WIDTH    = 4 * D_NUM
 )(
     input  wire                     clk,
@@ -105,8 +104,7 @@ module IpMemory #(
         .WRITE_CYCLES  (WRITE_CYCLES),
         .INIT_ZERO     (INIT_ZERO),
         .EN_DBG_PORT   (EN_DBG_PORT),
-        .EN_OVERLAY    (EN_BOOTLOADER),
-        .EN_ASSERTIONS (EN_ASSERTIONS)
+        .EN_OVERLAY    (EN_BOOTLOADER)
     ) ram (
         .clk      (clk),
         .rst_n    (rst_n),

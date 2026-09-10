@@ -49,9 +49,7 @@ module IpLine #(
     parameter unsigned HARD_RST_D_CNT    = IP_DEKATRON_NUM - 2,
 
     // Чтение счётчика циклов нужно только для индикации в эмуляторе
-    parameter bit          LOOP_READ         = 1'b0,
-
-    parameter bit          EN_ASSERTIONS     = 1'b1
+    parameter bit          LOOP_READ         = 1'b0
 )(
     input  wire rst_n,        // сброс логики; разряд декатронов не двигает
     input  wire clk,
@@ -174,8 +172,7 @@ module IpLine #(
         .READ           (1'b1),
         .WRITE          (1'b0),
         .TOP_LIMIT_MODE (1'b0),
-        .HARD_RST_D_CNT (HARD_RST_D_CNT),
-        .EN_ASSERTIONS  (EN_ASSERTIONS)
+        .HARD_RST_D_CNT (HARD_RST_D_CNT)
     ) ip_counter (
         .rst_n     (rst_n),
         .clk       (clk),
@@ -213,8 +210,7 @@ module IpLine #(
         .READ           (LOOP_READ),
         .WRITE          (1'b0),
         .TOP_LIMIT_MODE (1'b0),
-        .HARD_RST_D_CNT (0),
-        .EN_ASSERTIONS  (EN_ASSERTIONS)
+        .HARD_RST_D_CNT (0)
     ) loop_counter (
         .rst_n     (rst_n),
         .clk       (clk),
@@ -591,23 +587,21 @@ module IpLine #(
     end
 
 `ifndef SYNTH
-    generate
-        if (EN_ASSERTIONS) begin : g_assertions
-            always @(posedge clk) begin
-                if (rst_n && valid && (op > OP_CLR_LOOP))
-                    $error("IpLine: неизвестный код операции %0d", op);
-                if (rst_n && $past(valid) && !$past(ready) && !valid)
-                    $error("IpLine: valid снят до handshake");
-                if (rst_n && mem_err)
-                    $error("IpLine: ошибка обращения к памяти программ");
-                if (rst_n && overflow_q && !$past(overflow_q))
-                    $error("IpLine: переполнение счётчика вложенности циклов");
-                // Одновременная работа обоих счётчиков не предусмотрена
-                if (rst_n && ip_valid && loop_valid)
-                    $error("IpLine: одновременный запрос к обоим счётчикам");
-            end
-        end
-    endgenerate
+`ifdef ASSERTIONS
+    always @(posedge clk) begin
+        if (rst_n && valid && (op > OP_CLR_LOOP))
+            $error("IpLine: неизвестный код операции %0d", op);
+        if (rst_n && $past(valid) && !$past(ready) && !valid)
+            $error("IpLine: valid снят до handshake");
+        if (rst_n && mem_err)
+            $error("IpLine: ошибка обращения к памяти программ");
+        if (rst_n && overflow_q && !$past(overflow_q))
+            $error("IpLine: переполнение счётчика вложенности циклов");
+        // Одновременная работа обоих счётчиков не предусмотрена
+        if (rst_n && ip_valid && loop_valid)
+            $error("IpLine: одновременный запрос к обоим счётчикам");
+    end
+`endif
 `endif
 
 endmodule

@@ -48,9 +48,7 @@ module ApLine #(
     parameter [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0]
               AP_TOP_VALUE   = {4'd2, 4'd9, 4'd9, 4'd9, 4'd9},   // 29999
     parameter [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0]
-              DATA_TOP_VALUE = {4'd2, 4'd5, 4'd5},               // 255
-
-    parameter bit          EN_ASSERTIONS = 1'b1
+              DATA_TOP_VALUE = {4'd2, 4'd5, 4'd5}                // 255
 )(
     input  wire rst_n,
     input  wire clk,
@@ -154,8 +152,7 @@ module ApLine #(
         .WRITE          (1'b0),
         .TOP_LIMIT_MODE (1'b1),
         .TOP_VALUE      (AP_TOP_VALUE),
-        .HARD_RST_D_CNT (0),
-        .EN_ASSERTIONS  (EN_ASSERTIONS)
+        .HARD_RST_D_CNT (0)
     ) ap_counter (
         .rst_n     (rst_n),
         .clk       (clk),
@@ -194,8 +191,7 @@ module ApLine #(
         .WRITE          (1'b1),
         .TOP_LIMIT_MODE (1'b1),
         .TOP_VALUE      (DATA_TOP_VALUE),
-        .HARD_RST_D_CNT (0),
-        .EN_ASSERTIONS  (EN_ASSERTIONS)
+        .HARD_RST_D_CNT (0)
     ) data_counter (
         .rst_n     (rst_n),
         .clk       (clk),
@@ -515,21 +511,19 @@ module ApLine #(
     end
 
 `ifndef SYNTH
-    generate
-        if (EN_ASSERTIONS) begin : g_assertions
-            always @(posedge clk) begin
-                if (rst_n && valid && (op > OP_TEST))
-                    $error("ApLine: неизвестный код операции %0d", op);
-                if (rst_n && $past(valid) && !$past(ready) && !valid)
-                    $error("ApLine: valid снят до handshake");
-                if (rst_n && mem_err)
-                    $error("ApLine: ошибка обращения к памяти данных");
-                // Грязный счётчик обязан быть захвачен
-                if (rst_n && dirty_q && !lock_q)
-                    $error("ApLine: dirty без lock — значение будет потеряно");
-            end
-        end
-    endgenerate
+`ifdef ASSERTIONS
+    always @(posedge clk) begin
+        if (rst_n && valid && (op > OP_TEST))
+            $error("ApLine: неизвестный код операции %0d", op);
+        if (rst_n && $past(valid) && !$past(ready) && !valid)
+            $error("ApLine: valid снят до handshake");
+        if (rst_n && mem_err)
+            $error("ApLine: ошибка обращения к памяти данных");
+        // Грязный счётчик обязан быть захвачен
+        if (rst_n && dirty_q && !lock_q)
+            $error("ApLine: dirty без lock — значение будет потеряно");
+    end
+`endif
 `endif
 
 endmodule

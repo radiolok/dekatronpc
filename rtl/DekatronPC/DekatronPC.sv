@@ -135,9 +135,7 @@ module DekatronPC #(
     parameter unsigned RST_HOLD_HS      = 104,
 
     // Второй порт чтения памяти и счётчик инструкций — только эмулятор
-    parameter bit          EN_EMULATOR      = 1'b0,
-
-    parameter bit          EN_ASSERTIONS    = 1'b1
+    parameter bit          EN_EMULATOR      = 1'b0
 )(
     input  wire hsClk,
     input  wire Clk,
@@ -253,8 +251,7 @@ module DekatronPC #(
 
     IpLine #(
         .HARD_RST_D_CNT    (IP_DEKATRON_NUM - 2),
-        .LOOP_READ         (EN_EMULATOR),
-        .EN_ASSERTIONS     (EN_ASSERTIONS)
+        .LOOP_READ         (EN_EMULATOR)
     ) ipLine (
         .rst_n         (rst_n),
         .clk           (Clk),
@@ -299,8 +296,7 @@ module DekatronPC #(
         .READ_CYCLES   (MEM_READ_CYCLES),
         .WRITE_CYCLES  (MEM_WRITE_CYCLES),
         .EN_BOOTLOADER (1'b1),
-        .EN_DBG_PORT   (EN_EMULATOR),
-        .EN_ASSERTIONS (EN_ASSERTIONS)
+        .EN_DBG_PORT   (EN_EMULATOR)
     ) ipMemory (
         .clk           (Clk),
         .rst_n         (rst_n),
@@ -334,8 +330,7 @@ module DekatronPC #(
     ApLine #(
         .MEM_DATA_WIDTH    (MEM_DATA_WIDTH),
         .AP_TOP_VALUE      (AP_TOP_VALUE),
-        .DATA_TOP_VALUE    (DATA_TOP_VALUE),
-        .EN_ASSERTIONS     (EN_ASSERTIONS)
+        .DATA_TOP_VALUE    (DATA_TOP_VALUE)
     ) apLine (
         .rst_n       (rst_n),
         .clk         (Clk),
@@ -375,8 +370,7 @@ module DekatronPC #(
         .DATA_WIDTH    (MEM_DATA_WIDTH),
         .READ_CYCLES   (MEM_READ_CYCLES),
         .WRITE_CYCLES  (MEM_WRITE_CYCLES),
-        .EN_DBG_PORT   (EN_EMULATOR),
-        .EN_ASSERTIONS (EN_ASSERTIONS)
+        .EN_DBG_PORT   (EN_EMULATOR)
     ) ram (
         .clk      (Clk),
         .rst_n    (rst_n),
@@ -402,8 +396,7 @@ module DekatronPC #(
     // Верхний автомат
     //------------------------------------------------------------------
     MachineCtrl #(
-        .EN_EMULATOR   (EN_EMULATOR),
-        .EN_ASSERTIONS (EN_ASSERTIONS)
+        .EN_EMULATOR   (EN_EMULATOR)
     ) machineCtrl (
         .clk                    (Clk),
         .rst_n                  (rst_n),
@@ -465,20 +458,18 @@ module DekatronPC #(
             $error("DekatronPC: слишком мало декатронов для банковой памяти");
     end
 
-    generate
-        if (EN_ASSERTIONS) begin : g_assertions
-            always @(posedge Clk) begin
-                // Каждая память имеет единственного мастера, поэтому
-                // одновременных транзакций от разных источников быть не может
-                if (rst_n && ip_mem_err)
-                    $error("DekatronPC: ошибка обращения к памяти программ");
-                if (rst_n && ap_mem_err)
-                    $error("DekatronPC: ошибка обращения к памяти данных");
-                if (rst_n && soft_rst && hard_rst)
-                    $error("DekatronPC: обе линии сброса активны одновременно");
-            end
-        end
-    endgenerate
+`ifdef ASSERTIONS
+    always @(posedge Clk) begin
+        // Каждая память имеет единственного мастера, поэтому
+        // одновременных транзакций от разных источников быть не может
+        if (rst_n && ip_mem_err)
+            $error("DekatronPC: ошибка обращения к памяти программ");
+        if (rst_n && ap_mem_err)
+            $error("DekatronPC: ошибка обращения к памяти данных");
+        if (rst_n && soft_rst && hard_rst)
+            $error("DekatronPC: обе линии сброса активны одновременно");
+    end
+`endif
 `endif
 
 endmodule

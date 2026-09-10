@@ -106,9 +106,9 @@ if [ ${sim} -ne 0 ]; then
 
 	EmulFiles=$(cat ${root_dir}/Emulator/Emul.files)
 
-	verilator --top-module Emulator --lint-only -DEMULATOR=1 -Wall ${EmulFiles} ${DPCfiles}
+	verilator --top-module DekatronPC --lint-only  -Wall ${DPCfiles} rules.vlt
 
-	verilator --top-module DekatronPC --lint-only  -Wall ${DPCfiles}
+	verilator --top-module Emulator --lint-only -DEMULATOR=1 -Wall ${EmulFiles} ${DPCfiles}
 
 	./emul Dekatron
 

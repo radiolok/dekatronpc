@@ -103,9 +103,7 @@ module DekatronCounter #(
     // Нарезка такта счёта
     parameter unsigned HS_PER_CLK     = 10,
     parameter unsigned PHASE1_HS      = 3,
-    parameter unsigned PHASE2_HS      = 4,
-
-    parameter bit          EN_ASSERTIONS  = 1'b1
+    parameter unsigned PHASE2_HS      = 4
 )(
     input  wire             rst_n,      // сброс логики счётчика; разряд НЕ двигает
     input  wire             clk,        // такт счёта
@@ -393,8 +391,7 @@ module DekatronCounter #(
                 .HS_PER_CLK      (HS_PER_CLK),
                 .PHASE1_HS       (PHASE1_HS),
                 .PHASE2_HS       (PHASE2_HS),
-                .EXT_PHASES      (1'b1),
-                .EN_ASSERTIONS   (EN_ASSERTIONS)
+                .EXT_PHASES      (1'b1)
             ) dModule (
                 .hsClk    (hs_clk),
                 .Clk      (clk),
@@ -433,23 +430,21 @@ module DekatronCounter #(
             $display("DekatronCounter: WRITE=0, операция set недоступна (схема записи не ставится)");
     end
 
-    generate
-        if (EN_ASSERTIONS) begin : g_assertions
-            always @(posedge clk) begin
-                if (rst_n && valid) begin
-                    if ((set + set_zero) > 1)
-                        $error("DekatronCounter: одновременно запрошено несколько операций установки");
-                    if (set && !WRITE)
-                        $error("DekatronCounter: операция set при WRITE=0");
-                end
-                if (rst_n && soft_rst && hard_rst)
-                    $error("DekatronCounter: soft_rst и hard_rst подняты одновременно");
-                // valid не должен сниматься до handshake
-                if (rst_n && $past(valid) && !$past(ready) && !valid)
-                    $error("DekatronCounter: valid снят до handshake");
-            end
+`ifdef ASSERTIONS
+    always @(posedge clk) begin
+        if (rst_n && valid) begin
+            if ((set + set_zero) > 1)
+                $error("DekatronCounter: одновременно запрошено несколько операций установки");
+            if (set && !WRITE)
+                $error("DekatronCounter: операция set при WRITE=0");
         end
-    endgenerate
+        if (rst_n && soft_rst && hard_rst)
+            $error("DekatronCounter: soft_rst и hard_rst подняты одновременно");
+        // valid не должен сниматься до handshake
+        if (rst_n && $past(valid) && !$past(ready) && !valid)
+            $error("DekatronCounter: valid снят до handshake");
+    end
+`endif
 `endif
 
 endmodule

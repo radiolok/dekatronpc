@@ -52,8 +52,7 @@
 `default_nettype none
 
 module MachineCtrl #(
-    parameter bit          EN_EMULATOR   = 1'b0,   // счётчик выполненных инструкций
-    parameter bit          EN_ASSERTIONS = 1'b1
+    parameter bit          EN_EMULATOR   = 1'b0   // счётчик выполненных инструкций
 )(
     input  wire clk,
     input  wire rst_n,        // сброс логики; разряд декатронов не двигает
@@ -615,25 +614,23 @@ module MachineCtrl #(
     end
 
 `ifndef SYNTH
-    generate
-        if (EN_ASSERTIONS) begin : g_assertions
-            always @(posedge clk) begin
-                if (rst_n && soft_rst_req && hard_rst_req)
-                    $error("MachineCtrl: одновременный запрос программного и аппаратного сброса");
-                if (rst_n && ip_valid && ap_valid)
-                    $error("MachineCtrl: одновременный запрос к IpLine и ApLine");
-                if (rst_n && !insn_loading && insn_mode &&
-                    ((insn == 4'h6) || (insn == 4'h7)) &&
-                    (state == S_FETCH_W) && ip_ready && insn_valid &&
-                    !data_zero_valid && !ap_valid)
-                    $error("MachineCtrl: скобка обрабатывается при недостоверном признаке нуля");
-                if (rst_n && insn_loading && ap_valid)
-                    $error("MachineCtrl: операция над данными во время загрузки программы");
-                if (rst_n && loop_overflow && !$past(loop_overflow))
-                    $error("MachineCtrl: переполнение счётчика вложенности циклов");
-            end
-        end
-    endgenerate
+`ifdef ASSERTIONS
+    always @(posedge clk) begin
+        if (rst_n && soft_rst_req && hard_rst_req)
+            $error("MachineCtrl: одновременный запрос программного и аппаратного сброса");
+        if (rst_n && ip_valid && ap_valid)
+            $error("MachineCtrl: одновременный запрос к IpLine и ApLine");
+        if (rst_n && !insn_loading && insn_mode &&
+            ((insn == 4'h6) || (insn == 4'h7)) &&
+            (state == S_FETCH_W) && ip_ready && insn_valid &&
+            !data_zero_valid && !ap_valid)
+            $error("MachineCtrl: скобка обрабатывается при недостоверном признаке нуля");
+        if (rst_n && insn_loading && ap_valid)
+            $error("MachineCtrl: операция над данными во время загрузки программы");
+        if (rst_n && loop_overflow && !$past(loop_overflow))
+            $error("MachineCtrl: переполнение счётчика вложенности циклов");
+    end
+`endif
 `endif
 
 endmodule
