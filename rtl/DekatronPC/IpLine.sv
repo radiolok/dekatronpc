@@ -155,7 +155,6 @@ module IpLine #(
     logic                  overflow_q;
     logic [INSN_WIDTH-1:0] insn_q;
     logic                  insn_valid_q;
-    logic [INSN_WIDTH-1:0] insn_in_q;
 
     //------------------------------------------------------------------
     // Счётчик инструкций
@@ -256,7 +255,7 @@ module IpLine #(
     //------------------------------------------------------------------
     // APB-мастер
     //------------------------------------------------------------------
-    assign mem_wr_data = insn_in_q;
+    assign mem_wr_data = insn_in;
 
     //------------------------------------------------------------------
     // Выходы и готовность
@@ -288,7 +287,6 @@ module IpLine #(
             overflow_q     <= 1'b0;
             insn_q         <= '0;
             insn_valid_q   <= 1'b0;
-            insn_in_q      <= '0;
             ip_valid       <= 1'b0;
             ip_dec         <= 1'b0;
             ip_set_zero    <= 1'b0;
@@ -489,7 +487,6 @@ module IpLine #(
                 //------------------------------------------------------
                 S_INSN_IN: begin
                     if (insn_in_valid) begin
-                        insn_in_q    <= insn_in;
                         insn_q       <= insn_in;
                         insn_valid_q <= 1'b1;
 

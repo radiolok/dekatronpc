@@ -128,8 +128,6 @@ module ApLine #(
         S_DATA_WAIT  = 4'd8;
 
     logic [3:0] state;
-    logic [3:0] op_q;
-    logic       dec_q;
 
     logic       lock_q;        // счётчик содержит значение ячейки
     logic       dirty_q;       // счётчик расходится с памятью
@@ -161,7 +159,7 @@ module ApLine #(
         .hard_rst  (hard_rst),
         .valid     (ap_valid),
         .ready     (ap_ready),
-        .dec       (dec_q),
+        .dec       (dec),
         .set       (1'b0),
         .set_zero  (ap_set_zero),
         .in        ({AP_W{1'b0}}),
@@ -200,7 +198,7 @@ module ApLine #(
         .hard_rst  (hard_rst),
         .valid     (data_valid),
         .ready     (data_ready),
-        .dec       (dec_q),
+        .dec       (dec),
         .set       (data_set),
         .set_zero  (data_set_zero),
         .in        (data_in),
@@ -215,7 +213,7 @@ module ApLine #(
     wire [DATA_W-1:0] cell_from_mem =
         {{(DATA_W-MEM_DATA_WIDTH){1'b0}}, mem_rd_data};
 
-    assign data_in = (op_q == OP_CIN) ? rx_q : cell_from_mem;
+    assign data_in = (op == OP_CIN) ? rx_q : cell_from_mem;
 
     //------------------------------------------------------------------
     // Наблюдаемое состояние
@@ -240,8 +238,6 @@ module ApLine #(
     always_ff @(posedge clk, negedge rst_n) begin
         if (~rst_n) begin
             state         <= S_IDLE;
-            op_q          <= OP_NOP;
-            dec_q         <= 1'b0;
             lock_q        <= 1'b0;
             dirty_q       <= 1'b0;
             mem_here_q    <= 1'b0;
@@ -277,8 +273,6 @@ module ApLine #(
                 //------------------------------------------------------
                 S_IDLE: begin
                     if (accept) begin
-                        op_q  <= op;
-                        dec_q <= dec;
                         rx_q  <= rx_data_bcd;
 
                         case (op)
@@ -387,7 +381,7 @@ module ApLine #(
                     if (mem_ready & mem_rd_valid) begin
                         mem_here_q <= 1'b1;
 
-                        case (op_q)
+                        case (op)
                             OP_DATA_STEP, OP_LOAD: begin
                                 data_set   <= 1'b1;
                                 data_valid <= 1'b1;
@@ -416,7 +410,7 @@ module ApLine #(
                         dirty_q    <= 1'b0;
                         mem_here_q <= 1'b1;
 
-                        case (op_q)
+                        case (op)
                             OP_AP_STEP, OP_AP_ZERO: begin
                                 lock_q   <= 1'b0;
                                 ap_valid <= 1'b1;
@@ -471,7 +465,7 @@ module ApLine #(
 
                 S_DATA_SET_W: begin
                     if (data_ready & data_out_valid) begin
-                        case (op_q)
+                        case (op)
                             OP_DATA_STEP: begin
                                 lock_q     <= 1'b1;
                                 data_valid <= 1'b1;
@@ -496,7 +490,7 @@ module ApLine #(
 
                 S_DATA_WAIT: begin
                     if (data_ready & data_out_valid) begin
-                        if (op_q == OP_DATA_STEP) begin
+                        if (op == OP_DATA_STEP) begin
                             lock_q  <= 1'b1;
                             dirty_q <= 1'b1;
                         end
