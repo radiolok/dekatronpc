@@ -87,7 +87,7 @@ veremul() {
 	python3 ${root_dir}/run/generate_rom.py -f ${bf_file} -o ${root_dir}/firmware.hex --hex
 	verilator -Wall ${COVERAGE} ${TRACE} --top DekatronPC --cc ${files} \
 	../libdpcrun.a  -DEMULATOR=1 -DIPMEMFILE\
-	--timescale 1us/1ns \
+	--timescale 1us/1ns rules.vlt \
 	--exe ${root_dir}/tests/DekatronPC.sv/DekatronPC_tb.cpp  -LDFLAGS -lncurses
 
 	make -j`nproc` -C obj_dir -f VDekatronPC.mk VDekatronPC
@@ -106,9 +106,9 @@ if [ ${sim} -ne 0 ]; then
 
 	EmulFiles=$(cat ${root_dir}/Emulator/Emul.files)
 
-	verilator --top-module Emulator --lint-only -DEMULATOR=1 -Wall ${EmulFiles} ${DPCfiles}
+	verilator --top-module DekatronPC --lint-only  -Wall ${DPCfiles} rules.vlt
 
-	verilator --top-module DekatronPC --lint-only  -Wall ${DPCfiles}
+	verilator --top-module Emulator --lint-only -DEMULATOR=1 -Wall ${EmulFiles} ${DPCfiles} rules.vlt
 
 	./emul Dekatron
 
@@ -157,7 +157,7 @@ if [ ${synt} -ne 0 ]; then
 	rm -f *.dot
 	./synth IpLine
 	./synth ApLine
-	./synth InsnDecoder
+	./synth MachineCtrl
 	python3 dpc_stat.py -j IpLine.json,ApLine.json,InsnDecoder.json -l vtube_cells.lib
 fi
 
