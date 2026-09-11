@@ -119,6 +119,7 @@ module DekatronModule #(
     output wire       TopPin     // разряд на катоде TOP_PIN_OUT
 );
 
+`ifndef SYNTH
     //------------------------------------------------------------------
     // Внутренние связи
     //------------------------------------------------------------------
@@ -287,6 +288,8 @@ module DekatronModule #(
         if (TOP_LIMIT_MODE && !WRITE && (TOP_PIN_OUT == 0))
             $warning("DekatronModule: TOP_PIN_OUT = 0 duplicates SetZero");
     end
+`endif
+
 `endif
 
 endmodule

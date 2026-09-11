@@ -131,6 +131,14 @@ module IpMemory #(
         if (EN_BOOTLOADER)
             $display("IpMemory: загрузчик занимает старший банк, 100 инструкций");
     end
+
+`ifdef ASSERTIONS
+    always @(posedge clk) begin
+        // Область загрузчика доступна только на чтение
+        if (rst_n && valid && ready && wr && is_boot)
+            $error("IpMemory: попытка записи в область загрузчика по адресу %h", addr);
+    end
+`endif
 `endif
 
 endmodule
