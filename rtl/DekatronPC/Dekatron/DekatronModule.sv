@@ -119,7 +119,6 @@ module DekatronModule #(
     output wire       TopPin     // разряд на катоде TOP_PIN_OUT
 );
 
-`ifndef SYNTH
     //------------------------------------------------------------------
     // Внутренние связи
     //------------------------------------------------------------------
@@ -244,7 +243,26 @@ module DekatronModule #(
     // катоде» от «разряд ещё в пути».
     //------------------------------------------------------------------
 
+`ifdef SYNTH
+    // Физически — лампа ИЛИ-10 (OR10_X7), читающая десять главных
+    // катодов декатрона. Явный инстанс, т.к. abc не умеет сшивать
+    // столь широкий элемент из поведенческого reduction-OR.
+    OR10_X7 u_valid_or (
+        .A(MainOneHot[0]),
+        .B(MainOneHot[1]),
+        .C(MainOneHot[2]),
+        .D(MainOneHot[3]),
+        .E(MainOneHot[4]),
+        .F(MainOneHot[5]),
+        .G(MainOneHot[6]),
+        .H(MainOneHot[7]),
+        .K(MainOneHot[8]),
+        .L(MainOneHot[9]),
+        .Y(Valid)
+    );
+`else
     assign Valid = |MainOneHot;
+`endif
 
     //------------------------------------------------------------------
     // Признаки позиций для схемы переноса.
@@ -288,8 +306,6 @@ module DekatronModule #(
         if (TOP_LIMIT_MODE && !WRITE && (TOP_PIN_OUT == 0))
             $warning("DekatronModule: TOP_PIN_OUT = 0 duplicates SetZero");
     end
-`endif
-
 `endif
 
 endmodule

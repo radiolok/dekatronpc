@@ -68,6 +68,7 @@ module RstTimeRelay #(
     output wire  busy
 );
 
+`ifndef SYNTH
     localparam int unsigned CNT_W = 16;
 
     logic [CNT_W-1:0] cnt;
@@ -110,7 +111,7 @@ module RstTimeRelay #(
     assign hard_rst = active &  is_hard;
     assign soft_rst = active & ~is_hard;
     assign busy     = active;
-
+`endif
 endmodule
 
 
