@@ -125,7 +125,8 @@ test_dekatron_module:  sim
 
 test_dek_counter:      MODULE = tests.test_dekatron_counter
 test_dek_counter:      TOPLEVEL = DekatronCounter
-test_dek_counter:      VERILOG_SOURCES = $(VHDL_ROOT)/parameters.sv $(LOGIC_PATH)/Compare.sv $(LOGIC_PATH)/Impulse.sv $(LOGIC_PATH)/OneShot.sv $(DEKATRON_PATH)/BcdToBin.v $(DEKATRON_PATH)/BinToBcd.v $(DEKATRON_PATH)/Dekatron.sv $(DEKATRON_PATH)/DekatronPulseSender.sv $(DEKATRON_PATH)/DekatronCarrySignal.sv $(LOGIC_PATH)/RsLatch.sv $(DEKATRON_PATH)/DekatronWriteAmp.sv $(DEKATRON_PATH)/DekatronModule.sv $(DEKATRON_PATH)/DekatronCounter.sv $(LOGIC_PATH)/ClockDivider.sv $(FUNC_PATH)/BcdToBinEnc.sv
+test_dek_counter:      VERILOG_SOURCES = $(VHDL_ROOT)/parameters.sv $(LOGIC_PATH)/Compare.sv $(LOGIC_PATH)/Impulse.sv $(LOGIC_PATH)/OneShot.sv $(DEKATRON_PATH)/BcdToBin.v $(DEKATRON_PATH)/BinToBcd.v $(DEKATRON_PATH)/Dekatron.sv $(DEKATRON_PATH)/DekatronPulseSender.sv $(DEKATRON_PATH)/DekatronCarrySignal.sv $(LOGIC_PATH)/RsLatch.sv $(DEKATRON_PATH)/DekatronWriteAmp.sv $(DEKATRON_PATH)/DekatronModule.sv $(DEKATRON_PATH)/DekatronCounter.sv $(LOGIC_PATH)/ClockDivider.sv $(FUNC_PATH)/BcdToBinEnc.sv $(CURDIR)/tests/DekatronCounter_vcd_dump.sv
+test_dek_counter:      COMPILE_ARGS = -f sim_build/cmds.f -s DekatronCounter_vcd_dump
 test_dek_counter:      sim
 
 # --- Phase 3: Memory Subsystem ---
@@ -258,11 +259,13 @@ test_in12:             sim
 # Core simulation target
 # =====================================================================
 sim:
+	rm -rf sim_build
 	COCOTB_HDL_TIMEUNIT=1ns COCOTB_HDL_TIMEPRECISION=1ps \
 	$(MAKE) TOPLEVEL=$(TOPLEVEL) TOPLEVEL_LANG=$(TOPLEVEL_LANG) \
 		SIM=$(SIM) MODULE=$(MODULE) \
 		VERILOG_SOURCES="$(VERILOG_SOURCES)" \
 		EXTRA_ARGS="$(EXTRA_ARGS)" \
+		$(if $(COMPILE_ARGS),COMPILE_ARGS="$(COMPILE_ARGS)") \
 		-f $(shell cocotb-config --makefile)/Makefile.sim
 
 # =====================================================================

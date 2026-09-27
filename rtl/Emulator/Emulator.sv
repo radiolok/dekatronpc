@@ -105,7 +105,7 @@ module Emulator #(
     output logic [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
     output logic [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
     output logic [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd,
-    
+
     /* verilator lint_off UNUSEDSIGNAL */
     input logic [INSN_WIDTH-1:0] InsnIn,
     input logic InsnInValid,
@@ -114,7 +114,7 @@ module Emulator #(
     /* verilator lint_on UNUSEDSIGNAL */
 `endif
 
-    output logic [2:0] DPC_currentState
+    output logic [3:0] DPC_currentState
 );
 
 assign LED[0] = Rst_n;
@@ -261,8 +261,9 @@ DekatronPC dekatronPC(
     .LoopCount(LoopCount),
     .hsClk(Clock_10MHz),
     .Clk(Clock_1MHz),
-    .SoftRst_n(SoftRst_n),
-    .HardRst_n(HardRst_n),
+    .rst_n(Rst_n),
+    .SoftRstKey(~SoftRst_n),
+    .HardRstKey(~HardRst_n),
     .Halt(keyHalt),
     .Run(keyRun),
     .InsnIn(InsnInInternal),
@@ -273,6 +274,9 @@ DekatronPC dekatronPC(
     .RunOnHardRst(RunOnHardRst),
     .RunOnSoftRst(RunOnSoftRst),
     .SoftRstOnEOT(SoftRstOnEOT),
+    .BellOnCIN(1'b0),
+    .BellOnHALT(1'b0),
+    .BellOnError(1'b0),
     .tx_data_bcd(tx_data_bcd),
     .tx_vld(tx_vld),
     .tx_rdy(tx_rdy),
@@ -290,6 +294,9 @@ DekatronPC dekatronPC(
     .ApData1(ApData1),
     .RomData1(RomData1),
     .state(DPC_currentState),
+    .IsHalted(),
+    .Bell(),
+    .LoopOverflow(),
     .Insn(Insn)
 );
 
@@ -545,13 +552,13 @@ assign uart_rx_data[7] = 1'b0;
 KeyboardOpcodeInput keyboardOpcodeInput(
     .Clk(Clock_1MHz),
     .Rst_n(Rst_n),
-    
+
     .ReadEnable(KeyboardReadEnable),
 
     .Symbol(keyboardSymbol),
     .Opcode(KeyboardInsn),
     .Ready(KeyboardInsnReady),
-    .Valid(KeyboardInsnValid)  
+    .Valid(KeyboardInsnValid)
 );
 
 FirmwareLoader #(
@@ -560,7 +567,7 @@ FirmwareLoader #(
 ) firmwareLoader_hello(
     .Clk(Clock_1MHz),
     .Rst_n(Rst_n),
-    
+
     .Enable(FirmwareReadEnable_1),
 
     .Valid(FirmwareValid_1),
@@ -574,7 +581,7 @@ FirmwareLoader #(
 ) firmwareLoader_pi(
     .Clk(Clock_1MHz),
     .Rst_n(Rst_n),
-    
+
     .Enable(FirmwareReadEnable_2),
 
     .Valid(FirmwareValid_2),

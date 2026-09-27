@@ -9,7 +9,7 @@ library(vtube_cells_lib) {
     pin(A) { direction: input; fanout_load: 1.0;}
     pin(Y) { direction: output;
               driver_type : pull_up;
-               max_fanout : 10; 
+               max_fanout : 10;
               function: "A"; }
   }
   cell(BUF_6J2B) {
@@ -22,7 +22,7 @@ library(vtube_cells_lib) {
     pin(A) { direction: input; fanout_load: 1.0;}
     pin(Y) { direction: output;
               driver_type : pull_up;
-               max_fanout : 10; 
+               max_fanout : 10;
               function: "A"; }
   }
   cell(NOT_6N16B) {
@@ -35,7 +35,7 @@ library(vtube_cells_lib) {
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
               driver_type : pull_up;
-               max_fanout : 10; 
+               max_fanout : 10;
               function: "A'"; }
   }
   cell(NOT_6J2B) {
@@ -48,7 +48,7 @@ library(vtube_cells_lib) {
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
               driver_type : pull_up;
-               max_fanout : 10; 
+               max_fanout : 10;
               function: "A'"; }
   }
   cell(NAND2_N16X7) {
@@ -63,7 +63,7 @@ library(vtube_cells_lib) {
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
              driver_type : pull_up;
-               max_fanout : 10; 
+               max_fanout : 10;
              function: "(A*B)'"; }
   }
   cell(AND2_N16X7) {
@@ -78,7 +78,7 @@ library(vtube_cells_lib) {
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
             driver_type : pull_up;
-               max_fanout : 10; 
+               max_fanout : 10;
              function: "(A*B)"; }
 
   }
@@ -93,7 +93,7 @@ library(vtube_cells_lib) {
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
             driver_type : pull_up;
-               max_fanout : 10; 
+               max_fanout : 10;
              function: "(A*B)'"; }
 
   }
@@ -110,7 +110,7 @@ library(vtube_cells_lib) {
     pin(C) { direction: input; fanout_load: 1.0; }
     pin(D) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
-               max_fanout : 10; 
+               max_fanout : 10;
             driver_type : pull_up;
              function: "(A*B*C*D)'"; }
   }
@@ -127,7 +127,7 @@ library(vtube_cells_lib) {
     pin(C) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
             driver_type : pull_up;
-               max_fanout : 10; 
+               max_fanout : 10;
              function: "((A*B)+C)'"; }
   }
   cell(A2OOI_N16X7){
@@ -144,7 +144,7 @@ library(vtube_cells_lib) {
     pin(D) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
             driver_type : pull_up;
-               max_fanout : 10; 
+               max_fanout : 10;
              function: "((A*B)+C+D)'"; }
   }
   cell(OR2_N16) {
@@ -157,7 +157,7 @@ library(vtube_cells_lib) {
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
-               max_fanout : 10; 
+               max_fanout : 10;
             driver_type : pull_up;
              function: "(A+B)"; }
   }
@@ -172,7 +172,7 @@ library(vtube_cells_lib) {
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
-               max_fanout : 10; 
+               max_fanout : 10;
             driver_type : pull_up;
              function: "(A+B)"; }
   }
@@ -189,9 +189,31 @@ library(vtube_cells_lib) {
     pin(C) { direction: input; fanout_load: 1.0; }
     pin(D) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
-               max_fanout : 10; 
+               max_fanout : 10;
             driver_type : pull_up;
              function: "(A+B+C+D)"; }
+  }
+  cell(OR10_X7) {
+    area: 5;
+    current_unit : "1mA";
+    heat_current: 800;
+    tubes(names) {
+      X7B: 5;
+    }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(C) { direction: input; fanout_load: 1.0; }
+    pin(D) { direction: input; fanout_load: 1.0; }
+    pin(E) { direction: input; fanout_load: 1.0; }
+    pin(F) { direction: input; fanout_load: 1.0; }
+    pin(G) { direction: input; fanout_load: 1.0; }
+    pin(H) { direction: input; fanout_load: 1.0; }
+    pin(K) { direction: input; fanout_load: 1.0; }
+    pin(L) { direction: input; fanout_load: 1.0; }
+    pin(Y) { direction: output;
+               max_fanout : 1;
+            driver_type : pull_up;
+             function: "(A+B+C+D+E+F+G+H+K+L)"; }
   }
   cell(NOR2_N16) {
     area: 1;
@@ -203,7 +225,7 @@ library(vtube_cells_lib) {
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
-               max_fanout : 10; 
+               max_fanout : 10;
             driver_type : pull_up;
              function: "(A+B)'"; }
   }
@@ -219,7 +241,7 @@ library(vtube_cells_lib) {
     pin(C) { direction: input; fanout_load: 1.0; }
     pin(D) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
-               max_fanout : 10; 
+               max_fanout : 10;
             driver_type : pull_up;
              function: "(A+B+C+D)'"; }
   }
@@ -234,7 +256,7 @@ library(vtube_cells_lib) {
     pin(A) { direction: input; fanout_load: 1.0; }
     pin(B) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
-               max_fanout : 10; 
+               max_fanout : 10;
             driver_type : pull_up;
              function: "(A+B)'"; }
   }
@@ -251,9 +273,31 @@ library(vtube_cells_lib) {
     pin(C) { direction: input; fanout_load: 1.0; }
     pin(D) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output;
-               max_fanout : 10; 
+               max_fanout : 10;
             driver_type : pull_up;
              function: "(A+B+C+D)'"; }
+  }
+    cell(NOR10_N16X7) {
+    area: 5.5;
+    current_unit : "1mA";
+    heat_current: 800;
+    tubes(names) {
+      X7B: 5;
+    }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(C) { direction: input; fanout_load: 1.0; }
+    pin(D) { direction: input; fanout_load: 1.0; }
+    pin(E) { direction: input; fanout_load: 1.0; }
+    pin(F) { direction: input; fanout_load: 1.0; }
+    pin(G) { direction: input; fanout_load: 1.0; }
+    pin(H) { direction: input; fanout_load: 1.0; }
+    pin(K) { direction: input; fanout_load: 1.0; }
+    pin(L) { direction: input; fanout_load: 1.0; }
+    pin(Y) { direction: output;
+               max_fanout : 5;
+            driver_type : pull_up;
+             function: "(A+B+C+D+E+F+G+H+K+L)'"; }
   }
   cell(LATCH) {
     area: 3.5;
@@ -269,7 +313,7 @@ library(vtube_cells_lib) {
                  clock: true; }
     pin(D) { direction: input; fanout_load: 1.0; }
     pin(Q) { direction: output;
-               max_fanout : 10; 
+               max_fanout : 10;
             driver_type : pull_up;
               function: "IQ"; }
   }
@@ -287,7 +331,7 @@ library(vtube_cells_lib) {
                  clock: true; }
     pin(D) { direction: input; fanout_load: 1.0; }
     pin(Q) { direction: output;
-               max_fanout : 10; 
+               max_fanout : 10;
             driver_type : pull_up;
               function: "IQ"; }
   }

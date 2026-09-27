@@ -5,7 +5,7 @@ Cocotb-based layered testbench for the DekatronPC processor — a vacuum-tube co
 ## Quick Start
 
 ```bash
-cd vhdl/tb
+cd tb
 make test_compare SIM=icarus        # single test
 make test_insn_decoder SIM=icarus   # single test
 make regression                     # full suite (~40 targets)
@@ -24,7 +24,7 @@ pip install cocotb pyuvm cocotb-coverage pytest
 ## Directory Structure
 
 ```
-vhdl/tb/
+tb/
 ├── Makefile              # 40+ test targets for icarus and verilator
 ├── conftest.py           # Shared fixtures: clocks, reset, BCD utils
 ├── env/                  # UVM environments (base, dpc, emul)
@@ -117,11 +117,9 @@ make test_dpc SIM=verilator EXTRA_ARGS="--timing -Wno-fatal -DEMULATOR=1"
 
 ## Known RTL Bugs Captured by Tests
 
-1. **add.sv typo** (`vhdl/Logic/add.sv:12`): `{c0, y}` → fixed to `{co, y}` with `assign` instead of broken `always_comb`. Test `test_add_exhaustive` validates 256 input combinations.
+1. **OneShot DELAY=1 counter bug** (`rtl/Logic/OneShot.sv`): `WIDTH=$clog2(1)=1` produces 2-bit counter rolling after 4 ticks instead of 1. Test `test_oneshot_basic` documents this.
 
-2. **OneShot DELAY=1 counter bug** (`vhdl/Logic/OneShot.sv`): `WIDTH=$clog2(1)=1` produces 2-bit counter rolling after 4 ticks instead of 1. Test `test_oneshot_basic` documents this.
-
-3. **Sequencer race condition** (`vhdl/Emulator/Sequencer.sv`): Dual `negedge` blocks create non-deterministic behavior. Tests use ±1 cycle tolerance sampling.
+2. **Sequencer race condition** (`rtl/Emulator/Sequencer.sv`): Dual `negedge` blocks create non-deterministic behavior. Tests use ±1 cycle tolerance sampling.
 
 ## Wrapper Modules
 
@@ -130,6 +128,6 @@ Some modules have output signals named identically to the module (e.g., `Impulse
 ## Future Work
 
 - **RAM test parameterization**: Default ROWS=30000 causes slow reset initialization. Override with smaller ROWS for faster simulation.
-- **CppMachine shared library**: Compile `dpcrun.cpp` as `libdpcrun.so` for Python ctypes scoreboard integration.
+- **Golden model shared library**: Compile `bfutils/dpcrun/dpcrun.cpp` (submodule, `dpc::Machine`) as `libdpcrun.so` for Python ctypes scoreboard integration.
 - **Coverage collection**: Enable Verilator `--coverage` and integrate `cocotb-coverage` functional coverage groups.
 - **DekatronModule standalone test**: Module instantiation needs `parameters.sv` and full Dekatron subsystem sources.

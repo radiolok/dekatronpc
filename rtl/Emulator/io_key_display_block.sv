@@ -20,7 +20,7 @@ module io_key_display_block #(
     output wire [7:0] keyboard_symbol,
 
 	output [7:0] emulData,
-    input wire [2:0] DPC_currentState,
+    input wire [3:0] DPC_currentState,
     input wire InsnLoading,
 
     input wire [7:0] tx_data,

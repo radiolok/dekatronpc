@@ -6,6 +6,8 @@ yosys -import
 
 yosys read -define SYNTH=1
 
+set cell_lib "../vtube/vtube_cells.lib"
+
 set fp [open [lindex $argv 0] r]
 set file_data [read $fp]
 close $fp
@@ -20,14 +22,13 @@ foreach line $data {
     }
   }
 }
+yosys read_liberty -lib $cell_lib
 hierarchy -check
 yosys synth -top [lindex $argv 1]
 yosys proc
 #yosys flatten
 
 yosys fsm -encoding onehot
-set cell_lib "vtube_cells.lib"
-yosys read_liberty -lib $cell_lib 
 yosys dfflibmap -liberty $cell_lib 
 yosys abc -liberty $cell_lib
 yosys opt

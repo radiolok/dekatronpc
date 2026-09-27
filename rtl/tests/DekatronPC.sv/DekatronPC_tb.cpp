@@ -1,11 +1,27 @@
+// DekatronPC Verilator testbench with step-by-step comparison against the
+// C++ golden model (bfutils/dpcrun, REQ-GM-002).
+//
+// The RTL program memory is preloaded from firmware.hex (generate_rom.py);
+// the model gets the same program through dpc::assemble(). Both start with
+// Soft Reset + Run. After every instruction the RTL retires, the model steps
+// once and IRET, IP, AP, tx_data_bcd, the loop counter and the terminal
+// output are compared.
+//
+// Build: rtl/run/run_tests.sh (veremul). Needs -GEN_EMULATOR=1, otherwise
+// IRET and LoopCount are not driven.
+
 #include <stdlib.h>
+#include <math.h>
+#include <fstream>
 #include <iostream>
+#include <iterator>
+#include <string>
 #include <verilated.h>
 #include <verilated_vcd_c.h>
+#include <getopt.h>
 #include "VDekatronPC.h"
 #include "dpcrun.h"
 #include <chrono>
-#include <curses.h>
 using namespace std::chrono;
 
 #define MUL (50)
@@ -19,11 +35,21 @@ using namespace std::chrono;
 
 #define SIM_TRACE 1
 
+// MachineCtrl states
+enum {
+    S_HALT     = 0,
+    S_IDLE     = 1,
+    S_DECODE   = 4,
+    S_CIN_WAIT = 9
+};
+
 class VerilogMachine{
 public:
     vluint64_t PLL_CLK;
     vluint64_t CPU_CLK_UNHALTED;
     VDekatronPC *dut;
+    std::string output;
+    int lastCin;
 
 #ifdef SIM_TRACE
     VerilatedVcdC *trace;
@@ -32,19 +58,21 @@ public:
     VerilogMachine(){
         PLL_CLK = 0;
         CPU_CLK_UNHALTED = 0;
+        lastCin = -1;
         dut = new VDekatronPC;
 #ifdef SIM_TRACE
         trace = new VerilatedVcdC;
 #endif
-        dut->SoftRst_n = 1;
-        dut->HardRst_n = 1;
+        dut->rst_n = 1;
+        dut->SoftRstKey = 0;
+        dut->HardRstKey = 0;
         dut->hsClk = 0;
         dut->Clk = 0;
         dut->EchoMode = 1;
     }
 
     ~VerilogMachine(){
-#ifdef SIM_TRACE      
+#ifdef SIM_TRACE
         trace->close();
         delete trace;
 #endif
@@ -52,106 +80,7 @@ public:
     }
 };
 
-uint8_t Cout(bool state, uint16_t data)
-{
-    static bool CoutOld = false;
-    uint8_t update = 0;
-    if (!CoutOld & state){
-        uint16_t symbol = (data&0x0F) + ((data>>4) &0x0F)*10 + ((data>>8) &0x0F)*100;
-        printf("%c\n", symbol);
-        update = 1;
-    }
-    CoutOld = state;
-    return update;
-}
-
-uint8_t Cin(bool state, uint16_t& symbol)
-{
-    static bool CinOld = false;
-    uint8_t update = 0;
-    if (!CinOld & state){
-        char c;
-        std::cin >> c;
-        uint8_t high = c / 100;
-        uint8_t med = (c % 100) / 10;
-        uint8_t low = c % 10;
-        symbol = (high << 8) + (med << 4) + low;
-        update = 1;
-    }
-    CinOld = state;
-    return update;
-}
-
-uint8_t InsnToSymbol(int Insn){
-    switch(Insn){
-        case 0: return 'N';
-        case 1: return 'H';
-        case 2: return '+';
-        case 3: return '-';
-        case 4: return '>';
-        case 5: return '<';
-        case 6: return '[';
-        case 7: return ']';
-        case 8: return '.';
-        case 9: return ',';
-        case 10: return 'R';
-    }
-    return 'x';
-}
-
-int stepVerilog(VerilogMachine &state){
-    while(true){
-        static int prev_state = state.dut->state;
-        if (state.PLL_CLK == 1){
-            state.dut->SoftRst_n = 0;
-        }
-        if (state.PLL_CLK == SLOW_P*2){
-            state.dut->SoftRst_n = 1;
-        }
-        if (state.PLL_CLK == SLOW_P*4){
-            state.dut->Run = 1;
-        }
-        if (state.PLL_CLK == SLOW_P*6){
-        state.dut->Run = 0;
-        }
-        if (state.PLL_CLK > SLOW_P*10){
-            if (state.dut->state == 0x04)
-                return state.dut->state;
-        }
-        if ((state.PLL_CLK % HALF_HIGH_P) == 0){
-            state.dut->hsClk ^= 1;
-        }
-        if ((state.PLL_CLK % HALF_SLOW_P) == 0){
-            state.dut->Clk ^= 1;
-            if (state.dut->Clk){
-                state.CPU_CLK_UNHALTED++;
-            }
-        }
-        if (Cout(state.dut->tx_vld, state.dut->tx_data_bcd))
-        {
-            state.dut->tx_rdy = 1;
-        }
-        if (!(state.dut->tx_vld)){
-            state.dut->tx_rdy = 1;
-        }
-        if (Cin(state.dut->state == 0x05, state.dut->rx_data_bcd)){
-            state.dut->rx_vld = 1;
-        }
-        state.dut->eval();
-#ifdef SIM_TRACE
-        state.trace->dump(state.PLL_CLK*MUL);
-#endif
-        state.PLL_CLK++;
-        if ((state.dut->state == 0x02) & (prev_state == 0x03))
-        {
-            prev_state = state.dut->state;
-            return 0;
-        }
-        prev_state = state.dut->state;
-    }
-}
-
-int BcdToInt(int bcd, int groups)
+static int BcdToInt(int bcd, int groups)
 {
     int result = 0;
     for (int i = 0; i < groups; ++i)
@@ -162,85 +91,170 @@ int BcdToInt(int bcd, int groups)
     return result;
 }
 
-int compareStates(const VerilogMachine& state, const CppMachine& cppMachine)
+static uint8_t Cout(VerilogMachine& state)
 {
-    if (state.dut->IRET != cppMachine.IRET){
-        printf("FATAL: state.IRET(%d) != cppMachine.IRET(%ld)\n",
-                state.dut->IRET, cppMachine.IRET);
-        return -1;
+    static bool CoutOld = false;
+    bool vld = state.dut->tx_vld;
+    uint8_t update = 0;
+    if (!CoutOld && vld){
+        char symbol = static_cast<char>(BcdToInt(state.dut->tx_data_bcd, 3));
+        state.output.push_back(symbol);
+        putchar(symbol);
+        fflush(stdout);
+        update = 1;
     }
-    if (BcdToInt(state.dut->IpAddress, 6) != cppMachine.codeRAM.pos())
-    {
-        printf("FATAL: state.dut->IpAddress(%d) != CppMachine.codeRAM.pos(%ld)\n",
-        BcdToInt(state.dut->IpAddress, 6), cppMachine.codeRAM.pos());
-        return -1;
+    CoutOld = vld;
+    return update;
+}
+
+static uint8_t Cin(VerilogMachine& state)
+{
+    static bool CinOld = false;
+    bool waiting = (state.dut->state == S_CIN_WAIT);
+    uint8_t update = 0;
+    if (!CinOld && waiting){
+        int c = std::cin.get();
+        if (c == EOF)
+            c = 0;
+        state.lastCin = c;
+        uint8_t high = c / 100;
+        uint8_t med = (c % 100) / 10;
+        uint8_t low = c % 10;
+        state.dut->rx_data_bcd = (high << 8) + (med << 4) + low;
+        update = 1;
     }
-    if (BcdToInt(state.dut->ApAddress, 5) != cppMachine.dataRAM.pos())
-    {
-        printf("FATAL: state.dut->ApAddress(%d) != CppMachine.dataRAM.pos(%ld)\n",
-        BcdToInt(state.dut->ApAddress, 5), cppMachine.dataRAM.pos());
-        return -1;
+    CinOld = waiting;
+    return update;
+}
+
+static void tick(VerilogMachine &state)
+{
+    if ((state.PLL_CLK % HALF_HIGH_P) == 0){
+        state.dut->hsClk ^= 1;
     }
-    if (BcdToInt(state.dut->tx_data_bcd, 3) != static_cast<uint8_t>(*cppMachine.dataRAM))
-    {
-        printf("FATAL: state.dut->Data(%d) != *CppMachine.dataRAM(%d)\n",
-        BcdToInt(state.dut->tx_data_bcd, 3), *cppMachine.dataRAM);
-        return -1;
+    if ((state.PLL_CLK % HALF_SLOW_P) == 0){
+        state.dut->Clk ^= 1;
+        if (state.dut->Clk){
+            state.CPU_CLK_UNHALTED++;
+        }
     }
-    if (BcdToInt(state.dut->LoopCount, 3) != cppMachine.loopCounter.pos())
-    {
-        printf("FATAL: state.dut->LoopCount(%d) != cppMachine.loopCounter.pos(%ld)\n",
-        BcdToInt(state.dut->LoopCount, 3), cppMachine.loopCounter.pos());
-        return -1;
+    Cout(state);
+    state.dut->tx_rdy = 1;
+    if (Cin(state)){
+        state.dut->rx_vld = 1;
     }
-    return 0;
+    else if (state.dut->state != S_CIN_WAIT){
+        state.dut->rx_vld = 0;
+    }
+    state.dut->eval();
+#ifdef SIM_TRACE
+    state.trace->dump(state.PLL_CLK*MUL);
+#endif
+    state.PLL_CLK++;
+}
+
+// Soft Reset, then Run
+static void startVerilog(VerilogMachine &state)
+{
+    for (vluint64_t t = 0; t < SLOW_P*10; ++t){
+        state.dut->SoftRstKey = (t >= 1 && t < SLOW_P*2);
+        state.dut->Run = (t >= SLOW_P*4 && t < SLOW_P*6);
+        tick(state);
+    }
+}
+
+// Runs the RTL until one instruction retires: MachineCtrl passes S_DECODE
+// and comes back to S_IDLE (or stops in S_HALT). Returns the final state.
+static int stepVerilog(VerilogMachine &state)
+{
+    bool decoded = false;
+    int prev = state.dut->state;
+    while (state.PLL_CLK < MAX_SIM_TIME){
+        tick(state);
+        int cur = state.dut->state;
+        if (cur == S_DECODE)
+            decoded = true;
+        if (decoded && cur != prev && (cur == S_IDLE || cur == S_HALT))
+            return cur;
+        if (!decoded && cur == S_HALT && prev != S_HALT)
+            return cur;
+        prev = cur;
+    }
+    return -1;
+}
+
+static int compareStates(const VerilogMachine& state, const dpc::Machine& cpp, bool halted)
+{
+    int err = 0;
+    if (state.dut->IRET != cpp.iret()){
+        printf("FATAL: IRET %u != model %llu\n", state.dut->IRET,
+               static_cast<unsigned long long>(cpp.iret()));
+        err = -1;
+    }
+    // After HALT IpLine steps IP once more a few cycles later; skip it
+    if (!halted && static_cast<uint32_t>(BcdToInt(state.dut->IpAddress, 5)) != cpp.ip()){
+        printf("FATAL: IpAddress %d != model %u\n", BcdToInt(state.dut->IpAddress, 5), cpp.ip());
+        err = -1;
+    }
+    if (static_cast<uint32_t>(BcdToInt(state.dut->ApAddress, 5)) != cpp.ap()){
+        printf("FATAL: ApAddress %d != model %u\n", BcdToInt(state.dut->ApAddress, 5), cpp.ap());
+        err = -1;
+    }
+    if (BcdToInt(state.dut->tx_data_bcd, 3) != cpp.txData()){
+        printf("FATAL: tx_data_bcd %d != model %u\n", BcdToInt(state.dut->tx_data_bcd, 3), cpp.txData());
+        err = -1;
+    }
+    if (static_cast<uint32_t>(BcdToInt(state.dut->LoopCount, 3)) != cpp.loopCount()){
+        printf("FATAL: LoopCount %d != model %u\n", BcdToInt(state.dut->LoopCount, 3), cpp.loopCount());
+        err = -1;
+    }
+    if (state.output != cpp.output()){
+        printf("FATAL: terminal output differs: RTL \"%s\" model \"%s\"\n",
+               state.output.c_str(), cpp.output().c_str());
+        err = -1;
+    }
+    return err;
 }
 
 int main(int argc, char** argv, char** env) {
-	int status = -1;
-	int c = 0;
+    int c = 0;
     int stepMode = 0;
-	char *filePath = NULL;
-	while((c = getopt(argc, argv, "f:sth")) != -1){
-		switch(c)
-		{
-		case 'h':
-      std::cout << "dpcrun -f <file>" << std::endl;
-      std::cout << "use -s to step mode" << std::endl;
-      std::cout << "use -h to show this menu" << std::endl;
-        return 0;
-			break;
-		case 's':
+    char *filePath = NULL;
+    while((c = getopt(argc, argv, "f:sth")) != -1){
+        switch(c)
+        {
+        case 'h':
+            std::cout << "VDekatronPC -f <file>" << std::endl;
+            std::cout << "use -s to compare with the golden model after every instruction" << std::endl;
+            std::cout << "use -h to show this menu" << std::endl;
+            return 0;
+        case 's':
             stepMode = 1;
-			break;
-		case 'f':
-			filePath = optarg;
-			break;
-		}
-	}
-	std::ifstream file(filePath, std::ifstream::ate | std::ifstream::binary);
-	if (!file.is_open()){
-		std::cerr << "Input file error, exiting"<< std::endl;
-		return -1;
-	}
-
-    std::streamsize size = filesize(filePath);
-    if (size == 0)
+            break;
+        case 'f':
+            filePath = optarg;
+            break;
+        }
+    }
+    std::ifstream file(filePath ? filePath : "", std::ios::binary);
+    if (!file.is_open()){
+        std::cerr << "Input file error, exiting"<< std::endl;
+        return -1;
+    }
+    std::string source((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    std::vector<uint8_t> code = dpc::assemble(source);
+    if (code.empty())
     {
-        std::cerr << "Input file " << filePath << " empty, exiting" << std::endl;
+        std::cerr << "Input file " << filePath << " has no instructions, exiting" << std::endl;
         return -1;
     }
 
-    file.seekg(0, std::ios::beg);
-
-    std::vector<char> buffer(size);
-    file.read(buffer.data(), size);
-
     VerilogMachine state;
-    Memory<char, size_t> codeRAM(0, size + 1, &buffer.front());
-	Memory<char, size_t> dataRAM(0, 100000 - 1);
-	Counter<size_t> loopCounter(0,999);
-	CppMachine cppMachine(codeRAM, dataRAM, loopCounter);
+    dpc::Machine cppMachine;
+    cppMachine.loadCode(code);
+    cppMachine.softReset();
+    cppMachine.run();
+
 #ifdef SIM_COV
     Verilated::mkdir("logs");
     VerilatedCov::write("logs/coverage_DPC.dat");
@@ -251,45 +265,53 @@ int main(int argc, char** argv, char** env) {
     state.trace->open("VDekatronPC.vcd");
 #endif
     state.dut->EchoMode = 1;
+    startVerilog(state);
+
     auto start = high_resolution_clock::now();
     while (state.PLL_CLK < MAX_SIM_TIME) {
-        if (cppMachine.codeRAM.pos() == size)
-        {
+        // The program is over when the model reaches the first NOP past it
+        if (cppMachine.ip() == code.size() || cppMachine.halted())
             break;
-        }
-        if (stepMode){
-            stepCpp(cppMachine);
-        }
-        if (stepVerilog(state) == 0x04){
+
+        int rtlState = stepVerilog(state);
+        if (rtlState < 0)
             break;
-        }
+
         if (stepMode){
-            fprintf(stderr,"IRET:%d(%ld) IP: %x(%ld) LOOP:%x(%ld) - INSN: %c(%c) AP: %x(%ld) DATA: %x(%d)\n",
+            if (state.lastCin >= 0){
+                cppMachine.pushInput(static_cast<uint8_t>(state.lastCin));
+                state.lastCin = -1;
+            }
+            dpc::Status s = cppMachine.step();
+            fprintf(stderr, "IRET:%d(%llu) IP:%x(%u) LOOP:%x(%u) INSN:%s AP:%x(%u) DATA:%x(%u) %s\n",
                 state.dut->IRET,
-                cppMachine.IRET,
+                static_cast<unsigned long long>(cppMachine.iret()),
                 state.dut->IpAddress,
-                cppMachine.codeRAM.pos(),
+                cppMachine.ip(),
                 state.dut->LoopCount,
-                cppMachine.loopCounter.pos(),
-                InsnToSymbol(state.dut->Insn),
-                *(cppMachine.codeRAM),
+                cppMachine.loopCount(),
+                dpc::mnemonic(state.dut->Insn, cppMachine.insnMode()),
                 state.dut->ApAddress,
-                cppMachine.dataRAM.pos(),
+                cppMachine.ap(),
                 state.dut->tx_data_bcd,
-                static_cast<uint8_t>(*(cppMachine.dataRAM))
+                cppMachine.txData(),
+                dpc::statusName(s)
                 );
-            if (compareStates(state, cppMachine))
+            if (compareStates(state, cppMachine, rtlState == S_HALT))
             {
                 return -1;
             }
         }
+        if (rtlState == S_HALT)
+            break;
         if ((state.dut->IRET % 10000) == 0)
-            printf("Time: %ldus, IRET: %d\n", state.CPU_CLK_UNHALTED, state.dut->IRET);
+            printf("Time: %lluus, IRET: %d\n",
+                   static_cast<unsigned long long>(state.CPU_CLK_UNHALTED), state.dut->IRET);
     }
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(stop - start);
-    printf("VDekatronPC Done. state.CPU_CLK_UNHALTED = %ld, state.IRET=%d\n", 
-                state.CPU_CLK_UNHALTED,
+    printf("VDekatronPC Done. state.CPU_CLK_UNHALTED = %llu, state.IRET=%d\n",
+                static_cast<unsigned long long>(state.CPU_CLK_UNHALTED),
                 state.dut->IRET);
     std::cout << "Time taken by function: "
          << duration.count() << " microseconds" << std::endl;
