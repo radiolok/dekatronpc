@@ -1,3 +1,6 @@
 [submodule "rtl/uart"]
 	path = rtl/uart
 	url = https://github.com/radiolok/SystemVerilog_UART.git
+[submodule "bfutils"]
+	path = bfutils
+	url = https://github.com/radiolok/bfutils.git

@@ -128,6 +128,6 @@ Some modules have output signals named identically to the module (e.g., `Impulse
 ## Future Work
 
 - **RAM test parameterization**: Default ROWS=30000 causes slow reset initialization. Override with smaller ROWS for faster simulation.
-- **CppMachine shared library**: Compile `dpcrun.cpp` as `libdpcrun.so` for Python ctypes scoreboard integration.
+- **Golden model shared library**: Compile `bfutils/dpcrun/dpcrun.cpp` (submodule, `dpc::Machine`) as `libdpcrun.so` for Python ctypes scoreboard integration.
 - **Coverage collection**: Enable Verilator `--coverage` and integrate `cocotb-coverage` functional coverage groups.
 - **DekatronModule standalone test**: Module instantiation needs `parameters.sv` and full Dekatron subsystem sources.

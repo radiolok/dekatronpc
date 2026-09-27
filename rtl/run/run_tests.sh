@@ -6,6 +6,8 @@ trap cleanup SIGINT SIGTERM ERR EXIT
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
 cd "${script_dir}"
 root_dir=${script_dir}/..
+# C++ golden model lives in the bfutils submodule
+dpcrun_dir=${root_dir}/../bfutils/dpcrun
 echo ${root_dir}
 
 png=0
@@ -85,10 +87,12 @@ veremul() {
 	bf_file=${2}
 
 	python3 ${root_dir}/run/generate_rom.py -f ${bf_file} -o ${root_dir}/firmware.hex --hex
+	# EN_EMULATOR drives IRET and LoopCount, which the golden-model compare needs
 	verilator -Wall ${COVERAGE} ${TRACE} --top DekatronPC --cc ${files} \
-	../libdpcrun.a  -DEMULATOR=1 -DIPMEMFILE\
+	-GEN_EMULATOR=1 \
+	../libdpcrun.a  -CFLAGS -I${dpcrun_dir} -DEMULATOR=1 -DIPMEMFILE\
 	--timescale 1us/1ns rules.vlt \
-	--exe ${root_dir}/tests/DekatronPC.sv/DekatronPC_tb.cpp  -LDFLAGS -lncurses
+	--exe ${root_dir}/tests/DekatronPC.sv/DekatronPC_tb.cpp
 
 	make -j`nproc` -C obj_dir -f VDekatronPC.mk VDekatronPC
 	./obj_dir/VDekatronPC -f ${bf_file}
@@ -122,9 +126,9 @@ if [ ${sim} -ne 0 ]; then
 	./emul DekatronPC ${root_dir}/programs/program.bfk ${root_dir}/tests/DekatronPC.sv/DekatronPC_tb_cfg_program.svh
 
 	bf_file=${root_dir}/programs/helloworld.bfk
-	g++ -o dpcrun -DEXEC ${root_dir}/tests/DekatronPC.sv/dpcrun.cpp
+	g++ -o dpcrun -DEXEC ${dpcrun_dir}/dpcrun.cpp
 	./dpcrun -f ${bf_file}
-	g++ -c ${root_dir}/tests/DekatronPC.sv/dpcrun.cpp
+	g++ -c ${dpcrun_dir}/dpcrun.cpp
 	ar rvs libdpcrun.a dpcrun.o
 
 	veremul ${root_dir}/DekatronPC/DPC.files ${bf_file}
