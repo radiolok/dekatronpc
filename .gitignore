@@ -31,3 +31,6 @@ rtl/load_firmware.hex
 rtl/run/*.json
 run/*.json
 *.dip~
+
+# структурные схемы для SCHEMES.md
+!img/schemes/*.svg

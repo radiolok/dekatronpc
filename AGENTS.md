@@ -1,12 +1,12 @@
 0. Working rules (from the project owner)
 Record every investigation as Markdown. Put new reports in doc/, or extend the existing report next to the RTL it covers (e.g. rtl/DekatronPC/emulator_inspection.md, rtl/DekatronPC/Dekatron/DekatronCounter.md). Don't leave results only in chat.
 Append to history.md every session. Add one bullet of 1–2 sentences saying what the session did. Example: - Ran DekatronCounter in Verilator, fixed the UNOPTFLAT loop, saved doc/DekatronCounter_sim_report.md.
-Keep this file and the TRS current. When the user brings new data (measurements, schematics, documents, tools) or a finding changes a fact, update the relevant section here. Record requirement status changes in rtl/DekatronPC/DekatronPC_TRS_v0_7.md (or its next version), and list any new report in the §6 repo map.
+Keep this file and the TRS current. When the user brings new data (measurements, schematics, documents, tools) or a finding changes a fact, update the relevant section here. Record requirement status changes in TRS.md (repo root; the version lives in its header and §1, not in the file name), and list any new report in the §6 repo map.
 Ask when unsure. If you are not sure about an idea, interpretation or direction, ask the user instead of deciding on your own. This especially applies to the OPEN-* items in §8.
 Take care of machine resources. The project may run on small nodes. Prefer light tools (single cocotb targets on Icarus, Python models, Verilator --lint-only) over heavy ones (full DekatronPC/Emulator Verilator builds, make regression, Quartus or Yosys synthesis). Ask the user before starting any long-running heavy job.
 
 1. Source of truth
-The requirements spec is rtl/DekatronPC/DekatronPC_TRS_v0_7.md (Russian, v0.7, draft, 2026-08-15). Every requirement has a stable ID (REQ-*, OPEN-*) and a status: TODO / In Progress / In Review / Assumption / Done / Rejected. Cite IDs in commits, reports and code comments. When work changes a requirement's status, update the TRS (new version tag like [v0.8]) rather than only this file. Sections 19 (checklist), 21 (Definition of Done) and 22 (next actions) are the live to-do list.
+The requirements spec is TRS.md in the repo root (Russian, v0.9, draft, 2026-10-04; earlier editions are in git history). Microarchitecture block diagrams are in SCHEMES.md (images in img/schemes/, generated, not hand-edited). Every requirement has a stable ID (REQ-*, OPEN-*) and a status: TODO / In Progress / In Review / Assumption / Done / Rejected. Cite IDs in commits, reports and code comments. When work changes a requirement's status, update the TRS (new version tag like [v0.10]) rather than only this file. Sections 19 (checklist), 21 (Definition of Done) and 22 (next actions) are the live to-do list.
 Names in the TRS don't always match the tree: the TRS says Ram.sv, the file is rtl/DekatronPC/RAM.sv. Check the tree before trusting a path.
 
 2. What the project is
@@ -17,7 +17,7 @@ A Brainfuck computer built from A110 dekatrons and vacuum tubes, plus an FPGA em
 3. Architecture facts (don't break these)
 - Four reversible BCD dekatron counters, Harvard architecture. Widths come from rtl/parameters.sv:
   - IP: 5 dekatrons, 0–99999 (100k instructions). The old PDF's 6 dekatrons / 1M is obsolete (REQ-ARCH-009).
-  - Loop: 3 dekatrons, 0–999. Overflow is a hardware error: it must abort the loop scan and halt the machine, or the machine hangs (REQ-CNT-007).
+  - Loop: 2 dekatrons, 0–99 by TRS v0.9 (REQ-CNT-002, chosen on the Brainfuck-100 set: max nesting during scan is 67). rtl/parameters.sv still says 3; changing it is pending. Overflow is a hardware error: it must abort the loop scan and halt the machine, or the machine hangs (REQ-CNT-007).
   - AP: 5 dekatrons physically, BF limit 0–29999. The choice between 29999 and 99999 stays a parameter until RTL freeze (OPEN-001).
   - Data: 3 dekatrons, 0–255, 12-bit BCD out.
 - Program memory: 100k × 4-bit opcodes. Data memory: 30k × 10-bit cells encoded {hundreds[1:0], tens[3:0], ones[3:0]}; on read, the top 2 hundreds bits come back as 2'b00.
@@ -53,7 +53,7 @@ Decode on the pair {insn_mode, insn}. All 32 combinations must be covered. Undef
 
 5. RTL design rules
 - Handshake: Valid/Ready everywhere above the dekatron, and ready must not depend on valid. APB was tried and rejected in v0.7. Don't reintroduce single-cycle pulse Request/Ready.
-- Dekatron physics (REQ-DEK-012/015/016): the tube has no valid/ready/busy. It reacts to pulses of a given length regardless of its state. A discharge can't rest on a guide cathode: it falls back from guide A and forward from guide B. A reading is valid only on a main cathode with no stimulus (OneHotValid). All discipline lives in DekatronCounter.
+- Dekatron physics (REQ-DEK-012/015/016): the tube has no valid/ready/busy. It reacts to pulses of a given length regardless of its state. A discharge can't rest on a guide cathode: it falls back from guide A and forward from guide B. A reading is valid only on a main cathode with no stimulus (Valid: OR10_X7 tube cell under SYNTH, |MainOneHot in simulation; OneHotValid is gone). All discipline lives in DekatronCounter.
 - Dekatron stack under rtl/DekatronPC/Dekatron/:
   - DekatronTubeV2: a 30-bit one-hot ring model, not an FSM.
   - DekatronModule wraps it with gate-level codecs. Codecs are placed only for WRITE/READ, and sub-blocks stay separate instances so P&R can swap them for tube cells.
@@ -85,7 +85,9 @@ Decode on the pair {insn_mode, insn}. All 32 combinations must be covered. Undef
 - rtl/quartus/: Quartus project.
 - rtl/run/: run_tests.sh, synthesis and emulator scripts.
 - tb/: cocotb + pyuvm testbench, see tb/README.md.
+- bfutils/programs/bf100/: the Brainfuck-100 set (100 real programs by category, inputs, metrics, sources and licenses). Any counter width change is checked against it (REQ-ARCH-011).
 - bfutils/: git submodule (github.com/radiolok/bfutils), the C++ model of BrainfuckPC, built with CMake: bfpp compiler, bfrun emulator, and dpcrun, the DekatronPC golden model (REQ-GM-*). bfutils/dpcrun/dpcrun.h + dpcrun.cpp (dpc::Machine, full ISA; mirrors the RTL as-is by owner decision) is the only copy; unit tests in bfutils/dpcrun/test run in bfutils' own GitHub Actions (cmake + ctest). rtl/run/run_tests.sh builds it into libdpcrun.a and links it into the Verilator testbench rtl/tests/DekatronPC.sv/DekatronPC_tb.cpp for step-by-step comparison. Change the model in the submodule, not in this repo. After cloning, run git submodule update --init.
+- TRS.md, SCHEMES.md, README.md: requirements, block diagrams, project overview (repo root).
 - doc/: reference literature (PDF/djvu) and new investigation reports.
 - Reports: rtl/DekatronPC/emulator_inspection.md (Emulator layer), rtl/DekatronPC/Dekatron/DekatronCounter.md (counter design), doc/dpcrun_golden_model.md (golden model semantics, RTL-vs-TRS divergences, RTL findings).
 - Old blocks still in the tree and due for removal (TRS 19.4): Dekatron.sv, DekatronPulseAllow, DekatronCarrySignal, RsLatch uses, InsnDecoder, BcdToBinEnc in the memory path. Several tb/Makefile targets still build against them.
@@ -93,7 +95,7 @@ Decode on the pair {insn_mode, insn}. All 32 combinations must be covered. Undef
 7. Build and test (CI: .github/workflows/docker-image.yml, all inside the Docker image from ./Dockerfile)
 - cocotb regression: cd tb && make regression (or a single target: make test_compare SIM=icarus). Module tests run on Icarus; DPC/Emulator integration runs on Verilator.
 - RTL simulation: cd rtl/run && ./run_tests.sh -t
-- Synthesis: cd rtl/run && ./run_tests.sh -s
+- Synthesis: cd rtl/run && ./run_tests.sh -s (Yosys with -define SYNTH=1 and rtl/vtube/vtube_cells.lib; Ram is stubbed under SYNTH because the recursive RamGroup loops hierarchy -check, so the tube count excludes memory)
 - Resource note (§0): full-design Verilator builds and Quartus runs are heavy. Ask before starting them on small nodes and prefer single tb targets.
 
 8. Open decisions (ask the user; don't decide these yourself)
@@ -114,3 +116,4 @@ Decode on the pair {insn_mode, insn}. All 32 combinations must be covered. Undef
 3. Flat memory for the FPGA build (OPEN-015).
 4. Remove the old modules so there's one datapath.
 5. Use the C++ golden model (bfutils/dpcrun, full ISA since TRS v0.8) for step-by-step comparison with the RTL: first fix the COUT defect (OPEN-017 reopened, MachineCtrl never issues AP_COUT), then build DekatronPC_tb.cpp and run it with -s.
+6. Bring the RTL in line with TRS v0.9: LOOP_DEKATRON_NUM = 2, reset lock in ApLine on any address step (also when not dirty, after STORE), cout_pending in MachineCtrl. The ApLine and MachineCtrl fixes are prepared but not merged; ask the owner before applying.
