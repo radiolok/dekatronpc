@@ -89,7 +89,7 @@ veremul() {
 	python3 ${root_dir}/run/generate_rom.py -f ${bf_file} -o ${root_dir}/firmware.hex --hex
 	# EN_EMULATOR drives IRET and LoopCount, which the golden-model compare needs
 	verilator -Wall ${COVERAGE} ${TRACE} --top DekatronPC --cc ${files} \
-	-GEN_EMULATOR=1 \
+	"-GEN_EMULATOR=1'b1" \
 	../libdpcrun.a  -CFLAGS -I${dpcrun_dir} -DEMULATOR=1 -DIPMEMFILE\
 	--timescale 1us/1ns rules.vlt \
 	--exe ${root_dir}/tests/DekatronPC.sv/DekatronPC_tb.cpp
