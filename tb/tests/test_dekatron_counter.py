@@ -39,6 +39,9 @@ async def start_clocks_and_reset(dut):
     dut.set.value = 0
     dut.set_zero.value = 0
     getattr(dut, "in").value = 0
+    # Physical reset lines (held by the external time relay): idle
+    dut.soft_rst.value = 0
+    dut.hard_rst.value = 0
 
     for _ in range(100):
         await RisingEdge(dut.hs_clk)

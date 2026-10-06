@@ -90,7 +90,7 @@ test_up_counter:       sim
 # --- Phase 2: Dekatron Subsystem ---
 test_bcd_to_bin:       MODULE = tests.test_dekatron_modules
 test_bcd_to_bin:       TOPLEVEL = BcdToBin
-test_bcd_to_bin:       VERILOG_SOURCES = $(DEKATRON_PATH)/BcdToBin.v
+test_bcd_to_bin:       VERILOG_SOURCES = $(DEKATRON_PATH)/BcdToBin.sv
 test_bcd_to_bin:       sim
 
 test_bin_to_bcd:       MODULE = tests.test_dekatron_modules
@@ -125,7 +125,7 @@ test_dekatron_module:  sim
 
 test_dek_counter:      MODULE = tests.test_dekatron_counter
 test_dek_counter:      TOPLEVEL = DekatronCounter
-test_dek_counter:      VERILOG_SOURCES = $(VHDL_ROOT)/parameters.sv $(LOGIC_PATH)/Compare.sv $(LOGIC_PATH)/Impulse.sv $(LOGIC_PATH)/OneShot.sv $(DEKATRON_PATH)/BcdToBin.v $(DEKATRON_PATH)/BinToBcd.v $(DEKATRON_PATH)/Dekatron.sv $(DEKATRON_PATH)/DekatronPulseSender.sv $(DEKATRON_PATH)/DekatronCarrySignal.sv $(LOGIC_PATH)/RsLatch.sv $(DEKATRON_PATH)/DekatronWriteAmp.sv $(DEKATRON_PATH)/DekatronModule.sv $(DEKATRON_PATH)/DekatronCounter.sv $(LOGIC_PATH)/ClockDivider.sv $(FUNC_PATH)/BcdToBinEnc.sv $(CURDIR)/tests/DekatronCounter_vcd_dump.sv
+test_dek_counter:      VERILOG_SOURCES = $(VHDL_ROOT)/parameters.sv $(LOGIC_PATH)/OneShot.sv $(DEKATRON_PATH)/DekatronPhaseGen.sv $(DEKATRON_PATH)/DekatronPulseSender.sv $(DEKATRON_PATH)/DekatronTubeV2.sv $(DEKATRON_PATH)/BcdToBinEn.sv $(DEKATRON_PATH)/BinToBcd.v $(DEKATRON_PATH)/DekatronModule.sv $(DEKATRON_PATH)/DekatronCounter.sv $(CURDIR)/tests/DekatronCounter_vcd_dump.sv
 test_dek_counter:      COMPILE_ARGS = -f sim_build/cmds.f -s DekatronCounter_vcd_dump
 test_dek_counter:      sim
 
@@ -280,6 +280,7 @@ regression:
 	@python3 -c "open('zeros.txt','w').write('\n'.join(['00']*30000))"
 	@python3 -c "open('$(VHDL_ROOT)/zeros.txt','w').write('\n'.join(['00']*30000))"
 	@TMPFILE=$$(mktemp /tmp/dek_regress.XXXXXX); \
+	LOGDIR=$$(mktemp -d /tmp/dek_logs.XXXXXX); \
 	MODULES="Logic:compare impulse oneshot rs_latch bcd_counter up_counter clock_divider \
 	         Dekatron:bcd_to_bin bin_to_bcd dek_carry pulse_sender dekatron_unit dek_counter \
 	         Memory:ram ip_memory rom \
@@ -292,12 +293,14 @@ regression:
 	    for t in $$tests; do \
 	        rm -rf sim_build; \
 	        printf "  %-28s " "$$t:"; \
-	        if make test_$$t SIM=icarus >/dev/null 2>&1; then \
+	        if make test_$$t SIM=icarus >$$LOGDIR/$$t.log 2>&1; then \
 	            echo "PASS"; \
 	            echo "$$grp|$$t|PASS" >> $$TMPFILE; \
 	        else \
 	            echo "FAIL"; \
 	            echo "$$grp|$$t|FAIL" >> $$TMPFILE; \
+	            tail -n 30 $$LOGDIR/$$t.log | sed 's/^/      | /'; \
+	            echo "::error title=UVM $$t::$$(grep -iE 'error|fail|assert|traceback|not found|no such' $$LOGDIR/$$t.log | tail -n 12 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $$0}')"; \
 	        fi; \
 	    done; \
 	done; \
