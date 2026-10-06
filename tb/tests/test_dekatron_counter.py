@@ -10,8 +10,8 @@ DekatronCounter: multi-digit BCD counter with a Valid/Ready handshake:
 - Ready is independent of Valid (asserted in IDLE)
 - INC/DEC: single-cycle operations (Ready stays high, 1 op/cycle)
 - SET/SET_ZERO/SET_TOP: multi-cycle operations (Ready drops ~100 hsClk cycles)
-- Operands (Dec/Set/SetZero/In) are held by the master until ready returns
-  (DekatronCounter.sv header: operands are not latched)
+- Operands are not latched (saves tubes, TRS REQ-CNT-V2-004): dec/set/set_zero
+  are needed only until the handshake, in must stay until ready returns
 - hsClk/Clk dual clock, carry chain across digits
 """
 
@@ -274,34 +274,6 @@ async def test_dcounter_multi_digit_carry(dut):
     log.info(f"After 10 increments: {out_val:#x}, low={low}, high={high}")
     assert low == 0, f"Low digit should be 0 after 10 increments, got {low}"
     assert high == 1, f"High digit should be 1 after 10 increments, got {high}"
-
-
-@cocotb.test(skip=True)
-async def test_dcounter_in_latching(dut):
-    """in latched on the accept edge.
-
-    Skipped: the current DekatronCounter does not latch its operands; the
-    master holds in until ready returns (see the module header). Enable
-    again if operand latching is brought back.
-    """
-    await start_clocks_and_reset(dut)
-
-    # Start a set of 0x123.
-    dut.set.value = 1
-    getattr(dut, "in").value = 0x123
-    await wait_ready(dut)
-    dut.valid.value = 1
-    await RisingEdge(dut.clk)   # accept: in should be latched here
-    dut.valid.value = 0
-
-    # Immediately change in before the (slow) write completes.
-    getattr(dut, "in").value = 0x999
-    await wait_ready(dut)
-
-    out_val = int(dut.out.value)
-    log.info(f"After set with in changed mid-write: out={out_val:#x}")
-    assert out_val == 0x123, \
-        f"set should latch 0x123 on accept, got {out_val:#x}"
 
 
 @cocotb.test()
