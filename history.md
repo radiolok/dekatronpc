@@ -7,3 +7,4 @@
 - Fixed the synt CI job: run_tests.sh -s passed InsnDecoder.json to dpc_stat.py, but the script synthesises MachineCtrl now, so the tube count read a missing file.
 - Fixed the sim CI job: veremul passed -GEN_EMULATOR=1 (a 32-bit constant) to a bit parameter, which Verilator -Wall rejects as WIDTHTRUNC; now 1'b1.
 - UVM regression: fixed test_bcd_to_bin (BcdToBin.sv) and the test_dek_counter source list for the new dekatron stack (drive soft_rst/hard_rst); failed targets now print a log tail and a GitHub ::error annotation.
+- Rewrote the pulse_sender, ram and ip_memory cocotb tests for the current Valid/Ready interfaces (they still drove the pre-v0.6 ports) and added Impulse.sv to the dek_counter build.

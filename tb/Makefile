@@ -105,7 +105,7 @@ test_dek_carry:        sim
 
 test_pulse_sender:     MODULE = tests.test_dekatron_pulse
 test_pulse_sender:     TOPLEVEL = DekatronPulseSender
-test_pulse_sender:     VERILOG_SOURCES = $(LOGIC_PATH)/Impulse.sv $(LOGIC_PATH)/OneShot.sv $(DEKATRON_PATH)/DekatronPulseSender.sv
+test_pulse_sender:     VERILOG_SOURCES = $(LOGIC_PATH)/Impulse.sv $(LOGIC_PATH)/OneShot.sv $(DEKATRON_PATH)/DekatronPhaseGen.sv $(DEKATRON_PATH)/DekatronPulseSender.sv
 test_pulse_sender:     sim
 
 test_write_amp:        MODULE = tests.test_dekatron_modules
@@ -125,19 +125,19 @@ test_dekatron_module:  sim
 
 test_dek_counter:      MODULE = tests.test_dekatron_counter
 test_dek_counter:      TOPLEVEL = DekatronCounter
-test_dek_counter:      VERILOG_SOURCES = $(VHDL_ROOT)/parameters.sv $(LOGIC_PATH)/OneShot.sv $(DEKATRON_PATH)/DekatronPhaseGen.sv $(DEKATRON_PATH)/DekatronPulseSender.sv $(DEKATRON_PATH)/DekatronTubeV2.sv $(DEKATRON_PATH)/BcdToBinEn.sv $(DEKATRON_PATH)/BinToBcd.v $(DEKATRON_PATH)/DekatronModule.sv $(DEKATRON_PATH)/DekatronCounter.sv $(CURDIR)/tests/DekatronCounter_vcd_dump.sv
+test_dek_counter:      VERILOG_SOURCES = $(VHDL_ROOT)/parameters.sv $(LOGIC_PATH)/Impulse.sv $(LOGIC_PATH)/OneShot.sv $(DEKATRON_PATH)/DekatronPhaseGen.sv $(DEKATRON_PATH)/DekatronPulseSender.sv $(DEKATRON_PATH)/DekatronTubeV2.sv $(DEKATRON_PATH)/BcdToBinEn.sv $(DEKATRON_PATH)/BinToBcd.v $(DEKATRON_PATH)/DekatronModule.sv $(DEKATRON_PATH)/DekatronCounter.sv $(CURDIR)/tests/DekatronCounter_vcd_dump.sv
 test_dek_counter:      COMPILE_ARGS = -f sim_build/cmds.f -s DekatronCounter_vcd_dump
 test_dek_counter:      sim
 
 # --- Phase 3: Memory Subsystem ---
 test_ram:              MODULE = tests.test_ram
-test_ram:              TOPLEVEL = RAM
-test_ram:              VERILOG_SOURCES = $(DPC_PATH)/RAM.sv $(VHDL_ROOT)/parameters.sv
+test_ram:              TOPLEVEL = Ram
+test_ram:              VERILOG_SOURCES = $(VHDL_ROOT)/parameters.sv $(DPC_PATH)/RAM.sv
 test_ram:              sim
 
 test_ip_memory:        MODULE = tests.test_ip_memory
 test_ip_memory:        TOPLEVEL = IpMemory
-test_ip_memory:        VERILOG_SOURCES = $(VHDL_ROOT)/parameters.sv $(LOGIC_PATH)/Impulse.sv $(LOGIC_PATH)/OneShot.sv $(FUNC_PATH)/BcdToBinEnc.sv $(VHDL_ROOT)/programs/bootloader/bootloader.sv $(DPC_PATH)/IpMemory.sv
+test_ip_memory:        VERILOG_SOURCES = $(VHDL_ROOT)/parameters.sv $(DPC_PATH)/RAM.sv $(VHDL_ROOT)/programs/bootloader/bootloader.sv $(DPC_PATH)/IpMemory.sv
 test_ip_memory:        sim
 
 test_rom:              MODULE = tests.test_rom

@@ -1,272 +1,140 @@
 """
-Tests for DekatronPulseSender — generates properly timed pulse sequences
-for driving dekatron stepping.
+Tests for DekatronPulseSender — the guide-cathode pulse former.
 
-Timing (on hsClk, 100ns period = 10 MHz):
-  OneShot delays: dir=9, pA=4, OS_2=3, OS_3=8
-  pB = OS_3 & ~OS_2
-  PulseRight = Dec ? pA : pB
-  PulseLeft  = Dec ? pB : pA
-  Dec is triggered by PulseR input (via OneShot dir with DELAY=9)
+The module is pure combinational logic on top of DekatronPhaseGen
+(EXT_PHASES = 0, the default: own phase generator). A count clock cycle
+is split into thirds:
+
+    first third   Phase1
+    second third  Phase2
+    last third    no pulse — the discharge falls onto the next cathode
+
+    StepF (forward):  GuideA = Phase1, GuideB = Phase2
+    StepR (backward): GuideA = Phase2, GuideB = Phase1
+
+Ports: hsClk, Clk, Rst_n, StepF, StepR, Phase1_i, Phase2_i -> GuideA, GuideB.
 """
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import Timer, RisingEdge, FallingEdge
+from cocotb.triggers import Timer, RisingEdge, ReadOnly
 
-import logging
-log = logging.getLogger(__name__)
+HS_NS = 100        # hsClk period (10 MHz)
+CLK_NS = 1000      # Clk period (1 MHz)
+HS_PER_CLK = CLK_NS // HS_NS
 
-HS_CLK_PERIOD = 100  # ns
+
+async def clk_gen(dut):
+    """Clk shifted by half an hsClk period so its edges never race hsClk."""
+    dut.Clk.value = 0
+    await Timer(HS_NS // 2, unit="ns")
+    while True:
+        dut.Clk.value = 1
+        await Timer(CLK_NS // 2, unit="ns")
+        dut.Clk.value = 0
+        await Timer(CLK_NS // 2, unit="ns")
 
 
-@cocotb.test()
-async def test_pulse_sender_reset(dut):
-    """DekatronPulseSender: after reset, Pulses = 0."""
-    clock = Clock(dut.hsClk, HS_CLK_PERIOD, unit="ns")
-    cocotb.start_soon(clock.start())
-
-    dut.PulseF.value = 0
-    dut.PulseR.value = 0
+async def setup(dut):
+    cocotb.start_soon(Clock(dut.hsClk, HS_NS, unit="ns").start())
+    cocotb.start_soon(clk_gen(dut))
     dut.Rst_n.value = 0
+    dut.StepF.value = 0
+    dut.StepR.value = 0
+    dut.Phase1_i.value = 0
+    dut.Phase2_i.value = 0
     for _ in range(5):
         await RisingEdge(dut.hsClk)
     dut.Rst_n.value = 1
-    for _ in range(3):
-        await RisingEdge(dut.hsClk)
+    # let the phase generator run a couple of count cycles
+    for _ in range(2):
+        await RisingEdge(dut.Clk)
 
-    assert int(dut.Pulses.value) == 0, "Pulses should be 0 after reset"
+
+async def sample_period(dut):
+    """
+    Sample GuideA/GuideB twice per hsClk period over one Clk period,
+    starting right after a Clk rising edge. Returns two lists.
+    """
+    await RisingEdge(dut.Clk)
+    a, b = [], []
+    # samples at 1/4, 3/4, 5/4 ... hsClk after the Clk edge: never on an edge
+    await Timer(HS_NS // 4, unit="ns")
+    for i in range(2 * HS_PER_CLK):
+        if i:
+            await Timer(HS_NS // 2, unit="ns")
+        await ReadOnly()
+        a.append(int(dut.GuideA.value))
+        b.append(int(dut.GuideB.value))
+    return a, b
 
 
-@cocotb.test()
-async def test_pulse_forward(dut):
-    """DekatronPulseSender: PulseF → both Pulses fire, Pulses[1]=pA first, Pulses[0]=pB later."""
-    clock = Clock(dut.hsClk, HS_CLK_PERIOD, unit="ns")
-    cocotb.start_soon(clock.start())
+def first_high(seq):
+    return next((i for i, v in enumerate(seq) if v), None)
 
-    dut.PulseF.value = 0
-    dut.PulseR.value = 0
-    dut.Rst_n.value = 0
-    for _ in range(5):
-        await RisingEdge(dut.hsClk)
-    dut.Rst_n.value = 1
-    for _ in range(3):
-        await RisingEdge(dut.hsClk)
 
-    # Trigger forward pulse
-    dut.PulseF.value = 1
-    await RisingEdge(dut.hsClk)
-    dut.PulseF.value = 0
-
-    # On PulseF: Dec=0, Pulses = {pB, pA}
-    # pA (OneShot DELAY=4) fires first, pB (OS_3 & ~OS_2) fires later
-    pulse0_seen = False
-    pulse1_seen = False
-    pulse1_before_pulse0 = False
-    saw_pulse1 = False
-    for _ in range(30):
-        v = int(dut.Pulses.value)
-        if v & 2 and not saw_pulse1:
-            pulse1_before_pulse0 = True
-            saw_pulse1 = True
-        if v & 1 and saw_pulse1:
-            pass  # both fired
-        if v & 1:
-            pulse0_seen = True
-        if v & 2:
-            pulse1_seen = True
-        await RisingEdge(dut.hsClk)
-
-    assert pulse0_seen, "Pulses[0] should pulse on PulseF (pB)"
-    assert pulse1_seen, "Pulses[1] should pulse on PulseF (pA)"
+async def set_step(dut, f, r):
+    # change the request away from the Clk edge (mid count cycle is not
+    # allowed either, so we change it right after a Clk falling edge and
+    # discard the following period)
+    await RisingEdge(dut.Clk)
+    dut.StepF.value = f
+    dut.StepR.value = r
+    await RisingEdge(dut.Clk)
 
 
 @cocotb.test()
-async def test_pulse_reverse(dut):
-    """DekatronPulseSender: PulseR → both Pulses fire, Pulses[0]=pA first, Pulses[1]=pB later."""
-    clock = Clock(dut.hsClk, HS_CLK_PERIOD, unit="ns")
-    cocotb.start_soon(clock.start())
-
-    dut.PulseF.value = 0
-    dut.PulseR.value = 0
-    dut.Rst_n.value = 0
-    for _ in range(5):
-        await RisingEdge(dut.hsClk)
-    dut.Rst_n.value = 1
+async def test_idle_no_pulses(dut):
+    """No step request: both guide lines stay low."""
+    await setup(dut)
     for _ in range(3):
-        await RisingEdge(dut.hsClk)
+        a, b = await sample_period(dut)
+        assert not any(a), f"GuideA pulsed without a step request: {a}"
+        assert not any(b), f"GuideB pulsed without a step request: {b}"
 
-    # Trigger reverse pulse (sets Dec=1 via OneShot dir)
-    dut.PulseR.value = 1
-    await RisingEdge(dut.hsClk)
-    dut.PulseR.value = 0
 
-    # On PulseR: Dec=1, Pulses = {pA, pB}
-    pulse0_seen = False
-    pulse1_seen = False
-    for _ in range(30):
-        if int(dut.Pulses.value) & 1:
-            pulse0_seen = True
-        if int(dut.Pulses.value) & 2:
-            pulse1_seen = True
-        await RisingEdge(dut.hsClk)
-
-    assert pulse0_seen, "Pulses[0] should pulse on PulseR (pA)"
-    assert pulse1_seen, "Pulses[1] should pulse on PulseR (pB)"
+async def check_step(dut, forward):
+    lead, lag = ("A", "B") if forward else ("B", "A")
+    for _ in range(3):
+        a, b = await sample_period(dut)
+        seq = {"A": a, "B": b}
+        assert any(a) and any(b), f"both guides must pulse: A={a} B={b}"
+        assert not any(x and y for x, y in zip(a, b)), \
+            f"guides overlap: A={a} B={b}"
+        assert first_high(seq[lead]) < first_high(seq[lag]), \
+            f"Guide{lead} must come before Guide{lag}: A={a} B={b}"
+        # last third: discharge falls onto the main cathode, no pulses
+        tail = 2 * HS_PER_CLK // 3 - 1
+        assert not any(a[-tail:]) and not any(b[-tail:]), \
+            f"guides must be low in the last third: A={a} B={b}"
+        # Phase1 is shorter than Phase2 (3 vs 4 hsClk by default)
+        assert sum(seq[lead]) < sum(seq[lag]), \
+            f"first pulse must be shorter than the second: A={a} B={b}"
 
 
 @cocotb.test()
-async def test_pulse_returns_zero(dut):
-    """DekatronPulseSender: after pulse sequence, Pulses returns to 0."""
-    clock = Clock(dut.hsClk, HS_CLK_PERIOD, unit="ns")
-    cocotb.start_soon(clock.start())
-
-    dut.PulseF.value = 0
-    dut.PulseR.value = 0
-    dut.Rst_n.value = 0
-    for _ in range(5):
-        await RisingEdge(dut.hsClk)
-    dut.Rst_n.value = 1
-    for _ in range(3):
-        await RisingEdge(dut.hsClk)
-
-    # Trigger forward
-    dut.PulseF.value = 1
-    await RisingEdge(dut.hsClk)
-    dut.PulseF.value = 0
-
-    # Wait long enough for entire pulse sequence to finish
-    # Worst case: dir delay=9 + pA/pB sequence max delay=8 = ~17 cycles
-    # Wait extra margin
-    for _ in range(40):
-        await RisingEdge(dut.hsClk)
-
-    assert int(dut.Pulses.value) == 0, (
-        f"Pulses should return to 0 after pulse sequence, got {int(dut.Pulses.value)}"
-    )
-
-    # Trigger reverse
-    dut.PulseR.value = 1
-    await RisingEdge(dut.hsClk)
-    dut.PulseR.value = 0
-
-    for _ in range(40):
-        await RisingEdge(dut.hsClk)
-
-    assert int(dut.Pulses.value) == 0, (
-        f"Pulses should return to 0 after reverse pulse sequence, got {int(dut.Pulses.value)}"
-    )
+async def test_step_forward(dut):
+    """StepF: GuideA (Phase1) then GuideB (Phase2), then a quiet third."""
+    await setup(dut)
+    await set_step(dut, 1, 0)
+    await check_step(dut, forward=True)
 
 
 @cocotb.test()
-async def test_pulse_direction_behavior(dut):
-    """DekatronPulseSender: observe timing and direction-specific outputs."""
-    clock = Clock(dut.hsClk, HS_CLK_PERIOD, unit="ns")
-    cocotb.start_soon(clock.start())
-
-    dut.PulseF.value = 0
-    dut.PulseR.value = 0
-    dut.Rst_n.value = 0
-    for _ in range(5):
-        await RisingEdge(dut.hsClk)
-    dut.Rst_n.value = 1
-    for _ in range(3):
-        await RisingEdge(dut.hsClk)
-
-    # Forward pulse
-    dut.PulseF.value = 1
-    await RisingEdge(dut.hsClk)
-    dut.PulseF.value = 0
-
-    # Record pulse timing
-    forward_trace = []
-    for i in range(25):
-        forward_trace.append(int(dut.Pulses.value))
-        await RisingEdge(dut.hsClk)
-
-    pulses0_cycles = sum(1 for v in forward_trace if v & 1)
-    pulses1_cycles = sum(1 for v in forward_trace if v & 2)
-    log.info(f"Forward: Pulses[0] active {pulses0_cycles} cycles, "
-             f"Pulses[1] active {pulses1_cycles} cycles")
-
-    # Wait for quiet
-    for _ in range(20):
-        await RisingEdge(dut.hsClk)
-
-    # Reverse pulse
-    dut.PulseR.value = 1
-    await RisingEdge(dut.hsClk)
-    dut.PulseR.value = 0
-
-    reverse_trace = []
-    for i in range(25):
-        reverse_trace.append(int(dut.Pulses.value))
-        await RisingEdge(dut.hsClk)
-
-    pulses0_cycles_r = sum(1 for v in reverse_trace if v & 1)
-    pulses1_cycles_r = sum(1 for v in reverse_trace if v & 2)
-    log.info(f"Reverse: Pulses[0] active {pulses0_cycles_r} cycles, "
-             f"Pulses[1] active {pulses1_cycles_r} cycles")
-
-    # Verify both directions produce some pulse activity
-    assert pulses0_cycles > 0 or pulses1_cycles > 0, "Forward should produce pulses"
-    assert pulses0_cycles_r > 0 or pulses1_cycles_r > 0, "Reverse should produce pulses"
+async def test_step_backward(dut):
+    """StepR: GuideB (Phase1) then GuideA (Phase2), then a quiet third."""
+    await setup(dut)
+    await set_step(dut, 0, 1)
+    await check_step(dut, forward=False)
 
 
 @cocotb.test()
-async def test_pulse_no_spurious(dut):
-    """DekatronPulseSender: no pulses without trigger."""
-    clock = Clock(dut.hsClk, HS_CLK_PERIOD, unit="ns")
-    cocotb.start_soon(clock.start())
-
-    dut.PulseF.value = 0
-    dut.PulseR.value = 0
-    dut.Rst_n.value = 0
-    for _ in range(5):
-        await RisingEdge(dut.hsClk)
-    dut.Rst_n.value = 1
-    for _ in range(3):
-        await RisingEdge(dut.hsClk)
-
-    # Without any trigger, monitor for 50 cycles
-    spurious = False
-    for _ in range(50):
-        if int(dut.Pulses.value) != 0:
-            spurious = True
-        await RisingEdge(dut.hsClk)
-
-    assert not spurious, "Pulses should remain 0 with no trigger"
-
-
-@cocotb.test()
-async def test_pulse_reset_during_sequence(dut):
-    """DekatronPulseSender: reset during pulse sequence clears outputs."""
-    clock = Clock(dut.hsClk, HS_CLK_PERIOD, unit="ns")
-    cocotb.start_soon(clock.start())
-
-    dut.PulseF.value = 0
-    dut.PulseR.value = 0
-    dut.Rst_n.value = 0
-    for _ in range(5):
-        await RisingEdge(dut.hsClk)
-    dut.Rst_n.value = 1
-    for _ in range(3):
-        await RisingEdge(dut.hsClk)
-
-    # Trigger forward
-    dut.PulseF.value = 1
-    await RisingEdge(dut.hsClk)
-    dut.PulseF.value = 0
-
-    # Let partial pulse develop
-    for _ in range(3):
-        await RisingEdge(dut.hsClk)
-
-    # Assert reset
-    dut.Rst_n.value = 0
-    for _ in range(3):
-        await RisingEdge(dut.hsClk)
-
-    assert int(dut.Pulses.value) == 0, (
-        f"Pulses should be 0 after reset asserted during sequence, got {int(dut.Pulses.value)}"
-    )
+async def test_step_release(dut):
+    """Dropping the request stops the pulses from the next count cycle."""
+    await setup(dut)
+    await set_step(dut, 1, 0)
+    a, b = await sample_period(dut)
+    assert any(a) and any(b)
+    await set_step(dut, 0, 0)
+    a, b = await sample_period(dut)
+    assert not any(a) and not any(b), f"pulses after release: A={a} B={b}"
