@@ -90,11 +90,11 @@ Decode on the pair {insn_mode, insn}. All 32 combinations must be covered. Undef
 - TRS.md, SCHEMES.md, README.md: requirements, block diagrams, project overview (repo root).
 - tools/schemes/: generator of SCHEMES.md and img/schemes/*.svg (pure Python, see its README).
 - doc/: reference literature (PDF/djvu) and new investigation reports.
-- Reports: rtl/DekatronPC/emulator_inspection.md (Emulator layer), rtl/DekatronPC/Dekatron/DekatronCounter.md (counter design), doc/dpcrun_golden_model.md (golden model semantics, RTL-vs-TRS divergences, RTL findings), doc/dekatron_valid_removal.md (Valid removed, ready from durations, 3/3/4 phase split), doc/dekatron_counter_flop_reduction.md (plan to drop redundant DekatronCounter flops).
+- Reports: rtl/DekatronPC/emulator_inspection.md (Emulator layer), rtl/DekatronPC/Dekatron/DekatronCounter.md (counter design), doc/dpcrun_golden_model.md (golden model semantics, RTL-vs-TRS divergences, RTL findings), doc/dekatron_valid_removal.md (Valid removed, ready from durations, 3/3/4 phase split), doc/dekatron_counter_flop_reduction.md (plan to drop redundant DekatronCounter flops), doc/uvm_tb_check.md (cocotb regression check: setup, tests that passed without checking, coverage gaps).
 - Old blocks still in the tree and due for removal (TRS 19.4): Dekatron.sv, DekatronPulseAllow, DekatronCarrySignal, RsLatch uses, InsnDecoder, BcdToBinEnc in the memory path. Several tb/Makefile targets still build against them.
 
 7. Build and test (CI: .github/workflows/docker-image.yml, all inside the Docker image from ./Dockerfile)
-- cocotb regression: cd tb && make regression (or a single target: make test_compare SIM=icarus). Module tests run on Icarus; DPC/Emulator integration runs on Verilator.
+- cocotb regression: cd tb && make regression (or a single target: make test_compare SIM=icarus). Module tests run on Icarus; DPC/Emulator integration runs on Verilator. Needs cocotb>=2.0 + pyuvm + pytest (local venv: ~/.venvs/dekatronpc). Never install cocotb-coverage next to it: it pins cocotb<2.
 - RTL simulation: cd rtl/run && ./run_tests.sh -t
 - Synthesis: cd rtl/run && ./run_tests.sh -s (Yosys with -define SYNTH=1 and rtl/vtube/vtube_cells.lib; Ram is stubbed under SYNTH because the recursive RamGroup loops hierarchy -check, so the tube count excludes memory)
 - Resource note (§0): full-design Verilator builds and Quartus runs are heavy. Ask before starting them on small nodes and prefer single tb targets.

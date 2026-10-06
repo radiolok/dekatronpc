@@ -13,13 +13,16 @@ make regression                     # full suite (~40 targets)
 
 ## Requirements
 
-- Python 3.8+ with `cocotb>=2.0`, `pyuvm`, `cocotb-coverage`, `pytest`
+- Python 3.8+ with `cocotb>=2.0`, `pyuvm`, `pytest`
 - Icarus Verilog (iverilog) for module-level tests
 - Verilator for full DPC/Emulator integration tests
 
 ```bash
-pip install cocotb pyuvm cocotb-coverage pytest
+pip install "cocotb>=2.0" pyuvm pytest
 ```
+
+Don't install `cocotb-coverage` alongside: it pins `cocotb<2`, and pip then downgrades cocotb to 1.9,
+which breaks the tests (`unit=` keyword). `conftest.py` imports it optionally.
 
 ## Directory Structure
 
@@ -117,7 +120,7 @@ make test_dpc SIM=verilator EXTRA_ARGS="--timing -Wno-fatal -DEMULATOR=1"
 
 ## Known RTL Bugs Captured by Tests
 
-1. **OneShot DELAY=1 counter bug** (`rtl/Logic/OneShot.sv`): `WIDTH=$clog2(1)=1` produces 2-bit counter rolling after 4 ticks instead of 1. Test `test_oneshot_basic` documents this.
+1. ~~OneShot DELAY=1 counter bug~~: not a bug. The old test never released `En`. With a one-cycle `En`, the pulse is exactly DELAY cycles, and `test_oneshot_basic` asserts it (doc/uvm_tb_check.md).
 
 2. **Sequencer race condition** (`rtl/Emulator/Sequencer.sv`): Dual `negedge` blocks create non-deterministic behavior. Tests use ±1 cycle tolerance sampling.
 

@@ -287,10 +287,10 @@ regression:
 	         DPC:loop_detect insn_decoder \
 	         Emulator:sequencer ms6205 keyboard io_register uart uart_rx uart_loopback key_symbol seg7 \
 	         Functions:ascii_bcd bcd_ascii bcd_bin bin_hex opcode_to_sym sym_to_opcode in12"; \
-	for group in $$MODULES; do \
-	    grp=$${group%%:*}; \
-	    tests=$${group##*:}; \
-	    for t in $$tests; do \
+	grp=""; \
+	for tok in $$MODULES; do \
+	    case $$tok in *:*) grp=$${tok%%:*}; tok=$${tok##*:};; esac; \
+	    for t in $$tok; do \
 	        rm -rf sim_build; \
 	        printf "  %-28s " "$$t:"; \
 	        if make test_$$t SIM=icarus >$$LOGDIR/$$t.log 2>&1; then \
