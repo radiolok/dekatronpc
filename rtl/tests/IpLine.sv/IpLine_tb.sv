@@ -1,21 +1,29 @@
 `timescale 1ns/1ps
 
 //----------------------------------------------------------------------
-// IpLine_tb — тест блока выборки инструкций (Valid/Ready, v0.7)
-//
-// Интерфейс DUT обновлён:
-//   Rst_n/HardRst_n/Clk/hsClk        -> rst_n/soft_rst/hard_rst/clk/hs_clk
-//   Request/Ready/IpAddress/...      -> valid/ready/op/ip_addr/...
-//   RomRequest/RomReady/RomData      -> mem_valid/mem_ready/mem_rd_data/...
-//   InsnLoading                      -> insn_loading/insn_mode/insn_in*
+// IpLine_tb — тест блока выборки инструкций (Valid/Ready)
 //
 // Тестовая память программ лежит в этом же файле и загружает
 // firmware.hex (генерируется из looptest.bfk скриптом emul).
-// Программа: +++++++++[-+-+-]H
+// Память повторяет дисциплину Ram: ready = ~busy, данные чтения
+// появляются только к возврату ready (до этого — X) и держатся до
+// следующего обращения, запись сквозная.
+//
+// Части теста:
+//   1. looptest: +++++++++[-+-+-]H, промотка назад
+//   2. загрузка программы по insn_in (вложенные скобки, EOT) и её
+//      выполнение со случайным loop_val_zero; каждая выборка
+//      сравнивается с эталонной моделью (адрес и опкод), счётчик
+//      вложенности после каждой выборки обязан быть нулём
+//   3. переполнение счётчика вложенности, CLRL
+//   4. CLRI: первая выборка без шага
+//   5. останов: шаг IP, ручные шаги вперёд/назад, выборка без шага
+//   6. аппаратный сброс: IP = 99900
 //----------------------------------------------------------------------
 
 module IpLine_tb_mem #(
-    parameter AW = 20
+    parameter AW  = 20,
+    parameter LAT = 2      // тактов занятости на обращение
 )(
     input  wire        clk,
     input  wire        rst_n,
@@ -24,7 +32,7 @@ module IpLine_tb_mem #(
     input  wire        wr,
     input  wire [AW-1:0] addr,
     input  wire [3:0]  wr_data,
-    output wire [3:0]  rd_data,
+    output reg  [3:0]  rd_data,
     output wire        rd_valid,
     output wire        err
 );
@@ -49,13 +57,41 @@ module IpLine_tb_mem #(
         $readmemh("../firmware.hex", mem, 0, 16);
     end
 
-    assign rd_data  = mem[idx];
-    assign rd_valid = 1'b1;
-    assign ready    = 1'b1;
+    reg       busy;
+    reg [3:0] pend;
+    int       cnt;
+
+    assign ready    = ~busy;
+    assign rd_valid = ~busy;
     assign err      = 1'b0;
 
-    always @(posedge clk)
-        if (valid & ready & wr) mem[idx] <= wr_data;
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            busy    <= 1'b0;
+            rd_data <= 4'h0;
+        end
+        else if (!busy) begin
+            if (valid) begin
+                busy    <= 1'b1;
+                cnt     <= LAT;
+                rd_data <= 4'hx;
+                if (wr) begin
+                    mem[idx] <= wr_data;
+                    pend     <= wr_data;      // сквозная запись
+                end
+                else begin
+                    pend <= mem[idx];
+                end
+            end
+        end
+        else if (cnt <= 1) begin
+            busy    <= 1'b0;
+            rd_data <= pend;
+        end
+        else begin
+            cnt <= cnt - 1;
+        end
+    end
 
 endmodule
 
@@ -75,6 +111,7 @@ initial begin
 end
 
 parameter TEST_NUM = 2000;
+parameter RAND_NUM = 400;     // выборок в части 2
 
 ClockDivider #(
     .DIVISOR(10)
@@ -88,9 +125,19 @@ reg        ip_valid = 1'b0;
 wire       ip_ready;
 reg  [1:0] ip_op    = 2'd0;
 
+localparam [1:0] OP_NEXT = 2'd0, OP_CLR_IP = 2'd1, OP_CLR_LOOP = 2'd2;
+
 wire       loop_val_zero;
 wire [3:0] Insn;
 wire       InsnValid;
+
+reg        HaltRq    = 1'b0;
+reg        KeyPrev   = 1'b0;
+reg        KeyNext   = 1'b0;
+reg        Loading   = 1'b0;
+reg [3:0]  InsnIn    = 4'h0;
+reg        InsnInValid = 1'b0;
+wire       InsnInReady;
 
 wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0]   Address;
 wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount;
@@ -106,11 +153,13 @@ wire       MemRdValid;
 wire       MemErr;
 
 reg [11:0] Data;
-assign loop_val_zero = (Data == 12'd0);
+reg        rand_mode = 1'b0;
+reg        lvz_r     = 1'b0;
+assign loop_val_zero = rand_mode ? lvz_r : (Data == 12'd0);
 
 IpLine #(
     .HARD_RST_D_CNT (IP_DEKATRON_NUM - 2),
-    .LOOP_READ      (1'b0)
+    .LOOP_READ      (1'b1)
 ) ipLine (
     .rst_n        (Rst_n),
     .clk          (Clk),
@@ -123,14 +172,14 @@ IpLine #(
     .loop_val_zero(loop_val_zero),
     .insn         (Insn),
     .insn_valid   (InsnValid),
-    .halt_rq      (1'b0),
-    .key_prev_ip  (1'b0),
-    .key_next_ip  (1'b0),
-    .insn_loading (1'b0),
-    .insn_mode    (1'b1),
-    .insn_in      (4'h0),
-    .insn_in_valid(1'b0),
-    .insn_in_ready(),
+    .halt_rq      (HaltRq),
+    .key_prev_ip  (KeyPrev),
+    .key_next_ip  (KeyNext),
+    .insn_loading (Loading),
+    .insn_mode    (1'b0),          // Debug ISA: 0x4 — EOT
+    .insn_in      (InsnIn),
+    .insn_in_valid(InsnInValid),
+    .insn_in_ready(InsnInReady),
     .ip_addr      (Address),
     .loop_count   (LoopCount),
     .loop_overflow(LoopOverflow),
@@ -162,31 +211,102 @@ localparam [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] BOOTLOADER_ADDR =
 
 initial begin $dumpfile("IpLine_tb.vcd"); $dumpvars(0, IpLine_tb); end
 
+function automatic int bcd2bin(input [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] b);
+    int r;
+    r = 0;
+    for (int i = IP_DEKATRON_NUM-1; i >= 0; i--)
+        r = r*10 + b[4*i +: 4];
+    return r;
+endfunction
+
+int errors = 0;
+
+//----------------------------------------------------------------------
+// Мониторы
+//----------------------------------------------------------------------
+always @(posedge Clk) begin
+    if (Rst_n && MemValid && !MemReady) begin
+        errors++;
+        $display("FAIL: mem_valid without mem_ready");
+    end
+    if (Rst_n && ipLine.ip_valid && ipLine.loop_valid) begin
+        errors++;
+        $display("FAIL: ip_valid and loop_valid together");
+    end
+    if (Rst_n && ip_ready && InsnValid && ^Insn === 1'bx) begin
+        errors++;
+        $display("FAIL: insn is X at ready");
+    end
+end
+
+//----------------------------------------------------------------------
+// Операция по Valid/Ready и ожидание её окончания
+//----------------------------------------------------------------------
+task automatic do_op(input [1:0] o);
+    @(negedge Clk);
+    while (!ip_ready) @(negedge Clk);
+    ip_valid = 1'b1;
+    ip_op    = o;
+    @(posedge Clk);              // accept
+    @(negedge Clk);
+    ip_valid = 1'b0;
+    while (!ip_ready) @(negedge Clk);
+endtask
+
 //----------------------------------------------------------------------
 // Один запрос следующей инструкции. Возвращает retired-опкод.
 //----------------------------------------------------------------------
 task automatic fetch_insn(output [3:0] code);
-    @(negedge Clk);
-    ip_valid = 1'b1;
-    ip_op    = 2'd0;               // IP_NEXT
-    @(posedge Clk);
-    while (!ip_ready) @(posedge Clk);
-    @(negedge Clk);
-    ip_valid = 1'b0;
-    // Ждём возврата блока в IDLE с готовой инструкцией
-    while (!(ip_ready & InsnValid)) @(posedge Clk);
+    do_op(OP_NEXT);
+    while (!(ip_ready & InsnValid)) @(negedge Clk);
     code = Insn;
-    @(negedge Clk);
 endtask
 
-task automatic pulse_hard_rst();
+//----------------------------------------------------------------------
+// Выборка в режиме загрузки: опкод уходит в память по текущему IP
+//----------------------------------------------------------------------
+task automatic load_insn(input [3:0] code);
     @(negedge Clk);
-    HardRst = 1'b1;
+    while (!ip_ready) @(negedge Clk);
+    ip_valid = 1'b1;
+    ip_op    = OP_NEXT;
+    @(posedge Clk);
+    @(negedge Clk);
+    ip_valid = 1'b0;
+    while (!InsnInReady) @(negedge Clk);
+    InsnIn      = code;
+    InsnInValid = 1'b1;
+    @(posedge Clk);              // insn_in_valid & insn_in_ready
+    @(negedge Clk);
+    InsnInValid = 1'b0;
+    InsnIn      = 4'hF;          // загрузчик вправе сменить данные
+    while (!ip_ready) @(negedge Clk);
+endtask
+
+task automatic pulse_rst(input bit hard);
+    @(negedge Clk);
+    if (hard) HardRst = 1'b1; else SoftRst = 1'b1;
     repeat (15) @(posedge Clk);    // 150 hs > RESET_MIN_HS = 100
     @(negedge Clk);
     HardRst = 1'b0;
-    while (!ip_ready) @(posedge Clk);
+    SoftRst = 1'b0;
+    while (!ip_ready) @(negedge Clk);
+endtask
+
+task automatic check_addr(input string what, input int a);
+    if (bcd2bin(Address) !== a) begin
+        errors++;
+        $display("FAIL: %s: IP = %h, expected %0d", what, Address, a);
+    end
+endtask
+
+task automatic key_step(input bit prev);
     @(negedge Clk);
+    if (prev) KeyPrev = 1'b1; else KeyNext = 1'b1;
+    repeat (10) @(negedge Clk);    // кнопка держится много тактов
+    KeyPrev = 1'b0;
+    KeyNext = 1'b0;
+    repeat (10) @(negedge Clk);
 endtask
 
 reg [31:0] CLOCK_TICK;
@@ -196,14 +316,51 @@ always @(posedge Clk) begin
     CLOCK_TICK <= 0;
   end else begin
     CLOCK_TICK <= CLOCK_TICK + 1;
-    if (CLOCK_TICK > 200000)
+    if (CLOCK_TICK > 2000000)
       $fatal(1, "Timeout");
   end
 end
 
-int  errors = 0;
+//----------------------------------------------------------------------
+// Эталонная модель выборки: по прочитанной инструкции и признаку нуля
+// в момент запроса — адрес следующей. Скобка, начинающая промотку,
+// приводит НА парную скобку.
+//----------------------------------------------------------------------
+reg [3:0] prog [0:255];
+int       prog_len;
+
+function automatic int ref_next(input int a, input [3:0] c, input bit z);
+    int depth;
+    if (c == 4'h6 && z) begin
+        depth = 0;
+        for (int i = a; i < prog_len; i++) begin
+            if (prog[i] == 4'h6) depth++;
+            if (prog[i] == 4'h7) depth--;
+            if (depth == 0) return i;
+        end
+        return -1;
+    end
+    if (c == 4'h7 && !z) begin
+        depth = 0;
+        for (int i = a; i >= 0; i--) begin
+            if (prog[i] == 4'h7) depth++;
+            if (prog[i] == 4'h6) depth--;
+            if (depth == 0) return i;
+        end
+        return -1;
+    end
+    return a + 1;
+endfunction
+
 reg  [3:0] code;
 bit  finished = 0;
+int  ref_a, nxt, scans;
+bit  z;
+integer seed;
+
+// [ + [ - [ ] ] . [ [ + ] - [ ] ] , ] + - [ + ]
+localparam int PROG_LEN = 23;
+localparam [4*PROG_LEN-1:0] PROG = 92'h62636778662736779723627;
 
 initial begin
     Rst_n   <= 1'b0;
@@ -216,13 +373,14 @@ initial begin
     #2000 Rst_n <= 1'b1;
     while (!ip_ready) @(posedge Clk);
 
-    $display("Execute looptest");
+    //------------------------------------------------------------------
+    $display("1. Execute looptest");
     for (int i = 0; (i < TEST_NUM) && !finished; i++) begin
         fetch_insn(code);
 
         case (code)
-            4'h2: Data <= Data + 12'd1;   // +
-            4'h3: Data <= Data - 12'd1;   // -
+            4'h2: Data = Data + 12'd1;    // +
+            4'h3: Data = Data - 12'd1;    // -
             4'h1: begin                   // HALT
                 if (Data == 12'd0) begin
                     $display("HALT reached, Data = %0d at IP = %h",
@@ -244,8 +402,147 @@ initial begin
         $display("FAIL: program did not halt within %0d instructions", TEST_NUM);
     end
 
-    $display("Hard reset test");
-    pulse_hard_rst();
+    //------------------------------------------------------------------
+    $display("2. Load a program with nested loops, run with random loop_val_zero");
+    prog_len = PROG_LEN;
+    for (int i = 0; i < prog_len; i++) prog[i] = PROG[4*(PROG_LEN-1-i) +: 4];
+    pulse_rst(1'b0);
+    check_addr("soft reset", 0);
+    Loading = 1'b1;
+    for (int i = 0; i < prog_len; i++) load_insn(prog[i]);
+    load_insn(4'h4);                    // EOT: в память не пишется
+    if (Insn !== 4'h4) begin
+        errors++;
+        $display("FAIL: EOT not presented on insn (%h)", Insn);
+    end
+    check_addr("EOT", prog_len);
+    Loading = 1'b0;
+    for (int i = 0; i < prog_len; i++)
+        if (mem.mem[i] !== prog[i]) begin
+            errors++;
+            $display("FAIL: mem[%0d] = %h, expected %h", i, mem.mem[i], prog[i]);
+        end
+    if (mem.mem[prog_len] !== 4'h0) begin
+        errors++;
+        $display("FAIL: EOT was written to memory");
+    end
+
+    pulse_rst(1'b0);
+    rand_mode = 1'b1;
+    seed = 32'h1DEC;
+    ref_a = 0;
+    scans = 0;
+    fetch_insn(code);                   // первая выборка — без шага
+    for (int i = 0; i < RAND_NUM; i++) begin
+        if (bcd2bin(Address) !== ref_a || code !== prog[ref_a]) begin
+            errors++;
+            $display("FAIL: fetch %0d: IP %h insn %h, expected %0d insn %h",
+                     i, Address, code, ref_a, prog[ref_a]);
+            break;
+        end
+        if (LoopCount !== '0 || LoopOverflow) begin
+            errors++;
+            $display("FAIL: loop counter %h / overflow %b after fetch %0d",
+                     LoopCount, LoopOverflow, i);
+        end
+        z = $random(seed) & 1;
+        nxt = ref_next(ref_a, code, z);
+        if (nxt >= prog_len) nxt = -1;   // не уходить за конец
+        if (nxt < 0) begin
+            // Вернуться в начало
+            do_op(OP_CLR_IP);
+            fetch_insn(code);
+            ref_a = 0;
+            continue;
+        end
+        if (nxt != ref_a + 1) scans++;
+        lvz_r = z;
+        fetch_insn(code);
+        ref_a = nxt;
+    end
+    rand_mode = 1'b0;
+    $display("   %0d fetches, %0d scans", RAND_NUM, scans);
+    if (scans < 20) begin
+        errors++;
+        $display("FAIL: too few scans");
+    end
+
+    //------------------------------------------------------------------
+    $display("3. Loop counter overflow");
+    for (int i = 0; i < 120; i++) mem.mem[i] = 4'h6;   // 120 x '['
+    pulse_rst(1'b0);
+    fetch_insn(code);                   // '[' по адресу 0
+    rand_mode = 1'b1;
+    lvz_r     = 1'b1;
+    fetch_insn(code);                   // промотка вперёд, 100-я '[' — переполнение
+    if (!LoopOverflow || LoopCount !== 8'h99) begin
+        errors++;
+        $display("FAIL: overflow %b, loop count %h", LoopOverflow, LoopCount);
+    end
+    check_addr("overflow stop", 99);
+    fetch_insn(code);                   // счётчик на 99: снова переполнение без шага
+    if (!LoopOverflow) begin
+        errors++;
+        $display("FAIL: overflow lost");
+    end
+    check_addr("overflow repeat", 99);
+    do_op(OP_CLR_LOOP);
+    if (LoopOverflow || LoopCount !== '0) begin
+        errors++;
+        $display("FAIL: CLRL: overflow %b, loop count %h", LoopOverflow, LoopCount);
+    end
+    for (int i = 0; i < 120; i++) mem.mem[i] = 4'h0;
+
+    //------------------------------------------------------------------
+    $display("4. CLRI");
+    lvz_r = 1'b0;                       // текущая '[' — войти в тело, не мотать
+    mem.mem[0] = 4'h2;
+    mem.mem[1] = 4'h3;
+    fetch_insn(code);
+    do_op(OP_CLR_IP);
+    check_addr("CLRI", 0);
+    if (InsnValid) begin
+        errors++;
+        $display("FAIL: insn_valid after CLRI");
+    end
+    fetch_insn(code);
+    check_addr("fetch after CLRI", 0);
+    if (code !== 4'h2) begin
+        errors++;
+        $display("FAIL: fetch after CLRI: %h", code);
+    end
+    fetch_insn(code);
+    check_addr("next after CLRI", 1);
+
+    //------------------------------------------------------------------
+    $display("5. Halt and manual steps");
+    mem.mem[3] = 4'h9;
+    @(negedge Clk);
+    HaltRq = 1'b1;
+    repeat (20) @(negedge Clk);
+    check_addr("halt step", 2);
+    if (ip_ready || InsnValid) begin
+        errors++;
+        $display("FAIL: halt: ready %b insn_valid %b", ip_ready, InsnValid);
+    end
+    key_step(1'b0);
+    check_addr("key next", 3);
+    key_step(1'b0);
+    check_addr("key next", 4);
+    key_step(1'b1);
+    check_addr("key prev", 3);
+    HaltRq = 1'b0;
+    fetch_insn(code);
+    check_addr("fetch after halt", 3);
+    if (code !== 4'h9) begin
+        errors++;
+        $display("FAIL: fetch after halt: %h", code);
+    end
+    rand_mode = 1'b0;
+
+    //------------------------------------------------------------------
+    $display("6. Hard reset");
+    pulse_rst(1'b1);
     if (Address !== BOOTLOADER_ADDR) begin
         errors++;
         $display("FAIL: hard reset address %h, expected %h",

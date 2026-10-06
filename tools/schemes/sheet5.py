@@ -68,46 +68,40 @@ def fig_apline():
 
 
 def fig_apline_fsm():
-    f = Fig("aplfsm", 1000, 400,
+    f = Fig("aplfsm", 1000, 270,
             "Автомат ApLine: память читается только тогда, когда значение ячейки нужно и его "
             "нет ни в счётчике, ни в выходном регистре памяти; выгрузка — только изменённого "
-            "значения перед сменой адреса.")
+            "значения перед сменой адреса. Каждое состояние, кроме S_IDLE, выдаёт одну "
+            "операцию, когда готовы все исполнители (go), и уходит в такте её приёма.")
     f.dy = 20
     f.state("READ", 150, 60, "S_READ", cls="st-acc")
     f.state("IDLE", 470, 60, "S_IDLE", cls="st-acc")
     f.state("FLUSH", 790, 60, "S_FLUSH")
-    f.state("DATA_SET", 150, 200, "S_DATA_SET")
-    f.state("DATA_OP", 470, 200, "S_DATA_OP")
-    f.state("AP_OP", 790, 200, "S_AP_OP")
-    f.state("DATA_SET_W", 150, 340, "S_DATA_SET_W")
-    f.state("DATA_WAIT", 470, 340, "S_DATA_WAIT")
-    f.state("AP_WAIT", 790, 340, "S_AP_WAIT")
+    f.state("DSET", 150, 200, "S_DSET")
+    f.state("DOP", 470, 200, "S_DOP")
+    f.state("AP", 790, 200, "S_AP")
 
     f.selfloop("IDLE", "t", label="COUT, TEST: ячейка рядом · CLRML: чисто", lx=448, ly=14, anchor="end")
     f.edge("IDLE", "l", "READ", "r", oa=-8, ob=-8, cls="wacc", label="ячейка нужна и её нет",
            lx=310, ly=45, lcls="tacc")
     f.edge("READ", "r", "IDLE", "l", oa=8, ob=8, label="COUT, TEST", lx=310, ly=86)
-    f.edge("READ", "b", "DATA_SET", "t", oa=-20, ob=-20, cls="wacc", label="STEP, LOAD",
+    f.edge("READ", "b", "DSET", "t", oa=-20, ob=-20, cls="wacc", label="STEP, LOAD",
            lx=122, ly=135, anchor="end", lcls="tacc")
-    f.edge("IDLE", "b", "DATA_SET", "t", oa=-30, ob=20, via=[(440, 130), (170, 130)],
+    f.edge("IDLE", "b", "DSET", "t", oa=-30, ob=20, via=[(440, 130), (170, 130)],
            label="mem_here: STEP, LOAD · CIN", lx=305, ly=124)
-    f.edge("IDLE", "b", "DATA_OP", "t", label="lock: STEP · DATA_ZERO", lx=478, ly=160,
+    f.edge("IDLE", "b", "DOP", "t", label="lock: STEP · DATA_ZERO", lx=478, ly=160,
            anchor="start")
     f.edge("IDLE", "r", "FLUSH", "l", oa=-8, ob=-8, label="dirty: шаг AP, CLRML · STORE",
            lx=630, ly=45)
     f.edge("FLUSH", "l", "IDLE", "r", oa=8, ob=8, label="STORE, CLRML: lock ← 0", lx=630, ly=86)
-    f.edge("IDLE", "b", "AP_OP", "t", oa=30, ob=-20, via=[(500, 130), (770, 130)],
+    f.edge("IDLE", "b", "AP", "t", oa=30, ob=-20, via=[(500, 130), (770, 130)],
            cls="wwarn", label="чисто: шаг AP, lock не сбрасывается", lx=640, ly=124, lcls="twarn")
-    f.edge("FLUSH", "b", "AP_OP", "t", oa=20, ob=20, label="шаг AP: lock ← 0", lx=818, ly=135,
+    f.edge("FLUSH", "b", "AP", "t", oa=20, ob=20, label="шаг AP: lock ← 0", lx=818, ly=135,
            anchor="start")
-    f.edge("AP_OP", "b", "AP_WAIT", "t")
-    f.edge("AP_WAIT", "r", "IDLE", "t", ob=35, via=[(920, 340), (920, 12), (505, 12)],
+    f.edge("AP", "r", "IDLE", "t", ob=35, via=[(920, 200), (920, 12), (505, 12)],
            label="mem_here ← 0", lx=710, ly=6)
-    f.edge("DATA_SET", "b", "DATA_SET_W", "t")
-    f.edge("DATA_SET_W", "r", "DATA_OP", "l", via=[(300, 340), (300, 200)],
-           label="STEP: lock ← 1", lx=308, ly=194, anchor="start")
-    f.edge("DATA_OP", "b", "DATA_WAIT", "t")
-    f.wire([(150, 357), (150, 372), (190, 372)], label="→ S_IDLE: LOAD, CIN", lx=196, ly=376)
-    f.wire([(470, 357), (470, 372), (510, 372)], label="→ S_IDLE: lock, dirty ← 1",
-           lx=516, ly=376)
+    f.edge("DSET", "r", "DOP", "l", label="STEP", lx=310, ly=194)
+    f.wire([(150, 217), (150, 240), (190, 240)], label="→ S_IDLE: LOAD, CIN", lx=196, ly=244)
+    f.wire([(470, 217), (470, 240), (510, 240)], label="→ S_IDLE: lock, dirty ← 1",
+           lx=516, ly=244)
     return f.render()

@@ -9,7 +9,12 @@
 //   RAM (Address/In/Out/WE/CS) -> Ram (valid/ready/wr/addr/wr_data/
 //                                    rd_data/rd_valid/err/ovl_*)
 //
-// Проверяется AP-счётчик, чтение ячейки (TEST) и шаг данных (+).
+// Проверяется AP-счётчик, чтение ячейки (TEST) и шаг данных (+), CIN,
+// CLRD, STORE, CLRML, CLRA с выгрузкой, переход 255 <-> 0 и число
+// обращений к памяти (ленивое чтение, выгрузка только грязной ячейки).
+// Монитор обращений к памяти проверяет, что mem_valid не выставляется
+// без mem_ready: стробы ApLine поднимаются только при готовности всех
+// исполнителей, и рукопожатие происходит в том же такте.
 //----------------------------------------------------------------------
 module ApLine_tb (
 );
@@ -166,6 +171,38 @@ endtask
 
 int errors = 0;
 
+//----------------------------------------------------------------------
+// Монитор обращений к памяти
+//----------------------------------------------------------------------
+int mem_rd_cnt = 0;
+int mem_wr_cnt = 0;
+
+always @(posedge Clk) begin
+    if (Rst_n && MemValid) begin
+        if (!MemReady) begin
+            errors++;
+            $display("FAIL: mem_valid without mem_ready");
+        end
+        else if (MemWr) mem_wr_cnt++;
+        else            mem_rd_cnt++;
+    end
+end
+
+task automatic check_data(input string what, input int unsigned v);
+    if (tx_data_bcd[11:0] !== data_bcd(v)) begin
+        errors++;
+        $display("FAIL: %s -> %h, expected %0d", what, tx_data_bcd, v);
+    end
+endtask
+
+task automatic check_mem(input string what, input int rd, input int wr);
+    if (mem_rd_cnt !== rd || mem_wr_cnt !== wr) begin
+        errors++;
+        $display("FAIL: %s: mem reads=%0d writes=%0d, expected %0d/%0d",
+                 what, mem_rd_cnt, mem_wr_cnt, rd, wr);
+    end
+endtask
+
 initial begin
     Rst_n   <= 1'b0;
     valid   <= 1'b0;
@@ -262,6 +299,74 @@ initial begin
         errors++;
         $display("FAIL: DATA_ZERO -> %0d, expected 0", tx_data_bcd);
     end
+
+    // Ячейка 0 = 0 в счётчике, dirty. Дальше счёт обращений идёт с нуля.
+    $display("STORE test");
+    do_op(OP_CIN,   1'b0, data_bcd(123));
+    mem_rd_cnt = 0; mem_wr_cnt = 0;
+    do_op(OP_STORE, 1'b0, 12'd0);
+    check_mem("STORE", 0, 1);
+    do_op(OP_AP_STEP, 1'b0, 12'd0);        // не грязная: без выгрузки
+    do_op(OP_AP_STEP, 1'b1, 12'd0);
+    check_mem("AP step after STORE", 0, 1);
+    do_op(OP_LOAD, 1'b0, 12'd0);           // регистр памяти ушёл с адреса
+    check_mem("LOAD after AP step", 1, 1);
+    check_data("STORE/LOAD", 123);
+
+    $display("Lazy read: AP steps do not touch memory");
+    mem_rd_cnt = 0; mem_wr_cnt = 0;
+    for (int i = 0; i < 10; i++) do_op(OP_AP_STEP, 1'b0, 12'd0);
+    for (int i = 0; i < 10; i++) do_op(OP_AP_STEP, 1'b1, 12'd0);
+    check_mem("20 AP steps", 0, 0);
+
+    $display("CLRML test");
+    do_op(OP_LOAD,      1'b0, 12'd0);      // 123, lock не меняется
+    do_op(OP_DATA_STEP, 1'b0, 12'd0);      // 124, dirty
+    mem_rd_cnt = 0; mem_wr_cnt = 0;
+    do_op(OP_CLRML, 1'b0, 12'd0);
+    check_mem("CLRML", 0, 1);
+    if (mem_lock) begin
+        errors++;
+        $display("FAIL: mem_lock after CLRML");
+    end
+    do_op(OP_TEST, 1'b0, 12'd0);           // регистр памяти уже на месте
+    do_op(OP_COUT, 1'b0, 12'd0);
+    check_mem("TEST/COUT after CLRML", 0, 1);
+    check_data("COUT after CLRML", 124);
+    if (data_zero || !data_zero_valid) begin
+        errors++;
+        $display("FAIL: data_zero=%b valid=%b after CLRML", data_zero, data_zero_valid);
+    end
+    do_op(OP_CLRML, 1'b0, 12'd0);          // не грязная: без записи
+    check_mem("second CLRML", 0, 1);
+
+    $display("CLRA flushes a dirty cell");
+    do_op(OP_AP_STEP,   1'b0, 12'd0);      // AP=1
+    do_op(OP_DATA_STEP, 1'b0, 12'd0);      // чтение ячейки 1 (0), +1
+    check_data("cell1 +", 1);
+    mem_rd_cnt = 0; mem_wr_cnt = 0;
+    do_op(OP_AP_ZERO, 1'b0, 12'd0);
+    check_mem("CLRA", 0, 1);
+    if (!ap_zero || MemAddr !== AP_ZERO_BCD) begin
+        errors++;
+        $display("FAIL: CLRA -> AP=%h", MemAddr);
+    end
+    do_op(OP_LOAD, 1'b0, 12'd0);
+    check_data("cell0 after CLRA", 124);
+    do_op(OP_AP_STEP, 1'b0, 12'd0);
+    do_op(OP_LOAD,    1'b0, 12'd0);
+    check_data("cell1 after CLRA", 1);
+
+    $display("Data wrap 255 <-> 0");
+    do_op(OP_CIN,       1'b0, data_bcd(255));
+    do_op(OP_DATA_STEP, 1'b0, 12'd0);
+    check_data("255 +", 0);
+    if (!data_zero) begin
+        errors++;
+        $display("FAIL: data_zero after 255 +");
+    end
+    do_op(OP_DATA_STEP, 1'b1, 12'd0);
+    check_data("0 -", 255);
 
     if (errors)
         $display($time/1000, "us << Simulation Complete >> errors=%0d", errors);

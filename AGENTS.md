@@ -114,7 +114,7 @@ Decode on the pair {insn_mode, insn}. All 32 combinations must be covered. Undef
 
 9. Current priorities (TRS §22)
 1. Run all new RTL in Verilator and Icarus. Most blocks so far are verified only on Python models.
-2. Write testbenches for RAM/IpMemory, ApLine (MemLock, lazy read, dirty), IpLine (scan, overflow), MachineCtrl (full ISA table, TEST before brackets), plus DekatronModule/DekatronCounter and back-to-back write/reset ops (REQ-VER-028/030).
+2. Write testbenches for RAM/IpMemory, MachineCtrl (full ISA table, TEST before brackets), plus DekatronModule/DekatronCounter and back-to-back write/reset ops (REQ-VER-028/030). ApLine and IpLine have Icarus testbenches in rtl/tests/ (run by run_tests.sh -t; IpLine_tb uses a Ram-style memory and a reference model); they are not in the cocotb regression yet.
 3. Flat memory for the FPGA build (OPEN-015).
 4. Remove the old modules so there's one datapath.
 5. Use the C++ golden model (bfutils/dpcrun, full ISA since TRS v0.8) for step-by-step comparison with the RTL: first fix the COUT defect (OPEN-017 reopened, MachineCtrl never issues AP_COUT), then build DekatronPC_tb.cpp and run it with -s.

@@ -85,9 +85,9 @@ module ApLine #(
     output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] mem_addr,
     output wire [MEM_DATA_WIDTH-1:0]                 mem_wr_data,
     input  wire [MEM_DATA_WIDTH-1:0]                 mem_rd_data,
-    output logic                                     mem_valid,
+    output wire                                      mem_valid,
     input  wire                                      mem_ready,
-    output logic                                     mem_wr,
+    output wire                                      mem_wr,
 /* verilator lint_off UNUSEDSIGNAL */
     input  wire                                      mem_rd_valid,
     input  wire                                      mem_err
@@ -115,19 +115,21 @@ module ApLine #(
 
     //------------------------------------------------------------------
     // Состояния
+    //
+    // Каждое состояние, кроме S_IDLE, выдаёт ровно одну операцию одному
+    // исполнителю и покидает себя в такте её приёма. Ожидания окончания
+    // операции (прежние пары OP/WAIT) нет: следующее состояние, как и
+    // S_IDLE, само ждёт go — готовности всех трёх исполнителей.
     //------------------------------------------------------------------
-    localparam logic [3:0]
-        S_IDLE       = 4'd0,
-        S_FLUSH      = 4'd1,   // выгрузка счётчика в память
-        S_READ       = 4'd2,   // чтение текущей ячейки
-        S_AP_OP      = 4'd3,
-        S_AP_WAIT    = 4'd4,
-        S_DATA_SET   = 4'd5,   // загрузка числа в счётчик данных
-        S_DATA_SET_W = 4'd6,
-        S_DATA_OP    = 4'd7,   // шаг или обнуление счётчика данных
-        S_DATA_WAIT  = 4'd8;
+    localparam logic [2:0]
+        S_IDLE  = 3'd0,
+        S_FLUSH = 3'd1,   // выгрузка счётчика в память
+        S_READ  = 3'd2,   // чтение текущей ячейки
+        S_AP    = 3'd3,   // шаг или обнуление счётчика адреса
+        S_DSET  = 3'd4,   // загрузка числа в счётчик данных
+        S_DOP   = 3'd5;   // шаг или обнуление счётчика данных
 
-    logic [3:0] state;
+    logic [2:0] state;
 
     logic       lock_q;        // счётчик содержит значение ячейки
     logic       dirty_q;       // счётчик расходится с памятью
@@ -136,9 +138,9 @@ module ApLine #(
     //------------------------------------------------------------------
     // Счётчик адреса данных
     //------------------------------------------------------------------
-    logic           ap_valid;
+    wire            ap_valid;
     wire            ap_ready;
-    logic           ap_set_zero;
+    wire            ap_set_zero;
     wire [AP_W-1:0] ap_out;
 
     DekatronCounter #(
@@ -169,11 +171,11 @@ module ApLine #(
     //------------------------------------------------------------------
     // Счётчик данных
     //------------------------------------------------------------------
-    logic              data_valid;
+    wire               data_valid;
     wire               data_ready;
-    logic              data_set;
-    logic              data_set_zero;
-    logic [DATA_W-1:0] data_in;
+    wire               data_set;
+    wire               data_set_zero;
+    wire  [DATA_W-1:0] data_in;
     wire [DATA_W-1:0]  data_out;
     wire               data_ctr_zero;
 
@@ -221,280 +223,176 @@ module ApLine #(
     assign data_zero       = lock_q ? data_ctr_zero : ~(|cell_from_mem);
     assign data_zero_valid = lock_q | mem_here_q;
 
-    assign ready = (state == S_IDLE) & ap_ready & data_ready & mem_ready;
+    //------------------------------------------------------------------
+    // Готовность исполнителей
+    //
+    // Память отдаёт ready вместе с данными: rd_data достоверен, как только
+    // ready вернулся после приёма чтения, и держится до следующего
+    // обращения. Поэтому окончание любой операции определяется одним
+    // go, а mem_rd_valid не нужен.
+    //------------------------------------------------------------------
+    wire go = ap_ready & data_ready & mem_ready;
+
+    assign ready = (state == S_IDLE) & go;
 
     wire accept = valid & ready;
 
-    // Нужно ли значение ячейки для этой операции
-    wire need_cell = (op == OP_DATA_STEP) | (op == OP_COUT) |
-                     (op == OP_LOAD)      | (op == OP_TEST);
+    //------------------------------------------------------------------
+    // Стробы исполнителям — дешифрация состояния (автомат Мура)
+    //
+    // valid поднимается только при go, то есть при уже поднятом ready
+    // исполнителя, и рукопожатие происходит в том же такте: valid не
+    // бывает выставлен без приёма. ready исполнителей от valid не
+    // зависят, петли нет. Признаки операции (set_zero, set, wr) значимы
+    // только вместе с valid, поэтому берутся из op и state без go.
+    //------------------------------------------------------------------
+    wire in_flush = (state == S_FLUSH);
+    wire in_read  = (state == S_READ);
+    wire in_ap    = (state == S_AP);
+    wire in_dset  = (state == S_DSET);
+    wire in_dop   = (state == S_DOP);
+
+    assign ap_valid      = in_ap & go;
+    assign ap_set_zero   = (op == OP_AP_ZERO);
+    assign data_valid    = (in_dset | in_dop) & go;
+    assign data_set      = in_dset;
+    assign data_set_zero = (op == OP_DATA_ZERO);
+    assign mem_valid     = (in_flush | in_read) & go;
+    assign mem_wr        = in_flush;
 
     //------------------------------------------------------------------
     // Основной автомат
     //------------------------------------------------------------------
     always_ff @(posedge clk, negedge rst_n) begin
         if (~rst_n) begin
-            state         <= S_IDLE;
-            lock_q        <= 1'b0;
-            dirty_q       <= 1'b0;
-            mem_here_q    <= 1'b0;
-            ap_valid      <= 1'b0;
-            ap_set_zero   <= 1'b0;
-            data_valid    <= 1'b0;
-            data_set      <= 1'b0;
-            data_set_zero <= 1'b0;
-            mem_valid     <= 1'b0;
-            mem_wr        <= 1'b0;
+            state      <= S_IDLE;
+            lock_q     <= 1'b0;
+            dirty_q    <= 1'b0;
+            mem_here_q <= 1'b0;
+        end
+        // Физический сброс счётчиков: адрес ушёл в нуль, содержимое
+        // выходного регистра памяти к нему не относится
+        else if (soft_rst | hard_rst) begin
+            state      <= S_IDLE;
+            lock_q     <= 1'b0;
+            dirty_q    <= 1'b0;
+            mem_here_q <= 1'b0;
         end
         else begin
-            ap_valid   <= 1'b0;
-            data_valid <= 1'b0;
-            mem_valid  <= 1'b0;
+            case (state)
 
-            // Физический сброс счётчиков: адрес ушёл в нуль, содержимое
-            // выходного регистра памяти к нему не относится
-            if (soft_rst | hard_rst) begin
-                state         <= S_IDLE;
-                lock_q        <= 1'b0;
-                dirty_q       <= 1'b0;
-                mem_here_q    <= 1'b0;
-                ap_set_zero   <= 1'b0;
-                data_set      <= 1'b0;
-                data_set_zero <= 1'b0;
-                mem_wr        <= 1'b0;
+            //----------------------------------------------------------
+            S_IDLE: begin
+                if (accept) begin
+                    case (op)
+
+                    // Выгружаем только изменённое значение
+                    OP_AP_STEP, OP_AP_ZERO:
+                        state <= dirty_q ? S_FLUSH : S_AP;
+
+                    OP_DATA_STEP:
+                        if (lock_q)          state <= S_DOP;
+                        else if (mem_here_q) state <= S_DSET;  // значение уже в регистре памяти
+                        else                 state <= S_READ;
+
+                    OP_DATA_ZERO:
+                        state <= S_DOP;
+
+                    OP_CIN: begin
+                        lock_q  <= 1'b1;
+                        dirty_q <= 1'b1;
+                        state   <= S_DSET;
+                    end
+
+                    // Достаточно, чтобы значение было доступно:
+                    // в счётчике либо в регистре памяти
+                    OP_COUT, OP_TEST:
+                        if (~(lock_q | mem_here_q)) state <= S_READ;
+
+                    // MemLock не меняется
+                    OP_LOAD:
+                        state <= mem_here_q ? S_DSET : S_READ;
+
+                    OP_STORE:
+                        state <= S_FLUSH;
+
+                    OP_CLRML:
+                        if (dirty_q) state  <= S_FLUSH;
+                        else         lock_q <= 1'b0;
+
+                    default: ;   // OP_NOP
+                    endcase
+                end
             end
-            else begin
-                case (state)
 
-                //------------------------------------------------------
-                S_IDLE: begin
-                    if (accept) begin
-                        case (op)
+            //----------------------------------------------------------
+            // Чтение текущей ячейки
+            //----------------------------------------------------------
+            S_READ: begin
+                if (go) begin
+                    mem_here_q <= 1'b1;
+                    state <= ((op == OP_DATA_STEP) | (op == OP_LOAD))
+                           ? S_DSET : S_IDLE;           // COUT, TEST
+                end
+            end
 
+            //----------------------------------------------------------
+            // Выгрузка счётчика в память. Сквозная запись: регистр
+            // памяти после неё содержит выгруженное значение
+            //----------------------------------------------------------
+            S_FLUSH: begin
+                if (go) begin
+                    dirty_q    <= 1'b0;
+                    mem_here_q <= 1'b1;
+                    case (op)
                         OP_AP_STEP, OP_AP_ZERO: begin
-                            ap_set_zero <= (op == OP_AP_ZERO);
-                            if (dirty_q) begin
-                                // Выгружаем только изменённое значение
-                                mem_valid <= 1'b1;
-                                mem_wr    <= 1'b1;
-                                state     <= S_FLUSH;
-                            end
-                            else begin
-                                ap_valid <= 1'b1;
-                                state    <= S_AP_OP;
-                            end
+                            lock_q <= 1'b0;
+                            state  <= S_AP;
                         end
-
-                        OP_DATA_STEP: begin
-                            if (lock_q) begin
-                                data_valid <= 1'b1;
-                                state      <= S_DATA_OP;
-                            end
-                            else if (mem_here_q) begin
-                                // Значение уже в регистре памяти
-                                data_set   <= 1'b1;
-                                data_valid <= 1'b1;
-                                state      <= S_DATA_SET;
-                            end
-                            else begin
-                                mem_valid <= 1'b1;
-                                mem_wr    <= 1'b0;
-                                state     <= S_READ;
-                            end
-                        end
-
-                        OP_DATA_ZERO: begin
-                            data_set_zero <= 1'b1;
-                            data_valid    <= 1'b1;
-                            lock_q        <= 1'b1;
-                            dirty_q       <= 1'b1;
-                            state         <= S_DATA_OP;
-                        end
-
-                        OP_CIN: begin
-                            data_set   <= 1'b1;
-                            data_valid <= 1'b1;
-                            lock_q     <= 1'b1;
-                            dirty_q    <= 1'b1;
-                            state      <= S_DATA_SET;
-                        end
-
-                        OP_COUT, OP_TEST: begin
-                            // Достаточно, чтобы значение было доступно:
-                            // в счётчике либо в регистре памяти
-                            if (lock_q | mem_here_q) begin
-                                state <= S_IDLE;
-                            end
-                            else begin
-                                mem_valid <= 1'b1;
-                                mem_wr    <= 1'b0;
-                                state     <= S_READ;
-                            end
-                        end
-
-                        OP_LOAD: begin
-                            // MemLock не меняется
-                            if (mem_here_q) begin
-                                data_set   <= 1'b1;
-                                data_valid <= 1'b1;
-                                state      <= S_DATA_SET;
-                            end
-                            else begin
-                                mem_valid <= 1'b1;
-                                mem_wr    <= 1'b0;
-                                state     <= S_READ;
-                            end
-                        end
-
-                        OP_STORE: begin
-                            mem_valid <= 1'b1;
-                            mem_wr    <= 1'b1;
-                            state     <= S_FLUSH;
-                        end
-
                         OP_CLRML: begin
-                            if (dirty_q) begin
-                                mem_valid <= 1'b1;
-                                mem_wr    <= 1'b1;
-                                state     <= S_FLUSH;
-                            end
-                            else begin
-                                lock_q <= 1'b0;
-                            end
+                            lock_q <= 1'b0;
+                            state  <= S_IDLE;
                         end
-
-                        default: ;   // OP_NOP
-                        endcase
-                    end
+                        default: state <= S_IDLE;   // OP_STORE
+                    endcase
                 end
-
-                //------------------------------------------------------
-                // Чтение текущей ячейки
-                //------------------------------------------------------
-                S_READ: begin
-                    if (mem_ready & mem_rd_valid) begin
-                        mem_here_q <= 1'b1;
-
-                        case (op)
-                            OP_DATA_STEP, OP_LOAD: begin
-                                data_set   <= 1'b1;
-                                data_valid <= 1'b1;
-                                state      <= S_DATA_SET;
-                            end
-                            default: state <= S_IDLE;   // COUT, TEST
-                        endcase
-                    end
-                    else if (~mem_ready) begin
-                        // обращение выполняется
-                    end
-                    else begin
-                        mem_valid <= 1'b1;    // удерживаем до приёма
-                        mem_wr    <= 1'b0;
-                    end
-                end
-
-                //------------------------------------------------------
-                // Выгрузка счётчика в память
-                //------------------------------------------------------
-                S_FLUSH: begin
-                    if (mem_ready & mem_rd_valid) begin
-                        // Сквозная запись: регистр памяти уже содержит
-                        // выгруженное значение
-                        mem_wr     <= 1'b0;
-                        dirty_q    <= 1'b0;
-                        mem_here_q <= 1'b1;
-
-                        case (op)
-                            OP_AP_STEP, OP_AP_ZERO: begin
-                                lock_q   <= 1'b0;
-                                ap_valid <= 1'b1;
-                                state    <= S_AP_OP;
-                            end
-                            OP_CLRML: begin
-                                lock_q <= 1'b0;
-                                state  <= S_IDLE;
-                            end
-                            default: state <= S_IDLE;   // OP_STORE
-                        endcase
-                    end
-                    else if (~mem_ready) begin
-                        // обращение выполняется
-                    end
-                    else begin
-                        mem_valid <= 1'b1;
-                        mem_wr    <= 1'b1;
-                    end
-                end
-
-                //------------------------------------------------------
-                // Шаг счётчика адреса
-                //------------------------------------------------------
-                S_AP_OP: begin
-                    if (ap_ready) begin
-                        ap_set_zero <= 1'b0;
-                        state       <= S_AP_WAIT;
-                    end
-                    else ap_valid <= 1'b1;
-                end
-
-                S_AP_WAIT: begin
-                    if (ap_ready) begin
-                        // Ячейка сменилась: регистр памяти к ней не относится.
-                        // Читать заранее не будем — понадобится, тогда и прочтём.
-                        mem_here_q <= 1'b0;
-                        state      <= S_IDLE;
-                    end
-                end
-
-                //------------------------------------------------------
-                // Загрузка числа в счётчик данных
-                //------------------------------------------------------
-                S_DATA_SET: begin
-                    if (data_ready) begin
-                        data_set <= 1'b0;
-                        state    <= S_DATA_SET_W;
-                    end
-                    else data_valid <= 1'b1;
-                end
-
-                S_DATA_SET_W: begin
-                    if (data_ready) begin
-                        case (op)
-                            OP_DATA_STEP: begin
-                                lock_q     <= 1'b1;
-                                data_valid <= 1'b1;
-                                state      <= S_DATA_OP;
-                            end
-                            OP_LOAD: state <= S_IDLE;   // MemLock не меняется
-                            default: state <= S_IDLE;   // OP_CIN
-                        endcase
-                    end
-                end
-
-                //------------------------------------------------------
-                // Шаг или обнуление счётчика данных
-                //------------------------------------------------------
-                S_DATA_OP: begin
-                    if (data_ready) begin
-                        data_set_zero <= 1'b0;
-                        state         <= S_DATA_WAIT;
-                    end
-                    else data_valid <= 1'b1;
-                end
-
-                S_DATA_WAIT: begin
-                    if (data_ready) begin
-                        if (op == OP_DATA_STEP) begin
-                            lock_q  <= 1'b1;
-                            dirty_q <= 1'b1;
-                        end
-                        state <= S_IDLE;
-                    end
-                end
-
-                default: state <= S_IDLE;
-                endcase
             end
+
+            //----------------------------------------------------------
+            // Шаг счётчика адреса. Ячейка сменилась: регистр памяти к
+            // ней не относится. Читать заранее не будем — понадобится,
+            // тогда и прочтём.
+            //----------------------------------------------------------
+            S_AP: begin
+                if (go) begin
+                    mem_here_q <= 1'b0;
+                    state      <= S_IDLE;
+                end
+            end
+
+            //----------------------------------------------------------
+            // Загрузка числа в счётчик данных: из регистра памяти
+            // (+, LOAD) или с терминала (CIN)
+            //----------------------------------------------------------
+            S_DSET: begin
+                if (go)
+                    state <= (op == OP_DATA_STEP) ? S_DOP : S_IDLE;
+            end
+
+            //----------------------------------------------------------
+            // Шаг (+ -) или обнуление (CLRD) счётчика данных: после
+            // них счётчик держит ячейку и расходится с памятью
+            //----------------------------------------------------------
+            S_DOP: begin
+                if (go) begin
+                    lock_q  <= 1'b1;
+                    dirty_q <= 1'b1;
+                    state   <= S_IDLE;
+                end
+            end
+
+            default: state <= S_IDLE;
+            endcase
         end
     end
 

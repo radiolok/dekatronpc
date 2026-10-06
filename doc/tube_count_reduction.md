@@ -246,3 +246,145 @@ Synthesis (`run_tests.sh -s`, `-J 50`). `dpc_stat.py` needs the `liberty` module
 | ApLine | 989 | 874 | **−115** |
 | MachineCtrl | 471.5 | 493.5 | +22 (`rx_rdy` decode, plus ABC variance) |
 | Total | 2336.5 | **2242** | −94.5 |
+
+## 10. Done: ApLine FSM rewrite (§4, REQ-APV2-007)
+
+The §4 prototype, now in `rtl/DekatronPC/ApLine.sv` (`rx_q` was already removed in §9).
+
+Changes:
+- 9 states → 6: `S_IDLE, S_FLUSH, S_READ, S_AP, S_DSET, S_DOP`. The WAIT states
+  (`S_AP_WAIT`, `S_DATA_SET_W`, `S_DATA_WAIT`) are gone.
+- The 7 registered strobes are decoded from `state` (Moore):
+  `ap_valid = S_AP & go`, `data_valid = (S_DSET | S_DOP) & go`,
+  `mem_valid = (S_FLUSH | S_READ) & go`, `mem_wr = S_FLUSH`, `data_set = S_DSET`,
+  `ap_set_zero = op==AP_ZERO`, `data_set_zero = op==DATA_ZERO`,
+  where `go = ap_ready & data_ready & mem_ready`.
+- Each non-IDLE state issues one operation when all three slaves are idle and leaves in
+  the same cycle (the handshake happens in that cycle, because the slave's own ready is
+  part of `go`). The next state, or IDLE's `ready`, waits for `go` again, so it also
+  waits for the previous operation to finish. Slaves' `ready` never depends on `valid`,
+  so `valid & go` makes no loop.
+- End of a memory access = `mem_ready` returning. `Ram` drops `busy` on the same edge
+  that `rd_data` becomes valid, and the data then holds until the next access. So
+  `mem_rd_valid` is no longer used by ApLine (the port stays).
+- `lock`/`dirty` after `+ - CLRD` are set when `S_DOP` hands the operation to the
+  counter (the old code set them one state later). Nothing can observe the
+  difference: `ready` stays low until the counter is done.
+- External behaviour is unchanged, including the known v0.9 divergence (a clean AP
+  step does not clear `lock`, TRS §22 item 8; the fix is not applied).
+
+The held-level `mem_valid` question from §4 is settled by the design: `mem_valid` only rises
+together with `mem_ready`, so a held request can't be accepted twice. The old FSM had
+two flaws here. On the first access after reset it re-raised `mem_valid` while the
+memory was busy (the RAM ignored it). On every later access it took the **stale**
+`rd_valid` of the previous access, which stays 1 until the next accept, as the end
+of the read in the accept cycle. It worked only because IDLE's `ready` also waits
+for `mem_ready`, and the counter write window outlasts the one-cycle read.
+
+Verification (Icarus, `rtl/run/emul ApLine`):
+- `ApLine_tb` was extended with STORE, CLRML (twice: dirty and clean), CLRA with a
+  dirty cell, the 255 ↔ 0 wrap, memory access counts (20 AP steps → 0 accesses,
+  STORE → 1 write, a clean AP step → no write, CLRML → 1 write, TEST/COUT after a
+  flush → no read), and a monitor that flags `mem_valid` without `mem_ready`.
+- New ApLine: PASS, 485 µs (the old FSM with the extended test: 575 µs and 1 error,
+  the monitor on the first access after reset; every functional check passes on
+  both).
+- `DekatronPC` hello test passes (it only checks IP moving). Verilator `--lint-only -Wall`
+  is clean for DekatronPC.
+- `-DASSERTIONS` does not build on Icarus (syntax in `DekatronTubeV2_assertions.sv`,
+  unrelated), so the ApLine assertions did not run. The tb monitor covers the
+  handshake part.
+- Not run: the full `run_tests.sh -t`, the Verilator DekatronPC builds and the cocotb
+  regression (heavy, AGENTS §0). The cocotb regression has no ApLine target.
+
+Synthesis (`./synth ApLine`, `-J 50`; `equiv_opt` found no problems):
+
+| Block | before (§9) | now | Δ |
+|---|---|---|---|
+| ApLine | 874 | **719** | **−155** |
+| Total (IpLine + ApLine + MachineCtrl) | 2242 | **2087** | −155 |
+
+The ApLine netlist has 32 triggers (18 `DFFSR_n` + 14 `DFF`, counters included).
+Block diagram: sheet 5 (`05_2_apline_fsm.svg`) was redrawn with the new states.
+
+## 11. Done: IpLine FSM rewrite (R1, REQ-IPV2-007)
+
+The §4 method applied to `rtl/DekatronPC/IpLine.sv` (item R1 of §5).
+
+Changes:
+- 12 states → 11: `S_IDLE, S_IP, S_FETCH, S_FETCH_W, S_SCAN_EVAL, S_LOOP, S_INSN_IN,
+  S_WRITE, S_CLR_IP, S_CLR_LOOP, S_HALT`. The pairs `IP_OP/IP_WAIT`, `LOOP_OP/LOOP_WAIT`
+  and `CLR_OP/CLR_WAIT` are gone. `clr_is_loop_q` became two states. `S_FETCH_W` is new
+  and is the only waiting state: `insn_q` has to latch `rd_data`, and that is valid only
+  when the read ends.
+- The 8 registered strobes are decoded from `state` (Moore), with
+  `go = ip_ready & loop_ready & mem_ready`:
+  `ip_valid = (S_IP & ~scan_done | S_CLR_IP) & go`, `loop_valid = (S_LOOP | S_CLR_LOOP) & go`,
+  `mem_valid = (S_FETCH | S_WRITE) & go`, `mem_wr = S_WRITE`, `ip_set_zero = S_CLR_IP`,
+  `loop_set_zero = S_CLR_LOOP`.
+- `ip_dec` and `scan_dec_q` are merged into one `dir_q` (direction of the next IP step:
+  scan direction or the ±IP key). `loop_dec = dir_q ? insn_loop_open : insn_loop_close`,
+  taken from `insn_q`. `loop_init_q` is gone: on the starting bracket the opposite
+  bracket detector is 0, so the first step is an increment by itself.
+- End of scan: `S_LOOP` leaves on issue, so the zero check moved to `S_IP`. When
+  `scanning_q & loop_is_zero` holds there (after `go`, so the loop step is done), the
+  pair is found and the FSM returns to `S_IDLE` without stepping. During a scan the
+  nesting counter is 0 only at that moment: the start and own brackets increment it,
+  and overflow is caught before the step.
+- `mem_wr_data = insn_q` instead of the live `insn_in`. The loader may change `insn_in`
+  right after the `insn_in_valid & insn_in_ready` handshake, and `DekatronPC_tb` does.
+  The old FSM wrote one cycle after the handshake and took the next opcode. That was found
+  by reading the code; it wasn't simulated on the old RTL.
+- `halt_pending_q` is now cleared by `soft_rst | hard_rst` too. Before, a reset during
+  the halt step left it set, and the next IP step went to `S_HALT` with `halt_rq` low.
+- `mem_rd_valid` is no longer used (the port stays, as in ApLine).
+
+Defect of the old FSM, found by the new testbench: it latched `insn_q` in the cycle the
+memory **accepted** the read, using the stale `rd_valid` of the previous access (the
+same flaw §10 describes for the old ApLine, but here it loses data). With a memory that
+follows the `Ram` discipline, every fetch returned the opcode of the previous fetch
+(the first one after `rst_n` returned the reset value 0). The old `IpLine_tb` didn't see
+this because its memory was combinational and always ready. The DekatronPC test checks
+only that IP moves (TRS §22 item 5), so it didn't see it either.
+
+Verification (Icarus, `rtl/run/emul IpLine ../programs/looptest.bfk`):
+- `IpLine_tb` rewritten. The test memory now follows `Ram`: `ready = ~busy`, 2 busy
+  cycles, `rd_data` is X until `ready` returns, write-through. The test has six parts:
+  1. looptest (back scan);
+  2. loading a 23-opcode program with nesting depth 3 over `insn_in` (EOT is shown on
+     `insn` and not written; `insn_in` changes right after each handshake). Then 400
+     fetches with random `loop_val_zero` (131 scans, forward and back), each compared to
+     a reference model (address and opcode), with the nesting counter 0 after each
+     fetch (REQ-IPV2-003);
+  3. overflow: 120 × `[`, the scan stops at IP 99 with the counter at 99, a repeated
+     NEXT doesn't move, CLRL clears both (REQ-CNT-007, REQ-IPV2-004);
+  4. CLRI: `insn_valid` drops, and the next fetch reads address 0 without a step;
+  5. halt: IP+1, `ready` and `insn_valid` low, ±IP keys, after release the fetch reads
+     in place;
+  6. hard reset: IP = 99900.
+
+  Monitors: `mem_valid` without `mem_ready`, `ip_valid & loop_valid`, X on `insn` at ready.
+- New IpLine: PASS, 9259 µs simulated, 1.6 s wall time. Old IpLine on the same test:
+  hangs in part 1 (stale opcodes).
+- Verilator `--lint-only -Wall` is clean for DekatronPC. The DekatronPC hello test
+  (Icarus) passes, but it checks only that IP moves.
+- Not run: the full `run_tests.sh -t`, the Verilator DekatronPC builds and the cocotb
+  regression (heavy, AGENTS §0).
+
+Synthesis (`./synth IpLine`, `-J 50`; `equiv_opt`: 129/129 `$equiv` cells proven). The
+old IpLine was synthesized with the same flow from a scratch copy:
+
+| | old | new | Δ |
+|---|---|---|---|
+| IpLine, tubes | 902 | **722** | **−180** |
+| Triggers (counters included) | 51 | 40 | −11 |
+
+The `−180` compares two runs made today with the same flow. Against the §9 figure
+(874.5, same RTL as "old") it is −152.5; the 27.5 gap is ABC variance.
+
+The three blocks from today's netlists: IpLine 722 + ApLine 714 + MachineCtrl 512 =
+**1948**. ApLine and MachineCtrl RTL didn't change since §10; their figures (719 and
+493.5 then) moved with ABC variance.
+
+Block diagram: sheet 4 (`04_1_ipline.svg`, `04_2_ipline_fsm.svg`) redrawn. No SVG
+renderer was available, so the layout was checked by coordinates only.
