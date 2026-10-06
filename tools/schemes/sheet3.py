@@ -16,11 +16,11 @@ def fig_counter():
 
     # окно записи и автомат
     f.wire([(360, 70), (440, 70)], label="write_req", lx=368, ly=63)
-    f.box(440, 40, 170, 60, "Окно записи", ["Impulse + OneShot", "WR_WINDOW_HS"])
+    f.box(440, 40, 170, 60, "Окно записи", ["OneShot, WR_WINDOW_HS", "пуск: write_req | rst"])
     f.wire([(525, 100), (525, 130)], label="writing", lx=531, ly=120)
     f.wire([(360, 152), (440, 152)], label="accept, вид", lx=368, ly=145)
-    f.box(440, 130, 170, 86, "Автомат", ["IDLE · SET · ZERO · TOP", "ready = IDLE",
-                                          "· settled_q · ¬rst_active"])
+    f.box(440, 130, 170, 86, "Автомат", ["IDLE·SET·ZERO·TOP·RST", "ready = IDLE",
+                                          "· ¬rst_active"])
 
     # ready
     f.wire([(440, 195), (16, 195)], label="ready", lx=20, ly=188, lcls="tp")
@@ -85,22 +85,22 @@ def fig_counter():
         f.dot(x + 140, 575)
         f.wire([(x + 60, 560), (x + 60, 600)])
     f.text(1066, 579, "out", "tp")
-    f.text(1066, 594, "out_valid = &Valid", "tm")
-    f.text(470, 590, "Zero · Nine · TopPin · Valid", "tn", "middle")
+    f.text(470, 590, "Zero · Nine · TopPin", "tn", "middle")
 
     # регистры состояния
     f.box(400, 600, 600, 50, "Регистры состояния",
-          ["zeroes_q · nines_q · tops_q · settled_q — по clk, только при all_valid"], top=19)
-    f.pin_out(1000, 625, 1030, "zero, at_top")
+          ["nines_q, zeroes_q [D−2:0] — перенос; zero_q · at_top_q — только TOP_LIMIT_MODE; без сброса"], top=19)
+    f.pin_out(1000, 625, 1030, "zero, at_top ← катоды")
     f.wire([(400, 625), (130, 625), (130, 182), (170, 182), (170, 170)])
-    f.text(136, 500, "zero · at_top · settled_q", "tn")
+    f.text(136, 500, "zero_q · at_top_q", "tn")
     return f.render()
 
 
 def fig_counter_fsm():
-    f = Fig("cntfsm", 760, 290,
+    f = Fig("cntfsm", 760, 390,
             "Автомат счётчика: шаг выполняется в состоянии IDLE без снятия ready, операции "
-            "записи уходят в SET, ZERO или TOP на время окна записи.")
+            "записи уходят в SET, ZERO или TOP на время окна записи, линии сброса — в RST "
+            "до снятия линии и конца окна.")
     f.state("IDLE", 130, 145, "ST_IDLE", cls="st-acc")
     f.state("SET", 470, 55, "ST_SET")
     f.state("ZERO", 470, 145, "ST_ZERO")
@@ -116,5 +116,9 @@ def fig_counter_fsm():
     f.text(646, 160, "writing", "tl")
     f.text(646, 174, "снят", "tl")
     f.text(380, 270, "окно записи закончилось", "tl", "middle")
-    f.text(16, 24, "soft_rst | hard_rst → ST_IDLE из любого состояния", "tl")
+    f.state("RST", 330, 315, "ST_RST")
+    f.edge("RST", "l", "IDLE", "b", ob=-30, via=[(100, 315)],
+           label="линия снята · окно истекло", lx=176, ly=309)
+    f.selfloop("RST", "b", "w", "rst_active | writing", 330, 382)
+    f.text(16, 24, "soft_rst | hard_rst → ST_RST из любого состояния, запуск окна записи; rst_n → ST_RST", "tl")
     return f.render()

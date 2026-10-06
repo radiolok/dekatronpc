@@ -163,15 +163,15 @@ def fig_timing():
         if t >= 0:
             f.text(X(t), 50, str(t), "ti", "middle")
     # фазы такта
-    for a, b, name in ((0, 3, "PHASE1_HS = 3"), (3, 7, "PHASE2_HS = 4"), (7, 10, "падение, 3")):
+    for a, b, name in ((0, 3, "PHASE1_HS = 3"), (3, 6, "PHASE2_HS = 3"), (6, 10, "падение 3 + запас 1")):
         f.text((X(a) + X(b)) / 2, 22, name, "tl", "middle")
         f.wire([(X(a) + 2, 27), (X(b) - 2, 27)], "wthin", arrow=False)
 
     wave(84, [(-1, 0, 0), (0, 5, 1), (5, 10, 0), (10, 11, 1)])
     wave(122, [(-1, 0, 0), (0, 3, 1), (3, 10, 0), (10, 11, 1)])
-    wave(160, [(-1, 3, 0), (3, 7, 1), (7, 11, 0)])
+    wave(160, [(-1, 3, 0), (3, 6, 1), (6, 11, 0)])
     wave(198, [(-1, 0, 0), (0, 3, 1), (3, 10, 0), (10, 11, 1)], "wvacc")
-    wave(236, [(-1, 3, 0), (3, 7, 1), (7, 11, 0)], "wvacc")
+    wave(236, [(-1, 3, 0), (3, 6, 1), (6, 11, 0)], "wvacc")
 
     # шина положения разряда
     def bus(y, segs, cls="bus"):
@@ -181,12 +181,12 @@ def fig_timing():
                   f'{x1 + 4},{y + 11} {x1},{y}" class="{c}"/>')
             f.text((x1 + x2) / 2, y + 4, lab, "tm", "middle")
 
-    bus(284, [(-1, 2, "K3", "seg"), (2, 5, "A (10)", "seg-acc"), (5, 10, "B (11)", "seg-acc"),
-              (10, 11, "K4", "seg")])
-    bus(350, [(-1, 0, "K3", "seg"), (0, 10, "невалиден: разряд в пути", "seg-off"),
-              (10, 11, "K4", "seg")])
+    bus(284, [(-1, 2, "K3", "seg"), (2, 5, "A (10)", "seg-acc"), (5, 9, "B (11)", "seg-acc"),
+              (9, 11, "K4", "seg")])
+    bus(350, [(-1, 0, "K3", "seg"), (0, 9, "нулевой код: разряд в пути", "seg-off"),
+              (9, 11, "K4", "seg")])
     # размерные пометки
-    for a, b, lab in ((0, 2, "GUIDE_STEP"), (3, 5, "GUIDE_STEP"), (7, 10, "FALL_STEP")):
+    for a, b, lab in ((0, 2, "GUIDE_STEP"), (3, 5, "GUIDE_STEP"), (6, 9, "FALL_STEP")):
         f.wire([(X(a), 304), (X(b), 304)], "wthin", arrow=True, start_arrow=True)
         f.text((X(a) + X(b)) / 2, 316, lab, "tn", "middle")
     return f.render()

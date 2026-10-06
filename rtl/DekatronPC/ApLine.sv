@@ -142,14 +142,12 @@ module ApLine #(
     wire            ap_ready;
     logic           ap_set_zero;
     wire [AP_W-1:0] ap_out;
-    wire            ap_out_valid;
 
     DekatronCounter #(
         .D_NUM          (AP_DEKATRON_NUM),
         .READ           (1'b1),
         .WRITE          (1'b0),
-        .TOP_LIMIT_MODE (1'b1),
-        .TOP_VALUE      (AP_TOP_VALUE),
+        .TOP_LIMIT_MODE (1'b0),
         .HARD_RST_D_CNT (0)
     ) ap_counter (
         .rst_n     (rst_n),
@@ -164,7 +162,6 @@ module ApLine #(
         .set_zero  (ap_set_zero),
         .in        ({AP_W{1'b0}}),
         .out       (ap_out),
-        .out_valid (ap_out_valid),
         .zero      (ap_zero),
         .at_top    ()
     );
@@ -180,7 +177,6 @@ module ApLine #(
     logic              data_set_zero;
     logic [DATA_W-1:0] data_in;
     wire [DATA_W-1:0]  data_out;
-    wire               data_out_valid;
     wire               data_ctr_zero;
 
     DekatronCounter #(
@@ -203,7 +199,6 @@ module ApLine #(
         .set_zero  (data_set_zero),
         .in        (data_in),
         .out       (data_out),
-        .out_valid (data_out_valid),
         .zero      (data_ctr_zero),
         .at_top    ()
     );
@@ -444,7 +439,7 @@ module ApLine #(
                 end
 
                 S_AP_WAIT: begin
-                    if (ap_ready & ap_out_valid) begin
+                    if (ap_ready) begin
                         // Ячейка сменилась: регистр памяти к ней не относится.
                         // Читать заранее не будем — понадобится, тогда и прочтём.
                         mem_here_q <= 1'b0;
@@ -464,7 +459,7 @@ module ApLine #(
                 end
 
                 S_DATA_SET_W: begin
-                    if (data_ready & data_out_valid) begin
+                    if (data_ready) begin
                         case (op)
                             OP_DATA_STEP: begin
                                 lock_q     <= 1'b1;
@@ -489,7 +484,7 @@ module ApLine #(
                 end
 
                 S_DATA_WAIT: begin
-                    if (data_ready & data_out_valid) begin
+                    if (data_ready) begin
                         if (op == OP_DATA_STEP) begin
                             lock_q  <= 1'b1;
                             dirty_q <= 1'b1;

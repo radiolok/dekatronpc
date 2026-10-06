@@ -37,7 +37,7 @@
 
 module DekatronPhaseGen #(
     parameter unsigned PHASE1_HS = 3,   // длительность первой фазы
-    parameter unsigned PHASE2_HS = 4    // длительность второй фазы
+    parameter unsigned PHASE2_HS = 3    // длительность второй фазы
 )(
     input  wire hsClk,    // временная база модели (10 МГц)
     input  wire Clk,      // такт счёта (1 МГц)

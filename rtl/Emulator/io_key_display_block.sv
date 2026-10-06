@@ -28,7 +28,7 @@ module io_key_display_block #(
 
     input wire  [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipAddress,
     output wire  [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ipAddress1,
-    input wire [INSN_WIDTH-1:0] RomData1,    
+    input wire [INSN_WIDTH-1:0] RomData1,
     output wire  [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apAddress1,
     input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apData1,
     input wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] apData,
@@ -50,7 +50,7 @@ wire [7:0] cathodeData;
 assign cathodeData = {In12CathodeToPin(cathodeLow), In12CathodeToPin(cathodeHigh)};
 
 wire [3:0] inIPHigh [0:9];
-generate 
+generate
     genvar idx;
     for (idx = 0; idx < 9; idx = idx + 1) begin: IP_HIGH
         if (idx < IP_DEKATRON_NUM) begin: IP_EXIST
@@ -73,7 +73,7 @@ always_comb begin
             cathodeLow = apData[7:4];
         end
         4'd2: begin
-            cathodeHigh = loopCounter[11:8];
+            cathodeHigh = 4'd0;
             cathodeLow = apData[11:8];
         end
         4'd3: begin
@@ -147,7 +147,7 @@ wire [7:0] ms6205_data;
 wire [2:0] selectOutput;
 
 bn_mux_n_1_generate #(
-.DATA_WIDTH(8), 
+.DATA_WIDTH(8),
 .SEL_WIDTH(3)
 ) muxOutput(
     .data(

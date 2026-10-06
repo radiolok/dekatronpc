@@ -108,9 +108,6 @@ def fig_module():
     f.box(740, 52, 170, 60, "BinToBcd", ["ИЛИ по линиям 8-4-2-1"], cls="blk-opt")
     f.text(825, 126, "только при READ", "tn", "middle")
     f.pin_out(910, 82, 940, "Out[3:0]")
-    f.wire([(BX, 168), (740, 168)])
-    f.box(740, 140, 170, 56, "OR10_X7", ["лампа ИЛИ-10 (SYNTH)", "|MainOneHot в модели"])
-    f.pin_out(910, 168, 940, "Valid")
     for y, tap, name, opt in ((240, "[0]", "Zero", False), (272, "[9]", "Nine", False),
                               (304, "[TOP_PIN_OUT]", "TopPin", True)):
         f.wire([(BX, y), (940, y)], "wd" if opt else "w")

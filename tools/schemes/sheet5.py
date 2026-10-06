@@ -19,7 +19,7 @@ def fig_apline():
 
     # счётчик адреса
     f.wire([(400, 70), (500, 70)], label="valid · set_zero", lx=406, ly=63)
-    f.wire([(500, 108), (400, 108)], label="ready · out_valid", lx=406, ly=101)
+    f.wire([(500, 108), (400, 108)], label="ready", lx=406, ly=101)
     f.box(500, 40, 220, 100, "DekatronCounter · AP",
           ["5 декад, 0…29999", "TOP_LIMIT_MODE", "29999+1 → 0, 0−1 → 29999"])
     f.wire([(610, 140), (610, 166)])

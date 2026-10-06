@@ -6,7 +6,7 @@
 // Интерфейс DUT обновлён под v0.7:
 //   Clk/hsClk/Rst_n/HardRst_n -> clk/hs_clk/rst_n/soft_rst/hard_rst
 //   Request/Ready/Set/SetZero/In/Out ->
-//   valid/ready/set/set_zero/in/out/out_valid/zero/at_top
+//   valid/ready/set/set_zero/in/out/zero/at_top (out_valid удалён)
 //
 // ШАГ 1 (исправлено в RTL): нуль-задержечная петля
 //   accept -> write_req -> write_start(Impulse) -> writing(OneShot)
@@ -54,7 +54,6 @@ reg [WIDTH-1:0] In      = '0;
 
 wire             Ready;
 wire [WIDTH-1:0] Out;
-wire             OutValid;
 wire             Zero;
 wire             AtTop;
 
@@ -74,7 +73,6 @@ DekatronCounter  #(.D_NUM(DEKATRON_NUM),
     .set_zero (SetZero),
     .in       (In),
     .out      (Out),
-    .out_valid(OutValid),
     .zero     (Zero),
     .at_top   (AtTop)
 );
@@ -97,10 +95,10 @@ task automatic do_op_full(input bit d, input bit s, input bit sz,
     valid   <= 1'b0;
     Set     <= 1'b0;
     SetZero <= 1'b0;
-    // Ждать именно завершения операции: в начале окна записи выход ещё
-    // не замаскирован, поэтому одного !OutValid недостаточно.
+    // Ждать завершения операции по ready: для шага он не снимается,
+    // для записи снят до конца окна writeTimer.
     @(posedge Clk);
-    while (!(Ready & OutValid)) @(posedge Clk);
+    while (!Ready) @(posedge Clk);
     @(posedge Clk);          // дать признакам zero/at_top установиться
 endtask
 
@@ -118,7 +116,8 @@ task automatic do_rst(input bit hard, input bit expected_top);
     repeat (15) @(posedge Clk);       // 150 hs > RESET_MIN_HS = 100
     soft_rst <= 1'b0;
     hard_rst <= 1'b0;
-    while (!OutValid) @(posedge Clk);
+    @(posedge Clk);
+    while (!Ready) @(posedge Clk);
 endtask
 
 function automatic [WIDTH-1:0] exp_to_bcd(input int unsigned v);

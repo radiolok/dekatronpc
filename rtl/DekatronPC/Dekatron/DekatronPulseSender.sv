@@ -47,7 +47,7 @@ module DekatronPulseSender #(
     parameter bit          EXT_PHASES = 1'b0,
 
     parameter unsigned PHASE1_HS  = 3,
-    parameter unsigned PHASE2_HS  = 4
+    parameter unsigned PHASE2_HS  = 3
 )(
     input  wire hsClk,      // временная база модели
     input  wire Clk,        // такт счёта

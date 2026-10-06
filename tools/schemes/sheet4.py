@@ -23,15 +23,15 @@ def fig_ipline():
 
     # счётчик инструкций
     f.wire([(420, 70), (560, 70)], label="valid · dec", lx=428, ly=63)
-    f.wire([(560, 108), (420, 108)], label="ready · out_valid", lx=428, ly=101)
+    f.wire([(560, 108), (420, 108)], label="ready", lx=428, ly=101)
     f.box(560, 40, 210, 100, "DekatronCounter · IP",
           ["5 декад, 0…99999", "HARD_RST_D_CNT = 3", "hard_rst → 99900", "soft_rst → 00000"])
 
     # счётчик циклов
     f.wire([(420, 186), (560, 186)], label="valid · dec · set_zero", lx=428, ly=179)
-    f.wire([(560, 224), (420, 224)], label="zero · out_valid", lx=428, ly=217)
+    f.wire([(560, 224), (420, 224)], label="zero", lx=428, ly=217)
     f.box(560, 168, 210, 80, "DekatronCounter · Loop",
-          ["TRS: 2 декады, 0…99", "RTL: 3 декады (parameters.sv)", "переход через 0 = переполнение"])
+          ["2 декады, 0…99", "LOOP_DEKATRON_NUM = 2", "переход через 0 = переполнение"])
 
     # память программ
     f.wire([(770, 90), (880, 90)], label="ip_addr (BCD)", lx=778, ly=83)

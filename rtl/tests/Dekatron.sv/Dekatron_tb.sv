@@ -9,7 +9,8 @@
 //   DekatronPhaseGen + BcdToBinEn + BinToBcd).
 //
 // Шаг задаётся уровнем StepF/StepR на весь такт Clk; показание Out
-// достоверно только при Valid = 1. Запись/сброс удерживаются заметно
+// достоверно по окончании такта шага. Признака Valid у модуля нет:
+// длительности известны заранее. Запись/сброс удерживаются заметно
 // дольше WRITE_MIN_HS / RESET_MIN_HS тактов hsClk.
 //----------------------------------------------------------------------
 module Dekatron_tb();
@@ -42,7 +43,6 @@ reg             SetTop   = 1'b0;
 reg [WIDTH-1:0] In       = '0;
 
 wire [WIDTH-1:0] Out;
-wire             Valid;
 wire             Zero;
 wire             Nine;
 wire             TopPin;
@@ -67,7 +67,6 @@ DekatronModule #(
     .SetZero (SetZero),
     .SetTop  (SetTop),
     .Out     (Out),
-    .Valid   (Valid),
     .Zero    (Zero),
     .Nine    (Nine),
     .TopPin  (TopPin)
@@ -80,38 +79,32 @@ $dumpvars(0, Dekatron_tb); end
 // Один шаг: уровень StepF/StepR на весь такт Clk
 //----------------------------------------------------------------------
 task automatic step(input bit down);
-    while (!Valid) @(posedge Clk);
     @(posedge Clk);
     StepF <= ~down;
     StepR <=  down;
     @(posedge Clk);
     StepF <= 1'b0;
     StepR <= 1'b0;
-    while (!Valid) @(posedge Clk);
     @(negedge Clk);
 endtask
 
 task automatic write_value(input [WIDTH-1:0] v);
-    while (!Valid) @(posedge Clk);
     @(posedge Clk);
     In      <= v;
     SetData <= 1'b1;
     repeat (15) @(posedge Clk);     // 150 hs > WRITE_MIN_HS = 100
     SetData <= 1'b0;
     In      <= '0;
-    while (!Valid) @(posedge Clk);
     @(negedge Clk);
 endtask
 
 task automatic set_position(input bit top, input bit zero);
-    while (!Valid) @(posedge Clk);
     @(posedge Clk);
     SetTop  <= top;
     SetZero <= zero;
     repeat (15) @(posedge Clk);     // 150 hs > RESET_MIN_HS = 100
     SetTop  <= 1'b0;
     SetZero <= 1'b0;
-    while (!Valid) @(posedge Clk);
     @(negedge Clk);
 endtask
 
@@ -134,7 +127,6 @@ initial begin
     In      <= '0;
 
     #2000 Rst_n <= 1'b1;
-    while (!Valid) @(posedge Clk);
     check_out(0);
 
     $display("Count forward");
@@ -163,7 +155,7 @@ initial begin
     $display("Reset to zero");
     set_position(1'b0, 1'b1);
     check_out(0);
-    if (!Zero || !Valid) begin
+    if (!Zero) begin
         errors++;
         $display("FAIL: zero position not flagged after reset0");
     end

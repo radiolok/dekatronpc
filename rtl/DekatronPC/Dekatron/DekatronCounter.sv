@@ -22,6 +22,13 @@
 //   Медленный путь (запись, сбросы): ready снимается на время окна
 //   записи, около WRITE_MIN_HS тактов hs_clk (по умолчанию 10 тактов clk).
 //
+//   Готовность выводится из известных длительностей, а не из показаний
+//   декатрона: шаг гарантированно укладывается в один такт clk (это
+//   проверяет DekatronModule при компиляции), запись и сброс — в окно
+//   реле времени writeTimer. Таймер запускается в момент, когда счётчик
+//   видит операцию записи или поднятую линию сброса; ready снимается в
+//   тот же момент и возвращается по окончании окна.
+//
 //   Операнды не защёлкиваются (экономия ламп): признаки операции dec,
 //   set, set_zero нужны только до рукопожатия, а in идёт прямо в схему
 //   записи и должен оставаться неизменным до возврата ready.
@@ -55,9 +62,10 @@
 //    не менее RESET_MIN_HS тактов hs_clk. Растяжки внутри счётчика нет —
 //    это была бы лишняя логика поверх уже существующей физической цепи.
 //
-// 5. Появился out_valid. Пока разряд идёт по подкатодам, ни один главный
-//    катод не светится и позиционный код нулевой, что неотличимо от
-//    настоящего нуля. Прежде эту неопределённость маскировали выдачей X.
+// 5. Признака out_valid больше нет. Он строился из ИЛИ по главным катодам
+//    и говорил только «разряд на каком-то главном катоде», а не «операция
+//    закончена». Мастер ждёт ready: после шага показание out достоверно
+//    на следующем фронте clk, после записи и сброса — по возврату ready.
 //
 // 6. Генератор фаз один на весь счётчик, а не в каждом модуле: фазы
 //    одинаковы для всех декад, а шагает та, которой цепочка переноса
@@ -87,9 +95,8 @@ module DekatronCounter #(
     // Режим верхнего предела: при достижении TOP_VALUE инкремент даёт 0,
     // а декремент из нуля даёт TOP_VALUE
     parameter bit          TOP_LIMIT_MODE = 1'b0,
-    /* verilator lint_off WIDTHEXPAND */
-    parameter [WIDTH-1:0]  TOP_VALUE      = {4'd5, 4'd5, 4'd5},
-    /* verilator lint_on WIDTHEXPAND */
+    // По умолчанию 5 во всех декадах; ширина следует за D_NUM
+    parameter [WIDTH-1:0]  TOP_VALUE      = {D_NUM{4'd5}},
 
     // Сколько старших декад операция set_hard устанавливает в 9.
     // 0 — операция set_hard не поддерживается.
@@ -104,7 +111,7 @@ module DekatronCounter #(
     // Нарезка такта счёта
     parameter unsigned HS_PER_CLK     = 10,
     parameter unsigned PHASE1_HS      = 3,
-    parameter unsigned PHASE2_HS      = 4
+    parameter unsigned PHASE2_HS      = 3
 
 )(
     input  wire             rst_n,      // сброс логики счётчика; разряд НЕ двигает
@@ -133,8 +140,7 @@ module DekatronCounter #(
 /* verilator lint_on UNUSEDSIGNAL */
 
     // Результат
-    output wire [WIDTH-1:0] out,
-    output wire             out_valid,  // разряд во всех декадах установился
+    output wire [WIDTH-1:0] out,        // достоверно на фронтах clk при ready
     output wire             zero,       // счётчик равен нулю
     output wire             at_top      // счётчик равен TOP_VALUE
 );
@@ -148,47 +154,52 @@ module DekatronCounter #(
         ST_IDLE = 3'd0,
         ST_SET  = 3'd1,   // запись числа из in (мастер держит его до ready)
         ST_ZERO = 3'd2,   // сброс всех декад в 0
-        ST_TOP  = 3'd3;   // установка всех декад в TOP_VALUE
+        ST_TOP  = 3'd3,   // установка всех декад в TOP_VALUE
+        ST_RST  = 3'd4;   // физический сброс: ждём окончания линии и окна
 
     logic [2:0] state, next;
 
     //------------------------------------------------------------------
-    // Состояние декад, защёлкнутое по фронту clk
+    // Показания декад
     //------------------------------------------------------------------
     logic [D_NUM-1:0] dek_zero;      // комбинационно с декад
     logic [D_NUM-1:0] dek_nine;
     logic [D_NUM-1:0] dek_top;
-    logic [D_NUM-1:0] dek_valid;
 
-    logic [D_NUM-1:0] zeroes_q;      // значения ДО текущего шага
-    logic [D_NUM-1:0] nines_q;
-    logic [D_NUM-1:0] tops_q;
-    logic             settled_q;     // все декады установились
+    // Выходные признаки берутся прямо с катодов, как и out: достоверны
+    // на фронтах clk при ready, внутри такта шага проваливаются в нуль.
+    // В режиме без верхнего предела at_top — «все декады на девятке»;
+    // он нужен только счётчику вложенности для ошибки переполнения.
+    assign zero   = &dek_zero;
+    assign at_top = TOP_LIMIT_MODE ? &dek_top : &dek_nine;
 
-    wire all_valid = &dek_valid;
+    //------------------------------------------------------------------
+    // Признаки ДО текущего шага, защёлкнутые по фронту clk
+    //
+    // Нужны там, где решение принимается внутри такта шага: разряд
+    // уходит с главного катода уже в первой трети такта, а шаг обязан
+    // держаться на декаде весь такт. Защёлкивается только то, что
+    // действительно читается:
+    //   nines_q/zeroes_q — цепочка переноса; старшая декада переноса
+    //                      никуда не отдаёт, поэтому D_NUM-1 разрядов;
+    //   zero_q/at_top_q  — автопереходы через край, только в режиме
+    //                      верхнего предела.
+    //
+    // Сброса у них нет: все потребители маскированы accept, а ready
+    // поднимается не раньше первого фронта clk после rst_n (автомат
+    // выходит из сброса в ST_RST), и на этом фронте признаки уже
+    // защёлкнуты с реальных катодов. Во время окна записи или сброса
+    // защёлкивается мусор, но ready в это время снят.
+    //------------------------------------------------------------------
+    localparam unsigned CW = (D_NUM > 1) ? D_NUM - 1 : 1;
 
-    always_ff @(posedge clk, negedge rst_n) begin
-        if (~rst_n) begin
-            zeroes_q  <= '0;
-            nines_q   <= '0;
-            tops_q    <= '0;
-            settled_q <= 1'b0;
-        end
-        else begin
-            settled_q <= all_valid;
-            // Пока разряд в пути, показания не обновляем: держим
-            // последнее достоверное значение
-            if (all_valid) begin
-                zeroes_q <= dek_zero;
-                nines_q  <= dek_nine;
-                tops_q   <= dek_top;
-            end
-        end
+    logic [CW-1:0] zeroes_q;
+    logic [CW-1:0] nines_q;
+
+    always_ff @(posedge clk) begin
+        zeroes_q <= dek_zero[CW-1:0];
+        nines_q  <= dek_nine[CW-1:0];
     end
-
-    assign zero      = &zeroes_q;
-    assign at_top    = &tops_q;
-    assign out_valid = all_valid;
 
     //------------------------------------------------------------------
     // Разбор операции в такте accept
@@ -201,8 +212,18 @@ module DekatronCounter #(
 
     generate
         if (TOP_LIMIT_MODE) begin : g_top_limit
-            assign set_top_int  = zero   &  dec;   // 0 - 1      -> TOP_VALUE
-            assign set_zero_int = at_top & ~dec;   // TOP + 1    -> 0
+            logic zero_q;
+            logic at_top_q;
+
+            always_ff @(posedge clk) begin
+                zero_q   <= &dek_zero;
+                at_top_q <= &dek_top;
+            end
+
+            // Только защёлкнутые признаки: живые с катодов изменятся
+            // внутри такта шага и запустят ложную запись (254+1 -> 0)
+            assign set_top_int  = zero_q   &  dec;   // 0 - 1   -> TOP_VALUE
+            assign set_zero_int = at_top_q & ~dec;   // TOP + 1 -> 0
         end
         else begin : g_no_top_limit
             assign set_top_int  = 1'b0;
@@ -221,7 +242,9 @@ module DekatronCounter #(
     // за время сигнала сброс гарантированно успевает отработать.
     //
     // Пока сброс активен, счётчик не готов и шаги не выдаются:
-    // подкатодные импульсы во время сброса недопустимы.
+    // подкатодные импульсы во время сброса недопустимы. Подъём линии
+    // запускает то же окно writeTimer, что и запись: ready вернётся,
+    // только когда линия снята и окно истекло.
     //------------------------------------------------------------------
     wire rst_active = soft_rst | hard_rst;
     wire rst_hard   = hard_rst;
@@ -241,13 +264,14 @@ module DekatronCounter #(
         ((WRITE_MIN_HS > RESET_MIN_HS) ? WRITE_MIN_HS : RESET_MIN_HS) + 4;
 
     wire write_req = accept & set_any;
+    wire timer_req = write_req | rst_active;
     wire write_start;
     wire writing;
 
     Impulse writeStart (
         .Clk     (hs_clk),
         .Rst_n   (rst_n),
-        .En      (write_req),
+        .En      (timer_req),
         .Impulse (write_start)
     );
 
@@ -263,14 +287,19 @@ module DekatronCounter #(
     //------------------------------------------------------------------
     // Машина состояний
     //------------------------------------------------------------------
+    // Выход из сброса через ST_RST: окно записи сброшено rst_n, поэтому
+    // на первом фронте автомат уходит в ST_IDLE, а признаки *_q на этом
+    // же фронте защёлкиваются с катодов. Отдельный primed_q не нужен.
     always_ff @(posedge clk, negedge rst_n) begin
-        if (~rst_n) state <= ST_IDLE;
+        if (~rst_n) state <= ST_RST;
         else        state <= next;
     end
 
     always_comb begin
-        next = ST_IDLE;
+        // Поднятая линия сброса перебивает всё: ждём её снятия и окна
+        next = ST_RST;
         if (!rst_active) begin
+            next = ST_IDLE;
             case (state)
                 ST_IDLE: begin
                     if (accept) begin
@@ -284,6 +313,9 @@ module DekatronCounter #(
                 end
                 ST_SET, ST_ZERO, ST_TOP: begin
                     if (writing) next = state;   // держим до конца окна записи
+                end
+                ST_RST: begin
+                    if (writing) next = state;   // линия снята, окно ещё идёт
                 end
                 default: next = ST_IDLE;
             endcase
@@ -306,7 +338,7 @@ module DekatronCounter #(
     // Условие избыточно: автомат покидает ST_IDLE при приёме операции
     // записи и возвращается только по окончании окна, поэтому состояние
     // уже несёт нужную информацию.
-    assign ready = (state == ST_IDLE) & settled_q & ~rst_active;
+    assign ready = (state == ST_IDLE) & ~rst_active;
 
     //------------------------------------------------------------------
     // Линии записи на декады
@@ -367,12 +399,15 @@ module DekatronCounter #(
         carry_f = step_f;
         carry_r = step_r;
 
-        for (int i = 0; i < int'(D_NUM); i++) begin
+        step_f_chain[0] = carry_f;
+        step_r_chain[0] = carry_r;
+
+        for (int i = 1; i < int'(D_NUM); i++) begin
+            carry_f = carry_f & nines_q [i-1];
+            carry_r = carry_r & zeroes_q[i-1];
+
             step_f_chain[i] = carry_f;
             step_r_chain[i] = carry_r;
-
-            carry_f = carry_f & nines_q [i];
-            carry_r = carry_r & zeroes_q[i];
         end
     end
 
@@ -431,7 +466,6 @@ module DekatronCounter #(
                 .SetZero  (dek_set_zero),
                 .SetTop   (dek_set_top),
                 .Out      (out[(d+1)*DW-1 -: DW]),
-                .Valid    (dek_valid[d]),
                 .Zero     (dek_zero[d]),
                 .Nine     (dek_nine[d]),
                 .TopPin   (dek_top[d])

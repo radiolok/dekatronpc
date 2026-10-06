@@ -164,7 +164,6 @@ module IpLine #(
     logic           ip_dec;
     logic           ip_set_zero;
     wire [IP_W-1:0] ip_out;
-    wire            ip_out_valid;
 
     DekatronCounter #(
         .D_NUM          (IP_DEKATRON_NUM),
@@ -185,7 +184,6 @@ module IpLine #(
         .set_zero  (ip_set_zero),
         .in        ({IP_W{1'b0}}),
         .out       (ip_out),
-        .out_valid (ip_out_valid),
         .zero      (),
         .at_top    ()
     );
@@ -201,8 +199,8 @@ module IpLine #(
     logic             loop_dec;
     logic             loop_set_zero;
     wire [LOOP_W-1:0] loop_out;
-    wire              loop_out_valid;
     wire              loop_is_zero;
+    wire              loop_at_top;    // 99: следующий инкремент — переполнение
 
     DekatronCounter #(
         .D_NUM          (LOOP_DEKATRON_NUM),
@@ -223,9 +221,8 @@ module IpLine #(
         .set_zero  (loop_set_zero),
         .in        ({LOOP_W{1'b0}}),
         .out       (loop_out),
-        .out_valid (loop_out_valid),
         .zero      (loop_is_zero),
-        .at_top    ()
+        .at_top    (loop_at_top)
     );
 
     assign loop_count    = loop_out;
@@ -250,6 +247,10 @@ module IpLine #(
     // Условия начала промотки
     wire scan_fwd_req  = insn_loop_open  &  loop_val_zero;   // '[' и ноль
     wire scan_back_req = insn_loop_close & ~loop_val_zero;   // ']' и не ноль
+
+    // В промотке своя скобка (по направлению промотки) — инкремент
+    // счётчика вложенности
+    wire loop_inc_next = scan_dec_q ? insn_loop_close : insn_loop_open;
     wire scan_req      = scan_fwd_req | scan_back_req;
 
     //------------------------------------------------------------------
@@ -366,6 +367,11 @@ module IpLine #(
                                 ip_valid <= 1'b1;
                                 state    <= S_IP_OP;
                             end
+                            else if (scan_req & loop_at_top) begin
+                                // Счётчик остался на 99 после прежнего
+                                // переполнения: инкремент снова переполнит
+                                overflow_q <= 1'b1;
+                            end
                             else if (scan_req) begin
                                 // Начало промотки: своя скобка учитывается
                                 // в счётчике вложенности
@@ -395,7 +401,7 @@ module IpLine #(
                 end
 
                 S_IP_WAIT: begin
-                    if (ip_ready & ip_out_valid) begin
+                    if (ip_ready) begin
                         if (halt_pending_q) begin
                             halt_pending_q <= 1'b0;
                             insn_valid_q   <= 1'b0;
@@ -430,7 +436,17 @@ module IpLine #(
                 // Разбор прочитанной инструкции в ходе промотки
                 //------------------------------------------------------
                 S_SCAN_EVAL: begin
-                    if (insn_loop_open | insn_loop_close) begin
+                    if (loop_inc_next & loop_at_top) begin
+                        // Переполнение вложенности ловится ДО шага: счётчик
+                        // стоит на 99, своя скобка дала бы 99 -> 0
+                        // (REQ-CNT-007). Промотку обязательно прервать:
+                        // парная скобка уже не найдётся, и машина зависла
+                        // бы в бесконечном переборе адресов
+                        overflow_q <= 1'b1;
+                        scanning_q <= 1'b0;
+                        state      <= S_IDLE;
+                    end
+                    else if (insn_loop_open | insn_loop_close) begin
                         // Своя скобка углубляет вложенность, ответная
                         // поднимает: направление зависит от того, куда
                         // идёт промотка
@@ -457,19 +473,10 @@ module IpLine #(
                 end
 
                 S_LOOP_WAIT: begin
-                    if (loop_ready & loop_out_valid) begin
-                        // Обнуление счётчика при инкременте означает, что
-                        // он перевалил через 999 — глубина вложенности
-                        // превысила возможности машины
-                        if (~loop_dec & loop_is_zero) begin
-                            // Промотку обязательно прервать: парная скобка
-                            // уже не найдётся, и машина зависла бы в
-                            // бесконечном переборе адресов
-                            overflow_q <= 1'b1;
-                            scanning_q <= 1'b0;
-                            state      <= S_IDLE;
-                        end
-                        else if (~loop_init_q & loop_dec & loop_is_zero) begin
+                    if (loop_ready) begin
+                        // Переполнение здесь уже невозможно: оно ловится
+                        // до инкремента в S_SCAN_EVAL
+                        if (~loop_init_q & loop_dec & loop_is_zero) begin
                             // Парная скобка найдена, стоим на ней
                             scanning_q <= 1'b0;
                             state      <= S_IDLE;
@@ -550,10 +557,10 @@ module IpLine #(
 
                 S_CLR_WAIT: begin
                     if (clr_is_loop_q) begin
-                        if (loop_ready & loop_out_valid) state <= S_IDLE;
+                        if (loop_ready) state <= S_IDLE;
                     end
                     else begin
-                        if (ip_ready & ip_out_valid) state <= S_IDLE;
+                        if (ip_ready) state <= S_IDLE;
                     end
                 end
 
