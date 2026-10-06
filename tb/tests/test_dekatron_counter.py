@@ -17,7 +17,7 @@ DekatronCounter: multi-digit BCD counter with a Valid/Ready handshake:
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import Timer, RisingEdge, FallingEdge, ClockCycles
+from cocotb.triggers import Timer, RisingEdge, FallingEdge, ClockCycles, ReadOnly
 
 import logging
 log = logging.getLogger(__name__)
@@ -95,6 +95,9 @@ async def handshake(dut, *, dec=0, set_=0, set_zero=0, in_val=0):
     dut.valid.value = 1
     await RisingEdge(dut.clk)   # accept edge: valid & ready
     dut.valid.value = 0
+    # Right after the edge cocotb still sees the pre-edge ready = 1; let the
+    # edge settle so a slow operation (set, set_zero) is seen as busy.
+    await ReadOnly()
 
     await wait_ready(dut)       # operation completes (ready rises again)
     # The fast-path result settles within one clk cycle after the accept
@@ -244,9 +247,10 @@ async def test_dcounter_back_to_back(dut):
             "ready must stay high during back-to-back fast transfers"
         await RisingEdge(dut.clk)
 
-    # Let the final carry settle, then deassert valid.
-    await ClockCycles(dut.clk, 1)
+    # Exactly n accept edges: drop valid before the settling cycle,
+    # otherwise the counter takes an (n+1)-th step.
     dut.valid.value = 0
+    await ClockCycles(dut.clk, 1)
 
     out_val = int(dut.out.value)
     log.info(f"After {n} back-to-back cycles: out={out_val:#x}")
