@@ -162,7 +162,7 @@ if [ ${synt} -ne 0 ]; then
 	./synth IpLine
 	./synth ApLine
 	./synth MachineCtrl
-	python3 dpc_stat.py -j IpLine.json,ApLine.json,InsnDecoder.json -l ../vtube/vtube_cells.lib
+	python3 dpc_stat.py -j IpLine.json,ApLine.json,MachineCtrl.json -l ../vtube/vtube_cells.lib
 fi
 
 if [ ${png} -ne 0 ]; then
