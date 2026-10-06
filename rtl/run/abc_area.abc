@@ -1,0 +1,7 @@
+strash
+&get -n
+&deepsyn -J 50 -T 30
+&put
+dch -f
+map -a
+topo
