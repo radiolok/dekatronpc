@@ -300,7 +300,7 @@ regression:
 	            echo "FAIL"; \
 	            echo "$$grp|$$t|FAIL" >> $$TMPFILE; \
 	            tail -n 30 $$LOGDIR/$$t.log | sed 's/^/      | /'; \
-	            echo "::error title=UVM $$t::$$(grep -iE 'error|fail|assert|traceback|not found|no such' $$LOGDIR/$$t.log | tail -n 12 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $$0}')"; \
+	            echo "::error title=UVM $$t::$$( (grep -E 'AssertionError|[Ee]rror:|Traceback|not found|No such' $$LOGDIR/$$t.log | sed 's/^ *//' | head -n 25; grep -E 'TESTS=' $$LOGDIR/$$t.log) | sed 's/%/%25/g' | awk '{printf "%s%%0A", $$0}')"; \
 	        fi; \
 	    done; \
 	done; \

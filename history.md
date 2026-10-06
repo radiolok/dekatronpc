@@ -8,3 +8,4 @@
 - Fixed the sim CI job: veremul passed -GEN_EMULATOR=1 (a 32-bit constant) to a bit parameter, which Verilator -Wall rejects as WIDTHTRUNC; now 1'b1.
 - UVM regression: fixed test_bcd_to_bin (BcdToBin.sv) and the test_dek_counter source list for the new dekatron stack (drive soft_rst/hard_rst); failed targets now print a log tail and a GitHub ::error annotation.
 - Rewrote the pulse_sender, ram and ip_memory cocotb tests for the current Valid/Ready interfaces (they still drove the pre-v0.6 ports) and added Impulse.sv to the dek_counter build.
+- dek_counter test: zero the tubes with a soft_rst pulse before each test (rst_n never moves a discharge), skip the operand-latching test (the RTL contract is that the master holds operands until ready); the regression annotation now lists every assertion.

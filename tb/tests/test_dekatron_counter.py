@@ -10,7 +10,8 @@ DekatronCounter: multi-digit BCD counter with a Valid/Ready handshake:
 - Ready is independent of Valid (asserted in IDLE)
 - INC/DEC: single-cycle operations (Ready stays high, 1 op/cycle)
 - SET/SET_ZERO/SET_TOP: multi-cycle operations (Ready drops ~100 hsClk cycles)
-- Operands (Dec/Set/SetZero/In) are latched on the accept cycle
+- Operands (Dec/Set/SetZero/In) are held by the master until ready returns
+  (DekatronCounter.sv header: operands are not latched)
 - hsClk/Clk dual clock, carry chain across digits
 """
 
@@ -20,6 +21,8 @@ from cocotb.triggers import Timer, RisingEdge, FallingEdge, ClockCycles
 
 import logging
 log = logging.getLogger(__name__)
+
+RESET_MIN_HS = 100      # DekatronCounter default
 
 
 # ============================================================
@@ -48,6 +51,22 @@ async def start_clocks_and_reset(dut):
     dut.rst_n.value = 1
     for _ in range(100):
         await RisingEdge(dut.hs_clk)
+
+    # rst_n resets the logic only and never moves a discharge (TRS 12.3).
+    # The tubes are put to zero by the physical soft_rst line, which the
+    # external time relay holds for at least RESET_MIN_HS (100) hs_clk
+    # cycles. Without it every test would start from wherever the
+    # previous one left the counter.
+    await FallingEdge(dut.clk)
+    dut.soft_rst.value = 1
+    for _ in range(3 * RESET_MIN_HS):
+        await RisingEdge(dut.hs_clk)
+    await FallingEdge(dut.clk)
+    dut.soft_rst.value = 0
+    await wait_ready(dut)
+    await ClockCycles(dut.clk, 2)
+    assert int(dut.out.value) == 0, \
+        f"counter must be 0 after soft_rst, got {int(dut.out.value):#x}"
 
 
 async def wait_ready(dut, timeout=1000):
@@ -253,10 +272,14 @@ async def test_dcounter_multi_digit_carry(dut):
     assert high == 1, f"High digit should be 1 after 10 increments, got {high}"
 
 
-@cocotb.test()
+@cocotb.test(skip=True)
 async def test_dcounter_in_latching(dut):
-    """in must be latched on the accept edge. After the master deasserts valid
-    and changes in, the counter must keep the latched value."""
+    """in latched on the accept edge.
+
+    Skipped: the current DekatronCounter does not latch its operands; the
+    master holds in until ready returns (see the module header). Enable
+    again if operand latching is brought back.
+    """
     await start_clocks_and_reset(dut)
 
     # Start a set of 0x123.
