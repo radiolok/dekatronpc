@@ -1,0 +1,120 @@
+"""Лист 3. Декатронный счётчик DekatronCounter."""
+from lib import Fig
+
+
+def fig_counter():
+    f = Fig("cnt", 1180, 670,
+            "Декатронный счётчик на трёх декадах: разбор операции по Valid/Ready, окно записи, "
+            "автомат, разводка линий установки и физических сбросов по декадам, общий генератор "
+            "фаз и цепочка переноса на защёлкнутых признаках девятки.")
+    # входы протокола
+    for y, n in ((62, "valid"), (84, "dec"), (106, "set"), (128, "set_zero"), (150, "in[W-1:0]")):
+        f.pin_in(12, y, 150, n)
+    f.box(150, 40, 210, 130, "Разбор операции",
+          ["accept = valid · ready", "set_any = set | set_zero |", "автопереходы предела",
+           "step_f = accept·¬set_any·¬dec", "step_r = accept·¬set_any·dec"])
+
+    # окно записи и автомат
+    f.wire([(360, 70), (440, 70)], label="write_req", lx=368, ly=63)
+    f.box(440, 40, 170, 60, "Окно записи", ["Impulse + OneShot", "WR_WINDOW_HS"])
+    f.wire([(525, 100), (525, 130)], label="writing", lx=531, ly=120)
+    f.wire([(360, 152), (440, 152)], label="accept, вид", lx=368, ly=145)
+    f.box(440, 130, 170, 86, "Автомат", ["IDLE · SET · ZERO · TOP", "ready = IDLE",
+                                          "· settled_q · ¬rst_active"])
+
+    # ready
+    f.wire([(440, 195), (16, 195)], label="ready", lx=20, ly=188, lcls="tp")
+    f.dot(260, 195)
+    f.wire([(260, 195), (260, 170)])
+
+    # линии установки и сбросы
+    f.text(702, 16, "soft_rst", "tp", "middle")
+    f.text(850, 16, "hard_rst", "tp", "middle")
+    f.wire([(702, 22), (702, 40)])
+    f.wire([(850, 22), (850, 40)])
+    f.wire([(610, 170), (680, 170)], label="wr_*", lx=626, ly=163)
+    f.box(680, 40, 240, 170, "Линии установки декад",
+          ["wr_set  → SetData", "wr_zero → SetZero", "wr_top  → SetTop",
+           "soft_rst → SetZero всех декад", "hard_rst → SetTop старших",
+           "HARD_RST_D_CNT, SetZero прочих", "in держит мастер до ready"],
+          align="start", bcls="tm")
+
+    # генератор фаз
+    f.box(150, 250, 150, 60, "DekatronPhaseGen", ["один на счётчик"])
+    f.wire([(225, 310), (225, 340), (1010, 340)], "wbus", arrow=False)
+    f.text(380, 333, "Phase1 · Phase2", "tn")
+
+    # шина установки
+    f.wire([(800, 210), (800, 268)], "wbus", arrow=False)
+    f.dot(800, 268)
+    f.wire([(530, 268), (990, 268)], "wbus", arrow=False)
+    f.text(820, 262, "SetData · SetZero · SetTop · in", "tn")
+
+    D = [(400, "декада 0", "единицы"), (620, "декада 1", "десятки"), (840, "декада 2", "сотни")]
+    for x, n1, n2 in D:
+        f.box(x, 450, 160, 110, "DekatronModule", [n1 + " · " + n2, "EXT_PHASES = 1"], top=30)
+        f.wire([(x + 90, 340), (x + 90, 450)])
+        f.dot(x + 90, 340)
+        f.wire([(x + 130, 268), (x + 130, 450)])
+        f.dot(x + 130, 268)
+        f.text(x + 24, 444, "StepF", "tn")
+
+    # цепочка переноса step_f
+    f.wire([(330, 170), (330, 385), (575, 385)], "wacc", arrow=False)
+    f.text(336, 378, "step_f", "tacc")
+    f.dot(420, 385, "dot-acc")
+    f.wire([(420, 385), (420, 450)], "wacc")
+    f.gate(575, 375, "&")
+    f.wire([(567, 600), (567, 401), (575, 401)], "wacc")
+    f.text(572, 436, "nines_q[0]", "tn")
+    f.wire([(609, 393), (640, 393)], "wacc", arrow=False)
+    f.dot(640, 393, "dot-acc")
+    f.wire([(640, 393), (640, 450)], "wacc")
+    f.wire([(640, 393), (795, 393)], "wacc", arrow=False)
+    f.gate(795, 383, "&")
+    f.wire([(787, 600), (787, 409), (795, 409)], "wacc")
+    f.text(792, 436, "nines_q[1]", "tn")
+    f.wire([(829, 401), (860, 401), (860, 450)], "wacc")
+    f.text(150, 404, "цепочка step_r — та же,", "tl")
+    f.text(150, 418, "но по zeroes_q", "tl")
+
+    # выходы декад
+    f.wire([(540, 575), (1060, 575)], "wbus", arrow=False)
+    for x, *_ in D:
+        f.wire([(x + 140, 560), (x + 140, 575)], arrow=False)
+        f.dot(x + 140, 575)
+        f.wire([(x + 60, 560), (x + 60, 600)])
+    f.text(1066, 579, "out", "tp")
+    f.text(1066, 594, "out_valid = &Valid", "tm")
+    f.text(470, 590, "Zero · Nine · TopPin · Valid", "tn", "middle")
+
+    # регистры состояния
+    f.box(400, 600, 600, 50, "Регистры состояния",
+          ["zeroes_q · nines_q · tops_q · settled_q — по clk, только при all_valid"], top=19)
+    f.pin_out(1000, 625, 1030, "zero, at_top")
+    f.wire([(400, 625), (130, 625), (130, 182), (170, 182), (170, 170)])
+    f.text(136, 500, "zero · at_top · settled_q", "tn")
+    return f.render()
+
+
+def fig_counter_fsm():
+    f = Fig("cntfsm", 760, 290,
+            "Автомат счётчика: шаг выполняется в состоянии IDLE без снятия ready, операции "
+            "записи уходят в SET, ZERO или TOP на время окна записи.")
+    f.state("IDLE", 130, 145, "ST_IDLE", cls="st-acc")
+    f.state("SET", 470, 55, "ST_SET")
+    f.state("ZERO", 470, 145, "ST_ZERO")
+    f.state("TOP", 470, 235, "ST_TOP")
+    f.selfloop("IDLE", "t", "wacc", "шаг ±1, ready = 1", 130, 82)
+    f.edge("IDLE", "r", "SET", "l", oa=-10, label="set", lx=300, ly=88)
+    f.edge("IDLE", "r", "ZERO", "l", label="set_zero или TOP+1→0", lx=300, ly=139)
+    f.edge("IDLE", "r", "TOP", "l", oa=10, label="0−1 → TOP_VALUE", lx=300, ly=240)
+    for k in ("SET", "ZERO", "TOP"):
+        cx, cy, w, h = f.states[k]
+        f.wire([(cx + w / 2, cy), (640, cy)], arrow=False)
+    f.wire([(640, 55), (640, 275), (130, 275), (130, 162)])
+    f.text(646, 160, "writing", "tl")
+    f.text(646, 174, "снят", "tl")
+    f.text(380, 270, "окно записи закончилось", "tl", "middle")
+    f.text(16, 24, "soft_rst | hard_rst → ST_IDLE из любого состояния", "tl")
+    return f.render()

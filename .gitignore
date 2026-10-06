@@ -34,3 +34,5 @@ run/*.json
 
 # структурные схемы для SCHEMES.md
 !img/schemes/*.svg
+tools/schemes/out/
+__pycache__/
