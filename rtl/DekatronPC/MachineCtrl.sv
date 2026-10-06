@@ -106,6 +106,7 @@ module MachineCtrl #(
     output logic                  tx_vld,
     input  wire                   tx_rdy,
     input  wire                   rx_vld,
+    output wire                   rx_rdy,
 
     //------------------------------------------------------------------
     // Физические линии сброса счётчиков.
@@ -191,6 +192,12 @@ module MachineCtrl #(
     assign loop_val_zero = insn_mode ? data_zero : ap_zero;
 
     assign is_halted = (state == S_HALT);
+
+    // Приём символа завершается, когда ApLine закончил CIN: до этого
+    // момента счётчик данных пишется прямо с rx_data_bcd, и передающая
+    // сторона обязана держать его (REQ-UART-008). От rx_vld не зависит.
+    assign rx_rdy = (state == S_AP_OP_W) & (ap_op == AP_CIN) & ap_ready &
+                    ~(soft_rst | hard_rst);
 
     wire run_on_rst = ((rst_type == RST_HARD) & run_on_hard_rst) |
                       ((rst_type == RST_SOFT) & run_on_soft_rst);

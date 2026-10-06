@@ -140,13 +140,15 @@ static void tick(VerilogMachine &state)
     }
     Cout(state);
     state.dut->tx_rdy = 1;
+    // rx_data_bcd is held until the rx_vld & rx_rdy handshake (REQ-UART-008)
+    bool rx_done = state.dut->Clk && state.dut->rx_vld && state.dut->rx_rdy;
+    state.dut->eval();
     if (Cin(state)){
         state.dut->rx_vld = 1;
     }
-    else if (state.dut->state != S_CIN_WAIT){
+    else if (rx_done){
         state.dut->rx_vld = 0;
     }
-    state.dut->eval();
 #ifdef SIM_TRACE
     state.trace->dump(state.PLL_CLK*MUL);
 #endif

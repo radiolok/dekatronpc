@@ -241,6 +241,21 @@ initial begin
         $display("FAIL: LOAD -> %0d, expected 6", tx_data_bcd);
     end
 
+    // rx_data держится do_op до ready: входного регистра в ApLine нет
+    $display("CIN test (rx_data_bcd held until ready)");
+    do_op(OP_CIN, 1'b0, data_bcd(65));
+    if (tx_data_bcd[11:0] !== data_bcd(65) || !mem_lock) begin
+        errors++;
+        $display("FAIL: CIN -> %0d lock=%b, expected 65 lock=1", tx_data_bcd, mem_lock);
+    end
+    do_op(OP_AP_STEP, 1'b0, 12'd0);        // AP 0->1, cell0 := 65
+    do_op(OP_AP_STEP, 1'b1, 12'd0);        // AP 1->0
+    do_op(OP_LOAD,     1'b0, 12'd0);
+    if (tx_data_bcd[11:0] !== data_bcd(65)) begin
+        errors++;
+        $display("FAIL: CIN flush/LOAD -> %0d, expected 65", tx_data_bcd);
+    end
+
     $display("DATA_ZERO test");
     do_op(OP_DATA_ZERO, 1'b0, 12'd0);
     if (tx_data_bcd[11:0] !== 12'd0) begin

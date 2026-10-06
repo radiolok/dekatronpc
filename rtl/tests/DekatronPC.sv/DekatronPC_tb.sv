@@ -73,6 +73,7 @@ wire tx_vld;
 reg  tx_rdy;
 reg  [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] rx_data_bcd;
 reg  rx_vld;
+wire rx_rdy;
 
 initial begin
     hsClk = 1'b0;
@@ -182,6 +183,7 @@ DekatronPC #(
     .tx_rdy          (tx_rdy),
     .rx_data_bcd     (rx_data_bcd),
     .rx_vld          (rx_vld),
+    .rx_rdy          (rx_rdy),
 
     .InsnIn          (InsnIn),
     .InsnInValid     (InsnInValid),

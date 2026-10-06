@@ -49,11 +49,9 @@ def fig_apline():
     f.wire([(940, 330), (940, 370)], "wacc")
 
     # вход счётчика данных
-    f.pin_in(12, 385, 290, "rx_data_bcd")
-    f.box(290, 370, 80, 30, None, [], cls="blk")
-    f.text(330, 390, "rx_q", "tm", "middle")
-    f.wire([(370, 385), (420, 385)])
-    f.box(420, 360, 80, 50, "MUX", ["CIN ? rx_q"], top=20, bcls="tpi")
+    # rx_data_bcd держит терминал до rx_vld & rx_rdy: входного регистра нет
+    f.pin_in(12, 385, 420, "rx_data_bcd (держит терминал)")
+    f.box(420, 360, 80, 50, "MUX", ["CIN ? rx"], top=20, bcls="tpi")
     f.wire([(500, 385), (610, 385), (610, 300)], label="data_in", lx=520, ly=378)
 
     # выходы

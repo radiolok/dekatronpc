@@ -53,6 +53,7 @@ Decode on the pair {insn_mode, insn}. All 32 combinations must be covered. Undef
 
 5. RTL design rules
 - Handshake: Valid/Ready everywhere above the dekatron, and ready must not depend on valid. APB was tried and rejected in v0.7. Don't reintroduce single-cycle pulse Request/Ready.
+- Terminal RX (REQ-UART-008): the sender holds rx_data_bcd until rx_vld & rx_rdy. DekatronPC.rx_rdy comes from MachineCtrl in the cycle ApLine finishes CIN, and ApLine loads the Data counter straight from rx_data_bcd (no rx_q). The Emulator holds the UART/consul byte in its own receive buffer.
 - Dekatron physics (REQ-DEK-012/015/016): the tube has no valid/ready/busy. It reacts to pulses of a given length regardless of its state. A discharge can't rest on a guide cathode: it falls back from guide A and forward from guide B. A reading is valid only on a main cathode with no stimulus. Since TRS v0.10 there is no Valid signal at all (DekatronModule.Valid, the OR10_X7 cell and DekatronCounter.out_valid are gone): DekatronCounter derives ready from known durations. A step fits in one clk; set/set_zero and a rising soft_rst/hard_rst start the writeTimer window, and ready returns when the window ends and the reset line is low. All discipline lives in DekatronCounter.
 - Dekatron stack under rtl/DekatronPC/Dekatron/:
   - DekatronTubeV2: a 30-bit one-hot ring model, not an FSM.
@@ -90,7 +91,7 @@ Decode on the pair {insn_mode, insn}. All 32 combinations must be covered. Undef
 - TRS.md, SCHEMES.md, README.md: requirements, block diagrams, project overview (repo root).
 - tools/schemes/: generator of SCHEMES.md and img/schemes/*.svg (pure Python, see its README).
 - doc/: reference literature (PDF/djvu) and new investigation reports.
-- Reports: rtl/DekatronPC/emulator_inspection.md (Emulator layer), rtl/DekatronPC/Dekatron/DekatronCounter.md (counter design), doc/dpcrun_golden_model.md (golden model semantics, RTL-vs-TRS divergences, RTL findings), doc/dekatron_valid_removal.md (Valid removed, ready from durations, 3/3/4 phase split), doc/dekatron_counter_flop_reduction.md (plan to drop redundant DekatronCounter flops), doc/uvm_tb_check.md (cocotb regression check: setup, tests that passed without checking, coverage gaps).
+- Reports: rtl/DekatronPC/emulator_inspection.md (Emulator layer), rtl/DekatronPC/Dekatron/DekatronCounter.md (counter design), doc/dpcrun_golden_model.md (golden model semantics, RTL-vs-TRS divergences, RTL findings), doc/dekatron_valid_removal.md (Valid removed, ready from durations, 3/3/4 phase split), doc/dekatron_counter_flop_reduction.md (plan to drop redundant DekatronCounter flops), doc/uvm_tb_check.md (cocotb regression check: setup, tests that passed without checking, coverage gaps), doc/tube_count_reduction.md (synthesis tube count, ABC area scripts, FSM cleanup, path to ≤ 1500 tubes).
 - Old blocks still in the tree and due for removal (TRS 19.4): Dekatron.sv, DekatronPulseAllow, DekatronCarrySignal, RsLatch uses, InsnDecoder, BcdToBinEnc in the memory path. Several tb/Makefile targets still build against them.
 
 7. Build and test (CI: .github/workflows/docker-image.yml, all inside the Docker image from ./Dockerfile)

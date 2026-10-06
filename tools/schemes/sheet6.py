@@ -17,7 +17,7 @@ def fig_mctrl():
         f.pin_in(12, y, 200, n)
     f.text(12, 256, "ТЕРМИНАЛ", "tf")
     f.pin_in(12, 286, 200, "rx_vld, tx_rdy")
-    f.wire([(200, 312), (16, 312)], label="tx_vld", lx=20, ly=305, lcls="tp")
+    f.wire([(200, 312), (16, 312)], label="tx_vld, rx_rdy (конец CIN)", lx=20, ly=305, lcls="tp")
     f.text(12, 350, "ИНДИКАЦИЯ", "tf")
     for y, n in ((380, "bell"), (402, "is_halted, insn_mode"), (424, "state[3:0]"),
                  (446, "iret — эмулятор")):

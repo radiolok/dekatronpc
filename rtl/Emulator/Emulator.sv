@@ -282,6 +282,7 @@ DekatronPC dekatronPC(
     .tx_rdy(tx_rdy),
     .rx_data_bcd(rx_data_bcd),
     .rx_vld(rx_vld),
+    .rx_rdy(rx_rdy),
     .Step(keyStep),
     .keyNextIp(keyNextIp),
     .keyPrevIp(keyPrevIp),
@@ -372,6 +373,11 @@ logic                        tx_rdy  ;
 logic                        tx_vld  ;
 //rx signal
 logic                          rx_vld  ;
+logic                          rx_rdy  ;
+// Источник терминала до буфера приёма
+logic [7:0]                    term_rx_data;
+logic                          term_rx_vld;
+logic                          term_rx_vld_old;
 
 
 logic [7:0] uart_rx_data;
@@ -441,14 +447,34 @@ always_comb begin
         uart_tx_vld  = tx_vld;
         consul_tx_vld  = '0;
         tx_rdy  = uart_tx_rdy;
-        rx_data = uart_rx_data;
-        rx_vld  = uart_rx_vld;
+        term_rx_data = uart_rx_data;
+        term_rx_vld  = uart_rx_vld;
     end else begin
         uart_tx_vld  = '0;
         consul_tx_vld  = tx_vld;
         tx_rdy  = consul_tx_rdy;
-        rx_data = consul_rx_data;
-        rx_vld  = consul_rx_vld;
+        term_rx_data = consul_rx_data;
+        term_rx_vld  = consul_rx_vld;
+    end
+end
+
+// Буфер приёма: DekatronPC не защёлкивает символ и пишет счётчик данных
+// прямо с rx_data_bcd, поэтому символ держится здесь до rx_vld & rx_rdy
+// (REQ-UART-008). Приём по фронту: kb_data_vld консула медленный и
+// длится много тактов 1 МГц.
+always @(posedge Clock_1MHz, negedge Rst_n) begin
+    if (~Rst_n) begin
+        rx_data         <= 8'h0;
+        rx_vld          <= 1'b0;
+        term_rx_vld_old <= 1'b0;
+    end else begin
+        term_rx_vld_old <= term_rx_vld;
+        if (rx_vld & rx_rdy)
+            rx_vld <= 1'b0;
+        else if (~rx_vld & term_rx_vld & ~term_rx_vld_old) begin
+            rx_data <= term_rx_data;
+            rx_vld  <= 1'b1;
+        end
     end
 end
 

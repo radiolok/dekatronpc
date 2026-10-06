@@ -11,7 +11,7 @@ def fig_top():
     f.box(20, 40, 180, 160, "Пульт", ["Halt · Step · Run", "InsnLoading Start/Stop",
                                      "SoftRstKey · HardRstKey", "keyNextIp · keyPrevIp",
                                      "тумблеры режимов"], bcls="tl")
-    f.box(20, 250, 180, 170, "Терминал", ["tx_data_bcd · tx_vld/rdy", "rx_data_bcd · rx_vld",
+    f.box(20, 250, 180, 170, "Терминал", ["tx_data_bcd · tx_vld/rdy", "rx_data_bcd · rx_vld/rdy",
                                          "InsnIn · Valid/Ready", "", "индикация: IP, AP,",
                                          "Loop, Insn, state"], bcls="tl")
 

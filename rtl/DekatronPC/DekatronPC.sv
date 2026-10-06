@@ -177,6 +177,7 @@ module DekatronPC #(
     input  wire                                        tx_rdy,
     input  wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] rx_data_bcd,
     input  wire                                        rx_vld,
+    output wire                                        rx_rdy,   // держать rx_data_bcd до rx_vld & rx_rdy
 
     //------------------------------------------------------------------
     // Загрузка программы
@@ -437,6 +438,7 @@ module DekatronPC #(
         .tx_vld                 (tx_vld),
         .tx_rdy                 (tx_rdy),
         .rx_vld                 (rx_vld),
+        .rx_rdy                 (rx_rdy),
 
         .soft_rst_req           (soft_rst_req),
         .hard_rst_req           (hard_rst_req),

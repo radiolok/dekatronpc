@@ -133,8 +133,6 @@ module ApLine #(
     logic       dirty_q;       // счётчик расходится с памятью
     logic       mem_here_q;    // регистр памяти относится к текущему адресу
 
-    logic [DATA_W-1:0] rx_q;
-
     //------------------------------------------------------------------
     // Счётчик адреса данных
     //------------------------------------------------------------------
@@ -208,7 +206,11 @@ module ApLine #(
     wire [DATA_W-1:0] cell_from_mem =
         {{(DATA_W-MEM_DATA_WIDTH){1'b0}}, mem_rd_data};
 
-    assign data_in = (op == OP_CIN) ? rx_q : cell_from_mem;
+    // Символ терминала не защёлкивается: передающая сторона держит
+    // rx_data_bcd до рукопожатия rx_vld & rx_rdy, а rx_rdy верхний автомат
+    // выдаёт только по завершении CIN, когда запись в счётчик окончена
+    // (REQ-UART-008). op мастер держит до ready.
+    assign data_in = (op == OP_CIN) ? rx_data_bcd : cell_from_mem;
 
     //------------------------------------------------------------------
     // Наблюдаемое состояние
@@ -236,7 +238,6 @@ module ApLine #(
             lock_q        <= 1'b0;
             dirty_q       <= 1'b0;
             mem_here_q    <= 1'b0;
-            rx_q          <= '0;
             ap_valid      <= 1'b0;
             ap_set_zero   <= 1'b0;
             data_valid    <= 1'b0;
@@ -268,8 +269,6 @@ module ApLine #(
                 //------------------------------------------------------
                 S_IDLE: begin
                     if (accept) begin
-                        rx_q  <= rx_data_bcd;
-
                         case (op)
 
                         OP_AP_STEP, OP_AP_ZERO: begin
