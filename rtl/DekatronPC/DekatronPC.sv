@@ -241,6 +241,7 @@ module DekatronPC #(
     //------------------------------------------------------------------
     wire                  ip_valid, ip_ready;
     wire                  ip_clr;
+    wire                  ip_ahead;
     wire                  insn_eot;
     wire                  loop_val_zero;
     wire                  insn_loading;
@@ -266,6 +267,7 @@ module DekatronPC #(
         .ready         (ip_ready),
         .clr           (ip_clr),
         .loop_val_zero (loop_val_zero),
+        .ip_ahead      (ip_ahead),
 
         .insn          (Insn),
         .insn_valid    (insn_valid),
@@ -321,6 +323,7 @@ module DekatronPC #(
     // Линия работы с данными и память данных
     //------------------------------------------------------------------
     wire                       ap_valid, ap_ready;
+    wire [4:0]                 ap_op;
     wire                       data_zero, ap_zero, mem_lock;
 
     wire [AP_W-1:0]            ap_mem_addr;
@@ -342,7 +345,7 @@ module DekatronPC #(
 
         .valid       (ap_valid),
         .ready       (ap_ready),
-        .op          ({insn_mode, Insn}),   // операция — сама инструкция
+        .op          (ap_op),   // {insn_mode, op_q}: при упреждающей выборке Insn уже следующий
 
         .data_zero       (data_zero),
         .data_zero_valid (data_zero_valid),
@@ -419,6 +422,7 @@ module DekatronPC #(
         .ip_valid               (ip_valid),
         .ip_ready               (ip_ready),
         .ip_clr                 (ip_clr),
+        .ip_ahead               (ip_ahead),
         .loop_val_zero          (loop_val_zero),
         .insn_loading           (insn_loading),
         .insn                   (Insn),
@@ -428,6 +432,7 @@ module DekatronPC #(
 
         .ap_valid               (ap_valid),
         .ap_ready               (ap_ready),
+        .ap_op                  (ap_op),
         .data_zero              (data_zero),
         .data_zero_valid        (data_zero_valid),
         .ap_zero                (ap_zero),

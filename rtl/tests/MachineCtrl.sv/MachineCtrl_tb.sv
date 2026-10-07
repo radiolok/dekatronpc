@@ -27,10 +27,16 @@
 //      повторный пуск не останавливается снова, после CLRL новое
 //      переполнение снова останавливает (REQ-CTLV2-005).
 //   7. Пошаговый режим, кнопка останова в S_IDLE и в ожидании CIN.
+//   8. Упреждающая выборка (P3): операции ApLine, кроме TEST и CIN,
+//      выдают выборку следующей инструкции в том же такте; модель
+//      IpLine меняет insn сразу, ApLine проверяет, что его операция
+//      (ap_op) при этом держится. Останов после такой операции
+//      поднимает ip_ahead, и модель IpLine после пуска читает ту же
+//      инструкцию заново, как IpLine.
 //
 // Мониторы на каждом такте: valid без ready у IpLine и ApLine,
-// одновременные ip_valid и ap_valid, rx_rdy вне конца CIN, запрос
-// сброса обоих типов сразу.
+// ip_valid вместе с ap_valid вне упреждающей выборки, rx_rdy вне
+// конца CIN, запрос сброса обоих типов сразу.
 //----------------------------------------------------------------------
 module MachineCtrl_tb;
 
@@ -67,6 +73,7 @@ reg bell_on_cin = 0, bell_on_halt = 0, bell_on_error = 0;
 wire       ip_valid;
 wire       ip_ready;
 wire       ip_clr;
+wire       ip_ahead;
 wire       loop_val_zero;
 wire       insn_loading;
 reg  [3:0] insn = 4'h0;
@@ -76,6 +83,7 @@ reg        loop_overflow = 1'b0;
 
 wire       ap_valid;
 wire       ap_ready;
+wire [4:0] ap_op_w;
 reg        data_zero = 1'b0;
 reg        data_zero_valid = 1'b1;
 reg        ap_zero = 1'b0;
@@ -100,11 +108,11 @@ MachineCtrl #(.EN_EMULATOR(1'b1)) dut (
     .echo_mode(echo_mode), .run_on_hard_rst(run_on_hard_rst),
     .run_on_soft_rst(run_on_soft_rst), .soft_rst_on_eot(soft_rst_on_eot),
     .bell_on_cin(bell_on_cin), .bell_on_halt(bell_on_halt), .bell_on_error(bell_on_error),
-    .ip_valid(ip_valid), .ip_ready(ip_ready), .ip_clr(ip_clr),
+    .ip_valid(ip_valid), .ip_ready(ip_ready), .ip_clr(ip_clr), .ip_ahead(ip_ahead),
     .loop_val_zero(loop_val_zero), .insn_loading(insn_loading),
     .insn(insn), .insn_valid(insn_valid), .insn_eot(insn_eot),
     .loop_overflow(loop_overflow),
-    .ap_valid(ap_valid), .ap_ready(ap_ready),
+    .ap_valid(ap_valid), .ap_ready(ap_ready), .ap_op(ap_op_w),
     .data_zero(data_zero), .data_zero_valid(data_zero_valid), .ap_zero(ap_zero),
     .mem_lock(1'b0),
     .tx_vld(tx_vld), .tx_rdy(tx_rdy), .rx_vld(rx_vld), .rx_rdy(rx_rdy),
@@ -119,10 +127,11 @@ integer errors = 0;
 //----------------------------------------------------------------------
 // Операции исполнителям в терминах прежней таблицы.
 // IpLine: clr выбирает CLRL/CLRI по младшему биту опкода.
-// ApLine: операция — {insn_mode, insn}, направление — insn[0].
+// ApLine: операция — ap_op = {insn_mode, op_q}, направление — её бит 0.
+// insn при упреждающей выборке уже следующий, поэтому не годится.
 //----------------------------------------------------------------------
 wire [1:0] ip_op = ip_clr ? (insn[0] ? IP_CLR_IP : IP_CLR_LOOP) : IP_NEXT;
-wire [4:0] ap_insn = {insn_mode, insn};
+wire [4:0] ap_insn = ap_op_w;
 
 function automatic [3:0] ap_op_of(input [4:0] c);
     case (c)
@@ -141,7 +150,7 @@ function automatic [3:0] ap_op_of(input [4:0] c);
 endfunction
 
 wire [3:0] ap_op  = ap_op_of(ap_insn);
-wire       ap_dec = insn[0];
+wire       ap_dec = ap_insn[0];
 
 task automatic fail(input string msg);
     errors++;
@@ -155,6 +164,7 @@ reg [3:0] prog [$];
 integer   ip_busy = 0;
 reg       ip_fetching = 1'b0;   // выборка принята, ждём опкод
 reg       ovf_on_fetch = 1'b0;  // следующая выборка кончится переполнением
+reg       reread = 1'b0;        // останов при ip_ahead: читать ту же инструкцию
 
 // Как в IpLine: ready не зависит от valid, при останове снят
 assign ip_ready = (ip_busy == 0) & ~ip_fetching & ~is_halted & ~(soft_rst | hard_rst);
@@ -163,12 +173,12 @@ assign ip_ready = (ip_busy == 0) & ~ip_fetching & ~is_halted & ~(soft_rst | hard
 integer n_ip [0:3];
 integer n_ap [0:15];
 reg     last_ap_dec;
-integer n_tx, n_bell, n_hreq, n_sreq, n_rx;
+integer n_tx, n_bell, n_hreq, n_sreq, n_rx, n_pf;
 
 task automatic clear_counts();
     for (int i = 0; i < 4;  i++) n_ip[i] = 0;
     for (int i = 0; i < 16; i++) n_ap[i] = 0;
-    n_tx = 0; n_bell = 0; n_hreq = 0; n_sreq = 0; n_rx = 0;
+    n_tx = 0; n_bell = 0; n_hreq = 0; n_sreq = 0; n_rx = 0; n_pf = 0;
 endtask
 
 always @(posedge clk) begin
@@ -176,9 +186,14 @@ always @(posedge clk) begin
         ip_busy     <= 0;
         ip_fetching <= 1'b0;
         insn_valid  <= 1'b0;
+        reread      <= 1'b0;
     end
     else begin
         if (ip_busy > 0) ip_busy <= ip_busy - 1;
+
+        // IpLine при останове с ip_ahead IP не двигает: после пуска
+        // выборка вернёт ту же, ещё не исполненную инструкцию
+        if (is_halted & ip_ahead) reread <= 1'b1;
 
         if (ip_valid & ip_ready) begin
             n_ip[ip_op] = n_ip[ip_op] + 1;
@@ -198,6 +213,12 @@ always @(posedge clk) begin
                 ovf_on_fetch  <= 1'b0;
                 loop_overflow <= 1'b1;
                 ip_fetching   <= 1'b0;
+            end
+            else if (reread) begin
+                reread      <= 1'b0;
+                insn_valid  <= 1'b1;
+                ip_fetching <= 1'b0;
+                ip_busy     <= 1;
             end
             else if (prog.size() > 0) begin
                 // EOT в память не пишется: регистр памяти держит прежний
@@ -292,7 +313,14 @@ always @(posedge clk) begin
         // Мониторы
         if (ip_valid & ~ip_ready) fail("ip_valid without ip_ready");
         if (ap_valid & ~ap_ready) fail("ap_valid without ap_ready");
-        if (ip_valid & ap_valid)  fail("ip_valid and ap_valid together");
+        // Вместе с операцией ApLine — только упреждающая выборка, и
+        // не при скобке (TEST) и CIN
+        if (ip_valid & ap_valid) begin
+            n_pf++;
+            if (ip_clr) fail("ip_clr together with ap_valid");
+            if ((ap_op == AP_TEST) | (ap_op == AP_CIN))
+                fail($sformatf("prefetch with ap op %0d", ap_op));
+        end
         if (ip_valid & ip_clr & ~((ap_insn == 5'h08) | (ap_insn == 5'h09)))
             fail($sformatf("ip_clr with %h, not CLRL/CLRI", ap_insn));
         if (soft_rst_req & hard_rst_req) fail("soft and hard reset requests together");
@@ -369,6 +397,9 @@ task automatic expect_only(input string what, input int ipop, input int apop, in
         fail($sformatf("%s: bell %0d, expected %0d", what, n_bell, bells));
     if (n_hreq != 0 || n_sreq != 0)
         fail($sformatf("%s: unexpected reset request", what));
+    // Упреждающая выборка — ровно при операциях ApLine, кроме TEST
+    if (n_pf != ((apop >= 0 && apop != AP_TEST) ? 1 : 0))
+        fail($sformatf("%s: prefetch %0d times", what, n_pf));
 endtask
 
 // Холодный старт: rst_n, сброс реле при включении не моделируется
@@ -400,7 +431,10 @@ task automatic check_isa_table();
                 set_mode(m);
                 was_mode = insn_mode;
                 data_zero_valid = 1'b1;
-                exec(op[3:0]);
+                // Вывод идёт по окончании упреждающей выборки: ей нужен
+                // следующий опкод, NOP его и даёт
+                if (m == 1 && op == 4'h8) prog.push_back(4'h8);
+                exec((m == 1 && op == 4'h8) ? 4'h0 : op[3:0]);
                 if (!parked()) fail({what, ": machine stopped"});
                 case ({m[0], op[3:0]})
                     5'h02: expect_only(what, -1, -1, 0, 1);              // BELL
@@ -680,22 +714,34 @@ task automatic check_step_halt();
     // Каждое нажатие шага — ровно одна инструкция, в том числе с
     // операцией над ApLine и с выводом
     tx_rdy = 1'b1;
+    // NOP в конце: упреждающей выборке последнего '.' нужен опкод
     for (int i = 0; i < 3; i++) begin
         prog.push_back(4'h2);
         prog.push_back(4'h8);
     end
+    prog.push_back(4'h0);
+    clear_counts();
     for (int i = 0; i < 6; i++) begin
         iret0 = iret;
         step_key = 1'b1;
         tick(30);                 // держим кнопку: второй шаг не идёт
         if (iret != iret0 + 1) fail($sformatf("step %0d: %0d instructions", i, iret - iret0));
         if (state != S_HALT)   fail($sformatf("step %0d: not halted", i));
+        // '+' и '.' выбирают следующую заранее: IP уже на ней
+        if (!ip_ahead)         fail($sformatf("step %0d: ip_ahead not set", i));
         step_key = 1'b0;
         tick(3);
     end
     if (prog.size() != 0) fail("step: program not consumed");
+    // Каждая инструкция исполнена ровно один раз, хотя выбрана дважды
+    if (n_ap[AP_DATA_STEP] != 3 || n_ap[AP_COUT] != 3 || n_tx != 3)
+        fail($sformatf("step: + %0d, . %0d, tx %0d", n_ap[AP_DATA_STEP], n_ap[AP_COUT], n_tx));
+    // Пуск: заранее выбранный NOP читается заново и исполняется
+    iret0 = iret;
     run_from_halt();
     wait_settled("after step");
+    if (iret != iret0 + 1) fail($sformatf("run after step: %0d instructions", iret - iret0));
+    if (ip_ahead)          fail("run after step: ip_ahead still set");
 endtask
 
 //----------------------------------------------------------------------

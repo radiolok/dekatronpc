@@ -27,7 +27,8 @@ def fig_mctrl():
     f.box(200, 40, 260, 440, "Автомат исполнения",
           ["state[3:0] — 10 состояний", "one_step — шаговый режим",
            "insn_mode — 0 Debug, 1 BF", "insn_loading", "rst_soft — тип сброса",
-           "overflow_q — фронт переполнения", "",
+           "overflow_q — фронт переполнения",
+           "op_q — код инструкции (P3)", "pf_q — следующая уже выбрана",
            "стробы — дешифрация state,", "valid только при go:",
            "go = ip_ready · ap_ready", "      · ~(soft_rst | hard_rst)", "",
            "loop_overflow↑ → S_HALT", "soft_rst | hard_rst →", "S_RST_WAIT из любого"],
@@ -35,7 +36,7 @@ def fig_mctrl():
 
     # линия выборки
     f.box(860, 40, 320, 130, "IpLine", ["линия выборки инструкций"], cls="blk-opt")
-    f.wire([(460, 60), (860, 60)], label="ip_valid · ip_clr · insn_loading", lx=470, ly=53)
+    f.wire([(460, 60), (860, 60)], label="ip_valid · ip_clr · ip_ahead · insn_loading", lx=470, ly=53)
     f.wire([(860, 86), (460, 86)], label="ip_ready · loop_overflow", lx=470, ly=79)
     f.wire([(860, 112), (640, 112), (640, 290)], label="insn · insn_valid · insn_eot", lx=650, ly=105)
 
@@ -47,15 +48,15 @@ def fig_mctrl():
 
     # линия данных
     f.box(860, 200, 320, 130, "ApLine", ["линия данных"], cls="blk-opt")
-    f.wire([(460, 220), (860, 220)], label="ap_valid; op = {insn_mode, insn}", lx=470, ly=213)
+    f.wire([(460, 220), (860, 220)], label="ap_valid; ap_op = {insn_mode, op_q}", lx=470, ly=213)
     f.wire([(860, 246), (460, 246)], label="ap_ready · data_zero_valid", lx=470, ly=239)
     f.wire([(860, 272), (745, 272), (745, 180)], "wacc",
            label="data_zero · ap_zero", lx=852, ly=266, anchor="end", lcls="tacc")
 
     # дешифратор
     f.box(520, 290, 260, 136, "Дешифратор",
-          ["{insn_mode, insn}: 5 бит, без регистров", "ip_clr = S_EXEC; ApLine op = insn",
-           "держит регистр памяти программ", "x6/x7 скобки; BF и нет",
+          ["{insn_mode, op_q}: 5 бит", "ip_clr = S_EXEC · CLRL/CLRI",
+           "op_q ← insn в FETCH_W и в конце", "x6/x7 скобки; BF и нет",
            "data_zero_valid → скобка в ApLine", "12…1D: + − > < . , [-] …"], top=22, bcls="tm")
     f.wire([(520, 380), (460, 380)], label="команда", lx=466, ly=373)
 
@@ -70,8 +71,9 @@ def fig_mctrl():
 def fig_mctrl_fsm():
     f = Fig("mcfsm", 1100, 480,
             "Автомат MachineCtrl: S_IDLE выдаёт выборку, S_DECODE дешифрует, S_EXEC выдаёт одну "
-            "операцию линии выборки или линии данных, S_WAIT ждёт её окончания; после каждой "
-            "инструкции — в IDLE или, в шаговом режиме и по кнопке останова, в HALT.")
+            "операцию линии выборки или линии данных (операции ApLine, кроме TEST, — вместе с "
+            "выборкой следующей), S_WAIT ждёт её окончания; после каждой инструкции — в IDLE, "
+            "сразу в DECODE, если следующая уже выбрана, или в HALT.")
     f.state("HALT", 380, 60, "S_HALT", cls="st-acc")
     f.state("IDLE", 640, 60, "S_IDLE")
     f.state("RST_REQ", 120, 180, "S_RST_REQ")
@@ -105,6 +107,7 @@ def fig_mctrl_fsm():
     f.edge("DECODE", "b", "EXEC", "t", label="CLR* · операции ApLine · TEST · COUT", lx=648,
            ly=244, anchor="start")
     f.edge("EXEC", "l", "WAIT", "r", label="go: ip_valid | ap_valid", lx=510, ly=293)
+    f.text(510, 336, "ApLine, кроме TEST: с выборкой", "tl", anchor="middle")
     f.edge("WAIT", "b", "COUT", "b", via=[(380, 370), (900, 370)],
            label="go · COUT | CIN · echo_mode", lx=640, ly=364)
     f.edge("RST_REQ", "b", "RST_WAIT", "t", label="rst_busy", lx=128, ly=244, anchor="start")
@@ -114,11 +117,11 @@ def fig_mctrl_fsm():
     f.text(16, 400, "soft_rst | hard_rst → S_RST_WAIT из любого состояния", "tl")
 
     x, y = f.sp("WAIT", "l")
-    f.wire([(x, y), (x - 30, y)], label="go: IDLE / HALT", lx=x - 36, ly=y + 4, anchor="end")
+    f.wire([(x, y), (x - 30, y)], label="go: s_next", lx=x - 36, ly=y + 4, anchor="end")
     x, y = f.sp("COUT", "r")
     f.wire([(x, y), (x + 30, y)], label="tx_rdy:", lx=x + 36, ly=y - 4)
-    f.text(x + 36, y + 12, "IDLE / HALT", "tl")
-    f.text(16, 438, "IDLE / HALT = (halt_key | one_step) ? S_HALT : S_IDLE", "tl")
+    f.text(x + 36, y + 12, "s_next", "tl")
+    f.text(16, 438, "s_next = (halt_key | one_step) ? S_HALT : pf_q ? S_DECODE : S_IDLE   (pf_q — следующая уже выбрана)", "tl")
     f.text(16, 456, "фронт loop_overflow → S_HALT из любого состояния (REQ-CTLV2-005)", "tl")
     f.text(16, 474, "стробы: ip_valid, ap_valid, tx_vld = S_COUT, rx_rdy = S_WAIT · CIN · go, *_rst_req = S_RST_REQ", "tl")
     return f.render()

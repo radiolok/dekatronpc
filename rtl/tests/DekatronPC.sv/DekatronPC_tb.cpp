@@ -232,17 +232,21 @@ static bool startVerilog(VerilogMachine &state, const std::vector<uint8_t> &code
 
 // Runs the RTL until one instruction retires: MachineCtrl passes S_DECODE
 // and comes back to S_IDLE (or stops in S_HALT). Returns the final state.
+// With prefetch (P3) MachineCtrl goes from the end of the operation
+// straight into S_DECODE of the next instruction; that also retires the
+// current one, and the function returns S_DECODE. IP then already points
+// at the next instruction.
 static int stepVerilog(VerilogMachine &state)
 {
-    bool decoded = false;
     int prev = state.dut->state;
+    bool decoded = (prev == S_DECODE);
     while (state.PLL_CLK < MAX_SIM_TIME){
         tick(state);
         int cur = state.dut->state;
+        if (decoded && cur != prev && (cur == S_IDLE || cur == S_HALT || cur == S_DECODE))
+            return cur;
         if (cur == S_DECODE)
             decoded = true;
-        if (decoded && cur != prev && (cur == S_IDLE || cur == S_HALT))
-            return cur;
         if (!decoded && cur == S_HALT && prev != S_HALT)
             return cur;
         prev = cur;
@@ -250,7 +254,8 @@ static int stepVerilog(VerilogMachine &state)
     return -1;
 }
 
-static int compareStates(const VerilogMachine& state, const dpc::Machine& cpp, bool halted)
+static int compareStates(const VerilogMachine& state, const dpc::Machine& cpp, bool halted,
+                         bool ipAhead = false)
 {
     int err = 0;
     if (state.iret() != cpp.iret()){
@@ -258,9 +263,12 @@ static int compareStates(const VerilogMachine& state, const dpc::Machine& cpp, b
                static_cast<unsigned long long>(cpp.iret()));
         err = -1;
     }
-    // After HALT IpLine steps IP once more a few cycles later; skip it
-    if (!halted && static_cast<uint32_t>(BcdToInt(state.dut->IpAddress, 5)) != cpp.ip()){
-        printf("FATAL: IpAddress %d != model %u\n", BcdToInt(state.dut->IpAddress, 5), cpp.ip());
+    // After HALT IpLine steps IP once more a few cycles later; skip it.
+    // After a prefetch IP is one ahead of the model, which points at the
+    // retired instruction
+    uint32_t ipExpected = cpp.ip() + (ipAhead ? 1 : 0);
+    if (!halted && static_cast<uint32_t>(BcdToInt(state.dut->IpAddress, 5)) != ipExpected){
+        printf("FATAL: IpAddress %d != model %u\n", BcdToInt(state.dut->IpAddress, 5), ipExpected);
         err = -1;
     }
     if (static_cast<uint32_t>(BcdToInt(state.dut->ApAddress, 5)) != cpp.ap()){
@@ -367,7 +375,7 @@ int main(int argc, char** argv, char** env) {
                 cppMachine.txData(),
                 dpc::statusName(s)
                 );
-            if (compareStates(state, cppMachine, rtlState == S_HALT))
+            if (compareStates(state, cppMachine, rtlState == S_HALT, rtlState == S_DECODE))
             {
                 state.stats.report(stdout, state.iret());
                 return -1;

@@ -138,6 +138,7 @@ wire       InsnValid;
 wire       InsnEot;
 
 reg        HaltRq    = 1'b0;
+reg        IpAhead   = 1'b0;
 reg        KeyPrev   = 1'b0;
 reg        KeyNext   = 1'b0;
 reg        Loading   = 1'b0;
@@ -180,6 +181,7 @@ IpLine #(
     .insn_valid   (InsnValid),
     .insn_eot     (InsnEot),
     .halt_rq      (HaltRq),
+    .ip_ahead     (IpAhead),
     .key_prev_ip  (KeyPrev),
     .key_next_ip  (KeyNext),
     .insn_loading (Loading),
@@ -584,6 +586,30 @@ initial begin
         errors++;
         $display("FAIL: fetch after halt: %h", code);
     end
+
+    //------------------------------------------------------------------
+    // Упреждающая выборка (P3): IP уже на следующей инструкции, при
+    // останове шага нет, после пуска она же читается заново
+    $display("5a. Halt with ip_ahead");
+    @(negedge Clk);
+    IpAhead = 1'b1;
+    HaltRq  = 1'b1;
+    repeat (20) @(negedge Clk);
+    check_addr("halt ahead", 3);
+    if (ip_ready) begin
+        errors++;
+        $display("FAIL: halt ahead: ready");
+    end
+    HaltRq  = 1'b0;
+    IpAhead = 1'b0;
+    fetch_insn(code);
+    check_addr("fetch after halt ahead", 3);
+    if (code !== 4'h9) begin
+        errors++;
+        $display("FAIL: fetch after halt ahead: %h", code);
+    end
+    fetch_insn(code);
+    check_addr("next after halt ahead", 4);
     rand_mode = 1'b0;
 
     //------------------------------------------------------------------

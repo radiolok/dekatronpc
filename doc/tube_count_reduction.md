@@ -22,7 +22,8 @@ counters included, memory/reset relay/panel excluded):
 | MachineCtrl FSM rewrite (R2) | §12 | 722 | 714 | 284.5 | 1720.5 | −227.5 |
 | COUT from the Data counter (R7) | §13 | 711 | 679.5 | 282 | 1672.5 | −48 * |
 | Decode once (R3), no `insn_q` (R4) | §14 | 652 | 676 | 250 | 1578 | −94.5 * |
-| Relays for panel switches, + 5 relays (REQ-MOD-011) | §15 | **661.5** | **684** | **250** | **1595.5** | +17.5 † |
+| Relays for panel switches, + 5 relays (REQ-MOD-011) | §15 | 661.5 | 684 | 250 | 1595.5 | +17.5 † |
+| Prefetch P3, opcode latch back in MachineCtrl (REQ-PERF-003) | §16 | **663.8** | **684** ‡ | **318.7** | **≈ 1666.5** | +71 |
 
 Δ is the change of the total. Each step re-ran ABC, which moves a block whose RTL
 didn't change by up to ±30 tubes, so the RTL effect alone (old and new RTL synthesized
@@ -32,6 +33,9 @@ in the same run) differs for the rows marked \*: IpLine rewrite −180, R7 −37
 relays. The relays' own effect on MachineCtrl is about −4.5 tubes on average over 7 ABC
 seeds (§15); the default seed happens to give 250 both ways. Relays are counted separately
 and are not tubes: the three blocks are now **1595.5 tubes + 5 relays (2CO)**.
+‡ ApLine wasn't resynthesized for §16 (its RTL didn't change). IpLine and MachineCtrl are
+means over 3 `&deepsyn` seeds (§16). After P3 the three blocks are about **1666.5 tubes +
+5 relays**.
 
 Overall: **2636 → 1578 (−1058, −40 %)** for the three blocks. Of the §5 ideas, R1, R2,
 R3, R4, R6 and R7 are done, R8 and R9 were rejected by the owner, R5 and R11 are open,
@@ -816,3 +820,12 @@ need several seeds (as above), not one run.
 
 Block diagram: sheet 6 marks which switches go through relays.
 
+## 16. Speed over tubes: prefetch P3 (REQ-PERF-003)
+
+The owner chose P3 from `doc/cycle_profile_helloworld.md`: the next opcode is fetched while
+ApLine works. That brings back an opcode register, removed in §14 (R4) to save tubes,
+this time as `op_q` in MachineCtrl. Over 3 seeds, MachineCtrl goes from 248.3 to 318.7
+tubes (+70.4). The 5 new flops cost 35 tubes; the rest is the load enable and decoding.
+IpLine is unchanged (663.7 → 663.8). In exchange, helloworld runs in 4184 cycles instead
+of 5540. Details, per-seed numbers and the 8-tube cheaper of the two variants:
+`doc/prefetch_p3.md` §5.

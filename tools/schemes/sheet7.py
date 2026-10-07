@@ -15,7 +15,7 @@ def fig_top():
                                          "InsnIn · Valid/Ready", "", "индикация: IP, AP,",
                                          "Loop, Insn, state"], bcls="tl")
 
-    f.box(260, 40, 190, 270, "MachineCtrl", ["автомат исполнения", "дешифратор", "{insn_mode, insn}"])
+    f.box(260, 40, 190, 270, "MachineCtrl", ["автомат исполнения", "дешифратор", "{insn_mode, op_q}"])
     f.box(260, 340, 190, 80, "RstTimeRelay", ["выдержка импульса", "сброса"])
 
     f.box(540, 40, 200, 150, "IpLine", ["IP: 5 декад", "Loop: 2 декады", "детектор скобок"])
@@ -37,8 +37,9 @@ def fig_top():
 
     # управление линиями
     f.wire([(450, 80), (540, 80)], label="ip_clr", lx=460, ly=73)
+    f.text(460, 97, "ip_ahead", "tl")
     f.wire([(540, 120), (450, 120)], label="insn", lx=460, ly=113)
-    f.wire([(450, 270), (540, 270)], label="{mode, insn}", lx=460, ly=263)
+    f.wire([(450, 270), (540, 270)], label="{mode, op_q}", lx=460, ly=263)
     f.wire([(540, 296), (450, 296)], label="zero", lx=460, ly=289)
     f.wire([(330, 310), (330, 340)])
     f.wire([(380, 340), (380, 310)])

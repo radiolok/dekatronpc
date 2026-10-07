@@ -48,6 +48,27 @@
 //
 // Декодирование ведётся по паре {insn_mode, insn}: опкоды 0xB..0xD в
 // двух наборах означают разное (CLRA/HRST/SRST против CLRML/LOAD/STORE).
+//
+//----------------------------------------------------------------------
+// УПРЕЖДАЮЩАЯ ВЫБОРКА (P3, doc/prefetch_p3.md)
+//
+// Операция над ApLine не трогает ни IP, ни память программ, поэтому
+// следующая инструкция выбирается одновременно с её исполнением: в такте
+// выдачи ap_valid автомат выдаёт и ip_valid (clr = 0). Исключение —
+// скобки: решение о промотке IpLine принимает по самой скобке и
+// по признаку нуля, который даёт как раз эта операция TEST. CIN тоже не
+// выбирает заранее: он ждёт терминал, выигрыша нет.
+//
+// Выходной регистр памяти программ при этом сменится раньше, чем
+// закончится операция, поэтому код текущей инструкции снова
+// защёлкивается: op_q (пишется в S_FETCH_W и в последнем такте
+// инструкции) служит операцией ApLine и всей дешифрации. По окончании
+// операции автомат идёт прямо в S_DECODE, минуя S_IDLE и S_FETCH_W.
+//
+// IP при этом стоит на следующей, ещё не исполненной инструкции.
+// Если машина останавливается в этот момент, IpLine не делает
+// обычного шага при останове (вход ip_ahead), а только снимает
+// ip_counted_q: после пуска та же инструкция читается заново.
 //======================================================================
 
 `include "../DekatronPC/insnValues.sv"
@@ -83,6 +104,7 @@ module MachineCtrl #(
     output logic                  ip_valid,
     input  wire                   ip_ready,
     output wire                   ip_clr,       // CLRL/CLRI, иначе выборка
+    output wire                   ip_ahead,     // IP уже на следующей инструкции
     output wire                   loop_val_zero,
     output logic                  insn_loading,
     input  wire [INSN_WIDTH-1:0]  insn,
@@ -95,6 +117,7 @@ module MachineCtrl #(
     //------------------------------------------------------------------
     output logic                  ap_valid,
     input  wire                   ap_ready,
+    output wire [4:0]             ap_op,        // {insn_mode, op_q}, держится до ready
     input  wire                   data_zero,
     input  wire                   data_zero_valid,
     input  wire                   ap_zero,
@@ -158,6 +181,8 @@ module MachineCtrl #(
         S_RST_WAIT  = 4'd13;
 
     logic one_step;      // выполняется ровно одна инструкция
+    logic [INSN_WIDTH-1:0] op_q;   // код текущей инструкции (op_load)
+    logic pf_q;          // следующая инструкция выбрана заранее
     logic overflow_q;    // переполнение вложенности уже обработано
     logic rst_soft;      // сброс программный (иначе аппаратный)
 
@@ -170,15 +195,25 @@ module MachineCtrl #(
     assign is_halted = (state == S_HALT);
 
     // Полный код инструкции с учётом текущего набора команд.
-    // insn держит выходной регистр памяти программ до следующего
-    // обращения, а оно выдаётся только после окончания операции.
-    // Поэтому {insn_mode, insn} служит кодом операции ApLine напрямую
-    // и остаётся неизменным до его ready, как того требует Valid/Ready.
-    wire [4:0] op_full = {insn_mode, insn};
+    // Память программ может читать следующую инструкцию, пока текущая
+    // ещё исполняется, поэтому код дешифрируется только из op_q.
+    // op_q пишется в S_FETCH_W (каждый такт, последний — уже с готовым
+    // опкодом) и в последнем такте инструкции (op_end), когда на выходе
+    // памяти уже заранее выбранная следующая. Если дальше не S_DECODE, а
+    // S_IDLE или S_HALT, запись безвредна: S_FETCH_W перепишет op_q.
+    // Набор команд меняется только в S_DECODE и при сбросе, так что
+    // {insn_mode, op_q} держится до ready ApLine, как того требует
+    // Valid/Ready.
+    wire [4:0] op_cur = {insn_mode, op_q};
 
-    wire is_cin   = (op_full == 5'h19);
-    wire is_cout  = (op_full == 5'h18);
-    wire is_ip_op = (op_full == 5'h08) | (op_full == 5'h09);   // CLRL, CLRI
+    assign ap_op = op_cur;
+
+    wire is_cin     = (op_cur == 5'h19);
+    wire is_cout    = (op_cur == 5'h18);
+    wire is_ip_op   = (op_cur == 5'h08) | (op_cur == 5'h09);   // CLRL, CLRI
+    // Скобка в S_EXEC — это TEST (только BF); в Debug скобки туда не
+    // попадают, поэтому режим не проверяется
+    wire is_bracket = (op_q[3:1] == 3'b011);
 
     //------------------------------------------------------------------
     // Готовность исполнителей.
@@ -209,13 +244,23 @@ module MachineCtrl #(
     wire in_cin    = (state == S_CIN_WAIT);
     wire in_rst_rq = (state == S_RST_REQ);
 
-    assign ip_valid = ((in_idle & ~halt_key) | (in_exec & is_ip_op)) & go;
+    // В S_EXEC линия выборки получает CLRL/CLRI либо, вместе с ap_valid,
+    // упреждающую выборку: всё, кроме скобки (TEST)
+    assign ip_valid = ((in_idle & ~halt_key) | (in_exec & ~is_bracket)) & go;
     assign ap_valid = ((in_exec & ~is_ip_op) | (in_cin & ~halt_key & rx_vld)) & go;
 
-    // Вне S_EXEC линия выборки получает только запрос следующей
-    // инструкции. В S_EXEC бывают лишь CLRL (0x8) и CLRI (0x9), их
-    // IpLine различает по своему же опкоду
-    assign ip_clr = in_exec;
+    // CLRL (0x8) и CLRI (0x9) IpLine различает по своему же опкоду:
+    // при них упреждающей выборки нет, и insn ещё текущий
+    assign ip_clr = in_exec & is_ip_op;
+
+    assign ip_ahead = pf_q;
+
+    // После операции — вывод символа (COUT или эхо после CIN)
+    wire cout_echo = is_cout | (is_cin & echo_mode);
+
+    // Последний такт инструкции, исполнявшейся через S_WAIT/S_COUT
+    wire op_end  = (in_wait & go & ~cout_echo) | ((state == S_COUT) & tx_rdy);
+    wire op_load = (state == S_FETCH_W) | op_end;
 
     assign tx_vld = (state == S_COUT);
 
@@ -236,7 +281,7 @@ module MachineCtrl #(
     RelayEn #(.W(1)) u_bell_halt (
         .en (bell_on_halt),
         .a  ((in_idle & halt_key) |
-             (decode_run & ((op_full == 5'h01) | (op_full == 5'h11)))),
+             (decode_run & ((op_cur == 5'h01) | (op_cur == 5'h11)))),
         .y  (bell_halt));
     RelayEn #(.W(1)) u_bell_cin (
         .en (bell_on_cin),
@@ -248,12 +293,16 @@ module MachineCtrl #(
         .y  (bell_error));
 
     assign bell = bell_halt |
-                  (decode_run & (op_full == 5'h02)) |                   // BELL
+                  (decode_run & (op_cur == 5'h02)) |                   // BELL
                   bell_cin |
                   bell_error;
 
-    // Окончание инструкции: останов по кнопке или пошаговому режиму
-    wire [3:0] s_next = (halt_key | one_step) ? S_HALT : S_IDLE;
+    // Окончание инструкции: останов по кнопке или пошаговому режиму.
+    // Если следующая инструкция уже выбрана, сразу её дешифрация: выход
+    // в s_next бывает только по go, то есть выборка закончена
+    wire [3:0] s_next = (halt_key | one_step) ? S_HALT
+                      : pf_q                  ? S_DECODE
+                      :                         S_IDLE;
 
     // Эхо (echo_mode) остаётся на лампах: is_cin & echo_mode сливается с
     // логикой перехода, реле лампу не экономит (doc/tube_count_reduction.md §15).
@@ -278,10 +327,14 @@ module MachineCtrl #(
             one_step     <= 1'b0;
             overflow_q   <= 1'b0;
             rst_soft     <= 1'b0;
+            op_q         <= '0;
+            pf_q         <= 1'b0;
             iret         <= '0;
         end
         else begin
             overflow_q <= loop_overflow;
+
+            if (op_load) op_q <= insn;
 
             // Общемашинный сброс по физическим линиям. Работает
             // одинаково и для сброса по инструкции, и для сброса с
@@ -290,6 +343,7 @@ module MachineCtrl #(
                 rst_soft     <= ~hard_rst;
                 insn_loading <= 1'b0;
                 one_step     <= 1'b0;
+                pf_q         <= 1'b0;
                 state        <= S_RST_WAIT;
             end
             // Переполнение вложенности перебивает любое состояние
@@ -323,6 +377,7 @@ module MachineCtrl #(
             // Промотку тела цикла IpLine выполняет самостоятельно.
             //--------------------------------------------------------------
             S_IDLE: begin
+                pf_q <= 1'b0;   // после останова выборка обычная
                 if (halt_key)  state <= S_HALT;
                 else if (go)   state <= S_FETCH_W;
             end
@@ -345,6 +400,7 @@ module MachineCtrl #(
             //--------------------------------------------------------------
             S_DECODE: begin
                 if (EN_EMULATOR) iret <= iret + 32'd1;
+                pf_q <= 1'b0;
 
                 if (insn_loading & insn_eot) begin
                     //------------------------------------------------------
@@ -366,7 +422,7 @@ module MachineCtrl #(
                     // служебные коды, остальное просто пишется в память.
                     // insn — только что записанный опкод (сквозная запись)
                     //------------------------------------------------------
-                    case (op_full)
+                    case (op_cur)
                         5'h0E, 5'h1E: begin             // ISA0
                             insn_mode <= 1'b0;
                             state     <= S_IDLE;
@@ -383,7 +439,7 @@ module MachineCtrl #(
                     // Обычное исполнение. В S_EXEC операцией служит
                     // сама инструкция (ip_clr, ap_valid выше)
                     //------------------------------------------------------
-                    case (op_full)
+                    case (op_cur)
 
                     //--- общие для обоих наборов ---------------------------
                     5'h01, 5'h11:                       // HALT
@@ -457,12 +513,15 @@ module MachineCtrl #(
             // Операция над счётчиками: выдача и ожидание окончания
             //--------------------------------------------------------------
             S_EXEC: begin
-                if (go) state <= S_WAIT;
+                if (go) begin
+                    pf_q  <= ~is_bracket & ~is_ip_op;   // выдана и выборка
+                    state <= S_WAIT;
+                end
             end
 
             S_WAIT: begin
                 // Вывод символа, в том числе эхо после ввода
-                if (go) state <= (is_cout | (is_cin & echo_mode)) ? S_COUT : s_next;
+                if (go) state <= cout_echo ? S_COUT : s_next;
             end
 
             //--------------------------------------------------------------
@@ -509,8 +568,8 @@ module MachineCtrl #(
     always @(posedge clk) begin
         if (rst_n && soft_rst_req && hard_rst_req)
             $error("MachineCtrl: одновременный запрос программного и аппаратного сброса");
-        if (rst_n && ip_valid && ap_valid)
-            $error("MachineCtrl: одновременный запрос к IpLine и ApLine");
+        if (rst_n && ip_valid && ap_valid && ip_clr)
+            $error("MachineCtrl: CLRL/CLRI одновременно с операцией ApLine");
         if (rst_n && ip_valid && !ip_clr && !insn_loading && insn_mode &&
             insn_valid && ((insn == 4'h6) || (insn == 4'h7)) && !data_zero_valid)
             $error("MachineCtrl: скобка обрабатывается при недостоверном признаке нуля");

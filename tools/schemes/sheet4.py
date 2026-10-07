@@ -7,7 +7,7 @@ def fig_ipline():
             "Линия выборки: автомат управляет счётчиком инструкций и счётчиком вложенности "
             "циклов, читает опкоды из памяти программ (опкод держит её выходной регистр) и по "
             "детектору скобок решает, нужна ли промотка тела цикла.")
-    pins_in = [(62, "valid, clr"), (88, "loop_val_zero"), (148, "halt_rq, key_±ip"),
+    pins_in = [(62, "valid, clr"), (88, "loop_val_zero"), (148, "halt_rq, ip_ahead, key_±ip"),
                (196, "insn_loading, mode"), (218, "insn_in, valid")]
     for y, n in pins_in:
         f.pin_in(12, y, 200, n)
@@ -73,14 +73,14 @@ def fig_ipline_fsm():
 
     # останов
     f.edge("HALT", "r", "IDLE", "l", oa=-8, ob=-8, label="halt_rq снят", lx=255, ly=45)
-    f.edge("IDLE", "l", "HALT", "r", oa=8, ob=8, label="halt_rq, IP не сдвинут", lx=255, ly=86)
+    f.edge("IDLE", "l", "HALT", "r", oa=8, ob=8, label="halt_rq: IP не сдвинут или ip_ahead", lx=255, ly=86)
     f.edge("HALT", "b", "IP", "l", oa=20, ob=-12, via=[(130, 160), (280, 160), (280, 198)],
            label="кнопка ±IP", lx=205, ly=176)
 
     # из IDLE вниз
     f.edge("IDLE", "b", "INSN_IN", "t", oa=-35, ob=-30, via=[(365, 120), (80, 120)],
            label="загрузка с текущего адреса", lx=220, ly=114)
-    f.edge("IDLE", "b", "IP", "t", oa=-15, ob=-15, cls="wwarn", label="останов: IP+1",
+    f.edge("IDLE", "b", "IP", "t", oa=-15, ob=-15, cls="wwarn", label="останов: IP+1 (без ip_ahead)",
            lx=378, ly=178, anchor="end", lcls="twarn")
     f.edge("IDLE", "b", "IP", "t", oa=10, ob=10, label="шаг IP", lx=418, ly=170,
            anchor="start")
