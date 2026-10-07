@@ -240,7 +240,8 @@ module DekatronPC #(
     // Линия выборки инструкций и память программ
     //------------------------------------------------------------------
     wire                  ip_valid, ip_ready;
-    wire [1:0]            ip_op;
+    wire                  ip_clr;
+    wire                  insn_eot;
     wire                  loop_val_zero;
     wire                  insn_loading;
     wire                  insn_valid;
@@ -263,11 +264,12 @@ module DekatronPC #(
 
         .valid         (ip_valid),
         .ready         (ip_ready),
-        .op            (ip_op),
+        .clr           (ip_clr),
         .loop_val_zero (loop_val_zero),
 
         .insn          (Insn),
         .insn_valid    (insn_valid),
+        .insn_eot      (insn_eot),
 
         .halt_rq       (IsHalted),
         .key_prev_ip   (keyPrevIp),
@@ -319,8 +321,6 @@ module DekatronPC #(
     // Линия работы с данными и память данных
     //------------------------------------------------------------------
     wire                       ap_valid, ap_ready;
-    wire [3:0]                 ap_op;
-    wire                       ap_dec;
     wire                       data_zero, ap_zero, mem_lock;
 
     wire [AP_W-1:0]            ap_mem_addr;
@@ -342,8 +342,7 @@ module DekatronPC #(
 
         .valid       (ap_valid),
         .ready       (ap_ready),
-        .op          (ap_op),
-        .dec         (ap_dec),
+        .op          ({insn_mode, Insn}),   // операция — сама инструкция
 
         .data_zero       (data_zero),
         .data_zero_valid (data_zero_valid),
@@ -419,17 +418,16 @@ module DekatronPC #(
 
         .ip_valid               (ip_valid),
         .ip_ready               (ip_ready),
-        .ip_op                  (ip_op),
+        .ip_clr                 (ip_clr),
         .loop_val_zero          (loop_val_zero),
         .insn_loading           (insn_loading),
         .insn                   (Insn),
         .insn_valid             (insn_valid),
+        .insn_eot               (insn_eot),
         .loop_overflow          (LoopOverflow),
 
         .ap_valid               (ap_valid),
         .ap_ready               (ap_ready),
-        .ap_op                  (ap_op),
-        .ap_dec                 (ap_dec),
         .data_zero              (data_zero),
         .data_zero_valid        (data_zero_valid),
         .ap_zero                (ap_zero),

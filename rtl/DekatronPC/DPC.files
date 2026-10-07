@@ -17,6 +17,7 @@
 ../DekatronPC/RAM.sv
 ../DekatronPC/DekatronPC.sv
 ../programs/bootloader/bootloader.sv
+../Logic/Relay.sv
 ../Logic/RsLatch.sv
 ../Logic/Impulse.sv
 ../Logic/OneShot.sv

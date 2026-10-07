@@ -20,6 +20,7 @@
 #include "verilated_vpi.h"
 #include <verilated_vcd_c.h>
 #include "VEmulator.h"
+#include "../SimClockStats.h"
 
 #define MAX_SIM_TIME 600000000
 #define DIGITS 9
@@ -600,6 +601,10 @@ int main(int argc, char** argv, char** env) {
     dut->selector = 0x0a;
     dut->InsnIn = 0x04;
     dut->InsnInValid = 0;
+    // Built with DIVIDE_TO_01US=1: hsClk (Clock_10MHz) is FPGA_CLK_50 itself
+    SimClockStats stats;
+    uint8_t clk1MHzOld = 0;
+    stats.start();
 #ifdef CONSUL
     ioRegs *ioregs = new ioRegs;
     Consul *consul = new Consul;
@@ -612,6 +617,8 @@ int main(int argc, char** argv, char** env) {
         if (toExit)
             break;
         dut->FPGA_CLK_50 ^= 1;
+        if (dut->FPGA_CLK_50)
+            stats.hsClkEdge();
         if (sim_time == 5){
             dut->KEY = 0;
         }
@@ -621,6 +628,9 @@ int main(int argc, char** argv, char** env) {
         ui->keyControl();
         loader->insnUpdate(dut->Clock_1MHz, dut->InsnInReadEnable, dut->InsnInReady, dut->InsnInValid, dut->InsnIn);
         dut->eval();
+        if (dut->Clock_1MHz && !clk1MHzOld)
+            stats.clkEdge();
+        clk1MHzOld = dut->Clock_1MHz;
     #ifdef SIM_TRACE
         if (sim_time < MAX_SIM_TIME)
             m_trace->dump(sim_time);
@@ -663,6 +673,7 @@ int main(int argc, char** argv, char** env) {
     delete dut;
     delete ui;
     delete loader;
+    stats.report(stdout);
 #ifdef CONSUL
     delete ioregs;
     delete consul;

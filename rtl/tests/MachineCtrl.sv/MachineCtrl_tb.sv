@@ -5,9 +5,13 @@
 //
 // IpLine, ApLine, реле времени и терминал заменены моделями:
 //   IpLine  выдаёт опкоды из очереди prog; пока очередь пуста, выборка
-//           не заканчивается (автомат стоит в S_FETCH_W);
-//   ApLine  занят 1..4 такта на операцию, проверяет, что op и dec
-//           не меняются до возврата ready;
+//           не заканчивается (автомат стоит в S_FETCH_W). Как и в RTL,
+//           insn — регистр памяти: EOT при загрузке в него не попадает,
+//           а поднимает insn_eot;
+//   ApLine  занят 1..4 такта на операцию, проверяет, что операция
+//           {insn_mode, insn} не меняется до возврата ready. Какую
+//           операцию она означает, тест считает по прежней таблице
+//           (ap_op_of), то есть повторяет дешифрацию ApLine;
 //   реле    по запросу поднимает линию сброса и busy на 6 тактов.
 //
 // Проверяется:
@@ -62,17 +66,16 @@ reg bell_on_cin = 0, bell_on_halt = 0, bell_on_error = 0;
 //----------------------------------------------------------------------
 wire       ip_valid;
 wire       ip_ready;
-wire [1:0] ip_op;
+wire       ip_clr;
 wire       loop_val_zero;
 wire       insn_loading;
 reg  [3:0] insn = 4'h0;
 reg        insn_valid = 1'b0;
+reg        insn_eot = 1'b0;
 reg        loop_overflow = 1'b0;
 
 wire       ap_valid;
 wire       ap_ready;
-wire [3:0] ap_op;
-wire       ap_dec;
 reg        data_zero = 1'b0;
 reg        data_zero_valid = 1'b1;
 reg        ap_zero = 1'b0;
@@ -97,10 +100,11 @@ MachineCtrl #(.EN_EMULATOR(1'b1)) dut (
     .echo_mode(echo_mode), .run_on_hard_rst(run_on_hard_rst),
     .run_on_soft_rst(run_on_soft_rst), .soft_rst_on_eot(soft_rst_on_eot),
     .bell_on_cin(bell_on_cin), .bell_on_halt(bell_on_halt), .bell_on_error(bell_on_error),
-    .ip_valid(ip_valid), .ip_ready(ip_ready), .ip_op(ip_op),
+    .ip_valid(ip_valid), .ip_ready(ip_ready), .ip_clr(ip_clr),
     .loop_val_zero(loop_val_zero), .insn_loading(insn_loading),
-    .insn(insn), .insn_valid(insn_valid), .loop_overflow(loop_overflow),
-    .ap_valid(ap_valid), .ap_ready(ap_ready), .ap_op(ap_op), .ap_dec(ap_dec),
+    .insn(insn), .insn_valid(insn_valid), .insn_eot(insn_eot),
+    .loop_overflow(loop_overflow),
+    .ap_valid(ap_valid), .ap_ready(ap_ready),
     .data_zero(data_zero), .data_zero_valid(data_zero_valid), .ap_zero(ap_zero),
     .mem_lock(1'b0),
     .tx_vld(tx_vld), .tx_rdy(tx_rdy), .rx_vld(rx_vld), .rx_rdy(rx_rdy),
@@ -111,6 +115,33 @@ MachineCtrl #(.EN_EMULATOR(1'b1)) dut (
 );
 
 integer errors = 0;
+
+//----------------------------------------------------------------------
+// Операции исполнителям в терминах прежней таблицы.
+// IpLine: clr выбирает CLRL/CLRI по младшему биту опкода.
+// ApLine: операция — {insn_mode, insn}, направление — insn[0].
+//----------------------------------------------------------------------
+wire [1:0] ip_op = ip_clr ? (insn[0] ? IP_CLR_IP : IP_CLR_LOOP) : IP_NEXT;
+wire [4:0] ap_insn = {insn_mode, insn};
+
+function automatic [3:0] ap_op_of(input [4:0] c);
+    case (c)
+        5'h16, 5'h17: ap_op_of = AP_TEST;
+        5'h0A, 5'h1A: ap_op_of = AP_DATA_ZERO;
+        5'h0B:        ap_op_of = AP_AP_ZERO;
+        5'h12, 5'h13: ap_op_of = AP_DATA_STEP;
+        5'h14, 5'h15: ap_op_of = AP_AP_STEP;
+        5'h18:        ap_op_of = AP_COUT;
+        5'h19:        ap_op_of = AP_CIN;
+        5'h1B:        ap_op_of = AP_CLRML;
+        5'h1C:        ap_op_of = AP_LOAD;
+        5'h1D:        ap_op_of = AP_STORE;
+        default:      ap_op_of = AP_NOP;
+    endcase
+endfunction
+
+wire [3:0] ap_op  = ap_op_of(ap_insn);
+wire       ap_dec = insn[0];
 
 task automatic fail(input string msg);
     errors++;
@@ -151,6 +182,7 @@ always @(posedge clk) begin
 
         if (ip_valid & ip_ready) begin
             n_ip[ip_op] = n_ip[ip_op] + 1;
+            insn_eot   <= 1'b0;
             case (ip_op)
                 IP_NEXT:     ip_fetching <= 1'b1;
                 IP_CLR_LOOP: begin ip_busy <= 2; loop_overflow <= 1'b0; end
@@ -168,7 +200,15 @@ always @(posedge clk) begin
                 ip_fetching   <= 1'b0;
             end
             else if (prog.size() > 0) begin
-                insn        <= prog.pop_front();
+                // EOT в память не пишется: регистр памяти держит прежний
+                // опкод, о конце загрузки говорит insn_eot
+                if (insn_loading && !insn_mode && prog[0] == 4'h4) begin
+                    void'(prog.pop_front());
+                    insn_eot <= 1'b1;
+                end
+                else begin
+                    insn <= prog.pop_front();
+                end
                 insn_valid  <= 1'b1;
                 ip_fetching <= 1'b0;
                 ip_busy     <= 1;
@@ -181,8 +221,7 @@ end
 // Модель ApLine
 //----------------------------------------------------------------------
 integer   ap_busy = 0;
-reg [3:0] ap_op_q;
-reg       ap_dec_q;
+reg [4:0] ap_insn_q;
 
 assign ap_ready = (ap_busy == 0) & ~(soft_rst | hard_rst);
 
@@ -193,18 +232,17 @@ always @(posedge clk) begin
     else begin
         if (ap_busy > 0) begin
             ap_busy <= ap_busy - 1;
-            // op и dec держит мастер до ready
-            if (ap_op !== ap_op_q)
-                fail($sformatf("ap_op changed while ApLine busy: %0d -> %0d", ap_op_q, ap_op));
-            if ((ap_op_q == AP_DATA_STEP || ap_op_q == AP_AP_STEP) && ap_dec !== ap_dec_q)
-                fail("ap_dec changed while ApLine busy");
+            // Операцию держит мастер до ready
+            if (ap_insn !== ap_insn_q)
+                fail($sformatf("ApLine op changed while busy: %h -> %h", ap_insn_q, ap_insn));
         end
         if (ap_valid & ap_ready) begin
+            if (ap_op == AP_NOP)
+                fail($sformatf("ApLine got %h, which is not a data op", ap_insn));
             n_ap[ap_op] = n_ap[ap_op] + 1;
             last_ap_dec = ap_dec;
-            ap_op_q  <= ap_op;
-            ap_dec_q <= ap_dec;
-            ap_busy  <= 1 + ($urandom % 4);
+            ap_insn_q <= ap_insn;
+            ap_busy   <= 1 + ($urandom % 4);
         end
     end
 end
@@ -255,6 +293,8 @@ always @(posedge clk) begin
         if (ip_valid & ~ip_ready) fail("ip_valid without ip_ready");
         if (ap_valid & ~ap_ready) fail("ap_valid without ap_ready");
         if (ip_valid & ap_valid)  fail("ip_valid and ap_valid together");
+        if (ip_valid & ip_clr & ~((ap_insn == 5'h08) | (ap_insn == 5'h09)))
+            fail($sformatf("ip_clr with %h, not CLRL/CLRI", ap_insn));
         if (soft_rst_req & hard_rst_req) fail("soft and hard reset requests together");
         if (rx_rdy & ~(in_cin_op & ap_ready))
             fail("rx_rdy before CIN finished");

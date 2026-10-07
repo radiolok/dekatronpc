@@ -1,9 +1,46 @@
-# Tube count: analysis of the synthesis report and how to reach ≤ 1500
+# Tube count: analysis of the synthesis report and how to reach the budget (now ≤ 1200)
 
 Date: 2026-10-06. Covers the Yosys netlists of `IpLine`, `ApLine` and `MachineCtrl`
 (`rtl/run/run_tests.sh -s`, `rtl/run/synt_dpc.tcl`, `rtl/vtube/vtube_cells.lib`
 with the uncommitted renames `NOT_N16`, `A1OOI_N16J2`, `A2OOI_J2`).
-No RTL or flow file was changed. All experiments ran on scratch copies.
+§1–§7 are the original analysis (no RTL or flow file was changed then; all experiments
+ran on scratch copies). §8–§14 record what was implemented afterwards.
+
+## Status (updated 2026-10-07)
+
+Library with 7-tube triggers, `synt_dpc.tcl` with the area ABC script (`-J 50`),
+`equiv_opt` and `qn_absorb.py`; `run_tests.sh -s` set (IpLine + ApLine + MachineCtrl,
+counters included, memory/reset relay/panel excluded):
+
+| Step | Section | IpLine | ApLine | MachineCtrl | Total | Δ |
+|---|---|---|---|---|---|---|
+| Old flow, new library (baseline) | §8 | 998.5 | 1065.5 | 572 | 2636 | – |
+| Area ABC script + `QN` pins (R6) | §8 | 876 | 989 | 471.5 | 2336.5 | −299.5 |
+| RX handshake, `rx_q` removed | §9 | 874.5 | 874 | 493.5 | 2242 | −94.5 |
+| ApLine FSM rewrite | §10 | 874.5 | 719 | 493.5 | 2087 | −155 |
+| IpLine FSM rewrite (R1) | §11 | 722 | 714 | 512 | 1948 | −139 * |
+| MachineCtrl FSM rewrite (R2) | §12 | 722 | 714 | 284.5 | 1720.5 | −227.5 |
+| COUT from the Data counter (R7) | §13 | 711 | 679.5 | 282 | 1672.5 | −48 * |
+| Decode once (R3), no `insn_q` (R4) | §14 | 652 | 676 | 250 | 1578 | −94.5 * |
+| Relays for panel switches, + 5 relays (REQ-MOD-011) | §15 | **661.5** | **684** | **250** | **1595.5** | +17.5 † |
+
+Δ is the change of the total. Each step re-ran ABC, which moves a block whose RTL
+didn't change by up to ±30 tubes, so the RTL effect alone (old and new RTL synthesized
+in the same run) differs for the rows marked \*: IpLine rewrite −180, R7 −37, R3+R4 −97.
+† IpLine and ApLine didn't change in §15; today's run of the same RTL gives 661.5–662.5 /
+681.5–684, with or without the relay cell in the library, so +17.5 is ABC drift, not the
+relays. The relays' own effect on MachineCtrl is about −4.5 tubes on average over 7 ABC
+seeds (§15); the default seed happens to give 250 both ways. Relays are counted separately
+and are not tubes: the three blocks are now **1595.5 tubes + 5 relays (2CO)**.
+
+Overall: **2636 → 1578 (−1058, −40 %)** for the three blocks. Of the §5 ideas, R1, R2,
+R3, R4, R6 and R7 are done, R8 and R9 were rejected by the owner, R5 and R11 are open,
+R10 is not recommended. The open items are worth about 10–30 tubes.
+
+**New goal (2026-10-07, owner):** the whole machine must fit in **1200 tubes**
+(REQ-MOD-009, was 1500). The three blocks alone are 1578, 378 (24 %) over that,
+before memory support, the reset relay and the panel are counted. FSM cleanup is
+used up; see §6 for what's next.
 
 ## 1. Baseline
 
@@ -28,23 +65,31 @@ so its FSM is not extracted.
 
 What the count does **not** include: `Ram`/`IpMemory` (stubbed under `SYNTH`),
 `RstTimeRelay`, the panel and the dekatrons themselves. The 1500 target needs a
-scope (see §6, Q1).
+scope (see §7, Q1; answered in §8: the whole machine).
 
 ## 2. Findings in the flow and the library
 
-1. **`fsm -encoding onehot` in `synt_dpc.tcl` is a no-op.** It runs after `synth`,
+All four are resolved (§8).
+
+1. **Fixed (§8).** **`fsm -encoding onehot` in `synt_dpc.tcl` is a no-op.** It runs after `synth`,
    which has already done FSM extraction. Measured: an explicit binary pass gives the
    same 2138.5, and `synth -nofsm` gives 2165 (+27). FSM encoding is not a lever.
-2. **ABC maps for delay, not area.** `abc -liberty` with the default script is
+   The pass was removed.
+2. **Fixed (§8).** **ABC maps for delay, not area.** `abc -liberty` with the default script is
    delay-oriented. In tubes only area matters (1 MHz is slow for a gate).
-3. **`DFF` has `heat_current: 8500`**, ten times `DFFSR`/`DFFSR_n` (850). This
+   `rtl/run/abc_area.abc` is now used.
+3. **Fixed by the owner (§8).** **`DFF` has `heat_current: 8500`**, ten times `DFFSR`/`DFFSR_n` (850). This
    looks like a typo. It adds 204 A of the 813 A in the heat-current total (about
    1.3 kW of the 5.1 kW estimate). It does not affect the tube count.
-4. 51 of the 161 inverters (25 tubes) only invert a flop output. A tube trigger
+   All three trigger cells now have area 7 and `heat_current: 2000`.
+4. **Fixed (§8, R6).** 51 of the 161 inverters (25 tubes) only invert a flop output. A tube trigger
    (Eccles–Jordan) has both anodes, so Q̄ is free physically. The library DFF cells
-   expose only `Q`.
+   expose only `Q`. The cells now have `QN`, and `qn_absorb.py` moves the inverters to it.
 
 ## 3. Measured: synthesis-only changes (no RTL change)
+
+**Adopted in §8** as `rtl/run/abc_area.abc`: script G with `&deepsyn -J 50 -T 30`, which
+runs in seconds instead of minutes, plus the `equiv_opt` check asked for below.
 
 Only the `abc` line in `synt_dpc.tcl` was changed to `abc -liberty $cell_lib -script <file>`:
 
@@ -70,6 +115,9 @@ against RTL (`equiv_make`/`equiv_induct` in Yosys, or the cocotb tests on the
 build, so it must be checked.
 
 ## 4. Measured: RTL prototype of ApLine
+
+**Implemented in §9 (`rx_q`) and §10 (FSM, Moore strobes).** The held-level `mem_valid`
+question below is answered in §10.
 
 A scratch rewrite of ApLine for area estimation only. It passes Verilator lint but
 has **not** been simulated. Changes:
@@ -102,21 +150,26 @@ one-hot encodes it) gives 444 → 482.5 under B, which is worse.
 The estimates come from the ApLine result and from cell costs (flop with enable ≈ 5
 tubes, 2:1 mux bit ≈ 1.5–2, NOT 0.5).
 
-| # | Idea | Est. Δ | Changes a rule or requirement? |
-|---|---|---|---|
-| R1 | Same FSM cleanup in **IpLine**: merge `IP_OP/IP_WAIT`, `LOOP_OP/LOOP_WAIT`, `CLR_OP/CLR_WAIT`; decode `ip_valid`, `loop_valid`, `ip_set_zero`, `loop_set_zero`, `mem_valid`, `mem_wr` from state; `clr_is_loop_q` becomes two states | −100 … −130 | no |
-| R2 | Same in **MachineCtrl**: merge `FETCH/FETCH_W`, `IP_OP/IP_OP_W`, `AP_OP/AP_OP_W`, `COUT`/`ECHO`; decode `ip_valid`, `ap_valid`, `tx_vld`, `*_rst_req` from state; remove the unreachable `S_BELL` (nothing enters it) | −80 … −110 | no |
-| R3 | **Decode once.** Pass `{insn_mode, insn}` (already stable in IpLine's `insn_q`) to ApLine and IpLine as the op, instead of re-encoding it to `ap_op[3:0]`/`ap_dec`/`ip_op[1:0]`. This drops 7 registers and the encoder in MachineCtrl. CIN/TEST become ApLine's own sub-ops | −30 … −50 | internal interface only (ApLine/IpLine op codes) |
-| R4 | Drop `insn_q` in IpLine: the program memory's output register already holds the last opcode (same as the data memory's write-through register). Loading mode can take `insn_in` straight away | −15 … −20 | check IpMemory rd_data hold semantics |
-| R5 | Panel edge detection (`key_moved_q`, the `one_step` release logic) done once, in the panel or MachineCtrl, not duplicated in IpLine | −10 … −20 | no |
-| R6 | `QN` pin on `DFF`/`DFFSR_n` in the liberty, plus a post-map pass that replaces `NOT(Q)` with `QN` | −20 … −25 | library only; confirm the tube trigger really gives Q̄ for free |
-| R7 | COUT always from the Data counter: if the cell isn't locked, LOAD it first. That removes the 10-bit `tx_data_bcd` mux. It costs one write window per `.`, which is negligible at 110 baud | −20 … −30 | changes the ApLine COUT path (lazy read stays for TEST) |
-| R8 | Shared counter control: only one counter steps at a time (asserted in IpLine and MachineCtrl), so the four `writeTimer`/`Impulse`/`DekatronPhaseGen`/3-bit FSM sets can become one or two | −40 … −80 | yes: §5 "one phase generator per counter", counter as a self-contained Valid/Ready unit |
-| R9 | Address memories with dekatron cathodes one-hot (10 lines per decade) instead of BCD: drops BinToBcd on IP and AP (exactly −90) **and** the BCD→1-of-10 decoders on the memory side, which aren't counted today | −90 (+ memory) | yes: §3 "addresses are raw BCD tetrads"; 50 address wires instead of 20 |
-| R10 | Use the Data counter as the nesting counter during a scan (flush first): removes the Loop counter (74.5 tubes + 2 dekatrons) | −75 | yes: REQ-CNT-002/007 overflow semantics, IpLine/ApLine coupling. Listed for completeness and **not recommended** |
-| R11 | Flatten MachineCtrl+IpLine+ApLine for synthesis (keep counters and DekatronModule as instances) so constant ops propagate across the boundary | unknown | no. The experiment failed to set up: SYNTH stubs of RstTimeRelay/memories fold the netlist to constants |
+| # | Idea | Est. Δ | Changes a rule or requirement? | Status, measured Δ |
+|---|---|---|---|---|
+| R1 | Same FSM cleanup in **IpLine**: merge `IP_OP/IP_WAIT`, `LOOP_OP/LOOP_WAIT`, `CLR_OP/CLR_WAIT`; decode `ip_valid`, `loop_valid`, `ip_set_zero`, `loop_set_zero`, `mem_valid`, `mem_wr` from state; `clr_is_loop_q` becomes two states | −100 … −130 | no | **Done, §11** (REQ-IPV2-007). IpLine 902 → 722, **−180**; triggers 51 → 40 |
+| R2 | Same in **MachineCtrl**: merge `FETCH/FETCH_W`, `IP_OP/IP_OP_W`, `AP_OP/AP_OP_W`, `COUT`/`ECHO`; decode `ip_valid`, `ap_valid`, `tx_vld`, `*_rst_req` from state; remove the unreachable `S_BELL` (nothing enters it) | −80 … −110 | no | **Done, §12** (REQ-CTLV2-010). MachineCtrl 512 → 284.5, **−227.5**; triggers 25 → 9. Includes the register-free op decode (first half of R3) and the bell/echo/reset-type cleanup |
+| R3 | **Decode once.** Pass `{insn_mode, insn}` to ApLine and IpLine as the op, instead of re-encoding it to `ap_op[3:0]`/`ap_dec`/`ip_op[1:0]`. This drops 7 registers and the encoder in MachineCtrl. CIN/TEST become ApLine's own sub-ops | −30 … −50 | internal interface only (ApLine/IpLine op codes) | **Done, §12 + §14** (REQ-APV2-008). The 7 registers went in §12; the encoder and op ports in §14: MachineCtrl 282 → 250 (−32), ApLine +0.5 |
+| R4 | Drop `insn_q` in IpLine: the program memory's output register already holds the last opcode (same as the data memory's write-through register). Loading mode can take `insn_in` straight away | −15 … −20 | check IpMemory rd_data hold semantics | **Done, §14** (REQ-IPV2-008). `Ram` hold semantics checked; EOT reported by a 1-bit `insn_eot` (owner). IpLine 717.5 → 652, **−65.5** (two states removed as well) |
+| R5 | Panel edge detection (`key_moved_q`, the `one_step` release logic) done once, in the panel or MachineCtrl, not duplicated in IpLine | −10 … −20 | no | **Open.** After R1/R2 there is one flop on each side: `key_moved_q` (±IP keys) in IpLine and `one_step` (Step key) in MachineCtrl. They watch different keys, so merging them saves at most one trigger plus its logic (≈ −10) |
+| R6 | `QN` pin on `DFF`/`DFFSR_n` in the liberty, plus a post-map pass that replaces `NOT(Q)` with `QN` | −20 … −25 | library only; confirm the tube trigger really gives Q̄ for free | **Done, §8** (REQ-MOD-010). The owner confirmed `QN` is free. `qn_absorb.py` replaced 19 inverters in IpLine and 8 in ApLine (2026-10-06 logs, counters included), ≈ −13.5 tubes at 0.5 per `NOT_N16`. Not measured on its own: §8 reports it together with the ABC script |
+| R7 | COUT always from the Data counter: if the cell isn't locked, LOAD it first. That removes the 10-bit `tx_data_bcd` mux. It costs one write window per `.`, which is negligible at 110 baud | −20 … −30 | changes the ApLine COUT path (lazy read stays for TEST) | **Done, §13** (OPEN-017 closed). ApLine −34.5, MachineCtrl −2.5, **−37**. Also fixed `Hello WWrld!!` |
+| R8 | Shared counter control: only one counter steps at a time (asserted in IpLine and MachineCtrl), so the four `writeTimer`/`Impulse`/`DekatronPhaseGen`/3-bit FSM sets can become one or two | −40 … −80 | yes: §5 "one phase generator per counter", counter as a self-contained Valid/Ready unit | **Rejected** by the owner (§8, decision 4) |
+| R9 | Address memories with dekatron cathodes one-hot (10 lines per decade) instead of BCD: drops BinToBcd on IP and AP (exactly −90) **and** the BCD→1-of-10 decoders on the memory side, which aren't counted today | −90 (+ memory) | yes: §3 "addresses are raw BCD tetrads"; 50 address wires instead of 20 | **Rejected** by the owner (§8, decision 4) |
+| R10 | Use the Data counter as the nesting counter during a scan (flush first): removes the Loop counter (74.5 tubes + 2 dekatrons) | −75 | yes: REQ-CNT-002/007 overflow semantics, IpLine/ApLine coupling | **Not recommended**, not pursued |
+| R11 | Flatten MachineCtrl+IpLine+ApLine for synthesis (keep counters and DekatronModule as instances) so constant ops propagate across the boundary | unknown | no | **Open.** The first attempt failed to set up: SYNTH stubs of RstTimeRelay/memories fold the netlist to constants. After R3 the ops cross the boundary as raw `{insn_mode, insn}`, so little is left to propagate |
+
+Also done, outside this list: the area ABC script with `equiv_opt` (§8), `rx_q` removed
+with the RX handshake (§9, REQ-UART-008) and the ApLine FSM rewrite (§10, REQ-APV2-007).
 
 ## 6. Path to ≤ 1500
+
+### Original plan (2026-10-06, old library with 3.5-tube triggers)
 
 | Step | Total |
 |---|---|
@@ -129,30 +182,65 @@ tubes, 2:1 mux bit ≈ 1.5–2, NOT 0.5).
 | R6 QN pins (≈ −22) | ≈ 1375 |
 | optional R7/R8/R9 | ≈ 1170 … 1290 |
 
-So **≤ 1500 is reachable without architectural changes**: the area ABC script
-plus FSM hygiene in the three control blocks (Moore strobes, merged OP/WAIT pairs)
-and dropping `rx_q`. The margin is about 100–125 tubes. R1–R3 are estimates.
-R7–R9 add margin, but R8/R9 touch rules the owner set.
+That plan assumed the 1500 budget covered only these three blocks, and 3.5-tube
+triggers. Both assumptions changed in §8: the budget is for the whole machine
+(REQ-MOD-009) and a trigger costs 7 tubes.
 
-Order of work (light tools first, per AGENTS §0):
-1. ABC script G in `synt_dpc.tcl` + an equivalence check step.
-2. ApLine rewrite (prototype exists), new ApLine cocotb test (TRS §22 already asks for one).
-3. IpLine, then MachineCtrl, each with its own test first.
-4. R3, then R6.
+Order of work as planned, all done:
+1. ~~ABC script G in `synt_dpc.tcl` + an equivalence check step.~~ §8.
+2. ~~ApLine rewrite, new ApLine test.~~ §9, §10 (Icarus `ApLine_tb`; there is still no
+   cocotb ApLine target).
+3. ~~IpLine, then MachineCtrl, each with its own test first.~~ §11, §12.
+4. ~~R3, then R6.~~ R6 in §8, R3 in §12/§14, plus R4 (§14) and R7 (§13).
+
+### Where it stands (2026-10-07, 7-tube triggers)
+
+| | Planned (old library) | Done (new library) |
+|---|---|---|
+| Start | 2138.5 | 2636 |
+| After R1–R3, R6 (+ R4, R7 done) | ≈ 1375 | **1578** |
+| Reduction | ≈ −36 % | **−40 %** |
+
+The relative reduction beat the plan, but the three blocks alone are still 78 over a
+budget that must also cover memory support, `RstTimeRelay` and the panel (and possibly
+the dekatrons, still to be clarified in REQ-MOD-009). The ideas left in §5 (R5, R11)
+are worth about 10–30 tubes.
+
+What remains in the three blocks: 35 glue triggers (IpLine 17, ApLine 9, MachineCtrl 9,
+§14), about 245 tubes, plus the four counters with their codecs and phase generators.
+Further reduction therefore needs a new direction, not more FSM hygiene. §8 named one:
+move state and flags into dekatron-driven sequencing. R8/R9 would have touched the
+counters, but the owner rejected them.
+
+### Next goal: 1200 for the whole machine (owner, 2026-10-07)
+
+REQ-MOD-009 is lowered from 1500 to 1200. Against that target:
+- the three blocks must lose at least 378 tubes even if nothing else counted;
+- memory support, `RstTimeRelay` and the panel aren't in the synthesis count yet, so
+  the real gap is larger. Counting them is the first step (TRS §22 item 10);
+- whether the dekatrons count toward the budget is still open (REQ-MOD-009).
 
 ## 7. Questions for the owner
+
+All six were answered on 2026-10-06; the decisions are in §8.
 
 1. What does the 1500 budget cover: only the logic counted today (IpLine/ApLine/
    MachineCtrl incl. counter glue), or also memory support, reset relay and panel?
    Should it become a REQ in the TRS?
+   → **The whole machine**, REQ-MOD-009. Whether the dekatrons count is still open (TRS).
 2. OK to switch `synt_dpc.tcl` to the deepsyn ABC script (2.5 min instead of 3 s)
    and add an equivalence check?
+   → Yes. Done in §8 with `-J 50` (about 25 s for the three blocks) and `equiv_opt`.
 3. Can the terminal side hold `rx_data_bcd` until CIN completes, so ApLine drops
    `rx_q`? The signal stays, but its timing contract (TRS Appendix B) changes.
+   → Yes, through a Valid/Ready handshake with a new `rx_rdy` port. Done in §9 (REQ-UART-008).
 4. R8 (shared counter control) and R9 (one-hot memory address): worth pursuing, or
    do the §3/§5 rules stand?
+   → Not applicable; the rules stand.
 5. Does the tube trigger really give Q̄ without extra tubes (R6)?
+   → Yes (REQ-MOD-010). Done in §8.
 6. Is `DFF heat_current: 8500` a typo for 850?
+   → The owner revised all trigger cells: area 7, `heat_current: 2000`.
 
 ## 8. Owner's decisions and what was done (2026-10-06, later the same day)
 
@@ -200,7 +288,8 @@ blocks. Every flop removed now saves about 7–9 tubes (with its enable mux), so
 
 `-J 50` was kept: larger values cost minutes for 0.3 %.
 
-Projection to 1500 for the whole machine: the measured ApLine cleanup removes 13
+Projection to 1500 for the whole machine (written before §9–§14; the actual result,
+1578 for the three blocks, is in §6 and the status table at the top): the measured ApLine cleanup removes 13
 triggers (−91 tubes from flops alone), and R1–R3 should remove about 25 more in
 IpLine/MachineCtrl. Even so, the three blocks would stay around 1900–2000 before
 memory, reset and panel are counted. Reaching 1500 will need more flop reduction
@@ -536,3 +625,194 @@ R7 was estimated at −20…−30.
 
 Block diagrams: sheets 5 and 6 redrawn. The dashed "COUT: immediately tx_vld" edge and the
 OPEN-017 note are gone.
+
+## 14. Done: decode once (R3) and the opcode held by memory (R4)
+
+Items R3 and R4 of §5. §12 had already decoded the op codes from `insn` without
+registers. This step removes the op codes themselves, and the opcode register in
+IpLine.
+
+### R3: the instruction is the op code (REQ-APV2-008)
+
+- `ApLine.op` is now `{insn_mode, insn}` (5 bits), wired in `DekatronPC` straight from
+  `insn_mode` and `Insn`. ApLine decodes it itself: `0x0A`/`0x1A` zero data, `0x0B` zero
+  AP, `0x12`/`0x13` step data, `0x14`/`0x15` step AP, `0x16`/`0x17` TEST, `0x18` COUT,
+  `0x19` CIN, `0x1B` CLRML, `0x1C` LOAD, `0x1D` STORE. Other codes are NOP (MachineCtrl
+  doesn't issue them). The step direction is `op[0]`, so the `dec` port is gone.
+- The `ap_op` encoder, `ap_op[3:0]` and `ap_dec` are gone from MachineCtrl.
+- IpLine gets one bit, `clr` (MachineCtrl's `ip_clr = S_EXEC`), instead of `ip_op[1:0]`.
+  With `clr`, IpLine picks CLRI or CLRL from `insn[0]` of its own opcode.
+- The decode is exact (no don't-cares on unused codes), per the "no X-masking" rule.
+
+### R4: no `insn_q` in IpLine (REQ-IPV2-008)
+
+The precondition from §5 was checked in `RAM.sv`. `Ram.rd_data` changes only when an
+access is accepted: the bank's `rd_q` and the group's `digit_q` load on `bank_en`, and
+`ovl_hit_q`/`ovl_data_q` load on `accept`. IP steps, CLRI and halt don't touch memory, and
+IpLine starts the next access only after MachineCtrl has finished with the current
+instruction (`ready` needs `go`). So `insn = mem_rd_data` holds while MachineCtrl
+decodes and ApLine executes. The ferrite memory behaves the same way: the value stays in
+the sense amplifiers until the next access.
+
+EOT isn't stored in memory (neither RTL nor `dpcrun` writes it), so the register can't
+show it. Two options were put to the owner: a 1-bit flag, or writing EOT to memory as well
+(which changes the loaded image and `dpcrun`). **The owner chose the flag.** `eot_q` is set
+when S_INSN_IN accepts EOT, cleared by the next accepted operation and by the reset lines.
+It goes to MachineCtrl as `insn_eot`. In loading mode MachineCtrl checks `insn_eot` first,
+then ISA0/ISA1 from `insn`. After write-through, `insn` holds the opcode that was just
+written.
+
+Loading writes the opcode in the handshake cycle. `insn_in_ready = S_INSN_IN & insn_loading & go`
+(free memory, doesn't depend on `insn_in_valid`). `mem_valid` also covers
+`insn_in_valid & insn_in_ready & ~EOT`, and `mem_wr_data = insn_in`. This is the one Mealy
+strobe in IpLine: valid follows the loader's valid, while ready still doesn't depend on
+valid. The loader already holds `insn_in` until the handshake.
+
+States 11 → 9:
+- `S_WRITE` is gone. S_INSN_IN goes to S_IDLE on the handshake, and S_IDLE's `ready`
+  waits for the write to finish.
+- `S_FETCH_W` only existed to latch `insn_q`, so it is gone too. S_FETCH goes to S_IDLE
+  (or S_SCAN_EVAL while scanning) when the read is issued. S_SCAN_EVAL now waits for
+  `go` before it looks at the opcode.
+
+Edge case: a write into the bootloader area is rejected by `Ram` (`err`), and `rd_data`
+then shows the ROM opcode, not the one sent. Before, MachineCtrl decoded the opcode as
+sent. This only matters for a write that is already an error.
+
+### Verification
+
+- `IpLine_tb`:
+  - `clr` replaces `op`. For CLRI/CLRL the tb puts the opcode into the memory model's
+    register.
+  - `insn` must equal the opcode just written after every load.
+  - After EOT, `insn_eot` and `insn_valid` must be set, and the next request must clear
+    `insn_eot`.
+  - A monitor checks that `insn` doesn't change while the memory is idle. This checks the
+    memory model's discipline, the precondition R4 relies on.
+  - The loader raises `insn_in_valid` before `insn_in_ready`.
+  - PASS. `looptest` part 1 runs about 13 % faster (8038 µs vs 9259 µs for the whole tb).
+- `ApLine_tb`: op names map to opcodes. Added: Debug CLRD `0x0A` next to BF `[-]` `0x1A`,
+  and `]` as TEST. PASS.
+- `MachineCtrl_tb`:
+  - The IpLine model now behaves like the RTL. EOT during loading doesn't change `insn`
+    and raises `insn_eot`.
+  - The ApLine model checks that `{insn_mode, insn}` stays stable until `ap_ready` and
+    that only data ops reach ApLine.
+  - A new monitor fails on `ip_clr` with anything but CLRL/CLRI.
+  - PASS.
+- Mutations:
+  - IpLine never sets `eot_q`: `IpLine_tb` fails ("EOT not reported").
+  - MachineCtrl decodes EOT from `insn` the old way: `MachineCtrl_tb` fails 5 checks.
+- `DekatronPC_tb` (Icarus, `run_tests.sh -t` configs): helloworld through the bootloader
+  prints `Hello World!\n`, halts at IP 112; `program.bfk` passes.
+- Verilator `--lint-only -Wall`: clean for `DekatronPC` and `Emulator`.
+- Not run: the Verilator golden-model comparison (`veremul`, full DekatronPC build) and the
+  cocotb regression (it has no targets for these blocks).
+
+### Synthesis
+
+HEAD and the new RTL were synthesized the same day with the same flow (`./synth`,
+`-J 50`). `equiv_opt` is proven on all six runs (new RTL: IpLine 125/125, ApLine 130/130,
+MachineCtrl 57/57).
+
+| Block | HEAD | R3 + R4 | Δ |
+|---|---|---|---|
+| IpLine | 717.5 | **652** | −65.5 |
+| ApLine | 675.5 | 676 | +0.5 |
+| MachineCtrl | 282 | **250** | −32 |
+| Total | 1675 | **1578** | **−97** |
+
+Triggers in the IpLine glue (counters excluded): 22 → 17. `insn_q` costs −4 and `eot_q`
++1. The other −2 come from the state register, which Yosys extracts and encodes one-hot,
+so 11 → 9 states. The MachineCtrl and ApLine glue triggers don't change (9 and 9).
+
+The estimates were R3 −30…−50 and R4 −15…−20. As expected, ApLine pays for the 5-bit
+decode about what MachineCtrl's encoder cost. The extra gain comes from the two removed
+IpLine states.
+
+Block diagrams: sheets 4, 5, 6 and 7 redrawn (no SVG renderer available; layout checked
+by coordinates).
+
+## 15. Done: relays for the panel switches (REQ-MOD-011)
+
+Owner's request (2026-10-07): logic that only a panel switch controls (EN or MUX on a
+switch) doesn't need tubes. A relay does the same with no filament. Only 2CO relays
+(one coil, two changeover contacts) are used. A relay may only be driven by a user
+switch, never by fast or clocked logic. Where a relay saves no tube, the tubes stay.
+
+### Library and modules
+
+- `rtl/vtube/vtube_cells.lib`: cell `RELAY_2CO` (pins `COIL`, `NC1/NO1/C1`, `NC2/NO2/C2`;
+  `Cn = COIL ? NOn : NCn`), area 0, `heat_current` 0, group `relays(names) { RELAY_2CO: 1; }`.
+  The output pins have **no function**, so ABC never uses the relay as a general mux;
+  it only appears where RTL instantiates it. Model in `rtl/vtube/vtube_cells.v`.
+- `rtl/Logic/Relay.sv` (added to `DPC.files` and `Emulator.qsf`):
+  - `RELAY_2CO` behavioral model under `ifndef SYNTH` (in synthesis the liberty cell is used);
+  - `RelayMux #(W, S)`: 2^S words of W bits, selected by S switches. A tree of changeover
+    contacts, select bit l switches 2^(S−1−l)·W contacts, two per relay:
+    relays = Σ_l ⌈2^(S−1−l)·W / 2⌉;
+  - `RelayEn #(W)`: `y = en ? a : 0`, NC contacts tied to 0; relays = ⌈W / 2⌉.
+  - Both have `(* keep_hierarchy = "yes" *)`, so `synth -top` doesn't flatten them.
+  - Each tree level is its own vector. One array for all levels was a false loop for
+    Verilator (UNOPTFLAT), fixed structurally (AGENTS.md §5).
+- `rtl/run/dpc_stat.py`: prints a `Relays` column per block and the total. The cell
+  table now multiplies by instance counts (before, it summed cells per module
+  *definition* and undercounted repeated submodules: its tube column added up to ~1528 of 1595.5).
+
+### Where relays went, and where they didn't
+
+Switch-controlled logic in RTL lives only in `MachineCtrl` (IpLine/ApLine have no
+switch inputs). Each site was measured: MachineCtrl synthesized in all 8 combinations
+(bell / run / echo relays on or off) × 7 ABC seeds (`&deepsyn -S 0…6`), then each bell
+site separately (8 × 7). Main effect = mean tubes with the relay − mean without it.
+
+| Site | RTL | Relays | Effect, tubes | Decision |
+|---|---|---|---|---|
+| `BellOnHALT` | `RelayEn` on the HALT bell term | 1 | −1.8 | relay |
+| `BellOnCIN` | `RelayEn` on `decode_run & is_cin` | 1 | −3.0 | relay |
+| `BellOnError` | `RelayEn` on `overflow_hit` | 1 | −1.6 | relay |
+| `RunOnSoftRst` / `RunOnHardRst` | `RelayMux #(1,2)`: `{soft, hard}` selects `{1, rst_soft, ~rst_soft, 0}` | 2 | −1.3 (no mux cell in the library: a 2:1 mux costs gates) | relay |
+| `EchoMode` | `is_cin & echo_mode` | – | −0.3 (noise: the AND merges into the next-state term) | **tubes** |
+| `SoftRstOnEOT` | FSM branch in `S_DECODE` | – | not a MUX/EN: the switch picks the next state, the gate stays either way | **tubes** |
+
+`run_on_rst` was `rst_soft ? run_on_soft_rst : run_on_hard_rst`, so the select was the
+`rst_soft` trigger, not a switch. To keep the rule "coils only from switches" it was turned
+around: the two switches drive the coils and `rst_soft`/`~rst_soft` (`QN`, free) pass
+through the contacts. Behaviour is unchanged.
+
+Total: **5 RELAY_2CO**. One contact is spare in each `RelayEn #(1)` and in the second
+level of the `RelayMux`.
+
+| MachineCtrl variant (bell/run/echo) | mean of 7 seeds | min | max |
+|---|---|---|---|
+| none (before) | 254.3 | 250 | 259 |
+| bell + run (chosen) | 249.8 | 246.5 | 252.5 |
+| bell + run + echo | 248.3 | 245.5 | 254 |
+
+bell + run + echo is 1.5 lower on average, but echo's main effect over all 8 combinations
+is −0.3, within noise, so echo stays on tubes per the owner's rule.
+
+### Verification
+
+- Exhaustive Icarus check of `RelayMux`/`RelayEn` against `d[sel*W +: W]` and `en ? a : 0`
+  for (W,S) = (1,1), (1,2), (3,2), (4,3), (5,1), (2,4), 200 random vectors each: 0 errors.
+- `MachineCtrl_tb` (all checks, including bell, echo, run on hard/soft reset, SoftRstOnEOT)
+  and `DekatronPC_tb` (helloworld, program.bfk) pass on Icarus.
+- Verilator `--lint-only -Wall`: clean for `DekatronPC` and `Emulator`.
+- Synthesis `run_tests.sh -s`: `equiv_opt` proven on all three blocks (relays are black
+  boxes on both sides).
+
+| Block | Tubes | Relays |
+|---|---|---|
+| IpLine | 661.5 | 0 |
+| ApLine | 684 | 0 |
+| MachineCtrl | 250 | 5 |
+| Total | **1595.5** | **5** |
+
+Note: today's IpLine/ApLine (661.5 / 684) differ from §14 (652 / 676) although their RTL
+didn't change in this step. Synthesizing them without the relay cell in the library gave
+662.5 / 681.5, so ABC results move by ±10 tubes between runs. Comparisons below ~5 tubes
+need several seeds (as above), not one run.
+
+Block diagram: sheet 6 marks which switches go through relays.
+

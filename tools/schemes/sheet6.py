@@ -13,8 +13,9 @@ def fig_mctrl():
                  (128, "key_insn_loading_*")):
         f.pin_in(12, y, 200, n)
     f.text(12, 166, "ТУМБЛЕРЫ", "tf")
-    for y, n in ((196, "echo_mode, run_on_*_rst"), (218, "soft_rst_on_eot, bell_on_*")):
+    for y, n in ((196, "echo_mode, soft_rst_on_eot"), (218, "run_on_*_rst, bell_on_* → реле")):
         f.pin_in(12, y, 200, n)
+    f.text(16, 240, "реле 2CO ×5, 0 ламп", "tl")
     f.text(12, 256, "ТЕРМИНАЛ", "tf")
     f.pin_in(12, 286, 200, "rx_vld, tx_rdy")
     f.wire([(200, 312), (16, 312)], label="tx_vld, rx_rdy (конец CIN)", lx=20, ly=305, lcls="tp")
@@ -34,9 +35,9 @@ def fig_mctrl():
 
     # линия выборки
     f.box(860, 40, 320, 130, "IpLine", ["линия выборки инструкций"], cls="blk-opt")
-    f.wire([(460, 60), (860, 60)], label="ip_valid · ip_op[1:0] · insn_loading", lx=470, ly=53)
+    f.wire([(460, 60), (860, 60)], label="ip_valid · ip_clr · insn_loading", lx=470, ly=53)
     f.wire([(860, 86), (460, 86)], label="ip_ready · loop_overflow", lx=470, ly=79)
-    f.wire([(860, 112), (640, 112), (640, 290)], label="insn · insn_valid", lx=650, ly=105)
+    f.wire([(860, 112), (640, 112), (640, 290)], label="insn · insn_valid · insn_eot", lx=650, ly=105)
 
     # признак нуля для скобок
     f.box(690, 130, 110, 50, "MUX", ["insn_mode ? d : a"], top=20, bcls="tpi")
@@ -46,16 +47,16 @@ def fig_mctrl():
 
     # линия данных
     f.box(860, 200, 320, 130, "ApLine", ["линия данных"], cls="blk-opt")
-    f.wire([(460, 220), (860, 220)], label="ap_valid · ap_op[3:0] · ap_dec", lx=470, ly=213)
+    f.wire([(460, 220), (860, 220)], label="ap_valid; op = {insn_mode, insn}", lx=470, ly=213)
     f.wire([(860, 246), (460, 246)], label="ap_ready · data_zero_valid", lx=470, ly=239)
     f.wire([(860, 272), (745, 272), (745, 180)], "wacc",
            label="data_zero · ap_zero", lx=852, ly=266, anchor="end", lcls="tacc")
 
     # дешифратор
     f.box(520, 290, 260, 136, "Дешифратор",
-          ["{insn_mode, insn}: 5 бит, без регистров", "ip_op, ap_op, ap_dec = insn[0]",
-           "держатся, пока IpLine держит insn", "x6/x7 скобки; BF и нет",
-           "data_zero_valid → AP_TEST", "12…1D: + − > < . , [-] …"], top=22, bcls="tm")
+          ["{insn_mode, insn}: 5 бит, без регистров", "ip_clr = S_EXEC; ApLine op = insn",
+           "держит регистр памяти программ", "x6/x7 скобки; BF и нет",
+           "data_zero_valid → скобка в ApLine", "12…1D: + − > < . , [-] …"], top=22, bcls="tm")
     f.wire([(520, 380), (460, 380)], label="команда", lx=466, ly=373)
 
     # реле времени сброса
@@ -85,7 +86,7 @@ def fig_mctrl_fsm():
     f.edge("HALT", "r", "IDLE", "l", oa=-8, ob=-8, label="step · run · загрузка",
            lx=510, ly=45)
     f.edge("IDLE", "l", "HALT", "r", oa=8, ob=8, label="halt_key", lx=510, ly=86)
-    f.edge("IDLE", "r", "FETCH_W", "t", via=[(900, 60)], label="go: ip_valid, IP_NEXT",
+    f.edge("IDLE", "r", "FETCH_W", "t", via=[(900, 60)], label="go: ip_valid, выборка",
            lx=770, ly=53)
     f.edge("FETCH_W", "l", "DECODE", "r", label="go · insn_valid", lx=770, ly=173)
     f.edge("FETCH_W", "r", "HALT", "t", via=[(1040, 180), (1040, 18), (380, 18)],
@@ -95,13 +96,13 @@ def fig_mctrl_fsm():
     f.edge("DECODE", "t", "HALT", "b", oa=-30, ob=20, via=[(610, 120), (400, 120)],
            label="HALT", lx=505, ly=114)
     f.edge("DECODE", "t", "RST_REQ", "t", oa=-45, via=[(595, 140), (120, 140)],
-           label="HRST · SRST · EOT", lx=240, ly=134)
+           label="HRST · SRST · insn_eot", lx=240, ly=134)
     f.edge("DECODE", "l", "CIN_WAIT", "r", label="CIN", lx=510, ly=173)
     f.edge("CIN_WAIT", "t", "HALT", "b", oa=-20, ob=-20, label="halt_key", lx=352, ly=124,
            anchor="end")
-    f.edge("CIN_WAIT", "b", "WAIT", "t", label="rx_vld · go: AP_CIN", lx=372, ly=244,
+    f.edge("CIN_WAIT", "b", "WAIT", "t", label="rx_vld · go: CIN", lx=372, ly=244,
            anchor="end")
-    f.edge("DECODE", "b", "EXEC", "t", label="CLR* · операции ApLine · AP_TEST · AP_COUT", lx=648,
+    f.edge("DECODE", "b", "EXEC", "t", label="CLR* · операции ApLine · TEST · COUT", lx=648,
            ly=244, anchor="start")
     f.edge("EXEC", "l", "WAIT", "r", label="go: ip_valid | ap_valid", lx=510, ly=293)
     f.edge("WAIT", "b", "COUT", "b", via=[(380, 370), (900, 370)],

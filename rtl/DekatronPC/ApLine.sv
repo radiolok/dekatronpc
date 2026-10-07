@@ -36,7 +36,15 @@
 //
 // data_zero берётся из счётчика при lock_q и из выходного регистра
 // памяти иначе. Он достоверен при lock_q | mem_here_q; обеспечить это
-// перед проверкой цикла обязан вышестоящий блок операцией OP_TEST.
+// перед проверкой цикла обязан вышестоящий блок: скобка, выданная сюда
+// как операция, только это и делает.
+//
+//----------------------------------------------------------------------
+// КОД ОПЕРАЦИИ
+//
+// Операция — сама инструкция {insn_mode, insn} (REQ-APV2-008): верхний
+// автомат её не перекодирует, а дешифрирует блок сам. Направление шага
+// счётчиков — младший бит опкода ('-' 0x3, '<' 0x5).
 //======================================================================
 
 `default_nettype none
@@ -62,8 +70,7 @@ module ApLine #(
     //------------------------------------------------------------------
     input  wire       valid,
     output wire       ready,
-    input  wire [3:0] op,
-    input  wire       dec,
+    input  wire [4:0] op,         // {insn_mode, insn}, держится до ready
 
     //------------------------------------------------------------------
     // Состояние для блока управления
@@ -98,20 +105,22 @@ module ApLine #(
     localparam int unsigned DATA_W = DATA_DEKATRON_NUM * DEKATRON_WIDTH;
 
     //------------------------------------------------------------------
-    // Коды операций
+    // Дешифрация операции. Прочие коды — NOP: верхний автомат их сюда
+    // не выдаёт
     //------------------------------------------------------------------
-    localparam logic [3:0]
-        OP_NOP       = 4'd0,
-        OP_AP_STEP   = 4'd1,   // >  <
-        OP_AP_ZERO   = 4'd2,   // CLRA
-        OP_DATA_STEP = 4'd3,   // +  -
-        OP_DATA_ZERO = 4'd4,   // CLRD, [-]
-        OP_CIN       = 4'd5,   // ,
-        OP_COUT      = 4'd6,   // .
-        OP_LOAD      = 4'd7,   // LOAD
-        OP_STORE     = 4'd8,   // STORE
-        OP_CLRML     = 4'd9,   // CLRML
-        OP_TEST      = 4'd10;  // обеспечить достоверность признака нуля
+    wire op_ap_step   = (op == 5'h14) | (op == 5'h15);   // >  <
+    wire op_ap_zero   = (op == 5'h0B);                   // CLRA
+    wire op_data_step = (op == 5'h12) | (op == 5'h13);   // +  -
+    wire op_data_zero = (op == 5'h0A) | (op == 5'h1A);   // CLRD, [-]
+    wire op_cin       = (op == 5'h19);                   // ,
+    wire op_cout      = (op == 5'h18);                   // .
+    wire op_clrml     = (op == 5'h1B);
+    wire op_load      = (op == 5'h1C);
+    wire op_store     = (op == 5'h1D);
+    // Скобка: обеспечить достоверность признака нуля
+    wire op_test      = (op == 5'h16) | (op == 5'h17);
+
+    wire dec = op[0];
 
     //------------------------------------------------------------------
     // Состояния
@@ -212,14 +221,14 @@ module ApLine #(
     // rx_data_bcd до рукопожатия rx_vld & rx_rdy, а rx_rdy верхний автомат
     // выдаёт только по завершении CIN, когда запись в счётчик окончена
     // (REQ-UART-008). op мастер держит до ready.
-    assign data_in = (op == OP_CIN) ? rx_data_bcd : cell_from_mem;
+    assign data_in = op_cin ? rx_data_bcd : cell_from_mem;
 
     //------------------------------------------------------------------
     // Наблюдаемое состояние
     //------------------------------------------------------------------
     assign mem_lock        = lock_q;
     assign mem_wr_data     = data_out[MEM_DATA_WIDTH-1:0];
-    // Вывод всегда со счётчика данных: OP_COUT при снятом MemLock
+    // Вывод всегда со счётчика данных: COUT при снятом MemLock
     // сначала загружает в него ячейку (OPEN-017)
     assign tx_data_bcd     = data_out;
     assign data_zero       = lock_q ? data_ctr_zero : ~(|cell_from_mem);
@@ -255,10 +264,10 @@ module ApLine #(
     wire in_dop   = (state == S_DOP);
 
     assign ap_valid      = in_ap & go;
-    assign ap_set_zero   = (op == OP_AP_ZERO);
+    assign ap_set_zero   = op_ap_zero;
     assign data_valid    = (in_dset | in_dop) & go;
     assign data_set      = in_dset;
-    assign data_set_zero = (op == OP_DATA_ZERO);
+    assign data_set_zero = op_data_zero;
     assign mem_valid     = (in_flush | in_read) & go;
     assign mem_wr        = in_flush;
 
@@ -286,21 +295,20 @@ module ApLine #(
             //----------------------------------------------------------
             S_IDLE: begin
                 if (accept) begin
-                    case (op)
-
                     // Выгружаем только изменённое значение
-                    OP_AP_STEP, OP_AP_ZERO:
+                    if (op_ap_step | op_ap_zero)
                         state <= dirty_q ? S_FLUSH : S_AP;
 
-                    OP_DATA_STEP:
+                    if (op_data_step) begin
                         if (lock_q)          state <= S_DOP;
                         else if (mem_here_q) state <= S_DSET;  // значение уже в регистре памяти
                         else                 state <= S_READ;
+                    end
 
-                    OP_DATA_ZERO:
+                    if (op_data_zero)
                         state <= S_DOP;
 
-                    OP_CIN: begin
+                    if (op_cin) begin
                         lock_q  <= 1'b1;
                         dirty_q <= 1'b1;
                         state   <= S_DSET;
@@ -310,27 +318,25 @@ module ApLine #(
                     // загрузить. MemLock не меняется, как и при LOAD:
                     // иначе шаг адреса без выгрузки оставил бы lock на
                     // чужой ячейке
-                    OP_COUT:
-                        if (~lock_q) state <= mem_here_q ? S_DSET : S_READ;
+                    if (op_cout & ~lock_q)
+                        state <= mem_here_q ? S_DSET : S_READ;
 
                     // Достаточно, чтобы значение было доступно:
                     // в счётчике либо в регистре памяти
-                    OP_TEST:
-                        if (~(lock_q | mem_here_q)) state <= S_READ;
+                    if (op_test & ~(lock_q | mem_here_q))
+                        state <= S_READ;
 
                     // MemLock не меняется
-                    OP_LOAD:
+                    if (op_load)
                         state <= mem_here_q ? S_DSET : S_READ;
 
-                    OP_STORE:
+                    if (op_store)
                         state <= S_FLUSH;
 
-                    OP_CLRML:
+                    if (op_clrml) begin
                         if (dirty_q) state  <= S_FLUSH;
                         else         lock_q <= 1'b0;
-
-                    default: ;   // OP_NOP
-                    endcase
+                    end
                 end
             end
 
@@ -340,7 +346,7 @@ module ApLine #(
             S_READ: begin
                 if (go) begin
                     mem_here_q <= 1'b1;
-                    state <= (op == OP_TEST) ? S_IDLE : S_DSET;   // +, LOAD, COUT
+                    state <= op_test ? S_IDLE : S_DSET;   // +, LOAD, COUT
                 end
             end
 
@@ -352,17 +358,10 @@ module ApLine #(
                 if (go) begin
                     dirty_q    <= 1'b0;
                     mem_here_q <= 1'b1;
-                    case (op)
-                        OP_AP_STEP, OP_AP_ZERO: begin
-                            lock_q <= 1'b0;
-                            state  <= S_AP;
-                        end
-                        OP_CLRML: begin
-                            lock_q <= 1'b0;
-                            state  <= S_IDLE;
-                        end
-                        default: state <= S_IDLE;   // OP_STORE
-                    endcase
+                    // AP-шаг и CLRML снимают MemLock, STORE — нет
+                    if (op_ap_step | op_ap_zero | op_clrml)
+                        lock_q <= 1'b0;
+                    state <= (op_ap_step | op_ap_zero) ? S_AP : S_IDLE;
                 end
             end
 
@@ -384,7 +383,7 @@ module ApLine #(
             //----------------------------------------------------------
             S_DSET: begin
                 if (go)
-                    state <= (op == OP_DATA_STEP) ? S_DOP : S_IDLE;
+                    state <= op_data_step ? S_DOP : S_IDLE;
             end
 
             //----------------------------------------------------------
@@ -407,8 +406,9 @@ module ApLine #(
 `ifndef SYNTH
 `ifdef ASSERTIONS
     always @(posedge clk) begin
-        if (rst_n && valid && (op > OP_TEST))
-            $error("ApLine: неизвестный код операции %0d", op);
+        if (rst_n && valid && !(op_ap_step | op_ap_zero | op_data_step | op_data_zero |
+                                op_cin | op_cout | op_clrml | op_load | op_store | op_test))
+            $error("ApLine: код %h не является операцией над данными", op);
         if (rst_n && $past(valid) && !$past(ready) && !valid)
             $error("ApLine: valid снят до handshake");
         if (rst_n && mem_err)

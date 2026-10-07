@@ -15,6 +15,11 @@
 // Монитор обращений к памяти проверяет, что mem_valid не выставляется
 // без mem_ready: стробы ApLine поднимаются только при готовности всех
 // исполнителей, и рукопожатие происходит в том же такте.
+//
+// Кодом операции служит сама инструкция {insn_mode, insn} (REQ-APV2-008).
+// Тест пользуется прежними именами операций, do_op переводит их в опкод:
+// направление d выбирает парный код ('-' 0x13, '<' 0x15), для CLRD —
+// Debug 0x0A вместо BF 0x1A, для TEST — ']' вместо '['.
 //----------------------------------------------------------------------
 module ApLine_tb (
 );
@@ -37,8 +42,7 @@ ClockDivider #(
 );
 
 reg             valid    = 1'b0;
-reg  [3:0]      op       = 4'd0;
-reg             dec      = 1'b0;
+reg  [4:0]      op       = 5'h10;   // BF NOP
 reg  [11:0]     rx_data  = 12'd0;
 
 wire            ready;
@@ -78,7 +82,6 @@ ApLine apLine (
     .valid          (valid),
     .ready          (ready),
     .op             (op),
-    .dec            (dec),
     .data_zero      (data_zero),
     .data_zero_valid(data_zero_valid),
     .ap_zero        (ap_zero),
@@ -156,12 +159,27 @@ end
 //----------------------------------------------------------------------
 // Одна операция по Valid/Ready
 //----------------------------------------------------------------------
+function automatic [4:0] insn_of(input [3:0] o, input bit d);
+    case (o)
+        OP_AP_STEP:   insn_of = d ? 5'h15 : 5'h14;   // <  >
+        OP_AP_ZERO:   insn_of = 5'h0B;               // CLRA
+        OP_DATA_STEP: insn_of = d ? 5'h13 : 5'h12;   // -  +
+        OP_DATA_ZERO: insn_of = d ? 5'h0A : 5'h1A;   // CLRD, [-]
+        OP_CIN:       insn_of = 5'h19;
+        OP_COUT:      insn_of = 5'h18;
+        OP_LOAD:      insn_of = 5'h1C;
+        OP_STORE:     insn_of = 5'h1D;
+        OP_CLRML:     insn_of = 5'h1B;
+        OP_TEST:      insn_of = d ? 5'h17 : 5'h16;   // ]  [
+        default:      insn_of = 5'h10;               // NOP
+    endcase
+endfunction
+
 task automatic do_op(input [3:0] o, input bit d, input [11:0] rx);
     @(negedge Clk);
     while (!ready) @(negedge Clk);
     valid   = 1'b1;
-    op      = o;
-    dec     = d;
+    op      = insn_of(o, d);
     rx_data = rx;
     @(posedge Clk);          // accept
     @(negedge Clk);
@@ -206,8 +224,7 @@ endtask
 initial begin
     Rst_n   <= 1'b0;
     valid   <= 1'b0;
-    op      <= OP_NOP;
-    dec     <= 1'b0;
+    op      <= 5'h10;
     rx_data <= 12'd0;
 
     #2000 Rst_n <= 1'b1;
@@ -329,7 +346,7 @@ initial begin
         errors++;
         $display("FAIL: mem_lock after CLRML");
     end
-    do_op(OP_TEST, 1'b0, 12'd0);           // регистр памяти уже на месте
+    do_op(OP_TEST, 1'b1, 12'd0);           // ']'; регистр памяти уже на месте
     do_op(OP_COUT, 1'b0, 12'd0);
     check_mem("TEST/COUT after CLRML", 0, 1);
     check_data("COUT after CLRML", 124);
@@ -388,6 +405,13 @@ initial begin
     end
     do_op(OP_DATA_STEP, 1'b1, 12'd0);
     check_data("0 -", 255);
+
+    // Оба кода обнуления: Debug CLRD 0x0A и BF [-] 0x1A
+    do_op(OP_DATA_ZERO, 1'b1, 12'd0);
+    check_data("CLRD 0x0A", 0);
+    do_op(OP_CIN,       1'b0, data_bcd(7));
+    do_op(OP_DATA_ZERO, 1'b0, 12'd0);
+    check_data("[-] 0x1A", 0);
 
     if (errors)
         $display($time/1000, "us << Simulation Complete >> errors=%0d", errors);

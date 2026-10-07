@@ -395,6 +395,29 @@ library(vtube_cells_lib) {
     pin(S) { direction: input; }
     pin(R) { direction: input; }
   }
+  // Relay with two changeover contacts (2CO, 2 poles). Not a tube: area 0,
+  // no filament. The output pins have no function on purpose, so ABC never
+  // uses the relay in random logic: it only appears where RTL instantiates it
+  // (RelayMux/RelayEn, rtl/Logic/Relay.sv). COIL is driven only by a panel
+  // switch (static); the contacts pass any signal. Cn = COIL ? NOn : NCn.
+  cell(RELAY_2CO) {
+    area: 0;
+    current_unit : "1mA";
+    heat_current: 0;
+    tubes(names) {
+      N16B: 0;
+    }
+    relays(names) {
+      RELAY_2CO: 1;
+    }
+    pin(COIL) { direction: input; }
+    pin(NC1) { direction: input; }
+    pin(NO1) { direction: input; }
+    pin(NC2) { direction: input; }
+    pin(NO2) { direction: input; }
+    pin(C1) { direction: output; }
+    pin(C2) { direction: output; }
+  }
     cell (TIEHI) {
     area : 0.0;
     tubes(names) {

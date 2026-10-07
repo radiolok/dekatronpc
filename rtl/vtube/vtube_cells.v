@@ -158,3 +158,11 @@ module TIELO(L);
 output L;
 assign L = 1'b0;
 endmodule
+
+// Relay, two changeover contacts. Not a tube; COIL only from panel switches.
+module RELAY_2CO(COIL, NC1, NO1, NC2, NO2, C1, C2);
+input COIL, NC1, NO1, NC2, NO2;
+output C1, C2;
+assign C1 = COIL ? NO1 : NC1;
+assign C2 = COIL ? NO2 : NC2;
+endmodule

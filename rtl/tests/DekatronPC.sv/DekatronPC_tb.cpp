@@ -22,8 +22,7 @@
 #include <getopt.h>
 #include "VDekatronPC.h"
 #include "dpcrun.h"
-#include <chrono>
-using namespace std::chrono;
+#include "../SimClockStats.h"
 
 #define MUL (50)
 #define HALF_HIGH_P (1)
@@ -49,6 +48,7 @@ public:
     vluint64_t PLL_CLK;
     vluint64_t CPU_CLK_UNHALTED;
     VDekatronPC *dut;
+    SimClockStats stats;
     std::string output;
     int lastCin;
     // IRET also counts the opcodes accepted while loading and is not
@@ -138,11 +138,14 @@ static void tick(VerilogMachine &state)
 {
     if ((state.PLL_CLK % HALF_HIGH_P) == 0){
         state.dut->hsClk ^= 1;
+        if (state.dut->hsClk)
+            state.stats.hsClkEdge();
     }
     if ((state.PLL_CLK % HALF_SLOW_P) == 0){
         state.dut->Clk ^= 1;
         if (state.dut->Clk){
             state.CPU_CLK_UNHALTED++;
+            state.stats.clkEdge();
         }
     }
     Cout(state);
@@ -329,12 +332,12 @@ int main(int argc, char** argv, char** env) {
     state.trace->open("VDekatronPC.vcd");
 #endif
     state.dut->EchoMode = 1;
+    state.stats.start();
     if (!startVerilog(state, code)){
         printf("FATAL: RTL did not start: power-on or program load failed\n");
         return -1;
     }
 
-    auto start = high_resolution_clock::now();
     while (state.PLL_CLK < MAX_SIM_TIME) {
         // The program is over when the model reaches the first NOP past it
         if (cppMachine.ip() == code.size() || cppMachine.halted())
@@ -366,6 +369,7 @@ int main(int argc, char** argv, char** env) {
                 );
             if (compareStates(state, cppMachine, rtlState == S_HALT))
             {
+                state.stats.report(stdout, state.iret());
                 return -1;
             }
         }
@@ -390,13 +394,10 @@ int main(int argc, char** argv, char** env) {
     }
     if (compareStates(state, cppMachine, true))
         verdict = -1;
-    auto stop = high_resolution_clock::now();
-    auto duration = duration_cast<microseconds>(stop - start);
     printf("VDekatronPC Done. state.CPU_CLK_UNHALTED = %llu, IRET=%u\n",
                 static_cast<unsigned long long>(state.CPU_CLK_UNHALTED),
                 state.iret());
-    std::cout << "Time taken by function: "
-         << duration.count() << " microseconds" << std::endl;
+    state.stats.report(stdout, state.iret());
     if (verdict){
         printf("FAIL: RTL and model differ\n");
         exit(EXIT_FAILURE);

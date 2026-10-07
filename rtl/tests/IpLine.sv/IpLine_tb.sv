@@ -11,7 +11,7 @@
 //
 // Части теста:
 //   1. looptest: +++++++++[-+-+-]H, промотка назад
-//   2. загрузка программы по insn_in (вложенные скобки, EOT) и её
+//   2. загрузка программы по insn_in (вложенные скобки, EOT, insn_eot) и её
 //      выполнение со случайным loop_val_zero; каждая выборка
 //      сравнивается с эталонной моделью (адрес и опкод), счётчик
 //      вложенности после каждой выборки обязан быть нулём
@@ -19,6 +19,9 @@
 //   4. CLRI: первая выборка без шага
 //   5. останов: шаг IP, ручные шаги вперёд/назад, выборка без шага
 //   6. аппаратный сброс: IP = 99900
+//
+// Собственного регистра опкода у IpLine нет: insn — выход памяти. Монитор
+// проверяет, что insn не меняется, пока память не занята (REQ-IPV2-008).
 //----------------------------------------------------------------------
 
 module IpLine_tb_mem #(
@@ -123,13 +126,16 @@ ClockDivider #(
 
 reg        ip_valid = 1'b0;
 wire       ip_ready;
-reg  [1:0] ip_op    = 2'd0;
+reg        ip_clr   = 1'b0;
 
+// Операции теста. CLRI/CLRL IpLine различает по своему опкоду, поэтому
+// тест кладёт его в регистр памяти модели перед clr
 localparam [1:0] OP_NEXT = 2'd0, OP_CLR_IP = 2'd1, OP_CLR_LOOP = 2'd2;
 
 wire       loop_val_zero;
 wire [3:0] Insn;
 wire       InsnValid;
+wire       InsnEot;
 
 reg        HaltRq    = 1'b0;
 reg        KeyPrev   = 1'b0;
@@ -168,10 +174,11 @@ IpLine #(
     .hard_rst     (HardRst),
     .valid        (ip_valid),
     .ready        (ip_ready),
-    .op           (ip_op),
+    .clr          (ip_clr),
     .loop_val_zero(loop_val_zero),
     .insn         (Insn),
     .insn_valid   (InsnValid),
+    .insn_eot     (InsnEot),
     .halt_rq      (HaltRq),
     .key_prev_ip  (KeyPrev),
     .key_next_ip  (KeyNext),
@@ -239,17 +246,38 @@ always @(posedge Clk) begin
     end
 end
 
+// Опкод держит выходной регистр памяти: без обращения он не меняется,
+// как бы ни двигался IP
+reg [3:0] insn_prev;
+reg       mem_idle_prev = 1'b0;
+bit       poked = 0;              // тест сам подложил опкод в регистр памяти
+always @(posedge Clk) begin
+    if (Rst_n && mem_idle_prev && MemReady && !poked && Insn !== insn_prev) begin
+        errors++;
+        $display("FAIL: insn changed without a memory access: %h -> %h", insn_prev, Insn);
+    end
+    insn_prev     <= Insn;
+    mem_idle_prev <= MemReady & ~MemValid;
+    poked          = 0;
+end
+
 //----------------------------------------------------------------------
 // Операция по Valid/Ready и ожидание её окончания
 //----------------------------------------------------------------------
 task automatic do_op(input [1:0] o);
     @(negedge Clk);
     while (!ip_ready) @(negedge Clk);
+    // CLRI 0x9 / CLRL 0x8 — опкод текущей инструкции в регистре памяти
+    if (o != OP_NEXT) begin
+        mem.rd_data = (o == OP_CLR_IP) ? 4'h9 : 4'h8;
+        poked       = 1;
+    end
     ip_valid = 1'b1;
-    ip_op    = o;
+    ip_clr   = (o != OP_NEXT);
     @(posedge Clk);              // accept
     @(negedge Clk);
     ip_valid = 1'b0;
+    ip_clr   = 1'b0;
     while (!ip_ready) @(negedge Clk);
 endtask
 
@@ -269,13 +297,14 @@ task automatic load_insn(input [3:0] code);
     @(negedge Clk);
     while (!ip_ready) @(negedge Clk);
     ip_valid = 1'b1;
-    ip_op    = OP_NEXT;
+    ip_clr   = 1'b0;
     @(posedge Clk);
     @(negedge Clk);
     ip_valid = 1'b0;
-    while (!InsnInReady) @(negedge Clk);
+    // valid выставляется, не дожидаясь ready, и держится до рукопожатия
     InsnIn      = code;
     InsnInValid = 1'b1;
+    while (!InsnInReady) @(negedge Clk);
     @(posedge Clk);              // insn_in_valid & insn_in_ready
     @(negedge Clk);
     InsnInValid = 1'b0;
@@ -368,7 +397,7 @@ initial begin
     HardRst <= 1'b0;
     SoftRst <= 1'b0;
     ip_valid<= 1'b0;
-    ip_op   <= 2'd0;
+    ip_clr  <= 1'b0;
     Data    <= 12'd0;
 
     #2000 Rst_n <= 1'b1;
@@ -410,14 +439,26 @@ initial begin
     pulse_rst(1'b0);
     check_addr("soft reset", 0);
     Loading = 1'b1;
-    for (int i = 0; i < prog_len; i++) load_insn(prog[i]);
+    for (int i = 0; i < prog_len; i++) begin
+        load_insn(prog[i]);
+        // Сквозная запись: insn — только что записанный опкод
+        if (Insn !== prog[i] || InsnEot) begin
+            errors++;
+            $display("FAIL: load %0d: insn %h eot %b, expected %h", i, Insn, InsnEot, prog[i]);
+        end
+    end
     load_insn(4'h4);                    // EOT: в память не пишется
-    if (Insn !== 4'h4) begin
+    if (!InsnEot || !InsnValid) begin
         errors++;
-        $display("FAIL: EOT not presented on insn (%h)", Insn);
+        $display("FAIL: EOT not reported (insn_eot %b, insn_valid %b)", InsnEot, InsnValid);
     end
     check_addr("EOT", prog_len);
     Loading = 1'b0;
+    do_op(OP_NEXT);                     // любая операция снимает insn_eot
+    if (InsnEot) begin
+        errors++;
+        $display("FAIL: insn_eot still set after the next request");
+    end
     for (int i = 0; i < prog_len; i++)
         if (mem.mem[i] !== prog[i]) begin
             errors++;

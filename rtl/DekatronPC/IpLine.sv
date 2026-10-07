@@ -36,7 +36,22 @@
 //
 // В режиме insn_loading блок принимает опкоды по insn_in_valid /
 // insn_in_ready, пишет их в память по текущему адресу и продвигает IP.
-// Приём EOT завершает загрузку.
+// Опкод уходит в память в такте рукопожатия, поэтому insn_in_ready
+// поднимается только при свободной памяти. Приём EOT завершает
+// загрузку; в память он не пишется.
+//
+//----------------------------------------------------------------------
+// ОПКОД ДЕРЖИТ ПАМЯТЬ
+//
+// Собственного регистра опкода у блока нет (REQ-IPV2-008). Выходной
+// регистр памяти программ меняется только при обращении и держит
+// последнюю прочитанную или записанную (сквозная запись) инструкцию.
+// Шаг IP, CLRI и останов к памяти не обращаются, а следующее обращение
+// бывает лишь после того, как блок управления закончил с текущей
+// инструкцией. Поэтому insn — это прямо mem_rd_data.
+//
+// Единственный опкод, которого в памяти нет, — EOT. О нём сообщает
+// отдельный триггер insn_eot.
 //======================================================================
 
 `include "../DekatronPC/insnValues.sv"
@@ -64,7 +79,9 @@ module IpLine #(
     //------------------------------------------------------------------
     input  wire       valid,
     output wire       ready,
-    input  wire [1:0] op,
+    // 0 — следующая инструкция; 1 — исполнить текущую: CLRI (0x9) или
+    // CLRL (0x8), различаются младшим битом опкода
+    input  wire       clr,
 
     // Состояние проверяемой циклом величины. В Brainfuck ISA это признак
     // нуля текущей ячейки, в Debug ISA — признак нуля счётчика адреса.
@@ -76,6 +93,7 @@ module IpLine #(
     //------------------------------------------------------------------
     output wire [INSN_WIDTH-1:0] insn,
     output wire                  insn_valid,
+    output wire                  insn_eot,     // принят EOT; insn не значим
 
     //------------------------------------------------------------------
     // Останов и ручное перемещение по программе
@@ -119,34 +137,24 @@ module IpLine #(
     localparam int unsigned LOOP_W = LOOP_DEKATRON_NUM * DEKATRON_WIDTH;
 
     //------------------------------------------------------------------
-    // Коды операций
-    //------------------------------------------------------------------
-    localparam logic [1:0]
-        OP_NEXT     = 2'd0,   // выдать следующую инструкцию
-        OP_CLR_IP   = 2'd1,   // CLRI — счётчик инструкций в нуль
-        OP_CLR_LOOP = 2'd2;   // CLRL — счётчик циклов в нуль
-
-    //------------------------------------------------------------------
     // Состояния
     //
-    // Каждое состояние, кроме S_IDLE, S_FETCH_W, S_SCAN_EVAL, S_INSN_IN
-    // и S_HALT, выдаёт ровно одну операцию одному исполнителю и покидает
-    // себя в такте её приёма. Ожидания окончания операции (прежние пары
-    // OP/WAIT) нет: следующее состояние, как и S_IDLE, само ждёт go —
-    // готовности всех трёх исполнителей.
+    // Каждое состояние, кроме S_IDLE, S_SCAN_EVAL и S_HALT, выдаёт ровно
+    // одну операцию одному исполнителю и покидает себя в такте её приёма.
+    // Ожидания окончания операции нет: следующее состояние, как и
+    // S_IDLE, само ждёт go — готовности всех трёх исполнителей. S_INSN_IN
+    // пишет принятый опкод в память в такте рукопожатия.
     //
-    // Единственное ожидание — S_FETCH_W: прочитанный опкод надо
-    // защёлкнуть в insn_q, а он достоверен только по окончании чтения.
+    // Отдельного ожидания чтения (прежний S_FETCH_W) тоже нет: опкод не
+    // защёлкивается, а S_SCAN_EVAL разбирает его, дождавшись go.
     //------------------------------------------------------------------
     localparam logic [3:0]
         S_IDLE      = 4'd0,
         S_IP        = 4'd1,   // шаг счётчика инструкций
-        S_FETCH     = 4'd2,   // запрос чтения инструкции
-        S_FETCH_W   = 4'd3,   // приём прочитанной инструкции
+        S_FETCH     = 4'd2,   // чтение инструкции
         S_SCAN_EVAL = 4'd4,   // разбор прочитанной скобки
         S_LOOP      = 4'd5,   // шаг счётчика вложенности
-        S_INSN_IN   = 4'd6,   // приём опкода при загрузке
-        S_WRITE     = 4'd7,   // запись опкода в память
+        S_INSN_IN   = 4'd6,   // приём опкода при загрузке и его запись
         S_CLR_IP    = 4'd8,   // CLRI
         S_CLR_LOOP  = 4'd9,   // CLRL
         S_HALT      = 4'd10;
@@ -159,7 +167,7 @@ module IpLine #(
     logic                  key_moved_q;    // ручной шаг уже сделан, ждём отпускания
     logic                  halt_pending_q; // после шага IP уйти в останов
     logic                  overflow_q;
-    logic [INSN_WIDTH-1:0] insn_q;
+    logic                  eot_q;          // последним принят EOT
     logic                  insn_valid_q;
 
     //------------------------------------------------------------------
@@ -236,15 +244,15 @@ module IpLine #(
     //------------------------------------------------------------------
     // Распознавание скобок
     //
-    // Детектор один: он разбирает регистр insn_q, а тот в разные моменты
-    // держит либо текущую инструкцию (решение о начале промотки), либо
-    // только что прочитанную в ходе промотки. Опкоды скобок одинаковы в
+    // Детектор один: он разбирает выходной регистр памяти, а тот в разные
+    // моменты держит либо текущую инструкцию (решение о начале промотки),
+    // либо только что прочитанную в ходе промотки. Опкоды скобок одинаковы в
     // обоих наборах команд, поэтому режим ISA здесь не нужен.
     //------------------------------------------------------------------
     wire insn_loop_open, insn_loop_close;
 
     InsnLoopDetector loopDetector (
-        .Insn      (insn_q),
+        .Insn      (mem_rd_data),
         .LoopOpen  (insn_loop_open),
         .LoopClose (insn_loop_close)
     );
@@ -267,13 +275,22 @@ module IpLine #(
     //------------------------------------------------------------------
     wire go = ip_ready & loop_ready & mem_ready;
 
-    assign insn          = insn_q;
+    assign insn          = mem_rd_data;
     assign insn_valid    = insn_valid_q;
-    assign insn_in_ready = (state == S_INSN_IN);
+    assign insn_eot      = eot_q;
 
     assign ready = (state == S_IDLE) & ~halt_rq & go;
 
     wire accept = valid & ready;
+
+    // Опкод загрузки пишется в память в такте рукопожатия, поэтому
+    // готовность к нему — только при свободной памяти. От insn_in_valid
+    // не зависит
+    wire in_insn_in = (state == S_INSN_IN);
+
+    assign insn_in_ready = in_insn_in & insn_loading & go;
+
+    wire insn_in_accept = insn_in_valid & insn_in_ready;
 
     wire end_of_transmission = ({insn_mode, insn_in} == INSN_EOT);
 
@@ -297,13 +314,16 @@ module IpLine #(
     // (dec, set_zero, wr) значимы только вместе с valid.
     //
     // Направление шага IP держит dir_q (промотка назад, ручной шаг
-    // назад), направление счётчика вложенности выводится из insn_q:
+    // назад), направление счётчика вложенности выводится из опкода:
     // на стартовой скобке ответной скобки нет, значит инкремент.
+    //
+    // Запись при загрузке — исключение: она следует за insn_in_valid
+    // загрузчика (valid за valid, не ready за valid), а опкод берётся
+    // прямо с insn_in, пока загрузчик держит его до рукопожатия.
     //------------------------------------------------------------------
     wire in_ip       = (state == S_IP);
     wire in_fetch    = (state == S_FETCH);
     wire in_loop     = (state == S_LOOP);
-    wire in_write    = (state == S_WRITE);
     wire in_clr_ip   = (state == S_CLR_IP);
     wire in_clr_loop = (state == S_CLR_LOOP);
 
@@ -312,9 +332,9 @@ module IpLine #(
     assign loop_valid    = (in_loop | in_clr_loop) & go;
     assign loop_dec      = dir_q ? insn_loop_open : insn_loop_close;
     assign loop_set_zero = in_clr_loop;
-    assign mem_valid     = (in_fetch | in_write) & go;
-    assign mem_wr        = in_write;
-    assign mem_wr_data   = insn_q;
+    assign mem_valid     = (in_fetch & go) | (insn_in_accept & ~end_of_transmission);
+    assign mem_wr        = in_insn_in;
+    assign mem_wr_data   = insn_in;
 
     //------------------------------------------------------------------
     // Основной автомат
@@ -328,7 +348,7 @@ module IpLine #(
             key_moved_q    <= 1'b0;
             halt_pending_q <= 1'b0;
             overflow_q     <= 1'b0;
-            insn_q         <= '0;
+            eot_q          <= 1'b0;
             insn_valid_q   <= 1'b0;
         end
         // Физический сброс счётчиков обнуляет и состояние выборки:
@@ -339,6 +359,7 @@ module IpLine #(
             scanning_q     <= 1'b0;
             halt_pending_q <= 1'b0;
             insn_valid_q   <= 1'b0;
+            eot_q          <= 1'b0;
             overflow_q     <= 1'b0;
         end
         else begin
@@ -361,20 +382,18 @@ module IpLine #(
                     end
                 end
                 else if (accept) begin
-                    case (op)
+                    eot_q <= 1'b0;
 
-                    OP_CLR_IP: begin
+                    if (clr & insn[0]) begin            // CLRI
                         ip_counted_q <= 1'b0;
                         insn_valid_q <= 1'b0;
                         state        <= S_CLR_IP;
                     end
-
-                    OP_CLR_LOOP: begin
+                    else if (clr) begin                 // CLRL
                         overflow_q <= 1'b0;
                         state      <= S_CLR_LOOP;
                     end
-
-                    default: begin   // OP_NEXT
+                    else begin                          // следующая инструкция
                         if (~ip_counted_q) begin
                             // Первая выборка после сброса: читаем по
                             // текущему адресу, счётчик не двигаем
@@ -398,7 +417,6 @@ module IpLine #(
                             state <= S_IP;
                         end
                     end
-                    endcase
                 end
             end
 
@@ -427,15 +445,11 @@ module IpLine #(
             end
 
             //----------------------------------------------------------
-            // Чтение инструкции: запрос, затем приём результата
+            // Чтение инструкции. Окончания чтения ждут S_IDLE (ready) и
+            // S_SCAN_EVAL: опкод на выходе памяти достоверен по go
             //----------------------------------------------------------
             S_FETCH: begin
-                if (go) state <= S_FETCH_W;
-            end
-
-            S_FETCH_W: begin
                 if (go) begin
-                    insn_q       <= mem_rd_data;
                     insn_valid_q <= 1'b1;
                     state        <= scanning_q ? S_SCAN_EVAL : S_IDLE;
                 end
@@ -445,20 +459,22 @@ module IpLine #(
             // Разбор прочитанной инструкции в ходе промотки
             //----------------------------------------------------------
             S_SCAN_EVAL: begin
-                if (loop_inc_next & loop_at_top) begin
-                    // Переполнение вложенности ловится ДО шага: счётчик
-                    // стоит на 99, своя скобка дала бы 99 -> 0
-                    // (REQ-CNT-007). Промотку обязательно прервать:
-                    // парная скобка уже не найдётся, и машина зависла
-                    // бы в бесконечном переборе адресов
-                    overflow_q <= 1'b1;
-                    scanning_q <= 1'b0;
-                    state      <= S_IDLE;
+                if (go) begin
+                    if (loop_inc_next & loop_at_top) begin
+                        // Переполнение вложенности ловится ДО шага: счётчик
+                        // стоит на 99, своя скобка дала бы 99 -> 0
+                        // (REQ-CNT-007). Промотку обязательно прервать:
+                        // парная скобка уже не найдётся, и машина зависла
+                        // бы в бесконечном переборе адресов
+                        overflow_q <= 1'b1;
+                        scanning_q <= 1'b0;
+                        state      <= S_IDLE;
+                    end
+                    // Своя скобка углубляет вложенность, ответная
+                    // поднимает; обычная инструкция — шагаем дальше
+                    else if (insn_loop_open | insn_loop_close) state <= S_LOOP;
+                    else                                       state <= S_IP;
                 end
-                // Своя скобка углубляет вложенность, ответная
-                // поднимает; обычная инструкция — шагаем дальше
-                else if (insn_loop_open | insn_loop_close) state <= S_LOOP;
-                else                                       state <= S_IP;
             end
 
             //----------------------------------------------------------
@@ -470,17 +486,20 @@ module IpLine #(
             end
 
             //----------------------------------------------------------
-            // Приём опкода при загрузке программы
+            // Приём опкода при загрузке программы. Опкод уходит в память
+            // в такте рукопожатия (EOT не пишется); его окончания ждёт
+            // S_IDLE. После сквозной записи insn — принятый опкод
             //----------------------------------------------------------
             S_INSN_IN: begin
-                if (insn_in_valid) begin
-                    insn_q       <= insn_in;
-                    insn_valid_q <= 1'b1;
-                    // Загрузка завершена или опкод уходит в память
-                    state <= (end_of_transmission | ~insn_loading) ? S_IDLE : S_WRITE;
-                end
-                else if (~insn_loading) begin
+                if (~insn_loading) begin
                     state <= S_IDLE;
+                end
+                else if (insn_in_valid) begin
+                    if (go) begin
+                        eot_q        <= end_of_transmission;
+                        insn_valid_q <= 1'b1;
+                        state        <= S_IDLE;
+                    end
                 end
                 else if (key_step) begin
                     // Ручное перемещение по программе во время загрузки
@@ -491,14 +510,6 @@ module IpLine #(
                 else if (key_release) begin
                     key_moved_q <= 1'b0;
                 end
-            end
-
-            //----------------------------------------------------------
-            // Запись опкода в память. Пишется защёлкнутый insn_q:
-            // загрузчик вправе сменить insn_in сразу после рукопожатия
-            //----------------------------------------------------------
-            S_WRITE: begin
-                if (go) state <= S_IDLE;
             end
 
             //----------------------------------------------------------
@@ -535,8 +546,8 @@ module IpLine #(
 `ifndef SYNTH
 `ifdef ASSERTIONS
     always @(posedge clk) begin
-        if (rst_n && valid && (op > OP_CLR_LOOP))
-            $error("IpLine: неизвестный код операции %0d", op);
+        if (rst_n && valid && clr && (insn[3:1] != 3'b100))
+            $error("IpLine: clr при опкоде %h — не CLRL/CLRI", insn);
         if (rst_n && $past(valid) && !$past(ready) && !valid)
             $error("IpLine: valid снят до handshake");
         if (rst_n && mem_err)

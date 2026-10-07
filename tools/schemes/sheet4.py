@@ -5,9 +5,9 @@ from lib import Fig
 def fig_ipline():
     f = Fig("ipl", 1200, 470,
             "Линия выборки: автомат управляет счётчиком инструкций и счётчиком вложенности "
-            "циклов, читает опкоды из памяти программ в регистр инструкции и по детектору "
-            "скобок решает, нужна ли промотка тела цикла.")
-    pins_in = [(62, "valid, op[1:0]"), (88, "loop_val_zero"), (148, "halt_rq, key_±ip"),
+            "циклов, читает опкоды из памяти программ (опкод держит её выходной регистр) и по "
+            "детектору скобок решает, нужна ли промотка тела цикла.")
+    pins_in = [(62, "valid, clr"), (88, "loop_val_zero"), (148, "halt_rq, key_±ip"),
                (196, "insn_loading, mode"), (218, "insn_in, valid")]
     for y, n in pins_in:
         f.pin_in(12, y, 200, n)
@@ -41,16 +41,16 @@ def fig_ipline():
            "ПЗУ загрузчика", "(наложение ovl_*)", "", "запись туда → err",
            "rd_data — регистр"])
     f.wire([(310, 40), (310, 20), (1005, 20), (1005, 40)],
-           label="mem_valid · mem_wr · wr_data", lx=658, ly=14, anchor="middle")
+           label="mem_valid · mem_wr · wr_data = insn_in", lx=658, ly=14, anchor="middle")
 
     # регистр инструкции и детектор
     f.wire([(1005, 250), (1005, 340), (770, 340)], "wacc",
            label="rd_data", lx=1012, ly=300, lcls="tacc")
-    f.box(560, 310, 210, 80, "insn_q + InsnLoopDetector",
-          ["0x6 — [ или {", "0x7 — ] или }", "один детектор на регистр"])
+    f.box(560, 310, 210, 80, "InsnLoopDetector",
+          ["0x6 — [ или {", "0x7 — ] или }", "на выходе регистра памяти"])
     f.wire([(560, 340), (310, 340), (310, 290)], "wacc",
            label="скобка открыта / закрыта", lx=316, ly=334)
-    f.wire([(665, 390), (665, 430), (16, 430)], label="insn, insn_valid", lx=20, ly=423,
+    f.wire([(665, 390), (665, 430), (16, 430)], label="insn = rd_data, insn_valid, insn_eot", lx=20, ly=423,
            lcls="tp")
     f.text(16, 456, "Опкоды на этом уровне — только 4-битные коды; символы преобразует "
                     "загрузчик программ.", "tl")
@@ -59,19 +59,17 @@ def fig_ipline():
 
 def fig_ipline_fsm():
     f = Fig("iplfsm", 1100, 440,
-            "Автомат IpLine. Основной цикл: шаг IP, запрос чтения, приём опкода. Ветвь "
+            "Автомат IpLine. Основной цикл: шаг IP, чтение опкода. Ветвь "
             "промотки: разбор скобки, шаг счётчика вложенности, снова шаг IP до парной "
             "скобки. Каждое состояние, выдающее операцию, ждёт go — готовности обоих "
             "счётчиков и памяти — и уходит в такте её приёма.")
     f.state("HALT", 110, 60, "S_HALT")
     f.state("IDLE", 400, 60, "S_IDLE", cls="st-acc")
     f.state("FETCH", 700, 60, "S_FETCH")
-    f.state("FETCH_W", 960, 60, "S_FETCH_W")
     f.state("INSN_IN", 110, 210, "S_INSN_IN")
     f.state("IP", 400, 210, "S_IP")
     f.state("LOOP", 700, 210, "S_LOOP")
     f.state("SCAN", 960, 210, "S_SCAN_EVAL")
-    f.state("WRITE", 110, 360, "S_WRITE")
 
     # останов
     f.edge("HALT", "r", "IDLE", "l", oa=-8, ob=-8, label="halt_rq снят", lx=255, ly=45)
@@ -94,13 +92,12 @@ def fig_ipline_fsm():
            lx=550, ly=45)
     f.edge("IP", "r", "FETCH", "l", oa=-10, ob=8, via=[(600, 200), (600, 68)],
            label="go: шаг выдан", lx=606, ly=170, anchor="start")
-    f.edge("FETCH", "r", "FETCH_W", "l", label="go: чтение выдано", lx=830, ly=52)
-    f.edge("FETCH_W", "t", "IDLE", "t", oa=-20, ob=20, via=[(940, 20), (420, 20)],
-           label="go: insn_q ← rd_data", lx=680, ly=14)
+    f.edge("FETCH", "t", "IDLE", "t", ob=20, via=[(700, 20), (420, 20)],
+           label="go: чтение выдано; конца чтения ждёт ready", lx=560, ly=14)
 
     # промотка
-    f.edge("FETCH_W", "b", "SCAN", "t", cls="wacc", label="scanning_q", lx=968, ly=140,
-           anchor="start", lcls="tacc")
+    f.edge("FETCH", "r", "SCAN", "t", cls="wacc", via=[(960, 60)],
+           label="go · scanning_q", lx=968, ly=140, anchor="start", lcls="tacc")
     f.edge("SCAN", "l", "LOOP", "r", cls="wacc", label="скобка", lx=830, ly=203,
            lcls="tacc")
     f.edge("SCAN", "b", "IP", "b", oa=-20, ob=-10, cls="wacc", via=[(940, 290), (390, 290)],
@@ -111,16 +108,16 @@ def fig_ipline_fsm():
            "tl")
     f.text(430, 334, "→ S_IDLE из S_SCAN_EVAL: своя скобка при 99 — переполнение, промотка прервана",
            "tl")
+    f.text(430, 350, "S_SCAN_EVAL разбирает опкод по go, когда чтение окончено", "tl")
 
     # загрузка программы
     f.edge("IP", "l", "INSN_IN", "r", label="загрузка", lx=200, ly=205)
     f.edge("INSN_IN", "r", "IP", "l", oa=12, ob=12, label="ручной ±IP", lx=255, ly=238)
     f.edge("IP", "b", "HALT", "l", oa=-30, via=[(370, 340), (40, 340), (40, 60)],
            cls="wwarn", label="halt_pending", lx=210, ly=334, lcls="twarn")
-    f.edge("INSN_IN", "b", "WRITE", "t", oa=-20, ob=-20, label="опкод принят", lx=98, ly=300,
-           anchor="end")
-    f.wire([(158, 360), (196, 360)], label="→ S_IDLE: go, запись insn_q выдана", lx=202, ly=364)
-    f.text(16, 400, "S_INSN_IN → S_IDLE: конец передачи (EOT) или загрузка снята", "tl")
+    f.text(16, 366, "S_INSN_IN → S_IDLE: опкод принят, запись в память", "tl")
+    f.text(16, 382, "выдана в такте рукопожатия; EOT не пишется → insn_eot", "tl")
+    f.text(16, 400, "S_INSN_IN → S_IDLE: загрузка снята", "tl")
 
     # сброс счётчиков по команде
     f.box(560, 372, 420, 52, None, [], cls="blk-opt")
