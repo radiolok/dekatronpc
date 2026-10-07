@@ -219,7 +219,9 @@ module ApLine #(
     //------------------------------------------------------------------
     assign mem_lock        = lock_q;
     assign mem_wr_data     = data_out[MEM_DATA_WIDTH-1:0];
-    assign tx_data_bcd     = lock_q ? data_out : cell_from_mem;
+    // Вывод всегда со счётчика данных: OP_COUT при снятом MemLock
+    // сначала загружает в него ячейку (OPEN-017)
+    assign tx_data_bcd     = data_out;
     assign data_zero       = lock_q ? data_ctr_zero : ~(|cell_from_mem);
     assign data_zero_valid = lock_q | mem_here_q;
 
@@ -304,9 +306,16 @@ module ApLine #(
                         state   <= S_DSET;
                     end
 
+                    // Выводится счётчик: без MemLock ячейку надо в него
+                    // загрузить. MemLock не меняется, как и при LOAD:
+                    // иначе шаг адреса без выгрузки оставил бы lock на
+                    // чужой ячейке
+                    OP_COUT:
+                        if (~lock_q) state <= mem_here_q ? S_DSET : S_READ;
+
                     // Достаточно, чтобы значение было доступно:
                     // в счётчике либо в регистре памяти
-                    OP_COUT, OP_TEST:
+                    OP_TEST:
                         if (~(lock_q | mem_here_q)) state <= S_READ;
 
                     // MemLock не меняется
@@ -331,8 +340,7 @@ module ApLine #(
             S_READ: begin
                 if (go) begin
                     mem_here_q <= 1'b1;
-                    state <= ((op == OP_DATA_STEP) | (op == OP_LOAD))
-                           ? S_DSET : S_IDLE;           // COUT, TEST
+                    state <= (op == OP_TEST) ? S_IDLE : S_DSET;   // +, LOAD, COUT
                 end
             end
 
@@ -372,7 +380,7 @@ module ApLine #(
 
             //----------------------------------------------------------
             // Загрузка числа в счётчик данных: из регистра памяти
-            // (+, LOAD) или с терминала (CIN)
+            // (+, LOAD, COUT) или с терминала (CIN)
             //----------------------------------------------------------
             S_DSET: begin
                 if (go)

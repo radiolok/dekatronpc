@@ -122,6 +122,8 @@ if [ ${sim} -ne 0 ]; then
 
 	./emul ApLine
 
+	./emul MachineCtrl
+
 	./emul DekatronPC ${root_dir}/programs/helloworld.bfk ${root_dir}/tests/DekatronPC.sv/DekatronPC_tb_cfg_hello.svh
 	./emul DekatronPC ${root_dir}/programs/program.bfk ${root_dir}/tests/DekatronPC.sv/DekatronPC_tb_cfg_program.svh
 

@@ -14,7 +14,7 @@ sys.path.insert(0, HERE)
 OUT = os.path.join(HERE, 'out')
 
 # Какой RTL отражают схемы: ветка и дата сверки. Обновлять при перерисовке.
-RTL_REF = 'RTL ветки claude_nextGen, 06.10.2026'
+RTL_REF = 'RTL ветки claude_nextGen, 07.10.2026'
 
 import fallback
 import sheet1, sheet2, sheet3, sheet4, sheet5, sheet6, sheet7
@@ -91,7 +91,8 @@ flags = '''<div class="tbl"><table class="spec">
 <tbody>
 <tr><td><code>+ −</code></td><td>нет lock и нет mem_here</td><td>—</td><td>1 · 1 · —</td></tr>
 <tr><td><code>&gt; &lt;</code>, CLRA</td><td>—</td><td>если dirty</td><td>0 · 0 · 0; в ветке при dirty = 0 lock остаётся (дефект)</td></tr>
-<tr><td><code>.</code> COUT, TEST</td><td>нет lock и нет mem_here</td><td>—</td><td>— · — · 1 после чтения</td></tr>
+<tr><td><code>.</code> COUT</td><td>нет lock и нет mem_here</td><td>—</td><td>— · — · 1 после чтения; без lock ячейка грузится в счётчик, lock не меняется</td></tr>
+<tr><td>TEST</td><td>нет lock и нет mem_here</td><td>—</td><td>— · — · 1 после чтения</td></tr>
 <tr><td><code>,</code> CIN, <code>[-]</code> CLRD</td><td>—</td><td>—</td><td>1 · 1 · —</td></tr>
 <tr><td>LOAD</td><td>нет mem_here</td><td>—</td><td>lock не меняется</td></tr>
 <tr><td>STORE</td><td>—</td><td>всегда</td><td>— · 0 · 1</td></tr>
@@ -109,8 +110,7 @@ S.append(sheet(5, "apline", "Линия данных ApLine",
 S.append(sheet(6, "mctrl", "Управление машиной MachineCtrl",
     '<p>MachineCtrl дешифрует инструкцию по паре {insn_mode, insn} и выдаёт ровно одну операцию на линию выборки, линию данных, терминал или реле сброса. В Brainfuck ISA перед скобкой, если признак нуля не достоверен, он просит ApLine выполнить AP_TEST — одно чтение на проверку, не на каждый шаг промотки.</p>'
     + fig(sheet6.fig_mctrl(), '<b>Структура.</b> loop_val_zero для IpLine: в Brainfuck ISA — нуль ячейки, в Debug ISA — нуль счётчика адреса.')
-    + fig(sheet6.fig_mctrl_fsm(), '<b>Автомат.</b> Пунктиром — дефект вывода: COUT сразу выставляет tx_vld, даже если значения нет ни в счётчике, ни в регистре памяти.')
-    + '<div class="note"><b>Дефект OPEN-017.</b> При ленивом чтении после шага указателя регистр памяти относится к прежней ячейке, и COUT выводит её содержимое: MachineCtrl не выдаёт AP_COUT. Правка (cout_pending: сначала AP_COUT, потом S_COUT) подготовлена, в ветку не внесена. <b>Мёртвое состояние:</b> в S_BELL нет ни одного перехода, BELL обрабатывается прямо в S_DECODE; на схеме S_BELL не показан.</div>',
+    + fig(sheet6.fig_mctrl_fsm(), '<b>Автомат.</b> Стробы дешифрируются из состояния, коды операций — из insn; пар OP/WAIT нет (REQ-CTLV2-010). Вывод: «.» сначала выдаёт AP_COUT, tx_vld — по его окончании (OPEN-017).'),
     "Управление машиной", "MachineCtrl.sv"))
 
 S.append(sheet(7, "top", "Машина целиком DekatronPC",

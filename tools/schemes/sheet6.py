@@ -24,10 +24,12 @@ def fig_mctrl():
         f.wire([(200, y), (16, y)], label=n, lx=20, ly=y - 7, lcls="tp")
 
     f.box(200, 40, 260, 440, "Автомат исполнения",
-          ["one_step — шаговый режим", "insn_mode — 0 Debug, 1 BF",
-           "rst_type — HARD / SOFT", "", "echo_pending — эхо после CIN",
-           "bell_pending, error_flag", "",
-           "loop_overflow → S_HALT", "soft_rst | hard_rst →", "S_RST_WAIT из любого"],
+          ["state[3:0] — 10 состояний", "one_step — шаговый режим",
+           "insn_mode — 0 Debug, 1 BF", "insn_loading", "rst_soft — тип сброса",
+           "overflow_q — фронт переполнения", "",
+           "стробы — дешифрация state,", "valid только при go:",
+           "go = ip_ready · ap_ready", "      · ~(soft_rst | hard_rst)", "",
+           "loop_overflow↑ → S_HALT", "soft_rst | hard_rst →", "S_RST_WAIT из любого"],
           align="start", top=24)
 
     # линия выборки
@@ -51,9 +53,9 @@ def fig_mctrl():
 
     # дешифратор
     f.box(520, 290, 260, 136, "Дешифратор",
-          ["{insn_mode, insn}: 5 бит", "x0 NOP · x1 HALT · xE/xF ISA",
-           "x6/x7 скобки; BF и нет", "data_zero_valid → AP_TEST",
-           "02…0D: BELL SOT CLR* RST", "12…1D: + − > < . , [-] …"], top=22, bcls="tm")
+          ["{insn_mode, insn}: 5 бит, без регистров", "ip_op, ap_op, ap_dec = insn[0]",
+           "держатся, пока IpLine держит insn", "x6/x7 скобки; BF и нет",
+           "data_zero_valid → AP_TEST", "12…1D: + − > < . , [-] …"], top=22, bcls="tm")
     f.wire([(520, 380), (460, 380)], label="команда", lx=466, ly=373)
 
     # реле времени сброса
@@ -66,30 +68,26 @@ def fig_mctrl():
 
 def fig_mctrl_fsm():
     f = Fig("mcfsm", 1100, 480,
-            "Автомат MachineCtrl: выборка, дешифрация и одна операция над линией выборки, "
-            "линией данных, терминалом или реле сброса; после каждой инструкции — в IDLE или, "
-            "в шаговом режиме и по кнопке останова, в HALT.")
+            "Автомат MachineCtrl: S_IDLE выдаёт выборку, S_DECODE дешифрует, S_EXEC выдаёт одну "
+            "операцию линии выборки или линии данных, S_WAIT ждёт её окончания; после каждой "
+            "инструкции — в IDLE или, в шаговом режиме и по кнопке останова, в HALT.")
     f.state("HALT", 380, 60, "S_HALT", cls="st-acc")
     f.state("IDLE", 640, 60, "S_IDLE")
-    f.state("FETCH", 900, 60, "S_FETCH")
     f.state("RST_REQ", 120, 180, "S_RST_REQ")
     f.state("CIN_WAIT", 380, 180, "S_CIN_WAIT")
     f.state("DECODE", 640, 180, "S_DECODE")
     f.state("FETCH_W", 900, 180, "S_FETCH_W")
     f.state("RST_WAIT", 120, 300, "S_RST_WAIT")
-    f.state("AP_OP", 380, 300, "S_AP_OP")
-    f.state("COUT", 640, 300, "S_COUT")
-    f.state("IP_OP", 900, 300, "S_IP_OP")
-    f.state("AP_OP_W", 380, 420, "S_AP_OP_W")
-    f.state("ECHO", 640, 420, "S_ECHO")
-    f.state("IP_OP_W", 900, 420, "S_IP_OP_W")
+    f.state("WAIT", 380, 300, "S_WAIT")
+    f.state("EXEC", 640, 300, "S_EXEC")
+    f.state("COUT", 900, 300, "S_COUT")
 
-    f.edge("HALT", "r", "IDLE", "l", oa=-8, ob=-8, label="step · run · run_on_rst · загрузка",
+    f.edge("HALT", "r", "IDLE", "l", oa=-8, ob=-8, label="step · run · загрузка",
            lx=510, ly=45)
     f.edge("IDLE", "l", "HALT", "r", oa=8, ob=8, label="halt_key", lx=510, ly=86)
-    f.edge("IDLE", "r", "FETCH", "l", label="IP_NEXT", lx=770, ly=53)
-    f.edge("FETCH", "b", "FETCH_W", "t", label="ip_ready", lx=908, ly=124, anchor="start")
-    f.edge("FETCH_W", "l", "DECODE", "r", label="insn_valid", lx=770, ly=173)
+    f.edge("IDLE", "r", "FETCH_W", "t", via=[(900, 60)], label="go: ip_valid, IP_NEXT",
+           lx=770, ly=53)
+    f.edge("FETCH_W", "l", "DECODE", "r", label="go · insn_valid", lx=770, ly=173)
     f.edge("FETCH_W", "r", "HALT", "t", via=[(1040, 180), (1040, 18), (380, 18)],
            label="загрузка прервана кнопкой или остановом", lx=710, ly=12)
     f.edge("DECODE", "t", "IDLE", "b", oa=30, ob=30,
@@ -97,32 +95,29 @@ def fig_mctrl_fsm():
     f.edge("DECODE", "t", "HALT", "b", oa=-30, ob=20, via=[(610, 120), (400, 120)],
            label="HALT", lx=505, ly=114)
     f.edge("DECODE", "t", "RST_REQ", "t", oa=-45, via=[(595, 140), (120, 140)],
-           label="HRST · SRST", lx=240, ly=134)
+           label="HRST · SRST · EOT", lx=240, ly=134)
     f.edge("DECODE", "l", "CIN_WAIT", "r", label="CIN", lx=510, ly=173)
     f.edge("CIN_WAIT", "t", "HALT", "b", oa=-20, ob=-20, label="halt_key", lx=352, ly=124,
            anchor="end")
-    f.edge("CIN_WAIT", "b", "AP_OP", "t", label="rx_vld: AP_CIN", lx=372, ly=262,
+    f.edge("CIN_WAIT", "b", "WAIT", "t", label="rx_vld · go: AP_CIN", lx=372, ly=244,
            anchor="end")
-    f.edge("DECODE", "b", "AP_OP", "t", oa=-30, ob=30, via=[(610, 236), (410, 236)],
-           label="операции ApLine, AP_TEST", lx=505, ly=230)
-    f.edge("DECODE", "b", "COUT", "t", cls="wwarn", label="COUT: сразу tx_vld", lx=632,
-           ly=258, anchor="end", lcls="twarn")
-    f.edge("DECODE", "b", "IP_OP", "t", oa=30, ob=-20, via=[(670, 236), (880, 236)],
-           label="CLRL · CLRI", lx=775, ly=230)
+    f.edge("DECODE", "b", "EXEC", "t", label="CLR* · операции ApLine · AP_TEST · AP_COUT", lx=648,
+           ly=244, anchor="start")
+    f.edge("EXEC", "l", "WAIT", "r", label="go: ip_valid | ap_valid", lx=510, ly=293)
+    f.edge("WAIT", "b", "COUT", "b", via=[(380, 370), (900, 370)],
+           label="go · COUT | CIN · echo_mode", lx=640, ly=364)
     f.edge("RST_REQ", "b", "RST_WAIT", "t", label="rst_busy", lx=128, ly=244, anchor="start")
     f.edge("RST_WAIT", "l", "HALT", "l", via=[(40, 300), (40, 60)],
-           label="реле отпущено: ISA по типу сброса", lx=180, ly=54)
-    f.wire([(16, 372), (120, 372), (120, 317)], "wd")
-    f.text(16, 390, "soft_rst | hard_rst из любого состояния", "tl")
+           label="~rst_busy: ISA по типу сброса", lx=180, ly=54)
+    f.text(16, 340, "при run_on_*_rst — в S_IDLE", "tl")
+    f.text(16, 400, "soft_rst | hard_rst → S_RST_WAIT из любого состояния", "tl")
 
-    f.edge("AP_OP", "b", "AP_OP_W", "t", label="ap_ready", lx=388, ly=364, anchor="start")
-    f.edge("AP_OP_W", "r", "ECHO", "l", oa=8, ob=8, label="echo_pending", lx=545, ly=446)
-    f.edge("IP_OP", "b", "IP_OP_W", "t", label="ip_ready", lx=908, ly=364, anchor="start")
-    for key, side in (("COUT", "r"), ("ECHO", "r"), ("IP_OP_W", "r")):
-        x, y = f.sp(key, side)
-        f.wire([(x, y), (x + 30, y)], label="IDLE / HALT", lx=x + 36, ly=y + 4)
-    x, y = f.sp("AP_OP_W", "l")
-    f.wire([(x, y), (x - 30, y)], label="IDLE / HALT", lx=x - 36, ly=y + 4, anchor="end")
-    f.text(16, 456, "IDLE / HALT = (halt_key | one_step) ? S_HALT : S_IDLE", "tl")
-    f.text(16, 474, "loop_overflow → S_HALT из любого состояния", "tl")
+    x, y = f.sp("WAIT", "l")
+    f.wire([(x, y), (x - 30, y)], label="go: IDLE / HALT", lx=x - 36, ly=y + 4, anchor="end")
+    x, y = f.sp("COUT", "r")
+    f.wire([(x, y), (x + 30, y)], label="tx_rdy:", lx=x + 36, ly=y - 4)
+    f.text(x + 36, y + 12, "IDLE / HALT", "tl")
+    f.text(16, 438, "IDLE / HALT = (halt_key | one_step) ? S_HALT : S_IDLE", "tl")
+    f.text(16, 456, "фронт loop_overflow → S_HALT из любого состояния (REQ-CTLV2-005)", "tl")
+    f.text(16, 474, "стробы: ip_valid, ap_valid, tx_vld = S_COUT, rx_rdy = S_WAIT · CIN · go, *_rst_req = S_RST_REQ", "tl")
     return f.render()

@@ -357,6 +357,27 @@ initial begin
     do_op(OP_LOAD,    1'b0, 12'd0);
     check_data("cell1 after CLRA", 1);
 
+    // Вывод всегда со счётчика данных. После шага адреса без MemLock
+    // счётчик и регистр памяти относятся к прежней ячейке: COUT обязан
+    // прочитать новую и загрузить её в счётчик (OPEN-017, `>.`)
+    $display("COUT after an AP step without MemLock");
+    do_op(OP_AP_STEP, 1'b1, 12'd0);        // AP=0, счётчик держит 1 (ячейка 1)
+    mem_rd_cnt = 0; mem_wr_cnt = 0;
+    do_op(OP_COUT, 1'b0, 12'd0);
+    check_mem("COUT after AP step", 1, 0);
+    check_data("COUT cell0", 124);
+    do_op(OP_AP_STEP, 1'b0, 12'd0);        // AP=1
+    do_op(OP_COUT, 1'b0, 12'd0);
+    check_mem("COUT after AP step back", 2, 0);
+    check_data("COUT cell1", 1);
+    do_op(OP_COUT, 1'b0, 12'd0);           // регистр памяти на месте: без чтения
+    check_mem("second COUT", 2, 0);
+    check_data("second COUT", 1);
+    if (mem_lock) begin
+        errors++;
+        $display("FAIL: COUT set mem_lock");
+    end
+
     $display("Data wrap 255 <-> 0");
     do_op(OP_CIN,       1'b0, data_bcd(255));
     do_op(OP_DATA_STEP, 1'b0, 12'd0);

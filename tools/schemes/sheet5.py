@@ -57,7 +57,7 @@ def fig_apline():
     # выходы
     f.wire([(720, 270), (790, 270), (790, 370)], label="data_out · zero", lx=730, ly=263)
     f.box(740, 370, 240, 92, None, [], cls="blk")
-    f.lines(752, 390, ["tx  = lock ? out  : rd_data", "zero = lock ? zero : rd_data = 0",
+    f.lines(752, 390, ["tx  = data_out (всегда)", "zero = lock ? zero : rd_data = 0",
                        "zero_valid = lock | mem_here"], "tm", lh=20)
     f.wire([(390, 250), (390, 484), (860, 484), (860, 462)], "wd",
            label="lock_q · mem_here_q", lx=520, ly=478)
@@ -81,14 +81,14 @@ def fig_apline_fsm():
     f.state("DOP", 470, 200, "S_DOP")
     f.state("AP", 790, 200, "S_AP")
 
-    f.selfloop("IDLE", "t", label="COUT, TEST: ячейка рядом · CLRML: чисто", lx=448, ly=14, anchor="end")
+    f.selfloop("IDLE", "t", label="COUT: lock · TEST: ячейка рядом · CLRML: чисто", lx=448, ly=14, anchor="end")
     f.edge("IDLE", "l", "READ", "r", oa=-8, ob=-8, cls="wacc", label="ячейка нужна и её нет",
            lx=310, ly=45, lcls="tacc")
-    f.edge("READ", "r", "IDLE", "l", oa=8, ob=8, label="COUT, TEST", lx=310, ly=86)
-    f.edge("READ", "b", "DSET", "t", oa=-20, ob=-20, cls="wacc", label="STEP, LOAD",
+    f.edge("READ", "r", "IDLE", "l", oa=8, ob=8, label="TEST", lx=310, ly=86)
+    f.edge("READ", "b", "DSET", "t", oa=-20, ob=-20, cls="wacc", label="STEP, LOAD, COUT",
            lx=122, ly=135, anchor="end", lcls="tacc")
     f.edge("IDLE", "b", "DSET", "t", oa=-30, ob=20, via=[(440, 130), (170, 130)],
-           label="mem_here: STEP, LOAD · CIN", lx=305, ly=124)
+           label="mem_here: STEP, LOAD, COUT · CIN", lx=305, ly=124)
     f.edge("IDLE", "b", "DOP", "t", label="lock: STEP · DATA_ZERO", lx=478, ly=160,
            anchor="start")
     f.edge("IDLE", "r", "FLUSH", "l", oa=-8, ob=-8, label="dirty: шаг AP, CLRML · STORE",

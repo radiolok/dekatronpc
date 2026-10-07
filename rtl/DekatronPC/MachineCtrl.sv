@@ -156,34 +156,29 @@ module MachineCtrl #(
 
     //------------------------------------------------------------------
     // Состояния
+    //
+    // Коды S_HALT, S_IDLE, S_DECODE и S_CIN_WAIT прежние: по ним
+    // DekatronPC_tb.cpp узнаёт окончание инструкции и ожидание ввода.
+    //
+    // S_IDLE, S_EXEC и S_CIN_WAIT выдают ровно одну операцию и покидают
+    // себя в такте её приёма. Окончания операции ждут S_FETCH_W (выборка)
+    // и общий S_WAIT (прочие операции); прежние пары OP/WAIT слиты.
     //------------------------------------------------------------------
     localparam logic [3:0]
         S_HALT      = 4'd0,
-        S_IDLE      = 4'd1,
-        S_FETCH     = 4'd2,   // запрос следующей инструкции
-        S_FETCH_W   = 4'd3,
+        S_IDLE      = 4'd1,   // запрос следующей инструкции
+        S_FETCH_W   = 4'd2,   // ожидание выборки
         S_DECODE    = 4'd4,
-        S_IP_OP     = 4'd5,   // сброс счётчика IP или циклов
-        S_IP_OP_W   = 4'd6,
-        S_AP_OP     = 4'd7,   // операция над данными или адресом
-        S_AP_OP_W   = 4'd8,
+        S_EXEC      = 4'd5,   // операция над IpLine или ApLine
+        S_WAIT      = 4'd6,   // ожидание окончания операции
+        S_COUT      = 4'd7,   // выдача символа в терминал после AP_COUT или эхо
         S_CIN_WAIT  = 4'd9,   // ожидание символа с терминала
-        S_COUT      = 4'd10,  // выдача символа в терминал
-        S_ECHO      = 4'd11,
         S_RST_REQ   = 4'd12,  // запрос физического сброса
-        S_RST_WAIT  = 4'd13,
-        S_BELL      = 4'd14;
+        S_RST_WAIT  = 4'd13;
 
-    localparam logic [1:0]
-        RST_NONE = 2'd0,
-        RST_HARD = 2'd1,
-        RST_SOFT = 2'd2;
-
-    logic [1:0] rst_type;
-    logic       one_step;      // выполняется ровно одна инструкция
-    logic       echo_pending;
-    logic       bell_pending;
-    logic       error_flag;
+    logic one_step;      // выполняется ровно одна инструкция
+    logic overflow_q;    // переполнение вложенности уже обработано
+    logic rst_soft;      // сброс программный (иначе аппаратный)
 
     //------------------------------------------------------------------
     // Признак, который проверяют скобки:
@@ -193,17 +188,98 @@ module MachineCtrl #(
 
     assign is_halted = (state == S_HALT);
 
+    // Полный код инструкции с учётом текущего набора команд.
+    // insn держит выходной регистр IpLine до следующей выборки, а
+    // выборка выдаётся только после окончания операции. Поэтому коды
+    // операций для подчинённых блоков дешифрируются из insn напрямую
+    // и остаются неизменными до их ready, как того требует Valid/Ready.
+    wire [4:0] op_full = {insn_mode, insn};
+
+    wire is_cin   = (op_full == 5'h19);
+    wire is_cout  = (op_full == 5'h18);
+    wire is_ip_op = (op_full == 5'h08) | (op_full == 5'h09);   // CLRL, CLRI
+
+    //------------------------------------------------------------------
+    // Готовность исполнителей.
+    // Пока поднята линия сброса, ни одна операция не выдаётся: автомат
+    // в следующем такте всё равно уйдёт в S_RST_WAIT.
+    //------------------------------------------------------------------
+    wire rst_line = soft_rst | hard_rst;
+    wire go       = ip_ready & ap_ready & ~rst_line;
+
+    // Переполнение счётчика вложенности — аппаратная ошибка. Промотка
+    // прервана самим IpLine, парная скобка не найдена, продолжать
+    // исполнение бессмысленно: машина останавливается (REQ-CTLV2-005).
+    // Реакция на фронт: IpLine держит признак до CLRL или сброса, и
+    // после пуска с пульта машина не должна останавливаться снова.
+    wire overflow_hit = loop_overflow & ~overflow_q;
+
+    //------------------------------------------------------------------
+    // Стробы исполнителям — дешифрация состояния (автомат Мура)
+    //
+    // valid поднимается только при go, то есть при уже поднятом ready
+    // исполнителя, и рукопожатие происходит в том же такте. ready
+    // исполнителей от valid не зависят, петли нет.
+    //------------------------------------------------------------------
+    wire in_idle   = (state == S_IDLE);
+    wire in_decode = (state == S_DECODE);
+    wire in_exec   = (state == S_EXEC);
+    wire in_wait   = (state == S_WAIT);
+    wire in_cin    = (state == S_CIN_WAIT);
+    wire in_rst_rq = (state == S_RST_REQ);
+
+    assign ip_valid = ((in_idle & ~halt_key) | (in_exec & is_ip_op)) & go;
+    assign ap_valid = ((in_exec & ~is_ip_op) | (in_cin & ~halt_key & rx_vld)) & go;
+
+    // Вне S_EXEC линия выборки получает только запрос следующей
+    // инструкции. В S_EXEC бывают лишь CLRL (0x8) и CLRI (0x9)
+    assign ip_op = in_exec ? (insn[0] ? IP_CLR_IP : IP_CLR_LOOP) : IP_NEXT;
+
+    always_comb begin
+        case (op_full)
+            5'h06, 5'h07,
+            5'h16, 5'h17: ap_op = AP_TEST;        // скобки, только в BF
+            5'h0A, 5'h1A: ap_op = AP_DATA_ZERO;   // CLRD, [-]
+            5'h0B:        ap_op = AP_AP_ZERO;     // CLRA
+            5'h12, 5'h13: ap_op = AP_DATA_STEP;   // + -
+            5'h14, 5'h15: ap_op = AP_AP_STEP;     // > <
+            5'h18:        ap_op = AP_COUT;        // .
+            5'h19:        ap_op = AP_CIN;         // ,
+            5'h1B:        ap_op = AP_CLRML;
+            5'h1C:        ap_op = AP_LOAD;
+            5'h1D:        ap_op = AP_STORE;
+            default:      ap_op = AP_NOP;
+        endcase
+    end
+
+    // Направление шага: '-' 0x3 и '<' 0x5. Для записи и обнуления
+    // счётчик его не смотрит
+    assign ap_dec = insn[0];
+
+    assign tx_vld = (state == S_COUT);
+
     // Приём символа завершается, когда ApLine закончил CIN: до этого
     // момента счётчик данных пишется прямо с rx_data_bcd, и передающая
     // сторона обязана держать его (REQ-UART-008). От rx_vld не зависит.
-    assign rx_rdy = (state == S_AP_OP_W) & (ap_op == AP_CIN) & ap_ready &
-                    ~(soft_rst | hard_rst);
+    assign rx_rdy = in_wait & is_cin & go;
 
-    wire run_on_rst = ((rst_type == RST_HARD) & run_on_hard_rst) |
-                      ((rst_type == RST_SOFT) & run_on_soft_rst);
+    // Запрос держится, пока реле времени не подхватит его
+    assign soft_rst_req = in_rst_rq &  rst_soft;
+    assign hard_rst_req = in_rst_rq & ~rst_soft;
 
-    // Полный код инструкции с учётом текущего набора команд
-    wire [4:0] op_full = {insn_mode, insn};
+    // Звонок — импульс в такт события
+    wire decode_run = in_decode & ~insn_loading;
+
+    assign bell = (bell_on_halt  & ((in_idle & halt_key) |
+                                    (decode_run & ((op_full == 5'h01) | (op_full == 5'h11))))) |
+                  (decode_run    & (op_full == 5'h02)) |                // BELL
+                  (bell_on_cin   & decode_run & is_cin) |
+                  (bell_on_error & overflow_hit);
+
+    // Окончание инструкции: останов по кнопке или пошаговому режиму
+    wire [3:0] s_next = (halt_key | one_step) ? S_HALT : S_IDLE;
+
+    wire run_on_rst = rst_soft ? run_on_soft_rst : run_on_hard_rst;
 
     //------------------------------------------------------------------
     // Основной автомат
@@ -213,69 +289,39 @@ module MachineCtrl #(
             state        <= S_HALT;
             insn_mode    <= 1'b0;          // после включения — Debug ISA
             insn_loading <= 1'b0;
-            ip_valid     <= 1'b0;
-            ip_op        <= IP_NEXT;
-            ap_valid     <= 1'b0;
-            ap_op        <= AP_NOP;
-            ap_dec       <= 1'b0;
-            tx_vld       <= 1'b0;
-            soft_rst_req <= 1'b0;
-            hard_rst_req <= 1'b0;
-            rst_type     <= RST_HARD;
             one_step     <= 1'b0;
-            echo_pending <= 1'b0;
-            bell_pending <= 1'b0;
-            bell         <= 1'b0;
-            error_flag   <= 1'b0;
+            overflow_q   <= 1'b0;
+            rst_soft     <= 1'b0;
             iret         <= '0;
         end
         else begin
-            // Запросы по умолчанию сняты
-            ip_valid <= 1'b0;
-            ap_valid <= 1'b0;
-            bell     <= 1'b0;
+            overflow_q <= loop_overflow;
 
             // Общемашинный сброс по физическим линиям. Работает
             // одинаково и для сброса по инструкции, и для сброса с
             // пульта: линию в обоих случаях удерживает реле времени.
-            if (soft_rst | hard_rst) begin
-                rst_type     <= hard_rst ? RST_HARD : RST_SOFT;
-                soft_rst_req <= 1'b0;
-                hard_rst_req <= 1'b0;
+            if (rst_line) begin
+                rst_soft     <= ~hard_rst;
                 insn_loading <= 1'b0;
                 one_step     <= 1'b0;
-                echo_pending <= 1'b0;
-                error_flag   <= 1'b0;
-                tx_vld       <= 1'b0;
                 state        <= S_RST_WAIT;
             end
-            else begin
-
-            // Переполнение счётчика вложенности — аппаратная ошибка.
-            // Промотка при этом прервана самим IpLine, парная скобка не
-            // найдена, поэтому продолжать исполнение бессмысленно:
-            // машина останавливается.
-            if (loop_overflow && !error_flag) begin
-                error_flag <= 1'b1;
-                if (bell_on_error) bell_pending <= 1'b1;
+            // Переполнение вложенности перебивает любое состояние
+            // (оно возникает в S_FETCH_W, где иначе началась бы
+            // дешифрация скобки, на которой промотка прервана)
+            else if (overflow_hit) begin
                 state <= S_HALT;
             end
-
+            else begin
             case (state)
 
             //--------------------------------------------------------------
             S_HALT: begin
-                if (bell_pending) begin
-                    bell_pending <= 1'b0;
-                    bell         <= 1'b1;
-                end
-
-                if (step_key | run_key | run_on_rst | key_insn_loading_start) begin
+                if (step_key | run_key | key_insn_loading_start) begin
                     if (key_insn_loading_start)
                         insn_loading <= 1'b1;
 
                     if (~one_step) begin
-                        rst_type <= RST_NONE;
                         if (step_key) one_step <= 1'b1;
                         state <= S_IDLE;
                     end
@@ -287,29 +333,16 @@ module MachineCtrl #(
             end
 
             //--------------------------------------------------------------
-            S_IDLE: begin
-                if (halt_key) begin
-                    if (bell_on_halt) bell_pending <= 1'b1;
-                    state <= S_HALT;
-                end
-                else begin
-                    ip_op    <= IP_NEXT;
-                    ip_valid <= 1'b1;
-                    state    <= S_FETCH;
-                end
-            end
-
-            //--------------------------------------------------------------
-            // Выборка очередной инструкции.
+            // Запрос следующей инструкции.
             // Промотку тела цикла IpLine выполняет самостоятельно.
             //--------------------------------------------------------------
-            S_FETCH: begin
-                if (ip_ready) state <= S_FETCH_W;
-                else          ip_valid <= 1'b1;
+            S_IDLE: begin
+                if (halt_key)  state <= S_HALT;
+                else if (go)   state <= S_FETCH_W;
             end
 
             S_FETCH_W: begin
-                if (ip_ready & insn_valid) begin
+                if (go & insn_valid) begin
                     // Загрузка программы прерывается кнопкой или остановом
                     if (insn_loading & (key_insn_loading_stop | halt_key)) begin
                         insn_loading <= 1'b0;
@@ -336,9 +369,8 @@ module MachineCtrl #(
                         5'h04: begin                    // EOT — конец загрузки
                             insn_loading <= 1'b0;
                             if (soft_rst_on_eot) begin
-                                rst_type     <= RST_SOFT;
-                                soft_rst_req <= 1'b1;
-                                state        <= S_RST_REQ;
+                                rst_soft <= 1'b1;
+                                state    <= S_RST_REQ;
                             end
                             else begin
                                 state <= S_HALT;
@@ -357,19 +389,14 @@ module MachineCtrl #(
                 end
                 else begin
                     //------------------------------------------------------
-                    // Обычное исполнение
+                    // Обычное исполнение. Код операции для S_EXEC
+                    // дешифрируется из insn (ip_op, ap_op выше)
                     //------------------------------------------------------
                     case (op_full)
 
                     //--- общие для обоих наборов ---------------------------
-                    5'h00, 5'h10: begin                 // NOP
-                        state <= one_step ? S_HALT : S_IDLE;
-                    end
-
-                    5'h01, 5'h11: begin                 // HALT
-                        if (bell_on_halt) bell_pending <= 1'b1;
+                    5'h01, 5'h11:                       // HALT
                         state <= S_HALT;
-                    end
 
                     5'h0E, 5'h1E: begin                 // ISA0 — в Debug
                         insn_mode <= 1'b0;
@@ -389,212 +416,84 @@ module MachineCtrl #(
                     // За одну проверку скобки — одно обращение к памяти,
                     // и то лишь если значение не под рукой; во время самой
                     // промотки проверка не повторяется.
-                    5'h06, 5'h16,                       // [ {
-                    5'h07, 5'h17: begin                 // ] }
-                        if (insn_mode & ~data_zero_valid) begin
-                            ap_op    <= AP_TEST;
-                            ap_valid <= 1'b1;
-                            state    <= S_AP_OP;
-                        end
-                        else begin
-                            // В Debug ISA скобки проверяют счётчик адреса,
-                            // он достоверен всегда
-                            state <= one_step ? S_HALT : S_IDLE;
-                        end
-                    end
+                    // В Debug ISA скобки проверяют счётчик адреса, он
+                    // достоверен всегда.
+                    5'h16, 5'h17:                       // [ ]
+                        state <= ~data_zero_valid ? S_EXEC
+                               : one_step         ? S_HALT : S_IDLE;
 
                     //--- Debug ISA ----------------------------------------
-                    5'h02: begin                        // BELL
-                        bell  <= 1'b1;
-                        state <= one_step ? S_HALT : S_IDLE;
-                    end
-
                     5'h05: begin                        // SOT — начало загрузки
                         insn_loading <= 1'b1;
                         state        <= one_step ? S_HALT : S_IDLE;
                     end
 
-                    5'h08: begin                        // CLRL — счётчик циклов
-                        ip_op      <= IP_CLR_LOOP;
-                        ip_valid   <= 1'b1;
-                        error_flag <= 1'b0;
-                        state      <= S_IP_OP;
-                    end
-
-                    5'h09: begin                        // CLRI — счётчик инструкций
-                        ip_op    <= IP_CLR_IP;
-                        ip_valid <= 1'b1;
-                        state    <= S_IP_OP;
-                    end
-
-                    5'h0A: begin                        // CLRD — обнулить ячейку
-                        ap_op    <= AP_DATA_ZERO;
-                        ap_valid <= 1'b1;
-                        state    <= S_AP_OP;
-                    end
-
-                    5'h0B: begin                        // CLRA — счётчик адреса
-                        ap_op    <= AP_AP_ZERO;
-                        ap_valid <= 1'b1;
-                        state    <= S_AP_OP;
-                    end
+                    5'h08, 5'h09,                       // CLRL, CLRI
+                    5'h0A, 5'h0B:                       // CLRD, CLRA
+                        state <= S_EXEC;
 
                     5'h0C: begin                        // HRST
-                        rst_type     <= RST_HARD;
-                        hard_rst_req <= 1'b1;
-                        state        <= S_RST_REQ;
+                        rst_soft <= 1'b0;
+                        state    <= S_RST_REQ;
                     end
 
                     5'h0D: begin                        // SRST
-                        rst_type     <= RST_SOFT;
-                        soft_rst_req <= 1'b1;
-                        state        <= S_RST_REQ;
+                        rst_soft <= 1'b1;
+                        state    <= S_RST_REQ;
                     end
 
                     //--- Brainfuck ISA ------------------------------------
-                    5'h12, 5'h13: begin                 // + -
-                        ap_op    <= AP_DATA_STEP;
-                        ap_dec   <= insn[0];
-                        ap_valid <= 1'b1;
-                        state    <= S_AP_OP;
-                    end
+                    // '.' выводит счётчик данных: AP_COUT сначала
+                    // загружает в него ячейку, если MemLock снят
+                    5'h12, 5'h13,                       // + -
+                    5'h14, 5'h15,                       // > <
+                    5'h18,                              // . COUT
+                    5'h1A, 5'h1B,                       // [-] CLRML
+                    5'h1C, 5'h1D:                       // LOAD STORE
+                        state <= S_EXEC;
 
-                    5'h14, 5'h15: begin                 // > <
-                        ap_op    <= AP_AP_STEP;
-                        ap_dec   <= insn[0];
-                        ap_valid <= 1'b1;
-                        state    <= S_AP_OP;
-                    end
-
-                    5'h18: begin                        // . COUT
-                        tx_vld <= 1'b1;
-                        state  <= S_COUT;
-                    end
-
-                    5'h19: begin                        // , CIN
-                        if (bell_on_cin) bell <= 1'b1;
+                    5'h19:                              // , CIN
                         state <= S_CIN_WAIT;
-                    end
 
-                    5'h1A: begin                        // [-] CLRD
-                        ap_op    <= AP_DATA_ZERO;
-                        ap_valid <= 1'b1;
-                        state    <= S_AP_OP;
-                    end
-
-                    5'h1B: begin                        // CLRML
-                        ap_op    <= AP_CLRML;
-                        ap_valid <= 1'b1;
-                        state    <= S_AP_OP;
-                    end
-
-                    5'h1C: begin                        // LOAD
-                        ap_op    <= AP_LOAD;
-                        ap_valid <= 1'b1;
-                        state    <= S_AP_OP;
-                    end
-
-                    5'h1D: begin                        // STORE
-                        ap_op    <= AP_STORE;
-                        ap_valid <= 1'b1;
-                        state    <= S_AP_OP;
-                    end
-
-                    //--- незанятые опкоды ведут себя как NOP --------------
-                    default: begin
+                    //--- NOP, BELL, незанятые опкоды -----------------------
+                    default:
                         state <= one_step ? S_HALT : S_IDLE;
-                    end
                     endcase
                 end
             end
 
             //--------------------------------------------------------------
-            // Операция над счётчиками линии выборки
+            // Операция над счётчиками: выдача и ожидание окончания
             //--------------------------------------------------------------
-            S_IP_OP: begin
-                if (ip_ready) state <= S_IP_OP_W;
-                else          ip_valid <= 1'b1;
+            S_EXEC: begin
+                if (go) state <= S_WAIT;
             end
 
-            S_IP_OP_W: begin
-                if (ip_ready)
-                    state <= (halt_key | one_step) ? S_HALT : S_IDLE;
-            end
-
-            //--------------------------------------------------------------
-            // Операция над данными или адресом
-            //--------------------------------------------------------------
-            S_AP_OP: begin
-                if (ap_ready) state <= S_AP_OP_W;
-                else          ap_valid <= 1'b1;
-            end
-
-            S_AP_OP_W: begin
-                if (ap_ready) begin
-                    if (echo_pending) begin
-                        // После ввода символа возвращаем его в терминал
-                        echo_pending <= 1'b0;
-                        tx_vld       <= 1'b1;
-                        state        <= S_ECHO;
-                    end
-                    else begin
-                        state <= (halt_key | one_step) ? S_HALT : S_IDLE;
-                    end
-                end
+            S_WAIT: begin
+                // Вывод символа, в том числе эхо после ввода
+                if (go) state <= (is_cout | (is_cin & echo_mode)) ? S_COUT : s_next;
             end
 
             //--------------------------------------------------------------
-            // Ввод символа с терминала
+            // Ввод символа с терминала: ApLine пишет его в счётчик
             //--------------------------------------------------------------
             S_CIN_WAIT: begin
-                if (halt_key) begin
-                    state <= S_HALT;
-                end
-                else if (rx_vld) begin
-                    ap_op        <= AP_CIN;
-                    ap_valid     <= 1'b1;
-                    echo_pending <= echo_mode;
-                    state        <= S_AP_OP;
-                end
+                if (halt_key)          state <= S_HALT;
+                else if (rx_vld & go)  state <= S_WAIT;
             end
 
             //--------------------------------------------------------------
             // Вывод символа в терминал
             //--------------------------------------------------------------
             S_COUT: begin
-                if (tx_rdy) begin
-                    tx_vld <= 1'b0;
-                    state  <= (halt_key | one_step) ? S_HALT : S_IDLE;
-                end
-                else begin
-                    tx_vld <= 1'b1;
-                end
-            end
-
-            S_ECHO: begin
-                if (tx_rdy) begin
-                    tx_vld <= 1'b0;
-                    state  <= (halt_key | one_step) ? S_HALT : S_IDLE;
-                end
-                else begin
-                    tx_vld <= 1'b1;
-                end
+                if (tx_rdy) state <= s_next;
             end
 
             //--------------------------------------------------------------
-            // Физический сброс счётчиков.
-            // Запрос держится, пока реле времени не подхватит его.
+            // Физический сброс счётчиков
             //--------------------------------------------------------------
             S_RST_REQ: begin
-                if (rst_busy) begin
-                    soft_rst_req <= 1'b0;
-                    hard_rst_req <= 1'b0;
-                    state        <= S_RST_WAIT;
-                end
-                else begin
-                    soft_rst_req <= (rst_type == RST_SOFT);
-                    hard_rst_req <= (rst_type == RST_HARD);
-                end
+                if (rst_busy) state <= S_RST_WAIT;
             end
 
             S_RST_WAIT: begin
@@ -602,15 +501,9 @@ module MachineCtrl #(
                     // Набор команд после сброса задан архитектурой:
                     // после аппаратного стартует загрузчик в Debug ISA,
                     // после программного — программа в Brainfuck ISA
-                    insn_mode <= (rst_type == RST_SOFT);
-                    state     <= S_HALT;
+                    insn_mode <= rst_soft;
+                    state     <= run_on_rst ? S_IDLE : S_HALT;
                 end
-            end
-
-            //--------------------------------------------------------------
-            S_BELL: begin
-                bell  <= 1'b1;
-                state <= one_step ? S_HALT : S_IDLE;
             end
 
             default: state <= S_IDLE;
@@ -627,14 +520,12 @@ module MachineCtrl #(
             $error("MachineCtrl: одновременный запрос программного и аппаратного сброса");
         if (rst_n && ip_valid && ap_valid)
             $error("MachineCtrl: одновременный запрос к IpLine и ApLine");
-        if (rst_n && !insn_loading && insn_mode &&
-            ((insn == 4'h6) || (insn == 4'h7)) &&
-            (state == S_FETCH_W) && ip_ready && insn_valid &&
-            !data_zero_valid && !ap_valid)
+        if (rst_n && ip_valid && (ip_op == IP_NEXT) && !insn_loading && insn_mode &&
+            insn_valid && ((insn == 4'h6) || (insn == 4'h7)) && !data_zero_valid)
             $error("MachineCtrl: скобка обрабатывается при недостоверном признаке нуля");
         if (rst_n && insn_loading && ap_valid)
             $error("MachineCtrl: операция над данными во время загрузки программы");
-        if (rst_n && loop_overflow && !$past(loop_overflow))
+        if (rst_n && overflow_hit)
             $error("MachineCtrl: переполнение счётчика вложенности циклов");
     end
 `endif

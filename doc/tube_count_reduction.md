@@ -388,3 +388,151 @@ The three blocks from today's netlists: IpLine 722 + ApLine 714 + MachineCtrl 51
 
 Block diagram: sheet 4 (`04_1_ipline.svg`, `04_2_ipline_fsm.svg`) redrawn. No SVG
 renderer was available, so the layout was checked by coordinates only.
+
+## 12. Done: MachineCtrl FSM rewrite (R2, REQ-CTLV2-010)
+
+The §4 method applied to `rtl/DekatronPC/MachineCtrl.sv` (item R2 of §5). The external
+interface and the op codes sent to IpLine/ApLine are unchanged.
+
+Changes:
+- 15 states → 10: `S_HALT, S_IDLE, S_FETCH_W, S_DECODE, S_EXEC, S_WAIT, S_COUT, S_CIN_WAIT,
+  S_RST_REQ, S_RST_WAIT`. `S_IDLE` issues the fetch itself (old `S_IDLE` + `S_FETCH`).
+  `S_IP_OP`/`S_AP_OP` became one `S_EXEC`, and the two `_W` states one `S_WAIT`. `S_ECHO` is
+  gone (echo goes through `S_COUT`), and so is the unreachable `S_BELL`. The codes of `S_HALT`,
+  `S_IDLE`, `S_DECODE` and `S_CIN_WAIT` are kept, because `DekatronPC_tb.cpp` uses them.
+- Moore strobes, with `go = ip_ready & ap_ready & ~(soft_rst | hard_rst)`:
+  `ip_valid = (S_IDLE & ~halt_key | S_EXEC & is_ip_op) & go`,
+  `ap_valid = (S_EXEC & ~is_ip_op | S_CIN_WAIT & ~halt_key & rx_vld) & go`,
+  `tx_vld = S_COUT`, `rx_rdy = S_WAIT & is_cin & go`, `*_rst_req = S_RST_REQ & type`.
+- **Decode once, without registers.** `ip_op`, `ap_op` and `ap_dec` are combinational from
+  `{insn_mode, insn}`. IpLine holds `insn` in `insn_q` until the next fetch, and the next fetch
+  waits for `go`, so the op codes stay stable until the slave's `ready`, as Valid/Ready
+  requires. This removes 7 registers while keeping ApLine's and IpLine's op encoding (the
+  rest of R3 is still open). `ap_dec = insn[0]` also feeds non-step ops; `DekatronCounter`
+  ignores `dec` when `set`/`set_zero` is active.
+- `echo_pending` removed: `S_WAIT` goes to `S_COUT` when the finished op was CIN (`is_cin`
+  from `insn`) and `echo_mode` is on.
+- `bell` is a pulse in the cycle of the event (HALT opcode, BELL, CIN, `halt_key` in
+  `S_IDLE`, overflow). `bell_pending` and the `bell` register are gone. `Bell` isn't connected
+  in `Emulator.sv`.
+- `rst_type` (2 bits) → `rst_soft` (1 bit). `RunOnHardRst`/`RunOnSoftRst` act when
+  `S_RST_WAIT` ends: it goes straight to `S_IDLE`, not through `S_HALT`, so `RST_NONE` isn't
+  needed. On power-up the relay always gives a hard reset, so `run_on_hard_rst` still works
+  after `rst_n`.
+- **Overflow halts (REQ-CTLV2-005).** `overflow_hit = loop_overflow & ~overflow_q`
+  (`overflow_q` is last cycle's `loop_overflow`) takes priority over the whole `case`. The old
+  code had two defects. `state <= S_HALT` came before `case (state)`, and the `S_FETCH_W` branch
+  overrode it (`doc/dpcrun_golden_model.md` §5.2). Also, CLRL cleared `error_flag` in
+  `S_DECODE`, but IpLine drops `overflow_q` only when it accepts CLR_LOOP. In between,
+  `error_flag` was set again, and the next overflow didn't halt either. The edge detector has
+  no clear, so neither problem can occur.
+- Flops: 25 → 9 (`state` 4, `insn_mode`, `insn_loading`, `one_step`, `overflow_q`, `rst_soft`;
+  `iret` only with `EN_EMULATOR`).
+- One clock less per instruction (the old `S_FETCH`): a NOP takes 7 clocks instead of 8.
+
+Not changed, by owner decision: COUT. `.` still raises `tx_vld` without `AP_COUT` (OPEN-017).
+The simulation below printed `Hello WWrld!!` with **both** FSMs, as
+`doc/dpcrun_golden_model.md` §5.1 predicts. The cause is the stale memory register after `>`:
+ApLine's `S_AP` clears `mem_here_q` without reading, and `Ram` updates `rd_q` only when it
+accepts an access (`RAM.sv:109-121`). So, with `lock_q = 0`, `tx_data_bcd = cell_from_mem` is the
+previous cell. The owner then chose to print always from the Data counter; see §13.
+
+Verification:
+- New `rtl/tests/MachineCtrl.sv/MachineCtrl_tb.sv` (`rtl/run/emul MachineCtrl`, added to
+  `run_tests.sh -t`). It uses models of IpLine (opcodes from a queue), ApLine (busy 1–4 random
+  cycles, checks that `ap_op`/`ap_dec` stay stable until `ready`), the time relay and the terminal.
+  Parts:
+  1. all 32 `{insn_mode, insn}`: which op goes to which slave, `dec`, bell, ISA switch, HALT
+     with `bell_on_halt`; `loop_val_zero` source;
+  2. TEST before a bracket only in BF and only when `data_zero_valid` is low;
+  3. CIN with and without echo, `bell_on_cin`, `halt_key` while waiting;
+  4. loading: nothing runs, ISA1 inside makes 0x4 a `>`, EOT with and without `SoftRstOnEOT` +
+     `RunOnSoftRst`, panel load start/stop keys;
+  5. HRST/SRST with `RunOn*` 0/1, panel hard reset during CIN, panel soft reset during loading;
+  6. overflow: halt, bell, the bracket is not decoded, Run does not halt again, after CLRL a new
+     overflow halts again;
+  7. halt key, step: one instruction per press while the key is held.
+
+  Monitors: `ip_valid`/`ap_valid` without `ready`, both at once, `rx_rdy` before CIN ends or
+  without `rx_vld`, both reset requests at once.
+  New FSM: PASS. Old FSM, same tb (it doesn't depend on state codes): 6 errors, all in part 6
+  (the two overflow defects above). Every other check passes on both.
+- `DekatronPC_tb` (Icarus) with the existing `TRY_PROGRAM` scenario, in a scratch copy: the
+  bootloader starts, helloworld is loaded over `InsnIn`, EOT gives a soft reset, `RunOnSoftRst`
+  runs the program. TX characters and IP at each character are identical for the old and new
+  FSM (`Hello WWrld!!`). Both halt at IP 113. The new FSM is about 8 % faster between the first
+  and last character (14.06 ms vs 15.36 ms of simulated time).
+  The scenario isn't usable as checked in, and that was the case before this change:
+  - `generate_rom.py` output has no leading ISA1, so in Debug ISA the first `>` (0x4) is EOT
+    and only `++++++++++[` is loaded;
+  - `@(posedge IsHalted)` caught the old FSM's one-cycle pass through `S_HALT` after the soft
+    reset, before the program ran;
+  - the tb's final TX compare never completes (it isn't enabled by any cfg).
+
+  For the run, the scratch copy prepended `0xF` and waited for the TX count before waiting
+  for HALT.
+- Verilator `--lint-only -Wall` is clean for DekatronPC. `./emul DekatronPC` (hello cfg) passes.
+- Not run: the Verilator golden-model builds (`run_tests.sh -s`, heavy) and the cocotb
+  regression (it has no MachineCtrl target).
+
+Synthesis (`./synth MachineCtrl`, `-J 50`, 6 s; `equiv_opt`: 62/62 `$equiv` cells proven):
+
+| | old (§11 netlist) | new | Δ |
+|---|---|---|---|
+| MachineCtrl, tubes | 512 | **284.5** | **−227.5** |
+| Triggers | 25 | 9 | −16 |
+
+R2 was estimated at −80…−110 (§5). The extra came from decoding the op codes from `insn`
+(part of R3) and from the cleanup of the bell, echo and reset-type flags.
+
+The three blocks: IpLine 722 + ApLine 714 + MachineCtrl 284.5 = **1720.5** (the
+2026-10-06 baseline was 2636 with the same library).
+
+Block diagram: sheet 6 (`06_*`) redrawn.
+
+## 13. Done: COUT always from the Data counter (R7, OPEN-017)
+
+Owner's decision after §12: drop the `tx_data_bcd = lock ? data_out : cell_from_mem` mux
+and always print the Data counter. If MemLock is off, load the cell into the counter first.
+
+Changes:
+- `ApLine`: `tx_data_bcd = data_out`. `OP_COUT` in `S_IDLE`: with `lock_q` nothing to do.
+  Otherwise go to `S_DSET` if `mem_here_q`, else `S_READ` → `S_DSET`. `S_READ` now
+  goes to `S_DSET` for everything except `OP_TEST`. MemLock and `dirty` don't change, as with
+  LOAD. Setting `lock` here would hit the known v0.9 divergence (a clean AP step doesn't
+  clear `lock`), and the next `.` after `>` would print the old cell again.
+- `MachineCtrl`: `.` (`5'h18`) goes to `S_EXEC` with `ap_op = AP_COUT`. `S_WAIT` goes
+  to `S_COUT` for COUT, or for CIN with echo. `tx_vld` therefore rises only when ApLine is
+  done, and the counter doesn't change while `tx_vld` is high.
+- Cost: one counter write window per `.` when MemLock is off. At 110 baud it doesn't matter.
+  Memory reads are the same as before: a read only when the register isn't on the
+  current cell.
+
+Verification:
+- `ApLine_tb`: new part "COUT after an AP step without MemLock". A `<` with the counter holding
+  cell 1 must make COUT read cell 0 (1 read, value 124). Back to cell 1: 1 read, value 1. A
+  second COUT: no read. MemLock stays off. New ApLine: PASS. The old ApLine also passes this
+  part: its `OP_COUT` already read the cell. The defect was only that MachineCtrl never
+  issued it.
+- `MachineCtrl_tb`: `.` must issue exactly one `AP_COUT` and one TX. A new monitor fails on
+  `tx_vld` while ApLine is busy. PASS.
+- `DekatronPC_tb` (`TRY_PROGRAM`, the scratch copy from §12): helloworld through the
+  bootloader now prints **`Hello World!\n`** (13 characters), and halts at IP 113.
+- Verilator `--lint-only -Wall` is clean for DekatronPC.
+- Not run: `run_tests.sh -s` (golden-model comparison). The dpcrun golden model was changed to
+  match: COUT without MemLock loads the cell into the counter, and `txData()` is the counter
+  (`doc/dpcrun_golden_model.md` §5.1). bfutils unit tests: 55 tests, 482 checks pass.
+
+Synthesis (`-J 50`, `equiv_opt` proven: ApLine 127/127, MachineCtrl 62/62):
+
+| Block | §12 | now | Δ |
+|---|---|---|---|
+| ApLine | 714 | **679.5** | −34.5 |
+| MachineCtrl | 284.5 | 282 | −2.5 |
+| IpLine (RTL unchanged, netlist on disk) | 722 | 711 | ABC variance |
+| Total | 1720.5 | **1672.5** | |
+
+R7 was estimated at −20…−30.
+
+Block diagrams: sheets 5 and 6 redrawn. The dashed "COUT: immediately tx_vld" edge and the
+OPEN-017 note are gone.

@@ -114,8 +114,8 @@ Decode on the pair {insn_mode, insn}. All 32 combinations must be covered. Undef
 
 9. Current priorities (TRS §22)
 1. Run all new RTL in Verilator and Icarus. Most blocks so far are verified only on Python models.
-2. Write testbenches for RAM/IpMemory, MachineCtrl (full ISA table, TEST before brackets), plus DekatronModule/DekatronCounter and back-to-back write/reset ops (REQ-VER-028/030). ApLine and IpLine have Icarus testbenches in rtl/tests/ (run by run_tests.sh -t; IpLine_tb uses a Ram-style memory and a reference model); they are not in the cocotb regression yet.
+2. Write testbenches for RAM/IpMemory, MachineCtrl (full ISA table, TEST before brackets), plus DekatronModule/DekatronCounter and back-to-back write/reset ops (REQ-VER-028/030). ApLine, IpLine and MachineCtrl have Icarus testbenches in rtl/tests/ (run by run_tests.sh -t; IpLine_tb uses a Ram-style memory and a reference model; MachineCtrl_tb uses models of IpLine/ApLine/relay/terminal and covers all 32 opcodes); they are not in the cocotb regression yet.
 3. Flat memory for the FPGA build (OPEN-015).
 4. Remove the old modules so there's one datapath.
-5. Use the C++ golden model (bfutils/dpcrun, full ISA since TRS v0.8) for step-by-step comparison with the RTL: first fix the COUT defect (OPEN-017 reopened, MachineCtrl never issues AP_COUT), then build DekatronPC_tb.cpp and run it with -s.
-6. Bring the RTL in line with TRS v0.9 (LOOP_DEKATRON_NUM = 2 is done): reset lock in ApLine on any address step (also when not dirty, after STORE), cout_pending in MachineCtrl. The ApLine and MachineCtrl fixes are prepared but not merged; ask the owner before applying.
+5. Use the C++ golden model (bfutils/dpcrun, full ISA since TRS v0.8) for step-by-step comparison with the RTL: the COUT defect is fixed in RTL (OPEN-017: '.' issues AP_COUT, output is always the Data counter); dpcrun follows the same rule (txData() is the Data counter); next build DekatronPC_tb.cpp and run it with -s.
+6. Bring the RTL in line with TRS v0.9 (LOOP_DEKATRON_NUM = 2 is done): reset lock in ApLine on any address step (also when not dirty, after STORE); the COUT part is done (v0.10). The ApLine fix is prepared but not merged; ask the owner before applying.
