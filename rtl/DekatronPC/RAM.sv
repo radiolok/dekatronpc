@@ -220,6 +220,17 @@ module RamGroup #(
                 dbg_digit_q <= dbg_digit;
             end
 
+            // Как и rd_q банка: до первого обращения выход — ноль, а не X.
+            // Иначе data_zero ApLine после сброса (data_zero_valid = 0)
+            // равен X, и в нетлисте он доходит до регистров IpLine
+            // (doc/synth_sim.md, §4.1)
+            if (INIT_ZERO) begin : g_init
+                initial begin
+                    digit_q     = '0;
+                    dbg_digit_q = '0;
+                end
+            end
+
             genvar i;
             for (i = 0; i < 10; i++) begin : child
 

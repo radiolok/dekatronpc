@@ -15,6 +15,7 @@ synt=0
 sim=0
 cov=0
 uvm=0
+gate=0
 
 cleanup() {
     local exit_code=$?
@@ -42,6 +43,7 @@ usage() {
 	 msg "-c coverage"
 	 msg "-t sim"
 	 msg "-u uvm"
+	 msg "-g gate-level: RTL tests on the synthesized netlists (synth_sim.sh)"
 }
 
 parse_params() {
@@ -58,6 +60,7 @@ parse_params() {
 	-c | --coverage) cov=1 ;;
 	-t | --sim) sim=1 ;;
 	-u | --uvm) uvm=1 ;;
+	-g | --gate) gate=1 ;;
     -?*) die "Unknown option: $1" ;;
     *) break ;;
     esac
@@ -168,6 +171,10 @@ if [ ${synt} -ne 0 ]; then
 	./synth ApLine
 	./synth MachineCtrl
 	python3 dpc_stat.py -j IpLine.json,ApLine.json,MachineCtrl.json -l ../vtube/vtube_cells.lib
+fi
+
+if [ ${gate} -ne 0 ]; then
+	./synth_sim.sh
 fi
 
 if [ ${png} -ne 0 ]; then

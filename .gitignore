@@ -36,3 +36,6 @@ run/*.json
 !img/schemes/*.svg
 tools/schemes/out/
 __pycache__/
+
+# netlist simulation outputs (rtl/run/synth_sim.sh)
+rtl/run/synth_sim/

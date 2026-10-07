@@ -1,8 +1,11 @@
 // DekatronPC vacuum-tube standard cells - behavioral Verilog models.
 // Companion library to vtube_cells.lib and vtube_cells.sp.
-// Cell names and pin order follow vtube_cells.lib.
+// Cell names, pins and functions follow vtube_cells.lib one to one: the
+// netlist simulation (rtl/run/synth_sim.sh) checks that every liberty cell
+// has a model here.
+// Zero-delay models: a flop's Q changes on the clock edge, as in RTL.
 
-module BUF_6N16B(A, Y);
+module BUF_N16(A, Y);
 input A;
 output Y;
 assign Y = A;
@@ -14,13 +17,13 @@ output Y;
 assign Y = A;
 endmodule
 
-module NOT_6N16B(A, Y);
+module NOT_N16(A, Y);
 input A;
 output Y;
 assign Y = ~A;
 endmodule
 
-module NOT_6J2B(A, Y);
+module NOT_J2(A, Y);
 input A;
 output Y;
 assign Y = ~A;
@@ -50,13 +53,13 @@ output Y;
 assign Y = ~(A & B & C & D);
 endmodule
 
-module A1OOI_N16X7(A, B, C, Y);
+module A1OOI_N16J2(A, B, C, Y);
 input A, B, C;
 output Y;
 assign Y = ~((A & B) | C);
 endmodule
 
-module A2OOI_N16X7(A, B, C, D, Y);
+module A2OOI_J2(A, B, C, D, Y);
 input A, B, C, D;
 output Y;
 assign Y = ~((A & B) | C | D);
@@ -110,24 +113,39 @@ output Y;
 assign Y = ~(A | B | C | D);
 endmodule
 
-module LATCH(C, D, Q);
+module NOR10_N16X7(A, B, C, D, E, F, G, H, K, L, Y);
+input A, B, C, D, E, F, G, H, K, L;
+output Y;
+assign Y = ~(A | B | C | D | E | F | G | H | K | L);
+endmodule
+
+// Triggers: Q and QN are both anodes of the tube trigger (qn_absorb.py
+// moves inverters on Q to QN), so every trigger has both outputs.
+module LATCH(C, D, Q, QN);
 input C, D;
 output reg Q;
-always @(*)
+output QN;
+assign QN = ~Q;
+always @*
 	if (C)
 		Q = D;
 endmodule
 
-module DFF(C, D, Q);
+module DFF(C, D, Q, QN);
 input C, D;
 output reg Q;
+output QN;
+assign QN = ~Q;
 always @(posedge C)
 	Q <= D;
 endmodule
 
-module DFFSR(C, D, Q, S, R);
+// clear: R, preset: S, both active high; preset wins as in Yosys $_DFFSR_
+module DFFSR(C, D, Q, QN, S, R);
 input C, D, S, R;
 output reg Q;
+output QN;
+assign QN = ~Q;
 always @(posedge C, posedge S, posedge R)
 	if (S)
 		Q <= 1'b1;
@@ -137,9 +155,12 @@ always @(posedge C, posedge S, posedge R)
 		Q <= D;
 endmodule
 
-module DFFSR_n(C, D, Q, S, R);
+// clear: R' (active low), preset: S (active high)
+module DFFSR_n(C, D, Q, QN, S, R);
 input C, D, S, R;
 output reg Q;
+output QN;
+assign QN = ~Q;
 always @(posedge C, posedge S, negedge R)
 	if (S)
 		Q <= 1'b1;

@@ -214,6 +214,14 @@ DekatronPC #(
 //----------------------------------------------------------------------
 // Тактовые операции
 //----------------------------------------------------------------------
+// IsHalted — дешифратор состояния автомата. В нетлисте биты состояния
+// меняются в разных дельта-циклах, и при переходе в S_EXEC дешифратор
+// на нулевое время проходит через S_HALT. wait()/@(posedge) ловят этот
+// всплеск, поэтому линию смотрим на спаде Clk, как и tx_vld.
+task automatic wait_halted();
+    do @(negedge Clk); while (!IsHalted);
+endtask
+
 task automatic wait_relay();
     wait (dekatronPC.rst_busy);
     wait (~dekatronPC.rst_busy);
@@ -226,7 +234,7 @@ task automatic soft_rst_key();
     repeat (4) @(posedge Clk);
     SoftRstKey = 1'b0;
     wait_relay();
-    wait (IsHalted);
+    wait_halted();
     repeat (4) @(posedge Clk);
 endtask
 
@@ -236,7 +244,7 @@ task automatic hard_rst_key();
     repeat (4) @(posedge Clk);
     HardRstKey = 1'b0;
     wait_relay();
-    wait (IsHalted);
+    wait_halted();
     repeat (4) @(posedge Clk);
 endtask
 
@@ -312,7 +320,7 @@ task automatic check_bootloader();
     $display("  bootloader: loading finished"); $fflush;
     $display("  state=%0d IP=%h Insn=%h mode=%b", state, IpAddress, Insn,
              dekatronPC.machineCtrl.insn_mode); $fflush;
-    @(posedge IsHalted);
+    wait_halted();
     $display("  bootloader: halted"); $fflush;
     $display("  state=%0d IP=%h Insn=%h", state, IpAddress, Insn); $fflush;
     repeat (20) @(posedge Clk);
@@ -365,7 +373,7 @@ initial begin
     repeat (20) @(posedge hsClk);
     rst_n <= 1'b1;
     wait_relay();
-    wait (IsHalted);
+    wait_halted();
 
     // После включения реле времени даёт аппаратный сброс: IP = 99900
     if (IpAddress !== 20'h99900) begin

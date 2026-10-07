@@ -1,11 +1,27 @@
-if { $argc != 2 } {
-  puts "call script <file_with_v_list> <top_level_module>".
-} else {
+# usage: synt_dpc.tcl <file_with_v_list> <top_level_module> [options]
+#   -bb <module>        keep <module> as a black box: its instances stay in the
+#                       netlist with their parameters (netlist simulation puts
+#                       the RTL model back, see synth_sim.sh)
+#   -p <name> <value>   override a parameter of the top module
+# Without options the flow is the tube-count flow used by run_tests.sh -s.
+if { $argc < 2 } {
+  puts "call script <file_with_v_list> <top_level_module> \[-bb <module>\] \[-p <name> <value>\]"
+  exit 1
 }
 yosys -import
 
 set script_dir [file dirname [file normalize [info script]]]
 set top        [lindex $argv 1]
+
+set blackboxes {}
+set top_params {}
+for {set i 2} {$i < $argc} {incr i} {
+  switch -- [lindex $argv $i] {
+    -bb { lappend blackboxes [lindex $argv [incr i]] }
+    -p  { lappend top_params [lindex $argv [incr i]] [lindex $argv [incr i]] }
+    default { puts "unknown option [lindex $argv $i]"; exit 1 }
+  }
+}
 
 yosys read -define SYNTH=1
 
@@ -14,6 +30,8 @@ set cell_lib "$script_dir/../vtube/vtube_cells.lib"
 set fp [open [lindex $argv 0] r]
 set file_data [read $fp]
 close $fp
+# Relative paths in the list are relative to the list itself
+set list_dir [file dirname [file normalize [lindex $argv 0]]]
 
 set data [split $file_data "\n"]
 set tb_suffix "_tb"
@@ -21,11 +39,17 @@ foreach line $data {
   if {[string first $tb_suffix $line] == -1} {
     if {$line ne ""} {
       puts $line
-      yosys read_verilog -sv $line
+      yosys read_verilog -sv [file join $list_dir $line]
     }
   }
 }
 yosys read_liberty -lib $cell_lib
+foreach bb $blackboxes {
+  yosys setattr -mod -set blackbox 1 $bb
+}
+foreach {name value} $top_params {
+  yosys chparam -set $name $value $top
+}
 hierarchy -check
 # FSM extraction and recoding happen inside synth; a separate fsm pass after
 # it is a no-op. Encoding was measured: binary/onehot give the same count.
