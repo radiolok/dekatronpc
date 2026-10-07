@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "project": "stand.kicad_pro",
+  "current": "2026-07-26_1637",
+  "runs": {
+    "2026-07-26_1637": {
+      "source_hashes": {
+        "stand.kicad_sch": "sha256:4ceaa817f4a9b0dd4c10b9c1d2801c049b1b9865177fd4239a7d82c44d06ed97",
+        "stand.kicad_pcb": "sha256:44da2bd717f32c4da66758c5f4b9d0ccfe09ec4c6aa42a3aceaba352b34b3f06"
+      },
+      "outputs": {
+        "schematic": "schematic.json",
+        "pcb": "pcb.json",
+        "cross_analysis": "cross_analysis.json"
+      },
+      "scripts": {
+        "schematic": "analyze_schematic.py stand.kicad_sch"
+      },
+      "generated": "2026-07-26T16:37:17+03:00",
+      "pinned": false
+    }
+  }
+}
