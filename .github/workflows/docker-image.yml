@@ -87,13 +87,11 @@ jobs:
           bash -c "source /var/venv/bin/activate && cd /var/rtl/run/rtl/run && ./run_tests.sh -s"
 
   # Gate-level simulation: the Icarus tests of run_tests.sh -t on the Yosys
-  # netlists (rtl/run/synth_sim.sh). Allowed to fail for now: the netlist
-  # flow is new and its failures are findings, not regressions.
+  # netlists (rtl/run/synth_sim.sh). A failing run fails the pipeline.
   synth_sim:
     needs: build-image
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    continue-on-error: true
     steps:
     - uses: actions/checkout@v5
       with:

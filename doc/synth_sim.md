@@ -158,16 +158,15 @@ The RTL runs still pass (helloworld 14330 us, program.bfk 179734 us).
 ## 5. CI
 
 Job `synth_sim` in `.github/workflows/docker-image.yml`: runs
-`./synth_sim.sh` in the Docker image (Icarus 12) with `continue-on-error: true`
-for now, and uploads `synth_sim/**/*.log` and the netlists as the
-`synth-sim-logs` artifact.
+`./synth_sim.sh` in the Docker image (Icarus 12) and uploads `synth_sim/**/*.log` and the netlists as the
+`synth-sim-logs` artifact. All runs passed in CI on Icarus 12, so
+`continue-on-error` was removed (2026-10-07): a failing netlist run now fails
+the pipeline.
 
 ## 6. Next
 
 - REQ-VER-025 asks for liberty delays. The flow is zero-delay, so it needs
   `specify` blocks or SDF from the liberty file.
-- All runs pass locally: drop `continue-on-error` from the CI job once a CI
-  run (Icarus 12) confirms it.
 - Look into the 2-clock offset between netlist and RTL run times.
 - The netlist's reconvergent X handling will hit any signal read while
   invalid. A gate-level run with random 0/1 initial values for flops without
