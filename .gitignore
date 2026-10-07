@@ -39,3 +39,6 @@ __pycache__/
 
 # netlist simulation outputs (rtl/run/synth_sim.sh)
 rtl/run/synth_sim/
+
+# Quartus CLI build (rtl/run/build_fpga.sh)
+rtl/quartus_build/

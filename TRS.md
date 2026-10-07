@@ -742,7 +742,7 @@ TRS v0.1 (`Dekatron_Model_TRS_v0_1.md`) задаёт **новую целевую
 | REQ-RTL-001 | Целевая FPGA-плата: DE0-Nano-SoC. | Done | Подтверждено (`De0Nano.sv`, Cyclone V, 50 МГц). |
 | REQ-RTL-002 | Основная симуляционная среда: Verilator. | Done | Принято. |
 | REQ-RTL-003 | Дополнительная симуляционная среда: Icarus Verilog. | Done | Принято. |
-| REQ-RTL-004 | Синтез для FPGA сохраняется как рабочий flow. | Done | Quartus/Yosys по ситуации. |
+| REQ-RTL-004 | Синтез для FPGA сохраняется как рабочий flow. | Done | Quartus/Yosys по ситуации. **[v0.10]** Сборка битстрима из командной строки: `rtl/run/build_fpga.sh` (проект собирается из `DPC.files`/`Emul.files`, выводы из `rtl/quartus/Emulator.qsf`); elaboration проходит, полная компиляция ещё не запускалась (`doc/fpga_build.md`). |
 | REQ-RTL-005 | Синтез в ламповую библиотеку через Yosys рассматривается как отдельный целевой flow. | TODO | Требуется для physical netlist. |
 
 ## 12.2. Стиль и синтезируемость

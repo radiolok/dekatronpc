@@ -22,7 +22,7 @@ A Brainfuck computer built from A110 dekatrons and vacuum tubes, plus an FPGA em
   - Data: 3 dekatrons, 0–255, 12-bit BCD out.
 - Program memory: 100k × 4-bit opcodes. Data memory: 30k × 10-bit cells encoded {hundreds[1:0], tens[3:0], ones[3:0]}; on read, the top 2 hundreds bits come back as 2'b00.
 - Memory is a recursive bank tree (bank of 10×10 = 2 dekatrons, then groups of 10, and so on). Addresses are raw BCD tetrads compared directly, with no BCD-to-binary arithmetic; tetrads A..F raise err. The bootloader is the top 10×10 bank, 99900–99999, write-protected, overlaid with ovl_hit/ovl_data inputs.
-- OPEN-015: the bank tree doesn't fit Cyclone V (about 1000 banks against about 550 M10K blocks). A flat memory with the same interface is needed for the FPGA build.
+- OPEN-015 (closed in TRS v0.8): the bank size is the BANK_DIGITS parameter, 2 (10×10) for the real machine and 4 (100×100) for the FPGA; no flat memory is needed (about 80 memory blocks).
 - Clocks: Clk = 1 MHz CPU clock; hsClk = 10 MHz models dekatron pulse timing (emulator only, not in the real machine). Everything else is emulator/peripheral.
 
 4. ISA (opcodes are near-final: never renumber existing codes)
@@ -85,7 +85,7 @@ Decode on the pair {insn_mode, insn}. All 32 combinations must be covered. Undef
 - rtl/uart/: 110 baud, 7N1, hardcoded.
 - rtl/[DEPRECATED]/: don't touch.
 - rtl/programs/: *.bfk test programs (helloworld, pi, rot13, …) and the bootloader.
-- rtl/quartus/: Quartus project.
+- rtl/quartus/: Quartus GUI project (file list stale; the CLI build is rtl/run/build_fpga.sh → rtl/quartus_build/).
 - rtl/run/: run_tests.sh, synthesis and emulator scripts.
 - tb/: cocotb + pyuvm testbench, see tb/README.md.
 - bfutils/programs/bf100/: the Brainfuck-100 set (100 real programs by category, inputs, metrics, sources and licenses). Any counter width change is checked against it (REQ-ARCH-011).
@@ -93,7 +93,7 @@ Decode on the pair {insn_mode, insn}. All 32 combinations must be covered. Undef
 - TRS.md, SCHEMES.md, README.md: requirements, block diagrams, project overview (repo root).
 - tools/schemes/: generator of SCHEMES.md and img/schemes/*.svg (pure Python, see its README).
 - doc/: reference literature (PDF/djvu) and new investigation reports.
-- Reports: rtl/DekatronPC/emulator_inspection.md (Emulator layer), rtl/DekatronPC/Dekatron/DekatronCounter.md (counter design), doc/dpcrun_golden_model.md (golden model semantics, RTL-vs-TRS divergences, RTL findings), doc/dekatron_valid_removal.md (Valid removed, ready from durations, 3/3/4 phase split), doc/dekatron_counter_flop_reduction.md (plan to drop redundant DekatronCounter flops), doc/uvm_tb_check.md (cocotb regression check: setup, tests that passed without checking, coverage gaps), doc/tube_count_reduction.md (synthesis tube count, ABC area scripts, FSM cleanup, decode once and no insn_q (§14), path to the tube budget, now ≤ 1200 for the whole machine), doc/ci_sim_check.md (CI sim job: Icarus 12, DekatronPC_tb program scenario, golden-model step compare), doc/synth_sim.md (netlist simulation: RTL tests on Yosys netlists, black boxes, results).
+- Reports: rtl/DekatronPC/emulator_inspection.md (Emulator layer), rtl/DekatronPC/Dekatron/DekatronCounter.md (counter design), doc/dpcrun_golden_model.md (golden model semantics, RTL-vs-TRS divergences, RTL findings), doc/dekatron_valid_removal.md (Valid removed, ready from durations, 3/3/4 phase split), doc/dekatron_counter_flop_reduction.md (plan to drop redundant DekatronCounter flops), doc/uvm_tb_check.md (cocotb regression check: setup, tests that passed without checking, coverage gaps), doc/tube_count_reduction.md (synthesis tube count, ABC area scripts, FSM cleanup, decode once and no insn_q (§14), path to the tube budget, now ≤ 1200 for the whole machine), doc/ci_sim_check.md (CI sim job: Icarus 12, DekatronPC_tb program scenario, golden-model step compare), doc/synth_sim.md (netlist simulation: RTL tests on Yosys netlists, black boxes, results), doc/fpga_build.md (command-line Quartus build of the Emulator bitstream).
 - Old blocks still in the tree and due for removal (TRS 19.4): Dekatron.sv, DekatronPulseAllow, DekatronCarrySignal, RsLatch uses, InsnDecoder, BcdToBinEnc in the memory path. Several tb/Makefile targets still build against them.
 
 7. Build and test (CI: .github/workflows/docker-image.yml, all inside the Docker image from ./Dockerfile)
@@ -101,6 +101,7 @@ Decode on the pair {insn_mode, insn}. All 32 combinations must be covered. Undef
 - RTL simulation: cd rtl/run && ./run_tests.sh -t (Icarus tests, then DekatronPC_tb.cpp in Verilator with -s against dpcrun on helloworld and program.bfk; exit code is the verdict). CI's Docker image has Icarus 12: no break/continue in testbenches. A local Icarus 13 won't catch that, so build v12_0 to reproduce CI (doc/ci_sim_check.md).
 - Netlist simulation (REQ-VER-025): cd rtl/run && ./synth_sim.sh [-n] [test ...] (or run_tests.sh -g). Synthesizes each DUT with synt_dpc.tcl -p (its testbench parameters) -bb (DekatronTubeV2, OneShot, Impulse, RstTimeRelay, Ram, IpMemory stay black boxes and come back from RTL; OneShot/Impulse are special tube circuits by owner decision, outside the ABC tube count like the dekatrons), then runs the unchanged Icarus testbench on the netlist + rtl/vtube/vtube_cells.v (keep it one to one with vtube_cells.lib; synth_sim_prep.py checks). Output in rtl/run/synth_sim/, about 2.5 min for all. All runs, DekatronPC included, pass, and the CI job synth_sim is a required check (doc/synth_sim.md). The netlist does not mask X like RTL does (reconvergent paths), and combinational outputs such as IsHalted can pulse for zero time: testbenches sample DUT outputs on a clock edge, never with wait()/@(posedge) on a decoded line.
 - Synthesis: cd rtl/run && ./run_tests.sh -s (Yosys with -define SYNTH=1 and rtl/vtube/vtube_cells.lib; Ram is stubbed under SYNTH because the recursive RamGroup loops hierarchy -check, so the tube count excludes memory). dpc_stat.py prints tubes and relays per block; it needs the liberty parser from rtl/run/.venv. ABC results drift by up to ±10 tubes between runs, so compare small changes over several &deepsyn seeds.
+- FPGA bitstream: cd rtl/run && ./build_fpga.sh [elab|syn|compile|program] [-p] [--rbf] [-n]. Generates rtl/quartus_build/ (gitignored) from quartus/Emulator.qsf (pins, device) plus DPC.files/Emul.files (the qsf's own file list is stale), regenerates the firmware hex, runs Quartus (native, or the Windows install under WSL, found in /mnt/c/intelFPGA_lite). Programs JTAG device 2 (FPGA after HPS). See doc/fpga_build.md. CI: .github/workflows/fpga.yml (PR: elab; push to master/manual: full compile, .sof/.rbf artifacts) runs in the community image chriz2600/quartus-lite:23.1.1-1 pinned by digest (Altera blocks scripted installer downloads); if the image fails, the fallback is a self-hosted runner on the owner's server (doc/fpga_build.md §6).
 - Resource note (§0): full-design Verilator builds and Quartus runs are heavy. Ask before starting them on small nodes and prefer single tb targets.
 
 8. Open decisions (ask the user; don't decide these yourself)
@@ -112,13 +113,12 @@ Decode on the pair {insn_mode, insn}. All 32 combinations must be covered. Undef
 - OPEN-011: hardcoded panel switches (RunOnHardRst=0, RunOnSoftRst=0, SoftRstOnEOT=1, EchoMode=1).
 - OPEN-012: TOP_LIMIT_MODE vs HARD_RST_D_CNT.
 - OPEN-013/014: dekatron timing calibration and whether 1 MHz is achievable.
-- OPEN-015: flat FPGA memory.
 - OPEN-018: single-master memory invariant.
 
 9. Current priorities (TRS §22)
 1. Run all new RTL in Verilator and Icarus. Most blocks so far are verified only on Python models.
 2. Write testbenches for RAM/IpMemory, MachineCtrl (full ISA table, TEST before brackets), plus DekatronModule/DekatronCounter and back-to-back write/reset ops (REQ-VER-028/030). ApLine, IpLine and MachineCtrl have Icarus testbenches in rtl/tests/ (run by run_tests.sh -t; IpLine_tb uses a Ram-style memory and a reference model; MachineCtrl_tb uses models of IpLine/ApLine/relay/terminal and covers all 32 opcodes); they are not in the cocotb regression yet.
-3. Flat memory for the FPGA build (OPEN-015).
+3. Full FPGA compile of the Emulator with rtl/run/build_fpga.sh (elaboration passes; fit/timing not run yet, doc/fpga_build.md).
 4. Remove the old modules so there's one datapath.
 5. Use the C++ golden model (bfutils/dpcrun, full ISA since TRS v0.8) for step-by-step comparison with the RTL: the COUT defect is fixed in RTL (OPEN-017: '.' issues AP_COUT, output is always the Data counter); dpcrun follows the same rule (txData() is the Data counter). DekatronPC_tb.cpp now loads the program over InsnIn and runs with -s in run_tests.sh -t: helloworld and program.bfk match on every step. Next: pi.bfk.
 6. Bring the RTL in line with TRS v0.9 (LOOP_DEKATRON_NUM = 2 is done): reset lock in ApLine on any address step (also when not dirty, after STORE); the COUT part is done (v0.10). The ApLine fix is prepared but not merged; ask the owner before applying.
