@@ -1,11 +1,12 @@
 // DekatronPC Verilator testbench with step-by-step comparison against the
 // C++ golden model (bfutils/dpcrun, REQ-GM-002).
 //
-// The RTL program memory is preloaded from firmware.hex (generate_rom.py);
-// the model gets the same program through dpc::assemble(). Both start with
-// Soft Reset + Run. After every instruction the RTL retires, the model steps
-// once and IRET, IP, AP, tx_data_bcd, the loop counter and the terminal
-// output are compared.
+// The program (dpc::assemble()) is loaded into the RTL over InsnIn after the
+// InsnLoadingStart key, the bank-tree memory has no preload; the model gets
+// it through loadCode(). Both start with Soft Reset + Run. With -s, after
+// every instruction the RTL retires, the model steps once and IRET, IP, AP,
+// tx_data_bcd, the loop counter and the terminal output are compared.
+// Without -s only the final state is compared. Exit code 0 means PASS.
 //
 // Build: rtl/run/run_tests.sh (veremul). Needs -GEN_EMULATOR=1, otherwise
 // IRET and LoopCount are not driven.
@@ -50,6 +51,11 @@ public:
     VDekatronPC *dut;
     std::string output;
     int lastCin;
+    // IRET also counts the opcodes accepted while loading and is not
+    // cleared by Soft Reset; the program's count starts from this value
+    uint32_t iretBase;
+
+    uint32_t iret() const { return dut->IRET - iretBase; }
 
 #ifdef SIM_TRACE
     VerilatedVcdC *trace;
@@ -59,6 +65,7 @@ public:
         PLL_CLK = 0;
         CPU_CLK_UNHALTED = 0;
         lastCin = -1;
+        iretBase = 0;
         dut = new VDekatronPC;
 #ifdef SIM_TRACE
         trace = new VerilatedVcdC;
@@ -155,14 +162,69 @@ static void tick(VerilogMachine &state)
     state.PLL_CLK++;
 }
 
-// Soft Reset, then Run
-static void startVerilog(VerilogMachine &state)
+// Program memory is the bank tree and has no preload, so the program is
+// loaded the way the panel does it. Power-on: rst_n pulse, the time relay
+// gives a Hard Reset, the machine halts. Soft Reset (IP = 0, BF ISA), then
+// the InsnLoadingStart key and the opcodes over InsnIn/InsnInValid/
+// InsnInReady. The program ends with HALT, ISA0, EOT (generate_rom.py and
+// dpc::assemble() both append them); with SoftRstOnEOT and RunOnSoftRst the
+// EOT gives a Soft Reset and the program starts from 0, which is what the
+// model does with softReset() + run().
+static bool waitHalted(VerilogMachine &state)
 {
-    for (vluint64_t t = 0; t < SLOW_P*10; ++t){
-        state.dut->SoftRstKey = (t >= 1 && t < SLOW_P*2);
-        state.dut->Run = (t >= SLOW_P*4 && t < SLOW_P*6);
+    vluint64_t stable = 0;
+    while (state.PLL_CLK < MAX_SIM_TIME){
         tick(state);
+        stable = (state.dut->IsHalted && state.dut->state == S_HALT) ? stable + 1 : 0;
+        if (stable >= SLOW_P*20)
+            return true;
     }
+    return false;
+}
+
+static void pressKey(VerilogMachine &state, CData &key)
+{
+    key = 1;
+    for (vluint64_t t = 0; t < SLOW_P*4; ++t)
+        tick(state);
+    key = 0;
+    for (vluint64_t t = 0; t < SLOW_P*4; ++t)
+        tick(state);
+}
+
+static bool startVerilog(VerilogMachine &state, const std::vector<uint8_t> &code)
+{
+    state.dut->rst_n = 0;
+    for (vluint64_t t = 0; t < SLOW_P*4; ++t)
+        tick(state);
+    state.dut->rst_n = 1;
+    if (!waitHalted(state))
+        return false;
+    pressKey(state, state.dut->SoftRstKey);
+    if (!waitHalted(state))
+        return false;
+
+    state.dut->SoftRstOnEOT = 1;
+    state.dut->RunOnSoftRst = 1;
+    pressKey(state, state.dut->InsnLoadingStart);
+    size_t i = 0;
+    bool seenLoading = false;
+    while (state.PLL_CLK < MAX_SIM_TIME){
+        state.dut->InsnIn = (i < code.size()) ? code[i] : 0;
+        state.dut->InsnInValid = (i < code.size());
+        bool fire = !state.dut->Clk && state.dut->InsnInReady && state.dut->InsnInValid;
+        tick(state);
+        if (fire && state.dut->Clk)
+            ++i;
+        seenLoading |= state.dut->InsnInLoading;
+        // EOT accepted: loading drops, the Soft Reset starts the program
+        if (seenLoading && !state.dut->InsnInLoading && i == code.size()){
+            state.dut->InsnInValid = 0;
+            state.iretBase = state.dut->IRET;
+            return true;
+        }
+    }
+    return false;
 }
 
 // Runs the RTL until one instruction retires: MachineCtrl passes S_DECODE
@@ -188,8 +250,8 @@ static int stepVerilog(VerilogMachine &state)
 static int compareStates(const VerilogMachine& state, const dpc::Machine& cpp, bool halted)
 {
     int err = 0;
-    if (state.dut->IRET != cpp.iret()){
-        printf("FATAL: IRET %u != model %llu\n", state.dut->IRET,
+    if (state.iret() != cpp.iret()){
+        printf("FATAL: IRET %u != model %llu\n", state.iret(),
                static_cast<unsigned long long>(cpp.iret()));
         err = -1;
     }
@@ -267,7 +329,10 @@ int main(int argc, char** argv, char** env) {
     state.trace->open("VDekatronPC.vcd");
 #endif
     state.dut->EchoMode = 1;
-    startVerilog(state);
+    if (!startVerilog(state, code)){
+        printf("FATAL: RTL did not start: power-on or program load failed\n");
+        return -1;
+    }
 
     auto start = high_resolution_clock::now();
     while (state.PLL_CLK < MAX_SIM_TIME) {
@@ -286,7 +351,7 @@ int main(int argc, char** argv, char** env) {
             }
             dpc::Status s = cppMachine.step();
             fprintf(stderr, "IRET:%d(%llu) IP:%x(%u) LOOP:%x(%u) INSN:%s AP:%x(%u) DATA:%x(%u) %s\n",
-                state.dut->IRET,
+                state.iret(),
                 static_cast<unsigned long long>(cppMachine.iret()),
                 state.dut->IpAddress,
                 cppMachine.ip(),
@@ -306,16 +371,36 @@ int main(int argc, char** argv, char** env) {
         }
         if (rtlState == S_HALT)
             break;
-        if ((state.dut->IRET % 10000) == 0)
-            printf("Time: %lluus, IRET: %d\n",
-                   static_cast<unsigned long long>(state.CPU_CLK_UNHALTED), state.dut->IRET);
+        if ((state.iret() % 10000) == 0)
+            printf("Time: %lluus, IRET: %u\n",
+                   static_cast<unsigned long long>(state.CPU_CLK_UNHALTED), state.iret());
     }
+    // Final verdict: both machines halted, same state and terminal output
+    if (!stepMode)
+        cppMachine.runUntilHalt(MAX_INSN_COUNT);
+    int verdict = 0;
+    if (!cppMachine.halted() || state.dut->state != S_HALT){
+        printf("FATAL: not halted: RTL state %d, model %s\n", state.dut->state,
+               cppMachine.halted() ? "halted" : "running");
+        verdict = -1;
+    }
+    if (state.iret() == 0){
+        printf("FATAL: RTL retired no instructions\n");
+        verdict = -1;
+    }
+    if (compareStates(state, cppMachine, true))
+        verdict = -1;
     auto stop = high_resolution_clock::now();
     auto duration = duration_cast<microseconds>(stop - start);
-    printf("VDekatronPC Done. state.CPU_CLK_UNHALTED = %llu, state.IRET=%d\n",
+    printf("VDekatronPC Done. state.CPU_CLK_UNHALTED = %llu, IRET=%u\n",
                 static_cast<unsigned long long>(state.CPU_CLK_UNHALTED),
-                state.dut->IRET);
+                state.iret());
     std::cout << "Time taken by function: "
          << duration.count() << " microseconds" << std::endl;
+    if (verdict){
+        printf("FAIL: RTL and model differ\n");
+        exit(EXIT_FAILURE);
+    }
+    printf("PASS: RTL matches the model, output \"%s\"\n", state.output.c_str());
     exit(EXIT_SUCCESS);
 }

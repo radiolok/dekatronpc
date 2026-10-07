@@ -94,8 +94,11 @@ ClockDivider #(
 reg [INSN_WIDTH-1:0] InsnMem [0:4095];
 reg [11:0] InsnInputAddr;
 
+// generate_rom.py не ставит ISA1 в начало, а загрузка начинается в Debug ISA,
+// где первая '>' (0x4) — это EOT. Поэтому загрузчик сначала выдаёт ISA1.
 initial begin
-    $readmemh(`PROGRAM_PATH, InsnMem);
+    InsnMem[0] = 4'hF;
+    $readmemh(`PROGRAM_PATH, InsnMem, 1);
 end
 
 always_ff @(posedge Clk or negedge rst_n) begin
@@ -131,17 +134,19 @@ BcdToAscii bcd_to_ascii(
     .Ascii(tx_data)
 );
 
+// tx_rdy поднимается раз в 11 тактов и держится до рукопожатия. Линии
+// смотрим на спаде Clk: после фронта автомат уже снял tx_vld, и чтение
+// сразу после фронта теряло символы.
 task automatic read_tx();
     tx_rdy <= 1'b0;
     forever begin
         repeat (10) @(posedge Clk);
         tx_rdy <= 1'b1;
-        @(posedge Clk);
-        if (tx_vld & tx_rdy) begin
-            $display("TX: %c (%0d)", tx_data, tx_data);
-            tx_q.push_back(tx_data);
-            tx_rdy <= 1'b0;
-        end
+        do @(negedge Clk); while (!tx_vld);
+        $display("TX: %c (%0d)", tx_data, tx_data);
+        tx_q.push_back(tx_data);
+        @(posedge Clk);                 // рукопожатие на этом фронте
+        tx_rdy <= 1'b0;
     end
 endtask
 
@@ -263,6 +268,7 @@ int errors = 0;
 
 task automatic check_ip_moving();
     $display("check_ip_moving");
+    RunOnSoftRst = 1'b0;                // иначе сброс снова запустит программу
     soft_rst_key();
 
     if (!IsHalted) begin
@@ -374,9 +380,9 @@ initial begin
     check_ip_moving();
 
     if (errors)
-        $display($time/1000, "us << Simulation Complete >> errors=%0d", errors);
+        $display($time/10, "us << Simulation Complete >> errors=%0d", errors);
     else
-        $display($time/1000, "us DekatronPC Test Success!");
+        $display($time/10, "us DekatronPC Test Success!");
     if (errors) $fatal(1, "DekatronPC test failed");
     $finish;
 end
@@ -392,8 +398,7 @@ initial begin
         @(posedge Clk);
         clk_cnt <= clk_cnt + 1;
         if (clk_cnt >= `TIMEOUT) begin
-            $error("TIMEOUT");
-            $finish;
+            $fatal(1, "TIMEOUT");
         end
     end
 end

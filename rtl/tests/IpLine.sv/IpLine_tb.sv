@@ -354,6 +354,7 @@ endfunction
 
 reg  [3:0] code;
 bit  finished = 0;
+bit  stop = 0;
 int  ref_a, nxt, scans;
 bit  z;
 integer seed;
@@ -433,32 +434,36 @@ initial begin
     ref_a = 0;
     scans = 0;
     fetch_insn(code);                   // первая выборка — без шага
-    for (int i = 0; i < RAND_NUM; i++) begin
+    // Без break/continue: Icarus 12 (CI) их не поддерживает
+    for (int i = 0; (i < RAND_NUM) && !stop; i++) begin
         if (bcd2bin(Address) !== ref_a || code !== prog[ref_a]) begin
             errors++;
             $display("FAIL: fetch %0d: IP %h insn %h, expected %0d insn %h",
                      i, Address, code, ref_a, prog[ref_a]);
-            break;
+            stop = 1;
         end
-        if (LoopCount !== '0 || LoopOverflow) begin
-            errors++;
-            $display("FAIL: loop counter %h / overflow %b after fetch %0d",
-                     LoopCount, LoopOverflow, i);
+        else begin
+            if (LoopCount !== '0 || LoopOverflow) begin
+                errors++;
+                $display("FAIL: loop counter %h / overflow %b after fetch %0d",
+                         LoopCount, LoopOverflow, i);
+            end
+            z = $random(seed) & 1;
+            nxt = ref_next(ref_a, code, z);
+            if (nxt >= prog_len) nxt = -1;   // не уходить за конец
+            if (nxt < 0) begin
+                // Вернуться в начало
+                do_op(OP_CLR_IP);
+                fetch_insn(code);
+                ref_a = 0;
+            end
+            else begin
+                if (nxt != ref_a + 1) scans++;
+                lvz_r = z;
+                fetch_insn(code);
+                ref_a = nxt;
+            end
         end
-        z = $random(seed) & 1;
-        nxt = ref_next(ref_a, code, z);
-        if (nxt >= prog_len) nxt = -1;   // не уходить за конец
-        if (nxt < 0) begin
-            // Вернуться в начало
-            do_op(OP_CLR_IP);
-            fetch_insn(code);
-            ref_a = 0;
-            continue;
-        end
-        if (nxt != ref_a + 1) scans++;
-        lvz_r = z;
-        fetch_insn(code);
-        ref_a = nxt;
     end
     rand_mode = 1'b0;
     $display("   %0d fetches, %0d scans", RAND_NUM, scans);

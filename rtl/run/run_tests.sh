@@ -95,7 +95,10 @@ veremul() {
 	--exe ${root_dir}/tests/DekatronPC.sv/DekatronPC_tb.cpp
 
 	make -j`nproc` -C obj_dir -f VDekatronPC.mk VDekatronPC
-	./obj_dir/VDekatronPC -f ${bf_file}
+	# -s: compare with the golden model after every instruction (REQ-GM-002);
+	# the per-step trace goes to stderr, the verdict is the exit code
+	local steps=${bf_file##*/}.steps.log
+	./obj_dir/VDekatronPC -f ${bf_file} -s 2> ${steps} || { tail -n 20 ${steps}; return 1; }
 }
 
 parse_params "$@"

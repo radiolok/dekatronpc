@@ -355,38 +355,39 @@ task automatic check_isa_table();
         for (int op = 0; op < 16; op++) begin
             string what = $sformatf("{%0d,%h}", m, op);
             bit was_mode;
-            if (op == 4'h1 || op == 4'h5 || op == 4'hC || op == 4'hD) continue;  // ниже
-            if (m == 1 && op == 4'h9) continue;                                   // CIN — отдельно
-            set_mode(m);
-            was_mode = insn_mode;
-            data_zero_valid = 1'b1;
-            exec(op[3:0]);
-            if (!parked()) fail({what, ": machine stopped"});
-            case ({m[0], op[3:0]})
-                5'h02: expect_only(what, -1, -1, 0, 1);              // BELL
-                5'h08: expect_only(what, IP_CLR_LOOP, -1, 0, 0);     // CLRL
-                5'h09: expect_only(what, IP_CLR_IP, -1, 0, 0);       // CLRI
-                5'h0A: expect_only(what, -1, AP_DATA_ZERO, 0, 0);    // CLRD
-                5'h0B: expect_only(what, -1, AP_AP_ZERO, 0, 0);      // CLRA
-                5'h12, 5'h13: begin                                  // + -
-                    expect_only(what, -1, AP_DATA_STEP, 0, 0);
-                    if (last_ap_dec !== op[0]) fail({what, ": dec"});
-                end
-                5'h14, 5'h15: begin                                  // > <
-                    expect_only(what, -1, AP_AP_STEP, 0, 0);
-                    if (last_ap_dec !== op[0]) fail({what, ": dec"});
-                end
-                5'h18: expect_only(what, -1, AP_COUT, 1, 0);         // . (OPEN-017)
-                5'h1A: expect_only(what, -1, AP_DATA_ZERO, 0, 0);    // [-]
-                5'h1B: expect_only(what, -1, AP_CLRML, 0, 0);
-                5'h1C: expect_only(what, -1, AP_LOAD, 0, 0);
-                5'h1D: expect_only(what, -1, AP_STORE, 0, 0);
-                default: expect_only(what, -1, -1, 0, 0);            // NOP, скобки, ISA, EOT, 0x3
-            endcase
-            // Смена набора команд
-            if (op == 4'hE && insn_mode !== 1'b0) fail({what, ": ISA0"});
-            if (op == 4'hF && insn_mode !== 1'b1) fail({what, ": ISA1"});
-            if (op != 4'hE && op != 4'hF && insn_mode !== was_mode) fail({what, ": mode changed"});
+            // {x,1}/{x,5}/{x,C}/{x,D} — ниже, CIN — отдельно (без continue: Icarus 12)
+            if (!(op == 4'h1 || op == 4'h5 || op == 4'hC || op == 4'hD || (m == 1 && op == 4'h9))) begin
+                set_mode(m);
+                was_mode = insn_mode;
+                data_zero_valid = 1'b1;
+                exec(op[3:0]);
+                if (!parked()) fail({what, ": machine stopped"});
+                case ({m[0], op[3:0]})
+                    5'h02: expect_only(what, -1, -1, 0, 1);              // BELL
+                    5'h08: expect_only(what, IP_CLR_LOOP, -1, 0, 0);     // CLRL
+                    5'h09: expect_only(what, IP_CLR_IP, -1, 0, 0);       // CLRI
+                    5'h0A: expect_only(what, -1, AP_DATA_ZERO, 0, 0);    // CLRD
+                    5'h0B: expect_only(what, -1, AP_AP_ZERO, 0, 0);      // CLRA
+                    5'h12, 5'h13: begin                                  // + -
+                        expect_only(what, -1, AP_DATA_STEP, 0, 0);
+                        if (last_ap_dec !== op[0]) fail({what, ": dec"});
+                    end
+                    5'h14, 5'h15: begin                                  // > <
+                        expect_only(what, -1, AP_AP_STEP, 0, 0);
+                        if (last_ap_dec !== op[0]) fail({what, ": dec"});
+                    end
+                    5'h18: expect_only(what, -1, AP_COUT, 1, 0);         // . (OPEN-017)
+                    5'h1A: expect_only(what, -1, AP_DATA_ZERO, 0, 0);    // [-]
+                    5'h1B: expect_only(what, -1, AP_CLRML, 0, 0);
+                    5'h1C: expect_only(what, -1, AP_LOAD, 0, 0);
+                    5'h1D: expect_only(what, -1, AP_STORE, 0, 0);
+                    default: expect_only(what, -1, -1, 0, 0);            // NOP, скобки, ISA, EOT, 0x3
+                endcase
+                // Смена набора команд
+                if (op == 4'hE && insn_mode !== 1'b0) fail({what, ": ISA0"});
+                if (op == 4'hF && insn_mode !== 1'b1) fail({what, ": ISA1"});
+                if (op != 4'hE && op != 4'hF && insn_mode !== was_mode) fail({what, ": mode changed"});
+            end
         end
     end
 
@@ -474,10 +475,11 @@ task automatic check_loading();
     if (!insn_loading) fail("SOT: loading not set");
     // В загрузке ничего не исполняется
     for (int op = 0; op < 16; op++) begin
-        if (op == 4 || op == 4'hE || op == 4'hF) continue;
-        exec(op[3:0]);
-        expect_only($sformatf("loading %h", op), -1, -1, 0, 0);
-        if (!parked()) fail($sformatf("loading %h: stopped", op));
+        if (op != 4 && op != 4'hE && op != 4'hF) begin
+            exec(op[3:0]);
+            expect_only($sformatf("loading %h", op), -1, -1, 0, 0);
+            if (!parked()) fail($sformatf("loading %h: stopped", op));
+        end
     end
     // ISA1 внутри загрузки: 0x4 — уже '>', а не EOT
     exec(4'hF);
