@@ -103,22 +103,29 @@ module RamBank #(
     wire [31:0]           idx     = addr_ok ? idx_raw : 32'd0;
 
     logic [DATA_WIDTH-1:0] rd_q;
+    logic [DATA_WIDTH-1:0] wr_q;
+    logic                  byp_q;
 
-    // Синхронное чтение с режимом «новые данные» при записи.
-    // Именно эта форма распознаётся средствами синтеза как блок памяти.
+    // Синхронное чтение со сквозной записью. Регистр чтения питается
+    // прямо от массива: любая логика между mem[] и rd_q (мультиплексор
+    // сквозной записи) не даёт Quartus уложить массив в блок памяти —
+    // Error 276003, «uninferred due to asynchronous read logic»
+    // (doc/fpga_build.md). Поэтому записанное значение хранится в
+    // отдельном регистре и подставляется на выходе.
     always_ff @(posedge clk) begin
         if (en_i & addr_ok) begin
             if (wr_i) begin
                 mem[idx] <= wr_data_i;
-                rd_q     <= wr_data_i;      // сквозная запись
+                wr_q     <= wr_data_i;
             end
             else begin
                 rd_q <= mem[idx];
             end
+            byp_q <= wr_i;
         end
     end
 
-    assign rd_data_o = rd_q;
+    assign rd_data_o = byp_q ? wr_q : rd_q;
 
     //------------------------------------------------------------------
     // Второй порт чтения
@@ -129,12 +136,16 @@ module RamBank #(
             wire [31:0] dbg_idx = dbg_ok ? bcd_to_index(dbg_addr_i) : 32'd0;
 
             logic [DATA_WIDTH-1:0] dbg_q;
+            logic                  dbg_ok_q;
 
+            // Маска недопустимого адреса — после регистра, по той же
+            // причине, что и у основного порта
             always_ff @(posedge clk) begin
-                dbg_q <= dbg_ok ? mem[dbg_idx] : '0;
+                dbg_q    <= mem[dbg_idx];
+                dbg_ok_q <= dbg_ok;
             end
 
-            assign dbg_data_o = dbg_q;
+            assign dbg_data_o = dbg_ok_q ? dbg_q : '0;
         end
         else begin : g_no_dbg
             assign dbg_data_o = '0;
@@ -146,7 +157,9 @@ module RamBank #(
             initial begin
                 for (int i = 0; i < int'(CELLS); i++)
                     mem[i] = '0;
-                rd_q = '0;
+                rd_q  = '0;
+                wr_q  = '0;
+                byp_q = 1'b0;
             end
         end
     endgenerate
