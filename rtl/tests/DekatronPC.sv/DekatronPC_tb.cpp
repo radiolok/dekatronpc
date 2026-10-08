@@ -9,7 +9,11 @@
 // Without -s only the final state is compared. Exit code 0 means PASS.
 //
 // Build: rtl/run/run_tests.sh (veremul). Needs -GEN_EMULATOR=1, otherwise
-// IRET and LoopCount are not driven.
+// IRET and LoopCount are not driven. -n turns the VCD dump off: long
+// programs (pi.bfk, ~3M clk) would write tens of GB.
+// The AP counter in ApLine has no top limit and the data RAM has 100k
+// cells, so the RTL wraps AP 0 <-> 99999 and the model is built with the
+// same limit (OPEN-001 stays open; -a sets another one).
 
 #include <stdlib.h>
 #include <math.h>
@@ -59,6 +63,7 @@ public:
 
 #ifdef SIM_TRACE
     VerilatedVcdC *trace;
+    bool traceOn;
 #endif
 
     VerilogMachine(){
@@ -69,6 +74,7 @@ public:
         dut = new VDekatronPC;
 #ifdef SIM_TRACE
         trace = new VerilatedVcdC;
+        traceOn = true;
 #endif
         dut->rst_n = 1;
         dut->SoftRstKey = 0;
@@ -80,7 +86,8 @@ public:
 
     ~VerilogMachine(){
 #ifdef SIM_TRACE
-        trace->close();
+        if (traceOn)
+            trace->close();
         delete trace;
 #endif
         delete dut;
@@ -160,7 +167,8 @@ static void tick(VerilogMachine &state)
         state.dut->rx_vld = 0;
     }
 #ifdef SIM_TRACE
-    state.trace->dump(state.PLL_CLK*MUL);
+    if (state.traceOn)
+        state.trace->dump(state.PLL_CLK*MUL);
 #endif
     state.PLL_CLK++;
 }
@@ -294,17 +302,28 @@ static int compareStates(const VerilogMachine& state, const dpc::Machine& cpp, b
 int main(int argc, char** argv, char** env) {
     int c = 0;
     int stepMode = 0;
+    bool noTrace = false;
+    dpc::Config cfg;
+    cfg.apTop = 99999;
     char *filePath = NULL;
-    while((c = getopt(argc, argv, "f:sth")) != -1){
+    while((c = getopt(argc, argv, "f:a:snth")) != -1){
         switch(c)
         {
         case 'h':
             std::cout << "VDekatronPC -f <file>" << std::endl;
             std::cout << "use -s to compare with the golden model after every instruction" << std::endl;
+            std::cout << "use -a <top> to set the model's AP limit (default 99999, as the RTL)" << std::endl;
+            std::cout << "use -n to skip the VCD dump" << std::endl;
             std::cout << "use -h to show this menu" << std::endl;
             return 0;
         case 's':
             stepMode = 1;
+            break;
+        case 'n':
+            noTrace = true;
+            break;
+        case 'a':
+            cfg.apTop = static_cast<uint32_t>(std::stoul(optarg));
             break;
         case 'f':
             filePath = optarg;
@@ -325,7 +344,7 @@ int main(int argc, char** argv, char** env) {
     }
 
     VerilogMachine state;
-    dpc::Machine cppMachine;
+    dpc::Machine cppMachine(cfg);
     cppMachine.loadCode(code);
     cppMachine.softReset();
     cppMachine.run();
@@ -335,9 +354,12 @@ int main(int argc, char** argv, char** env) {
     VerilatedCov::write("logs/coverage_DPC.dat");
 #endif
 #ifdef SIM_TRACE
-    Verilated::traceEverOn(true);
-    state.dut->trace(state.trace, 5);
-    state.trace->open("VDekatronPC.vcd");
+    state.traceOn = !noTrace;
+    if (state.traceOn){
+        Verilated::traceEverOn(true);
+        state.dut->trace(state.trace, 5);
+        state.trace->open("VDekatronPC.vcd");
+    }
 #endif
     state.dut->EchoMode = 1;
     state.stats.start();

@@ -97,8 +97,9 @@ the first differing step (`tx_data_bcd 2 != model 4`). Without `-s` the final
 verdict catches it.
 
 The RTL matches the golden model on both programs, which is the first real
-step-by-step comparison (REQ-GM-002). Not run: `pi.bfk`, `rot13.bfk`,
+step-by-step comparison (REQ-GM-002). Not run: `rot13.bfk`,
 `fractal.bfk` (commented out in `run_tests.sh`; rot13 needs input).
+`pi.bfk` was added later with `-n` (no VCD), see `doc/pi_step_check.md`.
 
 ## 3. Unit testbenches (checked, no change)
 

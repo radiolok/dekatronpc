@@ -88,6 +88,8 @@ veremul() {
 
 	files=$(cat ${1})
 	bf_file=${2}
+	# extra testbench flags, e.g. -n: no VCD (pi.bfk would write tens of GB)
+	tb_flags=${3:-}
 
 	python3 ${root_dir}/run/generate_rom.py -f ${bf_file} -o ${root_dir}/firmware.hex --hex
 	# EN_EMULATOR drives IRET and LoopCount, which the golden-model compare needs
@@ -101,7 +103,7 @@ veremul() {
 	# -s: compare with the golden model after every instruction (REQ-GM-002);
 	# the per-step trace goes to stderr, the verdict is the exit code
 	local steps=${bf_file##*/}.steps.log
-	./obj_dir/VDekatronPC -f ${bf_file} -s 2> ${steps} || { tail -n 20 ${steps}; return 1; }
+	./obj_dir/VDekatronPC -f ${bf_file} -s ${tb_flags} 2> ${steps} || { tail -n 20 ${steps}; return 1; }
 }
 
 parse_params "$@"
@@ -143,7 +145,8 @@ if [ ${sim} -ne 0 ]; then
 
 	veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/program.bfk
 
-	#veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/pi.bfk
+	# 221 386 steps, ~22 s (doc/pi_step_check.md)
+	veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/pi.bfk -n
 
 	#veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/fractal.bfk
 
