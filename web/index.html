@@ -142,7 +142,9 @@ button { font: inherit; color: inherit; }
 
 /* Memory strips */
 .strips { display: grid; gap: 10px; }
-.strip-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: baseline; }
+.strip-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; height: 20px; }
+.strip-head > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.strip-head > span:first-child { flex: none; }
 .strip {
   display: flex; gap: 2px; background: var(--bezel); border-radius: 4px; padding: 6px; overflow: hidden;
   box-shadow: inset 0 2px 8px #000b; justify-content: center;
@@ -151,9 +153,9 @@ button { font: inherit; color: inherit; }
   flex: 0 0 40px; display: grid; justify-items: center; gap: 1px; padding: 3px 0 4px;
   border-radius: 3px; background: #1d211f; border: 1px solid transparent; position: relative; cursor: default;
 }
-.cell .a { font-size: 9px; color: #7d7a6c; font-variant-numeric: tabular-nums; }
-.cell .v { font-size: 16px; color: var(--silk); line-height: 1.2; font-variant-numeric: tabular-nums; }
-.cell .c { font-size: 10px; color: var(--silk-dim); min-height: 1.2em; }
+.cell .a { font-size: 9px; line-height: 11px; height: 11px; color: #7d7a6c; font-variant-numeric: tabular-nums; }
+.cell .v { font-size: 16px; color: var(--silk); line-height: 20px; height: 20px; font-variant-numeric: tabular-nums; }
+.cell .c { font-size: 10px; line-height: 12px; height: 12px; color: var(--silk-dim); overflow: hidden; }
 .cell.rom { background: #22201b; }
 .cell.rom .v { color: var(--lamp-amber); }
 .cell.cur { border-color: var(--neon); background: #2a1a12; box-shadow: 0 0 10px #ff6a1a55; }
