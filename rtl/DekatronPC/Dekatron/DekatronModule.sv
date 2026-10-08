@@ -146,7 +146,11 @@ module DekatronModule #(
         .PHASE1_HS  (PHASE1_HS),
         .PHASE2_HS  (PHASE2_HS)
     ) pulseSender (
+`ifdef DEKATRON_DELAY_MODEL
+        .hsClk    (1'b0),       // генератор фаз на задержках, hsClk не нужен
+`else
         .hsClk    (hsClk),
+`endif
         .Clk      (Clk),
         .Rst_n    (Rst_n),
         .StepF    (StepF),

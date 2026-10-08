@@ -263,13 +263,22 @@ module DekatronCounter #(
     localparam unsigned WR_WINDOW_HS =
         ((WRITE_MIN_HS > RESET_MIN_HS) ? WRITE_MIN_HS : RESET_MIN_HS) + 4;
 
+    // Временная база реле времени и генератора фаз. В модели на задержках
+    // (`DEKATRON_DELAY_MODEL) OneShot/Impulse отсчитывают время сами, и
+    // hs_clk внутрь счётчика не подводится вовсе.
+`ifdef DEKATRON_DELAY_MODEL
+    wire tclk = 1'b0;
+`else
+    wire tclk = hs_clk;
+`endif
+
     wire write_req = accept & set_any;
     wire timer_req = write_req | rst_active;
     wire write_start;
     wire writing;
 
     Impulse writeStart (
-        .Clk     (hs_clk),
+        .Clk     (tclk),
         .Rst_n   (rst_n),
         .En      (timer_req),
         .Impulse (write_start)
@@ -278,7 +287,7 @@ module DekatronCounter #(
     OneShot #(
         .DELAY (WR_WINDOW_HS)
     ) writeTimer (
-        .Clk     (hs_clk),
+        .Clk     (tclk),
         .Rst_n   (rst_n),
         .En      (write_start),
         .Impulse (writing)
@@ -361,7 +370,7 @@ module DekatronCounter #(
         .PHASE1_HS (PHASE1_HS),
         .PHASE2_HS (PHASE2_HS)
     ) phaseGen (
-        .hsClk  (hs_clk),
+        .hsClk  (tclk),
         .Clk    (clk),
         .Rst_n  (rst_n),
         .Phase1 (phase1),
@@ -454,7 +463,7 @@ module DekatronCounter #(
                 .PHASE2_HS       (PHASE2_HS),
                 .EXT_PHASES      (1'b1)
             ) dModule (
-                .hsClk    (hs_clk),
+                .hsClk    (tclk),
                 .Clk      (clk),
                 .Rst_n    (rst_n),
                 .StepF    (step_f_chain[d]),

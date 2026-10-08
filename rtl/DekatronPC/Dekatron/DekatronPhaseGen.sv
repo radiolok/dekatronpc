@@ -24,6 +24,11 @@
 // времязадающей цепью, а Rst_n исчезает — это чисто модельный сигнал
 // начальной установки счётчиков задержки.
 //
+// `DEKATRON_DELAY_MODEL: та же схема, но OneShot/Impulse работают на
+// задержках #N (см. их описание), и hsClk к ним не подводится вовсе —
+// на вход Clk подаётся 0. Фазы отсчитываются от фронта Clk в абсолютном
+// времени: PHASE1_HS * 100 нс и (PHASE1_HS + PHASE2_HS) * 100 нс.
+//
 //----------------------------------------------------------------------
 // ЭКОНОМИЯ ЛАМП
 //
@@ -46,6 +51,12 @@ module DekatronPhaseGen #(
     output wire Phase1,
     output wire Phase2
 );
+`ifndef SYNTH
+`ifdef DEKATRON_DELAY_MODEL
+    timeunit 1ns;
+    timeprecision 1ps;
+`endif
+`endif
 
     localparam int unsigned PHASE12_HS = PHASE1_HS + PHASE2_HS;
 
@@ -54,9 +65,16 @@ module DekatronPhaseGen #(
     wire Win12;     // окно [0 .. PHASE1_HS+PHASE2_HS)
     wire Win1_n;
 
+    // Временная база элементов задержки. В модели на задержках её нет.
+`ifdef DEKATRON_DELAY_MODEL
+    wire tClk = 1'b0;
+`else
+    wire tClk = hsClk;
+`endif
+
     // Начало такта счёта
     Impulse clkRiseDet (
-        .Clk     (hsClk),
+        .Clk     (tClk),
         .Rst_n   (Rst_n),
         .En      (Clk),
         .Impulse (ClkRise)
@@ -66,7 +84,7 @@ module DekatronPhaseGen #(
     OneShot #(
         .DELAY (PHASE1_HS)
     ) osPhase1 (
-        .Clk     (hsClk),
+        .Clk     (tClk),
         .Rst_n   (Rst_n),
         .En      (ClkRise),
         .Impulse (Win1)
@@ -75,7 +93,7 @@ module DekatronPhaseGen #(
     OneShot #(
         .DELAY (PHASE12_HS)
     ) osPhase12 (
-        .Clk     (hsClk),
+        .Clk     (tClk),
         .Rst_n   (Rst_n),
         .En      (ClkRise),
         .Impulse (Win12)
@@ -94,12 +112,20 @@ module DekatronPhaseGen #(
     end
 
     // Фазы не должны перекрываться ни при каких условиях
+`ifdef DEKATRON_DELAY_MODEL
+    // Без тактовой базы: проверка в момент перекрытия, кроме иголок
+    // нулевой длительности (дельта-циклы нетлиста)
+    always @(posedge Phase1 or posedge Phase2)
+        if (Rst_n) #0.001 if (Phase1 && Phase2)
+            $error("DekatronPhaseGen: Phase1 and Phase2 overlap");
+`else
     always @(posedge hsClk or negedge Rst_n) begin
         if (~Rst_n) begin
 
         end else if (Phase1 && Phase2)
             $error("DekatronPhaseGen: Phase1 and Phase2 overlap");
     end
+`endif
 `endif
 
 endmodule

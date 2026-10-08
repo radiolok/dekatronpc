@@ -22,6 +22,21 @@ reg hsClk;
 reg Clk;
 reg Rst_n;
 
+`ifdef DEKATRON_DELAY_MODEL
+// Модель на задержках: hsClk не нужен и стоит в нуле — так проверяется,
+// что DUT от него не зависит. Clk 1 МГц с той же фазой, что дал бы
+// делитель: первый фронт через 50 нс после снятия Rst_n.
+initial hsClk = 1'b0;
+initial begin
+    Clk = 1'b0;
+    wait (Rst_n === 1'b1);
+    #50;
+    forever begin
+        Clk = 1'b1; #500;
+        Clk = 1'b0; #500;
+    end
+end
+`else
 initial begin
     hsClk = 1'b0;
     forever #50 hsClk = ~hsClk;
@@ -34,6 +49,7 @@ ClockDivider #(
     .clock_in(hsClk),
     .clock_out(Clk)
 );
+`endif
 
 reg             StepF    = 1'b0;
 reg             StepR    = 1'b0;

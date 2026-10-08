@@ -50,12 +50,21 @@
 //
 // Пока реле держит линию, счётчики заняты, а верхний автомат ждёт
 // снятия busy.
+//
+// `DEKATRON_DELAY_MODEL: модель без тактовой базы, hs_clk не используется.
+// Линия держится HOLD_HS * HS_NS нс от фронта запуска; если запуск ещё
+// держится, реле срабатывает снова через HS_NS, как тактовая модель на
+// следующем фронте hs_clk. Иголки нулевой длительности на запуске
+// отсекает инерционная задержка 1 пс.
 //----------------------------------------------------------------------
 module RstTimeRelay #(
     parameter unsigned HOLD_HS         = 104,   // тактов hs_clk
-    parameter bit          RST_ON_POWERUP  = 1'b1   // аппаратный сброс при включении
+    parameter bit          RST_ON_POWERUP  = 1'b1,  // аппаратный сброс при включении
+    parameter unsigned HS_NS           = 100    // такт hs_clk в модели на задержках, нс
 )(
+/* verilator lint_off UNUSEDSIGNAL */
     input  wire  hs_clk,
+/* verilator lint_on UNUSEDSIGNAL */
     input  wire  rst_n,
 
     input  wire  soft_key,      // пульт
@@ -69,6 +78,40 @@ module RstTimeRelay #(
 );
 
 `ifndef SYNTH
+`ifdef DEKATRON_DELAY_MODEL
+    timeunit 1ns;
+    timeprecision 1ps;
+
+    logic active       = 1'b0;
+    logic is_hard      = 1'b0;
+    logic powerup_done = 1'b0;
+
+    wire trig_hard = hard_key | hard_req |
+                     (RST_ON_POWERUP & ~powerup_done);
+    wire trig_soft = soft_key | soft_req;
+
+    wire trig_f;
+    assign #0.001 trig_f = (trig_hard | trig_soft) & rst_n;
+
+    always @(posedge trig_f) begin : hold
+        while (trig_f) begin
+            // Аппаратный сброс имеет приоритет над программным
+            is_hard = trig_hard;
+            active  = 1'b1;
+            #(HOLD_HS * HS_NS);
+            active       = 1'b0;
+            powerup_done = 1'b1;
+            #(HS_NS);
+        end
+    end
+
+    always @(negedge rst_n) begin
+        disable hold;
+        active       = 1'b0;
+        is_hard      = 1'b0;
+        powerup_done = 1'b0;
+    end
+`else
     localparam int unsigned CNT_W = 16;
 
     logic [CNT_W-1:0] cnt;
@@ -107,6 +150,7 @@ module RstTimeRelay #(
             end
         end
     end
+`endif
 
     assign hard_rst = active &  is_hard;
     assign soft_rst = active & ~is_hard;
@@ -215,6 +259,15 @@ module DekatronPC #(
     localparam int unsigned AP_W   = AP_DEKATRON_NUM   * DEKATRON_WIDTH;
     localparam int unsigned DATA_W = DATA_DEKATRON_NUM * DEKATRON_WIDTH;
 
+    // Временная база моделей декатронов, реле времени и генераторов фаз.
+    // В модели на задержках (`DEKATRON_DELAY_MODEL) она не нужна: порт
+    // hsClk остаётся (интерфейс с эмулятором заморожен), но внутрь не идёт.
+`ifdef DEKATRON_DELAY_MODEL
+    wire tclk = 1'b0;
+`else
+    wire tclk = hsClk;
+`endif
+
     //------------------------------------------------------------------
     // Реле времени в цепи сброса
     //------------------------------------------------------------------
@@ -225,7 +278,7 @@ module DekatronPC #(
         .HOLD_HS        (RST_HOLD_HS),
         .RST_ON_POWERUP (1'b1)
     ) rstRelay (
-        .hs_clk   (hsClk),
+        .hs_clk   (tclk),
         .rst_n    (rst_n),
         .soft_key (SoftRstKey),
         .hard_key (HardRstKey),
@@ -259,7 +312,7 @@ module DekatronPC #(
     ) ipLine (
         .rst_n         (rst_n),
         .clk           (Clk),
-        .hs_clk        (hsClk),
+        .hs_clk        (tclk),
         .soft_rst      (soft_rst),
         .hard_rst      (hard_rst),
 
@@ -339,7 +392,7 @@ module DekatronPC #(
     ) apLine (
         .rst_n       (rst_n),
         .clk         (Clk),
-        .hs_clk      (hsClk),
+        .hs_clk      (tclk),
         .soft_rst    (soft_rst),
         .hard_rst    (hard_rst),
 

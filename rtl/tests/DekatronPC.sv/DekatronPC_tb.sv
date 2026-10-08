@@ -75,6 +75,22 @@ reg  [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] rx_data_bcd;
 reg  rx_vld;
 wire rx_rdy;
 
+`ifdef DEKATRON_DELAY_MODEL
+// Модель на задержках: hsClk машине не нужен и стоит в нуле — так
+// проверяется, что DekatronPC от него не зависит. Clk 1 МГц с той же
+// фазой, что дал бы делитель: rst_n снимается на фронте hsClk, первый
+// фронт Clk — на следующем, через 100 нс.
+initial hsClk = 1'b0;
+initial begin
+    Clk = 1'b0;
+    wait (rst_n === 1'b1);
+    #1;
+    forever begin
+        Clk = 1'b1; #5;
+        Clk = 1'b0; #5;
+    end
+end
+`else
 initial begin
     hsClk = 1'b0;
     // 10 MHz, as the dekatron timing estimates assume: DekatronTubeDelay
@@ -89,6 +105,7 @@ ClockDivider #(
     .clock_in(hsClk),
     .clock_out(Clk)
 );
+`endif
 
 //----------------------------------------------------------------------
 // Загрузчик программы: выдаёт InsnIn по handshake
@@ -216,6 +233,11 @@ DekatronPC #(
 //----------------------------------------------------------------------
 // Тактовые операции
 //----------------------------------------------------------------------
+// Кнопки пульта выставляются неблокирующим присваиванием: блокирующее
+// сразу после @(posedge Clk) — гонка с автоматом на том же фронте, и
+// увидит ли он кнопку в этом такте, зависело от порядка событий (с
+// делителем hsClk видел, с генератором Clk в модели на задержках — нет).
+
 // IsHalted — дешифратор состояния автомата. В нетлисте биты состояния
 // меняются в разных дельта-циклах, и при переходе в S_EXEC дешифратор
 // на нулевое время проходит через S_HALT. wait()/@(posedge) ловят этот
@@ -232,9 +254,9 @@ endtask
 
 task automatic soft_rst_key();
     @(posedge Clk);
-    SoftRstKey = 1'b1;
+    SoftRstKey <= 1'b1;
     repeat (4) @(posedge Clk);
-    SoftRstKey = 1'b0;
+    SoftRstKey <= 1'b0;
     wait_relay();
     wait_halted();
     repeat (4) @(posedge Clk);
@@ -242,32 +264,32 @@ endtask
 
 task automatic hard_rst_key();
     @(posedge Clk);
-    HardRstKey = 1'b1;
+    HardRstKey <= 1'b1;
     repeat (4) @(posedge Clk);
-    HardRstKey = 1'b0;
+    HardRstKey <= 1'b0;
     wait_relay();
     wait_halted();
     repeat (4) @(posedge Clk);
 endtask
 
 task automatic key_next();
-    keyNextIp = 1'b1;
+    keyNextIp <= 1'b1;
     repeat (6) @(posedge Clk);
-    keyNextIp = 1'b0;
+    keyNextIp <= 1'b0;
     repeat (6) @(posedge Clk);
 endtask
 
 task automatic key_prev();
-    keyPrevIp = 1'b1;
+    keyPrevIp <= 1'b1;
     repeat (6) @(posedge Clk);
-    keyPrevIp = 1'b0;
+    keyPrevIp <= 1'b0;
     repeat (6) @(posedge Clk);
 endtask
 
 task automatic press_run();
-    Run = 1'b1;
+    Run <= 1'b1;
     repeat (4) @(posedge Clk);
-    Run = 1'b0;
+    Run <= 1'b0;
     repeat (4) @(posedge Clk);
 endtask
 
@@ -278,7 +300,7 @@ int errors = 0;
 
 task automatic check_ip_moving();
     $display("check_ip_moving");
-    RunOnSoftRst = 1'b0;                // иначе сброс снова запустит программу
+    RunOnSoftRst <= 1'b0;                // иначе сброс снова запустит программу
     soft_rst_key();
 
     if (!IsHalted) begin
@@ -305,9 +327,9 @@ endtask
 
 task automatic check_bootloader();
     $display("check_bootloader");
-    RunOnHardRst = 1'b0;
-    RunOnSoftRst = 1'b1;
-    SoftRstOnEOT = 1'b1;
+    RunOnHardRst <= 1'b0;
+    RunOnSoftRst <= 1'b1;
+    SoftRstOnEOT <= 1'b1;
     hard_rst_key();
     press_run();
 
@@ -372,7 +394,11 @@ initial begin
     InsnInValid      <= 1'b0;
     InsnIn           <= 4'h0;
 
+`ifdef DEKATRON_DELAY_MODEL
+    #19.5;                              // те же 20 фронтов hsClk
+`else
     repeat (20) @(posedge hsClk);
+`endif
     rst_n <= 1'b1;
     wait_relay();
     wait_halted();

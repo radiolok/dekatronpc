@@ -109,12 +109,19 @@ module DekatronPulseSender #(
     or  u_guide_b (GuideB, fwdB, revB);
 
 `ifndef SYNTH
+`ifdef DEKATRON_DELAY_MODEL
+    // Без тактовой базы: проверка по фронту Clk, когда шаги уже выставлены
+    always @(negedge Clk)
+        if (Rst_n && StepF && StepR)
+            $error("DekatronPulseSender: StepF and StepR asserted simultaneously");
+`else
     always @(posedge hsClk or negedge Rst_n) begin
         if (~Rst_n) begin
 
         end else if (StepF && StepR)
             $error("DekatronPulseSender: StepF and StepR asserted simultaneously");
     end
+`endif
 `endif
 
 endmodule
