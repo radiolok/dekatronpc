@@ -47,10 +47,10 @@ reg rst_n = 1'b0;
 
 // Состояния MachineCtrl
 localparam [3:0]
-    S_HALT     = 4'd0,
-    S_IDLE     = 4'd1,
-    S_DECODE   = 4'd4,
-    S_CIN_WAIT = 4'd9;
+    S_HALT     = 4'd4,     // те же коды, что в MachineCtrl.sv
+    S_IDLE     = 4'd0,
+    S_DECODE   = 4'd10,
+    S_CIN_WAIT = 4'd15;
 
 localparam [1:0] IP_NEXT = 2'd0, IP_CLR_IP = 2'd1, IP_CLR_LOOP = 2'd2;
 

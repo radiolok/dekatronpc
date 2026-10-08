@@ -5,9 +5,9 @@
 // заменяются базовыми ламповыми ячейками):
 //
 //   DekatronTubeV2     — сам декатрон (всегда)
-//   DekatronPulseSender— формирователь подкатодных импульсов (всегда)
-//   DekatronPhaseGen   — нарезка такта на трети (внутри PulseSender либо
-//                        общая на весь счётчик, см. EXT_PHASES)
+//   GUIDE_EN_J2        — ключ подкатодов: одна лампа J2, по триоду на
+//                        подкатод (всегда); пропускает общие шины
+//                        GuideA/GuideB счётчика, пока En = 1
 //   BcdToOneHotEn      — преобразователь 8-4-2-1 -> позиционный, по WRITE
 //   BinToBcd           — преобразователь позиционный -> 8-4-2-1, по READ
 //
@@ -37,27 +37,33 @@
 //    выводит DekatronCounter из известных длительностей: шаг укладывается
 //    в один такт Clk, запись и сброс — в окно реле времени.
 //
+// 5. Формирователь подкатодных импульсов (DekatronPulseSender) и
+//    генератор фаз перенесены в DekatronCounter: они одни на весь
+//    счётчик и выдают общие шины GuideA/GuideB, уже с учётом
+//    направления. Модуль только пропускает их на свои подкатоды ключом
+//    GUIDE_EN_J2 (одна лампа J2) по сигналу En — переносу в эту декаду
+//    (doc/tube_count_reduction.md §17, T5). Прежде в каждой декаде стояло
+//    И-ИЛИ на 6 ламп.
+//
 //----------------------------------------------------------------------
 // ТАКТИРОВАНИЕ
 //
 //   hsClk — временная база модели декатрона (10 МГц). Только для модели:
 //           в железе декатрон отрабатывает длительности сам.
-//   Clk   — тактовая частота счёта (1 МГц). Её полуволны образуют фазы
-//           подкатодов, поэтому каждая фаза длится 5 тактов hsClk.
 //
 //   При `define DEKATRON_DELAY_MODEL вместо DekatronTubeV2 ставится
 //   DekatronTubeDelay: та же модель на задержках #N, без hsClk вовсе
-//   (только Icarus; run_tests.sh -d, synth_sim.sh -d). hsClk остаётся
-//   только у генератора фаз.
+//   (только Icarus; run_tests.sh -d, synth_sim.sh -d).
 //
 //----------------------------------------------------------------------
 // ПРАВИЛА ДЛЯ ВЫШЕСТОЯЩЕГО СЧЁТЧИКА
 //
-//   * Один шаг — одна активация StepF/StepR на период Clk. Пауза на
+//   * Один шаг — один импульс GuideA и один GuideB за период Clk, в
+//     порядке, задающем направление (их формирует счётчик). Пауза на
 //     сваливание разряда заложена внутрь такта (третья треть), поэтому
 //     шаги можно выдавать подряд каждый такт.
-//   * StepF/StepR переключаются по фронту Clk и держатся весь такт.
-//     Снятие запроса в середине такта оставит разряд на подкатоде.
+//   * En переключается по фронту Clk и держится весь такт. Снятие En в
+//     середине такта оставит разряд на подкатоде.
 //   * Показание Out достоверно на фронте Clk, завершающем такт шага,
 //     и по окончании окна записи/сброса. Внутри такта, пока разряд
 //     идёт по подкатодам, позиционный код нулевой.
@@ -67,6 +73,21 @@
 //======================================================================
 
 `default_nettype none
+
+`ifndef SYNTH
+// Модель ключа подкатодов. В синтезе ячейка берётся из vtube_cells.lib:
+// у её выходов нет функции, ABC её не использует, она стоит только здесь.
+module GUIDE_EN_J2 (
+    input  wire EN,
+    input  wire GA,
+    input  wire GB,
+    output wire YA,
+    output wire YB
+);
+    assign YA = GA & EN;
+    assign YB = GB & EN;
+endmodule
+`endif
 
 (* keep_hierarchy = "yes" *)
 module DekatronModule #(
@@ -88,30 +109,23 @@ module DekatronModule #(
     parameter unsigned WRITE_MIN_HS    = 100,
     parameter unsigned RESET_MIN_HS    = 100,
 
-    // Нарезка такта счёта на трети (такты hsClk)
+    // Нарезка такта счёта на трети (такты hsClk); только для проверок
+    // ниже, сами фазы формирует счётчик
     parameter unsigned HS_PER_CLK      = 10,
     parameter unsigned PHASE1_HS       = 3,
     parameter unsigned PHASE2_HS       = 3,
 
-    // 1 — фазы приходят снаружи, один генератор на весь счётчик
-    parameter bit          EXT_PHASES      = 1'b0,
-
     // Порядок фаз, дающий инкремент
     parameter bit          INC_BY_A_THEN_B = 1'b1
 )(
-    input  wire       hsClk,     // временная база модели декатрона
-    input  wire       Clk,       // тактовая частота счёта
-    input  wire       Rst_n,     // модельный сброс элементов задержки
-
-    // Счёт
-    input  wire       StepF,     // шаг вперёд
-    input  wire       StepR,     // шаг назад
-
-    // Внешние фазы, только при EXT_PHASES = 1
 /* verilator lint_off UNUSEDSIGNAL */
-    input  wire       Phase1_i,
-    input  wire       Phase2_i,
+    input  wire       hsClk,     // временная база модели декатрона
 /* verilator lint_on UNUSEDSIGNAL */
+
+    // Счёт: общие шины подкатодов счётчика и разрешение этой декады
+    input  wire       GuideA,
+    input  wire       GuideB,
+    input  wire       En,
 
     // Установка значения
 /* verilator lint_off UNUSEDSIGNAL */
@@ -135,30 +149,18 @@ module DekatronModule #(
     //------------------------------------------------------------------
     wire [9:0] MainOneHot;      // позиционный код с главных катодов
     wire [9:0] WritePos;        // позиционный код на усилители записи
-    wire       GuideA;
-    wire       GuideB;
+    wire       GuideA_d;        // импульсы на подкатоды этой декады
+    wire       GuideB_d;
 
     //------------------------------------------------------------------
-    // Формирователь подкатодных фаз
+    // Ключ подкатодов: одна лампа J2
     //------------------------------------------------------------------
-    DekatronPulseSender #(
-        .EXT_PHASES (EXT_PHASES),
-        .PHASE1_HS  (PHASE1_HS),
-        .PHASE2_HS  (PHASE2_HS)
-    ) pulseSender (
-`ifdef DEKATRON_DELAY_MODEL
-        .hsClk    (1'b0),       // генератор фаз на задержках, hsClk не нужен
-`else
-        .hsClk    (hsClk),
-`endif
-        .Clk      (Clk),
-        .Rst_n    (Rst_n),
-        .StepF    (StepF),
-        .StepR    (StepR),
-        .Phase1_i (Phase1_i),
-        .Phase2_i (Phase2_i),
-        .GuideA   (GuideA),
-        .GuideB   (GuideB)
+    GUIDE_EN_J2 guideEn (
+        .EN (En),
+        .GA (GuideA),
+        .GB (GuideB),
+        .YA (GuideA_d),
+        .YB (GuideB_d)
     );
 
     //------------------------------------------------------------------
@@ -226,8 +228,8 @@ module DekatronModule #(
 `ifndef DEKATRON_DELAY_MODEL
         .hsClk                 (hsClk),
 `endif
-        .guide_a_i             (GuideA),
-        .guide_b_i             (GuideB),
+        .guide_a_i             (GuideA_d),
+        .guide_b_i             (GuideB_d),
         .write_en_i            (WriteEn),
         .write_pos_i           (WritePos),
         .reset0_i              (SetZero),

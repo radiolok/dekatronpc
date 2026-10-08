@@ -17,8 +17,11 @@ import itertools
 import json
 import subprocess
 
-MS = {0: 'HALT', 1: 'IDLE', 2: 'FETCH_W', 4: 'DECODE', 5: 'EXEC', 6: 'WAIT',
-      7: 'COUT', 9: 'CIN_WAIT', 12: 'RST_REQ', 13: 'RST_WAIT'}
+# MachineCtrl state codes, as in rtl/DekatronPC/MachineCtrl.sv (T6 codes;
+# dumps of the RTL before 2026-10-08 used 0,1,2,4,5,6,7,9,12,13)
+S = {'HALT': 4, 'IDLE': 0, 'FETCH_W': 1, 'DECODE': 10, 'EXEC': 11, 'WAIT': 2,
+     'COUT': 6, 'CIN_WAIT': 15, 'RST_REQ': 14, 'RST_WAIT': 7}
+MS = {v: k for k, v in S.items()}
 AS = {0: 'IDLE', 1: 'FLUSH', 2: 'READ', 3: 'AP', 4: 'DSET', 5: 'DOP'}
 OPN = {0x12: '+', 0x13: '-', 0x14: '>', 0x15: '<', 0x16: '[', 0x17: ']',
        0x18: '.', 0x19: ',', 0x11: 'HALT', 0x0e: 'ISA0', 0x0f: 'ISA1',
@@ -54,17 +57,17 @@ def categories(R):
     c = collections.Counter()
     for i, r in enumerate(R):
         ms, a = r['machineCtrl.state'], r['apLine.state']
-        if r['ipLine.scanning_q'] or (ms == 2 and r['ipLine.state'] == 5):
+        if r['ipLine.scanning_q'] or (ms == S['FETCH_W'] and r['ipLine.state'] == 5):
             c['loop scan inside IpLine'] += 1
-        elif ms == 6 and a == 5 and not r['ap_ready'] and i > 0 \
+        elif ms == S['WAIT'] and a == 5 and not r['ap_ready'] and i > 0 \
                 and R[i - 1]['apLine.state'] == 5:
             # DOP stuck after DSET: the Data counter write window
             c['WAIT: Data counter write window'] += 1
-        elif ms == 6 and a == 0 and not r['ip_ready']:
+        elif ms == S['WAIT'] and a == 0 and not r['ip_ready']:
             c['WAIT: ApLine done, prefetch in flight'] += 1
-        elif ms == 6 and a == 0:
+        elif ms == S['WAIT'] and a == 0:
             c['WAIT: ApLine done, MachineCtrl sees go'] += 1
-        elif ms == 6:
+        elif ms == S['WAIT']:
             c['WAIT: ApLine ' + AS[a]] += 1
         else:
             c['MachineCtrl ' + MS.get(ms, str(ms))] += 1
@@ -82,14 +85,15 @@ def per_insn(R):
     for i, r in enumerate(R):
         s = r['machineCtrl.state']
         p = R[i - 1]['machineCtrl.state'] if i else None
-        if (s == 1 and p != 1) or (s == 4 and p in (6, 7)):
+        if (s == S['IDLE'] and p != S['IDLE']) or \
+                (s == S['DECODE'] and p in (S['WAIT'], S['COUT'])):
             cur = {'states': collections.Counter(), 'op': None, 'scan': 0}
             segs.append(cur)
         if cur is None:
             continue
         cur['states'][MS.get(s, str(s))] += 1
         cur['scan'] += r['ipLine.scanning_q']
-        if s == 4:
+        if s == S['DECODE']:
             cur['op'] = r['op']
     segs = [s for s in segs if s['op'] is not None]
     for prev, s in zip(segs, segs[1:]):

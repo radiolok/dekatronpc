@@ -41,10 +41,10 @@
 
 // MachineCtrl states
 enum {
-    S_HALT     = 0,
-    S_IDLE     = 1,
-    S_DECODE   = 4,
-    S_CIN_WAIT = 9
+    S_HALT     = 4,     // same codes as rtl/DekatronPC/MachineCtrl.sv
+    S_IDLE     = 0,
+    S_DECODE   = 10,
+    S_CIN_WAIT = 15
 };
 
 class VerilogMachine{

@@ -99,7 +99,10 @@ config() {
 	Dekatron)
 		dut=Dekatron_tb.dek
 		top=DekatronModule
-		params=(READ=1 WRITE=1 TOP_LIMIT_MODE=1 TOP_PIN_OUT=9 INIT_DIGIT=0 EXT_PHASES=0)
+		params=(READ=1 WRITE=1 TOP_LIMIT_MODE=1 TOP_PIN_OUT=9 INIT_DIGIT=0)
+		# The pulse sender is the counter's since T5; the testbench has its own
+		rtl=(${root_dir}/DekatronPC/Dekatron/DekatronPulseSender.sv
+		     ${root_dir}/DekatronPC/Dekatron/DekatronPhaseGen.sv)
 		runs=("Dekatron||") ;;
 	Counter)
 		dut=Counter_tb.counter

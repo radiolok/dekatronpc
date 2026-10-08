@@ -5,8 +5,9 @@ from lib import Fig
 def fig_counter():
     f = Fig("cnt", 1180, 670,
             "Декатронный счётчик на трёх декадах: разбор операции по Valid/Ready, окно записи, "
-            "автомат, разводка линий установки и физических сбросов по декадам, общий генератор "
-            "фаз и цепочка переноса на защёлкнутых признаках девятки.")
+            "автомат, разводка линий установки и физических сбросов по декадам, общие генератор "
+            "фаз и формирователь импульсов, цепочка разрешений декад на защёлкнутых признаках "
+            "девятки и нуля.")
     # входы протокола
     for y, n in ((62, "valid"), (84, "dec"), (106, "set"), (128, "set_zero"), (150, "in[W-1:0]")):
         f.pin_in(12, y, 150, n)
@@ -19,8 +20,8 @@ def fig_counter():
     f.box(440, 40, 170, 60, "Окно записи", ["OneShot, WR_WINDOW_HS", "пуск: write_req | rst"])
     f.wire([(525, 100), (525, 130)], label="writing", lx=531, ly=120)
     f.wire([(360, 152), (440, 152)], label="accept, вид", lx=368, ly=145)
-    f.box(440, 130, 170, 86, "Автомат", ["IDLE·SET·ZERO·TOP·RST", "ready = IDLE",
-                                          "· ¬rst_active"])
+    f.box(440, 130, 170, 86, "Автомат", ["IDLE·SET·ZERO·TOP·RST", "ready = IDLE · ¬rst_active",
+                                          "ZERO_ONLY: один busy_q"])
 
     # ready
     f.wire([(440, 195), (16, 195)], label="ready", lx=20, ly=188, lcls="tp")
@@ -39,10 +40,14 @@ def fig_counter():
            "HARD_RST_D_CNT, SetZero прочих", "in держит мастер до ready"],
           align="start", bcls="tm")
 
-    # генератор фаз
+    # генератор фаз и формирователь импульсов
     f.box(150, 250, 150, 60, "DekatronPhaseGen", ["один на счётчик"])
-    f.wire([(225, 310), (225, 340), (1010, 340)], "wbus", arrow=False)
-    f.text(380, 333, "Phase1 · Phase2", "tn")
+    f.wire([(300, 280), (350, 280)], label="Phase1·2", lx=304, ly=273)
+    f.box(350, 240, 160, 70, "DekatronPulseSender", ["один на счётчик", "4 × И, 2 × ИЛИ"])
+    f.wire([(345, 170), (345, 225), (430, 225), (430, 240)], "wacc", label="step_f · step_r",
+           lx=352, ly=219, lcls="tacc")
+    f.wire([(430, 310), (430, 340), (1010, 340)], "wbus", arrow=False)
+    f.text(560, 333, "guide_a · guide_b", "tn")
 
     # шина установки
     f.wire([(800, 210), (800, 268)], "wbus", arrow=False)
@@ -52,31 +57,31 @@ def fig_counter():
 
     D = [(400, "декада 0", "единицы"), (620, "декада 1", "десятки"), (840, "декада 2", "сотни")]
     for x, n1, n2 in D:
-        f.box(x, 450, 160, 110, "DekatronModule", [n1 + " · " + n2, "EXT_PHASES = 1"], top=30)
+        f.box(x, 450, 160, 110, "DekatronModule", [n1 + " · " + n2, "ключ J2 подкатодов"], top=30)
         f.wire([(x + 90, 340), (x + 90, 450)])
         f.dot(x + 90, 340)
         f.wire([(x + 130, 268), (x + 130, 450)])
         f.dot(x + 130, 268)
-        f.text(x + 24, 444, "StepF", "tn")
+        f.text(x + 24, 444, "En", "tn")
 
-    # цепочка переноса step_f
-    f.wire([(330, 170), (330, 385), (575, 385)], "wacc", arrow=False)
-    f.text(336, 378, "step_f", "tacc")
+    # цепочка разрешений en_chain: младшая декада разрешена всегда
+    f.wire([(380, 385), (575, 385)], "wacc", arrow=False)
+    f.text(374, 389, "1", "tacc", "end")
     f.dot(420, 385, "dot-acc")
     f.wire([(420, 385), (420, 450)], "wacc")
     f.gate(575, 375, "&")
     f.wire([(567, 600), (567, 401), (575, 401)], "wacc")
-    f.text(572, 436, "nines_q[0]", "tn")
+    f.text(572, 436, "sel[0]", "tn")
     f.wire([(609, 393), (640, 393)], "wacc", arrow=False)
     f.dot(640, 393, "dot-acc")
     f.wire([(640, 393), (640, 450)], "wacc")
     f.wire([(640, 393), (795, 393)], "wacc", arrow=False)
     f.gate(795, 383, "&")
     f.wire([(787, 600), (787, 409), (795, 409)], "wacc")
-    f.text(792, 436, "nines_q[1]", "tn")
+    f.text(792, 436, "sel[1]", "tn")
     f.wire([(829, 401), (860, 401), (860, 450)], "wacc")
-    f.text(150, 404, "цепочка step_r — та же,", "tl")
-    f.text(150, 418, "но по zeroes_q", "tl")
+    f.text(150, 404, "sel[i] = dec ? zeroes_q[i]", "tl")
+    f.text(150, 418, "         : nines_q[i]", "tl")
 
     # выходы декад
     f.wire([(540, 575), (1060, 575)], "wbus", arrow=False)
@@ -121,4 +126,5 @@ def fig_counter_fsm():
            label="линия снята · окно истекло", lx=176, ly=309)
     f.selfloop("RST", "b", "w", "rst_active | writing", 330, 382)
     f.text(16, 24, "soft_rst | hard_rst → ST_RST из любого состояния, запуск окна записи; rst_n → ST_RST", "tl")
+    f.text(16, 40, "ZERO_ONLY (без записи, предела и сброса в 9 — вложенность, AP): ZERO и RST слиты в busy_q, SET и TOP нет", "tl")
     return f.render()

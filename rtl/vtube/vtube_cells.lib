@@ -418,6 +418,25 @@ library(vtube_cells_lib) {
     pin(C1) { direction: output; }
     pin(C2) { direction: output; }
   }
+  // Guide gate of one dekatron decade: one J2 double triode, a triode per
+  // guide. The counter drives the guide buses GA/GB (DekatronPulseSender at
+  // counter level); EN (the decade's carry) lets them through to the guide
+  // electrodes: YA = GA & EN, YB = GB & EN. Like RELAY_2CO, the outputs
+  // have no function on purpose: ABC never uses this cell in random logic,
+  // it only appears where DekatronModule instantiates it.
+  cell(GUIDE_EN_J2) {
+    area: 1;
+    current_unit : "1mA";
+    heat_current: 200;
+    tubes(names) {
+      J2B: 1;
+    }
+    pin(EN) { direction: input; fanout_load: 1.0; }
+    pin(GA) { direction: input; fanout_load: 1.0; }
+    pin(GB) { direction: input; fanout_load: 1.0; }
+    pin(YA) { direction: output; }
+    pin(YB) { direction: output; }
+  }
     cell (TIEHI) {
     area : 0.0;
     tubes(names) {

@@ -324,3 +324,16 @@ specify
 	(NO2 => C2) = 0;
 endspecify
 endmodule
+
+module GUIDE_EN_J2(EN, GA, GB, YA, YB);
+input EN, GA, GB;
+output YA, YB;
+assign YA = GA & EN;
+assign YB = GB & EN;
+specify
+	(EN => YA) = 0;
+	(GA => YA) = 0;
+	(EN => YB) = 0;
+	(GB => YB) = 0;
+endspecify
+endmodule
