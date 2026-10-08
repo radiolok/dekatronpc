@@ -140,7 +140,9 @@ module ApLine #(
         S_DSET  = 3'd4,   // загрузка числа в счётчик данных
         S_DOP   = 3'd5;   // шаг или обнуление счётчика данных
 
-    logic [2:0] state;
+    // Двоичное кодирование: Yosys иначе перекодирует автомат в one-hot,
+    // а триггер стоит 7 ламп (doc/tube_count_reduction.md §17.2)
+    (* fsm_encoding = "binary" *) logic [2:0] state;
 
     logic       lock_q;        // MemLock: счётчик владеет ячейкой
     logic       mem_here_q;    // регистр памяти относится к текущему адресу

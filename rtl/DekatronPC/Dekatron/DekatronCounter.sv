@@ -157,7 +157,10 @@ module DekatronCounter #(
         ST_TOP  = 3'd3,   // установка всех декад в TOP_VALUE
         ST_RST  = 3'd4;   // физический сброс: ждём окончания линии и окна
 
-    logic [2:0] state, next;
+    // Двоичное кодирование: Yosys иначе перекодирует автомат в one-hot,
+    // а триггер стоит 7 ламп (doc/tube_count_reduction.md §17.2)
+    (* fsm_encoding = "binary" *) logic [2:0] state;
+    logic [2:0] next;
 
     //------------------------------------------------------------------
     // Показания декад
