@@ -87,23 +87,22 @@ S.append(sheet(4, "ipline", "Линия выборки IpLine",
     "Линия выборки инструкций", "IpLine.sv · IpMemory.sv · RAM.sv"))
 
 flags = '''<div class="tbl"><table class="spec">
-<thead><tr><th>Операция</th><th>Когда читает память</th><th>Когда пишет память</th><th>lock · dirty · mem_here после</th></tr></thead>
+<thead><tr><th>Операция</th><th>Когда читает память</th><th>Когда пишет память</th><th>lock · mem_here после</th></tr></thead>
 <tbody>
-<tr><td><code>+ −</code></td><td>нет lock и нет mem_here</td><td>—</td><td>1 · 1 · —</td></tr>
-<tr><td><code>&gt; &lt;</code>, CLRA</td><td>—</td><td>если dirty</td><td>0 · 0 · 0; в ветке при dirty = 0 lock остаётся (дефект)</td></tr>
-<tr><td><code>.</code> COUT</td><td>нет lock и нет mem_here</td><td>—</td><td>— · — · 1 после чтения; без lock ячейка грузится в счётчик, lock не меняется</td></tr>
-<tr><td>TEST</td><td>нет lock и нет mem_here</td><td>—</td><td>— · — · 1 после чтения</td></tr>
-<tr><td><code>,</code> CIN, <code>[-]</code> CLRD</td><td>—</td><td>—</td><td>1 · 1 · —</td></tr>
+<tr><td><code>+ −</code></td><td>нет lock и нет mem_here</td><td>—</td><td>1 · —</td></tr>
+<tr><td><code>&gt; &lt;</code>, CLRA</td><td>—</td><td>если lock</td><td>0 · 0</td></tr>
+<tr><td><code>.</code> COUT</td><td>нет lock и нет mem_here</td><td>—</td><td>— · 1 после чтения; без lock ячейка грузится в счётчик, lock не меняется</td></tr>
+<tr><td>TEST</td><td>нет lock и нет mem_here</td><td>—</td><td>— · 1 после чтения</td></tr>
+<tr><td><code>,</code> CIN, <code>[-]</code> CLRD</td><td>—</td><td>—</td><td>1 · —</td></tr>
 <tr><td>LOAD</td><td>нет mem_here</td><td>—</td><td>lock не меняется</td></tr>
-<tr><td>STORE</td><td>—</td><td>всегда</td><td>— · 0 · 1</td></tr>
-<tr><td>CLRML</td><td>—</td><td>если dirty</td><td>0 · 0 · —</td></tr>
+<tr><td>STORE</td><td>—</td><td>всегда</td><td>— · 1; lock не меняется, следующий шаг адреса или CLRML запишет ячейку ещё раз</td></tr>
+<tr><td>CLRML</td><td>—</td><td>если lock</td><td>0 · —</td></tr>
 </tbody></table></div>'''
 
 S.append(sheet(5, "apline", "Линия данных ApLine",
-    '<p>Ленивое чтение: ячейка читается, только когда её значение действительно нужно, и выгружается, только если счётчик её изменил. Значение берётся из выходного регистра памяти напрямую — без копирования в счётчик данных. На программе Pi это 99 077 обращений против 155 625 при предвыборке (−36 %).</p>'
+    '<p>Ленивое чтение: ячейка читается, только когда её значение действительно нужно, и выгружается перед сменой адреса, только если счётчик ею владеет (MemLock — единственный флаг). Значение берётся из выходного регистра памяти напрямую — без копирования в счётчик данных. На программе Pi это 99 077 обращений против 155 625 при предвыборке (−36 %).</p>'
     + fig(sheet5.fig_apline(), '<b>Структура.</b> Оранжевым — путь значения ячейки из выходного регистра памяти: на мультиплексор входа счётчика и на выходные признаки. data_zero_valid = lock | mem_here.')
     + fig(sheet5.fig_apline_fsm(), '<b>Автомат.</b> Оранжевым — чтение по требованию.')
-    + '<div class="note"><b>Дефект, отмечен пунктиром.</b> Шаг адреса без выгрузки (dirty = 0) оставляет lock = 1, если перед этим был STORE, — и следующие <code>.</code> или <code>+</code> работают со значением прежней ячейки. Правка (сброс lock при любой смене адреса) подготовлена, в ветку claude_nextGen не внесена.</div>'
     + '<h3>Флаги и обращения к памяти</h3>' + flags,
     "Линия данных", "ApLine.sv · RAM.sv"))
 

@@ -12,8 +12,7 @@ def fig_apline():
     f.wire([(170, 132), (16, 132)], label="ready", lx=20, ly=125, lcls="tp")
     f.wire([(170, 160), (16, 160)], label="mem_lock", lx=20, ly=153, lcls="tp")
     f.box(170, 40, 230, 210, "Автомат и флаги",
-          ["lock_q — счётчик держит", "значение ячейки", "",
-           "dirty_q — счётчик расходится", "с памятью", "",
+          ["lock_q — MemLock: счётчик", "владеет ячейкой", "",
            "mem_here_q — регистр памяти", "относится к текущему AP", "",
            "op держит память программ", "dec = op[0]"], align="start", top=22)
 
@@ -70,8 +69,8 @@ def fig_apline():
 def fig_apline_fsm():
     f = Fig("aplfsm", 1000, 270,
             "Автомат ApLine: память читается только тогда, когда значение ячейки нужно и его "
-            "нет ни в счётчике, ни в выходном регистре памяти; выгрузка — только изменённого "
-            "значения перед сменой адреса. Каждое состояние, кроме S_IDLE, выдаёт одну "
+            "нет ни в счётчике, ни в выходном регистре памяти; выгрузка — перед сменой "
+            "адреса, если счётчик владеет ячейкой (MemLock). Каждое состояние, кроме S_IDLE, выдаёт одну "
             "операцию, когда готовы все исполнители (go), и уходит в такте её приёма.")
     f.dy = 20
     f.state("READ", 150, 60, "S_READ", cls="st-acc")
@@ -81,7 +80,7 @@ def fig_apline_fsm():
     f.state("DOP", 470, 200, "S_DOP")
     f.state("AP", 790, 200, "S_AP")
 
-    f.selfloop("IDLE", "t", label="COUT: lock · TEST: ячейка рядом · CLRML: чисто", lx=448, ly=14, anchor="end")
+    f.selfloop("IDLE", "t", label="COUT: lock · TEST: ячейка рядом · CLRML: нет lock", lx=448, ly=14, anchor="end")
     f.edge("IDLE", "l", "READ", "r", oa=-8, ob=-8, cls="wacc", label="ячейка нужна и её нет",
            lx=310, ly=45, lcls="tacc")
     f.edge("READ", "r", "IDLE", "l", oa=8, ob=8, label="TEST", lx=310, ly=86)
@@ -91,17 +90,17 @@ def fig_apline_fsm():
            label="mem_here: STEP, LOAD, COUT · CIN", lx=305, ly=124)
     f.edge("IDLE", "b", "DOP", "t", label="lock: STEP · DATA_ZERO", lx=478, ly=160,
            anchor="start")
-    f.edge("IDLE", "r", "FLUSH", "l", oa=-8, ob=-8, label="dirty: шаг AP, CLRML · STORE",
+    f.edge("IDLE", "r", "FLUSH", "l", oa=-8, ob=-8, label="lock: шаг AP, CLRML · STORE",
            lx=630, ly=45)
-    f.edge("FLUSH", "l", "IDLE", "r", oa=8, ob=8, label="STORE, CLRML: lock ← 0", lx=630, ly=86)
+    f.edge("FLUSH", "l", "IDLE", "r", oa=8, ob=8, label="STORE · CLRML: lock ← 0", lx=630, ly=86)
     f.edge("IDLE", "b", "AP", "t", oa=30, ob=-20, via=[(500, 130), (770, 130)],
-           cls="wwarn", label="чисто: шаг AP, lock не сбрасывается", lx=640, ly=124, lcls="twarn")
+           label="нет lock: шаг AP", lx=640, ly=124)
     f.edge("FLUSH", "b", "AP", "t", oa=20, ob=20, label="шаг AP: lock ← 0", lx=818, ly=135,
            anchor="start")
     f.edge("AP", "r", "IDLE", "t", ob=35, via=[(920, 200), (920, 12), (505, 12)],
            label="mem_here ← 0", lx=710, ly=6)
     f.edge("DSET", "r", "DOP", "l", label="STEP", lx=310, ly=194)
     f.wire([(150, 217), (150, 240), (190, 240)], label="→ S_IDLE: LOAD, CIN", lx=196, ly=244)
-    f.wire([(470, 217), (470, 240), (510, 240)], label="→ S_IDLE: lock, dirty ← 1",
+    f.wire([(470, 217), (470, 240), (510, 240)], label="→ S_IDLE: lock ← 1",
            lx=516, ly=244)
     return f.render()
