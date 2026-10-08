@@ -40,6 +40,7 @@ __pycache__/
 # netlist simulation outputs (rtl/run/synth_sim.sh)
 rtl/run/synth_sim/
 rtl/run/synth_sim_delay/
+rtl/run/synth_sim_timing/
 # Icarus runs with the delay-based dekatron model (rtl/run/run_tests.sh -d)
 rtl/run/delay/
 

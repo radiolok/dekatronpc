@@ -76,6 +76,11 @@ reg  rx_vld;
 wire rx_rdy;
 
 `ifdef DEKATRON_DELAY_MODEL
+// Период Clk в нс (synth_sim.sh -c): поиск частоты, на которой работает
+// нетлист с задержками ламп (doc/vtube_sdf_timing.md)
+`ifndef CLK_NS
+`define CLK_NS 1000
+`endif
 // Модель на задержках: hsClk машине не нужен и стоит в нуле — так
 // проверяется, что DekatronPC от него не зависит. Clk 1 МГц с той же
 // фазой, что дал бы делитель: rst_n снимается на фронте hsClk, первый
@@ -86,8 +91,8 @@ initial begin
     wait (rst_n === 1'b1);
     #1;
     forever begin
-        Clk = 1'b1; #5;
-        Clk = 1'b0; #5;
+        Clk = 1'b1; #(`CLK_NS / 200.0);   // timescale 100 ns
+        Clk = 1'b0; #(`CLK_NS / 200.0);
     end
 end
 `else
