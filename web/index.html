@@ -141,10 +141,10 @@ button { font: inherit; color: inherit; }
 @keyframes blink { 50% { opacity: .25; } }
 
 /* Memory strips */
-.strips { display: grid; gap: 10px; }
+.strips { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); }
 .strip-head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; height: 20px; }
 .strip-head > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-.strip-head > span:first-child { flex: none; }
+.strip-head > span:first-child { flex: 0 1 auto; }
 .strip {
   display: flex; gap: 2px; background: var(--bezel); border-radius: 4px; padding: 6px; overflow: hidden;
   box-shadow: inset 0 2px 8px #000b; justify-content: center;
@@ -456,7 +456,7 @@ const T = {
     s_loading: (a, b) => `Loading over SOT: ${a} of ${b} opcodes.`,
     s_loaded: 'Program loaded, Soft Reset done. Press RUN or STEP.',
     s_loaded_halt: 'EOT received; SoftRstOnEOT is off, the machine halted.',
-    s_wait_insn: 'Loader waiting for opcodes: press LOAD AND BOOT.',
+    s_wait_insn: 'Loader waiting for opcodes: the program text has no instructions.',
     s_cin: 'Waiting for input (CIN). Type on the keyboard line.',
     s_bp: (ip) => `Breakpoint at IP ${ip}.`,
     s_ovf: 'Loop counter overflow: hardware error, machine halted.',
@@ -495,7 +495,7 @@ const T = {
     s_loading: (a, b) => `Загрузка по SOT: ${a} из ${b} опкодов.`,
     s_loaded: 'Программа загружена, выполнен программный сброс. Нажмите Пуск или Шаг.',
     s_loaded_halt: 'Принят EOT; SoftRstOnEOT выключен, машина остановлена.',
-    s_wait_insn: 'Загрузчик ждёт опкоды: нажмите «Загрузить».',
+    s_wait_insn: 'Загрузчик ждёт опкоды: в тексте программы нет команд.',
     s_cin: 'Ожидание ввода (CIN). Наберите строку.',
     s_bp: (ip) => `Точка останова, IP ${ip}.`,
     s_ovf: 'Переполнение счётчика цикла: аппаратная ошибка, машина остановлена.',
@@ -827,11 +827,17 @@ function setMsg(k, ...a) { sim.msg = k ? [k, a] : null; }
 // One machine step plus the simulator's checks. Returns false to stop the batch.
 function stepOnce() {
   const s = m.step();
+  // Load finished (EOT done): end the batch so the program runs at the
+  // selected speed, and report the result.
+  if (sim.loadJob && !m.loading && !m.insnIn.length && m.ip < DPC.BOOT_BASE) {
+    finishLoadJob();
+    return false;
+  }
   if (s === DPC.OK) {
     if (!m.loading && sim.bps.has(m.ip) && !sim.loadJob) { sim.clock = false; setMsg('s_bp', m.ip); return false; }
     return true;
   }
-  if (s === DPC.WAIT) return false;
+  if (s === DPC.WAIT) return feedReader();
   // halted
   if (sim.loadJob) return false;   // load job decides below
   sim.clock = false;
@@ -839,6 +845,18 @@ function stepOnce() {
   else if (m.code(m.ip - 1) === 0x1) setMsg('s_finished', m.ip);
   else setMsg('s_halted', m.ip);
   return false;
+}
+
+// Program reader: when the machine is in load mode (after SOT) and InsnIn is
+// empty, the reader puts the program from the text window on InsnIn, the
+// same stream as LOAD AND BOOT. Memory is not cleared here.
+function feedReader() {
+  if (!m.waitingInsn || m.insnIn.length || sim.loadJob) return false;
+  const code = assembleCurrent();
+  if (!code) return false;
+  m.insnIn = DPC.loadStream(code);
+  sim.loadJob = { total: m.insnIn.length };
+  return true;
 }
 
 function finishLoadJob() {
@@ -890,7 +908,7 @@ function runFrame(dt) {
 function press(id) {
   switch (id) {
     case 'hard':
-      sim.loadJob = null; m.hardReset(); sim.clock = !m.halted; setMsg(m.halted ? 's_halted' : 's_boot', m.ip); break;
+      sim.loadJob = null; m.insnIn = []; m.hardReset(); sim.clock = !m.halted; setMsg(m.halted ? 's_halted' : 's_boot', m.ip); break;
     case 'soft':
       sim.loadJob = null; m.softReset(); sim.clock = !m.halted; setMsg(m.halted ? 's_halted' : 's_running', m.ip); break;
     case 'run':

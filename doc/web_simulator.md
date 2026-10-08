@@ -30,6 +30,8 @@ The stream is `ISA1, program, HALT, ISA0, EOT`; HALT/ISA0/EOT are not appended w
 
 Memory is cleared only at power-on, on LOAD AND BOOT and by the MEM CLEAN key. Hard Reset keeps memory, like ferrite core.
 
+The same load also works from the panel: with RunOnHardRst on, HARD RST starts the ROM, and when SOT puts the machine in load mode with InsnIn empty, the program reader puts the program from the text window on InsnIn (same stream, memory not cleared). With RunOnHardRst off, HARD RST then RUN does the same.
+
 ## 3. Program text: two dialects
 
 - **DekatronPC ISA off (default for pasted text and Brainfuck-100):** only `+ - < > [ ] . ,` are commands, everything else is a comment.
