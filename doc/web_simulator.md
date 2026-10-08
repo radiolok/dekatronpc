@@ -28,7 +28,7 @@ LOAD AND BOOT clears program and data memory, puts the opcode stream on InsnIn a
 
 The stream is `ISA1, program, HALT, ISA0, EOT`; HALT/ISA0/EOT are not appended when the program already ends with ISA0, EOT (the repo `.bfk` files end with `HDE`). ISA1 comes first for the same reason as in `DekatronPC_tb.sv`: loading starts in Debug ISA, where `>` (0x4) is EOT.
 
-Memory is cleared only at power-on, on LOAD AND BOOT and by the MEM CLEAN key. Hard Reset keeps memory, like ferrite core.
+Data memory is cleared at power-on, on LOAD AND BOOT and by the HARD RST key (owner, 2026-10-08; the MEM CLEAN key was dropped). The HRST instruction does not clear memory.
 
 The same load also works from the panel: with RunOnHardRst on, HARD RST starts the ROM, and when SOT puts the machine in load mode with InsnIn empty, the program reader puts the program from the text window on InsnIn (same stream, memory not cleared). With RunOnHardRst off, HARD RST then RUN does the same.
 
@@ -39,7 +39,7 @@ The same load also works from the panel: with RunOnHardRst on, HARD RST starts t
 
 ## 4. Panel
 
-Keys (rectangles, label above): Hard rst, Soft rst, Halt, Step, Run, Load start, Load stop, Dec, Inc, plus the simulator's Mem clean. Dec/Inc change the counter picked by the rotary Counter selector (IP, Loop, AP, Data) while the simulator clock is stopped. The RTL has only keyPrevIp/keyNextIp; the other three are a simulator extension (`Machine.manualStep()`): Loop wraps 0–99 without touching the overflow flag, AP moves like `>`/`<` (a dirty Data counter is flushed first), Data steps like `+`/`-` (MemLock and dirty set). Switches (rotary OFF/ON): EchoMode, RunOnHardRst, RunOnSoftRst, SoftRstOnEOT, BellOnCIN, BellOnHALT, BellOnError. Defaults are the Emulator's hard-wired values (OPEN-011) except BellOnHALT and BellOnError, which are on so a finished program rings. Speed: 1, 4, 16, 64, 256, 1k, 10k instructions/s or MAX. The page counts retired instructions only.
+Keys (rectangles, label above): Hard rst, Soft rst, Halt, Step, Run, Load start, Load stop, Dec, Inc. Dec/Inc change the counter picked by the rotary Counter selector (IP, Loop, AP, Data) while the simulator clock is stopped. The RTL has only keyPrevIp/keyNextIp; the other three are a simulator extension (`Machine.manualStep()`): Loop wraps 0–99 without touching the overflow flag, AP moves like `>`/`<` (a dirty Data counter is flushed first), Data steps like `+`/`-` (MemLock and dirty set). Switches (rotary OFF/ON): EchoMode, RunOnHardRst, RunOnSoftRst, SoftRstOnEOT, BellOnCIN, BellOnHALT, BellOnError. Defaults are the Emulator's hard-wired values (OPEN-011) except BellOnHALT and BellOnError, which are on so a finished program rings. Speed: 1, 4, 16, 64, 256, 1k, 10k instructions/s or MAX. The page counts retired instructions only.
 
 The printer has a column selector (40, 64, 72, 80, 132; default 80): lines longer than the width wrap like on a terminal, tabs stop every 8 columns, and the type is sized so the chosen width fills the paper.
 
