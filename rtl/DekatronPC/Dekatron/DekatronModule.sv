@@ -45,6 +45,11 @@
 //   Clk   — тактовая частота счёта (1 МГц). Её полуволны образуют фазы
 //           подкатодов, поэтому каждая фаза длится 5 тактов hsClk.
 //
+//   При `define DEKATRON_DELAY_MODEL вместо DekatronTubeV2 ставится
+//   DekatronTubeDelay: та же модель на задержках #N, без hsClk вовсе
+//   (только Icarus; run_tests.sh -d, synth_sim.sh -d). hsClk остаётся
+//   только у генератора фаз.
+//
 //----------------------------------------------------------------------
 // ПРАВИЛА ДЛЯ ВЫШЕСТОЯЩЕГО СЧЁТЧИКА
 //
@@ -192,7 +197,13 @@ module DekatronModule #(
     //------------------------------------------------------------------
     // Декатрон
     //------------------------------------------------------------------
+    // `DEKATRON_DELAY_MODEL: модель на задержках #N без hsClk
+    // (DekatronTubeDelay.sv, только Icarus). Иначе — тактовая модель.
+`ifdef DEKATRON_DELAY_MODEL
+    DekatronTubeDelay #(
+`else
     DekatronTubeV2 #(
+`endif
         .HS_PER_CLK       (HS_PER_CLK),
         .GUIDE_STEP_HS    (GUIDE_STEP_HS),
         .FALL_STEP_HS     (FALL_STEP_HS),
@@ -208,7 +219,9 @@ module DekatronModule #(
         .EN_SIM_PRESET    (1'b0),
         .EN_DEBUG_OUTPUTS (1'b0)
     ) dekatron (
+`ifndef DEKATRON_DELAY_MODEL
         .hsClk                 (hsClk),
+`endif
         .guide_a_i             (GuideA),
         .guide_b_i             (GuideB),
         .write_en_i            (WriteEn),

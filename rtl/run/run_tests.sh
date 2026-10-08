@@ -16,6 +16,7 @@ sim=0
 cov=0
 uvm=0
 gate=0
+delay=0
 
 cleanup() {
     local exit_code=$?
@@ -44,6 +45,7 @@ usage() {
 	 msg "-t sim"
 	 msg "-u uvm"
 	 msg "-g gate-level: RTL tests on the synthesized netlists (synth_sim.sh)"
+	 msg "-d delay model: the Icarus tests and pi.bfk with DekatronTubeDelay (no hsClk)"
 }
 
 parse_params() {
@@ -61,6 +63,7 @@ parse_params() {
 	-t | --sim) sim=1 ;;
 	-u | --uvm) uvm=1 ;;
 	-g | --gate) gate=1 ;;
+	-d | --delay) delay=1 ;;
     -?*) die "Unknown option: $1" ;;
     *) break ;;
     esac
@@ -160,6 +163,26 @@ if [ ${sim} -ne 0 ]; then
 
 	mv -v *.vcd vcd/
 	mv -v *UT  vcd/
+fi
+
+# Icarus tests with the delay-based dekatron model (DekatronTubeDelay: #N
+# delays, no hsClk), plus pi.bfk on the whole DekatronPC. Binaries and VCDs
+# go to delay/ so they don't mix with the clocked-model ones in vcd/.
+if [ ${delay} -ne 0 ]; then
+	export DEKATRON_MODEL=delay
+	tests_dir=${root_dir}/tests/DekatronPC.sv
+	./emul Dekatron
+	./emul Counter
+	./emul IpLine ${root_dir}/programs/looptest.bfk
+	./emul ApLine
+	./emul MachineCtrl
+	./emul DekatronPC ${root_dir}/programs/helloworld.bfk ${tests_dir}/DekatronPC_tb_cfg_hello.svh
+	./emul DekatronPC ${root_dir}/programs/program.bfk ${tests_dir}/DekatronPC_tb_cfg_program.svh
+	# 3.17 M clk cycles; no VCD (it would take gigabytes)
+	EMUL_DEFINES=-DNO_VCD ./emul DekatronPC ${root_dir}/programs/pi.bfk ${tests_dir}/DekatronPC_tb_cfg_pi.svh
+	unset DEKATRON_MODEL
+	mkdir -p delay
+	mv -f *.vcd *UT delay/
 fi
 
 if [ ${cov} -ne 0 ]; then

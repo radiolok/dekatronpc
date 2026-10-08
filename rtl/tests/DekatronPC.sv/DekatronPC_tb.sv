@@ -77,7 +77,9 @@ wire rx_rdy;
 
 initial begin
     hsClk = 1'b0;
-    forever #1 hsClk = ~hsClk;
+    // 10 MHz, as the dekatron timing estimates assume: DekatronTubeDelay
+    // works in absolute time (HS_NS = 100 ns), not in hsClk cycles
+    forever #0.5 hsClk = ~hsClk;
 end
 
 ClockDivider #(

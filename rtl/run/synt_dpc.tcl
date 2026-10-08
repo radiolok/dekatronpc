@@ -3,6 +3,8 @@
 #                       netlist with their parameters (netlist simulation puts
 #                       the RTL model back, see synth_sim.sh)
 #   -p <name> <value>   override a parameter of the top module
+#   -D <name>           define a preprocessor macro, e.g. DEKATRON_DELAY_MODEL
+#                       (the netlist instantiates DekatronTubeDelay)
 # Without options the flow is the tube-count flow used by run_tests.sh -s.
 if { $argc < 2 } {
   puts "call script <file_with_v_list> <top_level_module> \[-bb <module>\] \[-p <name> <value>\]"
@@ -15,15 +17,20 @@ set top        [lindex $argv 1]
 
 set blackboxes {}
 set top_params {}
+set defines {}
 for {set i 2} {$i < $argc} {incr i} {
   switch -- [lindex $argv $i] {
     -bb { lappend blackboxes [lindex $argv [incr i]] }
     -p  { lappend top_params [lindex $argv [incr i]] [lindex $argv [incr i]] }
+    -D  { lappend defines [lindex $argv [incr i]] }
     default { puts "unknown option [lindex $argv $i]"; exit 1 }
   }
 }
 
 yosys read -define SYNTH=1
+foreach def $defines {
+  yosys read -define $def=1
+}
 
 set cell_lib "$script_dir/../vtube/vtube_cells.lib"
 

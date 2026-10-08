@@ -2,17 +2,21 @@
 # Gate-level simulation: the Icarus tests of run_tests.sh -t, run against the
 # Yosys netlist of the DUT instead of its RTL.
 #
-#   synth_sim.sh [-n] [test ...]
+#   synth_sim.sh [-n] [-d] [test ...]
 #     -n    skip synthesis, reuse the netlists in synth_sim/<test>/
-#     test  Dekatron Counter IpLine ApLine MachineCtrl DekatronPC
-#           (default: all of them; DekatronPC runs helloworld and program.bfk
-#           on one netlist)
+#     -d    delay-based dekatron model: DekatronTubeDelay (no hsClk, #N
+#           delays) instead of DekatronTubeV2, defined DEKATRON_DELAY_MODEL
+#           in synthesis and simulation; output in synth_sim_delay/
+#     test  Dekatron Counter IpLine ApLine MachineCtrl DekatronPC Pi
+#           (default: all but Pi; DekatronPC runs helloworld and program.bfk
+#           on one netlist, Pi runs pi.bfk on the same DekatronPC netlist,
+#           about 3.2 M clk cycles)
 #
 # Each DUT is synthesized by synt_dpc.tcl, the same flow as run_tests.sh -s,
 # with the parameters its testbench uses (-p). Behavioural models of parts
 # that are not tube logic are empty or stubbed under SYNTH; they stay black
 # boxes (-bb) and come back from RTL in simulation:
-#   DekatronTubeV2   the tube itself
+#   DekatronTubeV2   the tube itself (DekatronTubeDelay with -d)
 #   OneShot, Impulse hs_clk pulse timing (phase generator, write window)
 #   RstTimeRelay     time relay in the reset lines (extracted from DekatronPC.sv)
 #   Ram, IpMemory    memory (ferrite)
@@ -31,23 +35,46 @@ cell_models=${root_dir}/vtube/vtube_cells.v
 dpc_files=${root_dir}/DekatronPC/DPC.files
 
 do_synth=1
+delay=0
 all_tests=(Dekatron Counter IpLine ApLine MachineCtrl DekatronPC)
 
-while getopts "nh" opt; do
+while getopts "ndh" opt; do
 	case ${opt} in
 	n) do_synth=0 ;;
-	*) sed -n '2,23p' "$0"; exit 1 ;;
+	d) delay=1 ;;
+	*) sed -n '2,27p' "$0"; exit 1 ;;
 	esac
 done
 shift $((OPTIND - 1))
 tests=("$@")
 [ ${#tests[@]} -eq 0 ] && tests=("${all_tests[@]}")
 
+# Dekatron model: the clocked DekatronTubeV2 or the delay-based
+# DekatronTubeDelay. The delay model is not in DPC.files (Verilator and
+# Quartus never see it), so synthesis gets a list with it appended.
+tube=DekatronTubeV2
+tube_rtl=(${root_dir}/DekatronPC/Dekatron/DekatronTubeV2.sv
+          ${root_dir}/DekatronPC/Dekatron/DekatronTubeV2_assertions.sv)
+synth_defs=()
+sim_defs=""
+if [ ${delay} -ne 0 ]; then
+	work_dir=${script_dir}/synth_sim_delay
+	tube=DekatronTubeDelay
+	tube_rtl=(${root_dir}/DekatronPC/Dekatron/DekatronTubeDelay.sv)
+	synth_defs=(-D DEKATRON_DELAY_MODEL)
+	sim_defs=-DDEKATRON_DELAY_MODEL
+	mkdir -p "${work_dir}"
+	sed "s|^\.\./|${root_dir}/|" "${dpc_files}" > "${work_dir}/DPC.files"
+	echo "${tube_rtl[0]}" >> "${work_dir}/DPC.files"
+	dpc_files=${work_dir}/DPC.files
+fi
+
 # Per-test setup: synthesized top, its parameters (must match the testbench
 # instantiation), black boxes, RTL put back in simulation, simulation runs.
-# A run is "name|bfk program|iverilog defines".
+# A run is "name|bfk program|iverilog defines". netdir is the netlist
+# directory (Pi shares the DekatronPC netlist).
 config() {
-	top=""; params=(); bbs=(DekatronTubeV2 OneShot Impulse); rtl=(); runs=()
+	top=""; params=(); bbs=(${tube} OneShot Impulse); rtl=(); runs=(); netdir=$1
 	case $1 in
 	Dekatron)
 		top=DekatronModule
@@ -69,8 +96,9 @@ config() {
 		top=MachineCtrl
 		params=(EN_EMULATOR=1)
 		runs=("MachineCtrl||") ;;
-	DekatronPC)
+	DekatronPC|Pi)
 		top=DekatronPC
+		netdir=DekatronPC
 		params=(EN_EMULATOR=0)
 		bbs+=(Ram IpMemory RstTimeRelay)
 		# RstTimeRelay shares DekatronPC.sv with the synthesized top
@@ -81,6 +109,11 @@ config() {
 		     ${root_dir}/programs/bootloader/bootloader.sv
 		     $(sed "s|^\.\./|${root_dir}/|" ${root_dir}/tests/DekatronPC.sv/DekatronPC_tb.files))
 		local cfg=${root_dir}/tests/DekatronPC.sv
+		if [ "$1" = Pi ]; then
+			# No VCD: pi.bfk would write gigabytes
+			runs=("DekatronPC_pi|${root_dir}/programs/pi.bfk|-DNO_VCD -DADDINCLUDE=\"${cfg}/DekatronPC_tb_cfg_pi.svh\"")
+			return 0
+		fi
 		runs=("DekatronPC_hello|${root_dir}/programs/helloworld.bfk|-DADDINCLUDE=\"${cfg}/DekatronPC_tb_cfg_hello.svh\""
 		      "DekatronPC_program|${root_dir}/programs/program.bfk|-DADDINCLUDE=\"${cfg}/DekatronPC_tb_cfg_program.svh\"") ;;
 	*)
@@ -92,6 +125,7 @@ synth() {
 	local dir=$1
 	local args=()
 	for bb in "${bbs[@]}"; do args+=(-bb "${bb}"); done
+	args+=("${synth_defs[@]}")
 	for p in "${params[@]}"; do args+=(-p "${p%%=*}" "${p#*=}"); done
 	echo "  synth ${top} ${args[*]}"
 	# Same call as the synth script: the TCL flow with arguments, through
@@ -117,13 +151,12 @@ simulate() {
 		tb_files=($(sed "s|^\.\./|${root_dir}/|" "${root_dir}/tests/${tb}.sv/${tb}_tb.files"))
 	fi
 	echo "  sim   ${name}"
-	iverilog -g2012 -o "${dir}/${name}_netlist" -DIPMEMFILE -DSIMPLEBOOT ${defines} \
+	iverilog -g2012 -o "${dir}/${name}_netlist" -DIPMEMFILE -DSIMPLEBOOT ${sim_defs} ${defines} \
 		-s "${tb}_tb" \
 		"${root_dir}/parameters.sv" \
 		"${root_dir}/tests/${tb}.sv/${tb}_tb.sv" "${tb_files[@]}" \
 		"${dir}/${top}_synth.v" "${cell_models}" \
-		"${root_dir}/DekatronPC/Dekatron/DekatronTubeV2.sv" \
-		"${root_dir}/DekatronPC/Dekatron/DekatronTubeV2_assertions.sv" \
+		"${tube_rtl[@]}" \
 		"${root_dir}/Logic/OneShot.sv" "${root_dir}/Logic/Impulse.sv" \
 		"${root_dir}/Logic/ClockDivider.sv" \
 		"${rtl[@]}" > "${dir}/${name}_compile.log" 2>&1 \
@@ -136,17 +169,20 @@ simulate() {
 mkdir -p "${work_dir}"
 summary=()
 failed=0
+declare -A synthesized=()
 for test in "${tests[@]}"; do
 	echo "== ${test}"
 	config "${test}" || { failed=$((failed + 1)); summary+=("${test}: unknown"); continue; }
-	dir=${work_dir}/${test}
+	dir=${work_dir}/${netdir}
 	mkdir -p "${dir}"
-	if [ ${do_synth} -ne 0 ] || [ ! -f "${dir}/${top}_synth.v" ]; then
+	if [ -z "${synthesized[${netdir}]:-}" ] && \
+	   { [ ${do_synth} -ne 0 ] || [ ! -f "${dir}/${top}_synth.v" ]; }; then
 		if ! synth "${dir}"; then
 			failed=$((failed + 1)); summary+=("${test}: SYNTH FAILED (${dir}/synth.log)")
 			continue
 		fi
 	fi
+	synthesized[${netdir}]=1
 	for run in "${runs[@]}"; do
 		IFS='|' read -r name bfk defines <<< "${run}"
 		simulate "${dir}" "${name}" "${bfk}" "${defines}"

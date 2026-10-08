@@ -3,6 +3,13 @@ set -Eeuo pipefail
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
 DPCfiles=$(cat ${script_dir}/../DekatronPC/DPC.files)
 current_dir=$(realpath $(pwd))
+# DEKATRON_MODEL=delay: DekatronTubeDelay (#N delays, no hsClk) instead of
+# DekatronTubeV2. EMUL_DEFINES: extra iverilog flags, e.g. -DNO_VCD.
+Defines="${EMUL_DEFINES:-}"
+if [ "${DEKATRON_MODEL:-}" = delay ]; then
+    Defines="${Defines} -DDEKATRON_DELAY_MODEL"
+    DPCfiles="${DPCfiles} ${script_dir}/../DekatronPC/Dekatron/DekatronTubeDelay.sv"
+fi
 echo "${1} Test"
 if [ $# -ge 2 ]; then
     file=${2}
@@ -20,5 +27,5 @@ if [ $# -ge 3 ]; then
     AdditionalInc="-DADDINCLUDE=\"${script_dir}/../tests/${1}.sv/${1}_tb.svh\""
 fi
 
-iverilog -g2012 -o ${1}UT -DIPMEMFILE -DSIMPLEBOOT $AdditionalInc -s ${1}_tb ${script_dir}/../tests/${1}.sv/${1}_tb.sv $DPCfiles
+iverilog -g2012 -o ${1}UT -DIPMEMFILE -DSIMPLEBOOT ${Defines} $AdditionalInc -s ${1}_tb ${script_dir}/../tests/${1}.sv/${1}_tb.sv $DPCfiles
 ./${1}UT
