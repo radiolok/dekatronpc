@@ -81,6 +81,7 @@
 | `sch/` | схемы KiCad: эмулятор, экспериментальная декатронная ячейка, библиотеки ламп |
 | `doc/` | отчёты и справочная литература |
 | `img/schemes/` | картинки для SCHEMES.md |
+| `web/` | симулятор в браузере: пульт, декатроны, загрузка по SOT/EOT, Brainfuck-100 ([web/README.md](web/README.md)) |
 | `tools/schemes/` | генератор SCHEMES.md и картинок схем: `python3 tools/schemes/build.py` |
 
 Блоки `Dekatron.sv`, `DekatronPulseAllow`, `DekatronCarrySignal`, `InsnDecoder`, `BcdToBinEnc` в тракте памяти и папка `rtl/[DEPRECATED]` — старый тракт, подлежит удалению (TRS, раздел 19.4).

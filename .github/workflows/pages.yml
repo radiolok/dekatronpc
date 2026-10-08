@@ -1,0 +1,57 @@
+name: Web simulator on GitHub Pages
+
+# Publishes web/ (page, model and the generated program bundle) to GitHub
+# Pages. Repository settings: Pages -> Source: GitHub Actions.
+
+on:
+  push:
+    branches: [ "master" ]
+    paths: [ "web/**", "bfutils", "rtl/programs/**", ".github/workflows/pages.yml" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        submodules: recursive
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+    - name: Model tests (do not block the deploy)
+      continue-on-error: true
+      run: |
+        g++ -O2 -DEXEC -o /tmp/dpcrun bfutils/dpcrun/dpcrun.cpp
+        node web/test/test_dpc.js /tmp/dpcrun
+    - name: Build program bundle
+      run: python3 web/build_bf100.py
+    - name: Assemble site
+      run: |
+        mkdir -p _site
+        cp web/index.html web/dpc.js _site/
+        cp -r web/programs _site/programs
+        touch _site/.nojekyll
+    - uses: actions/configure-pages@v5
+    - uses: actions/upload-pages-artifact@v3
+      with:
+        path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+    - id: deployment
+      uses: actions/deploy-pages@v4

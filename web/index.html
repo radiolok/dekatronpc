@@ -1,0 +1,1129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DekatronPC Simulator</title>
+<link rel="icon" href="data:,">
+<meta name="description" content="Web simulator of DekatronPC, a vacuum-tube Brainfuck computer on A110 dekatrons.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Courier+Prime&display=swap">
+<style>
+/* Layout: one console cabinet, top to bottom like a Bendix G-15 front:
+   nameplate, dekatron window, memory strips, operator panel, then the desk
+   with the program sheet and the Consul printer. Single dark enamel look. */
+:root {
+  --room: #1c211f;
+  --enamel: #3d4743;
+  --enamel-hi: #4c5853;
+  --enamel-lo: #2c3431;
+  --bezel: #121514;
+  --silk: #ece4cc;
+  --silk-dim: #a9a691;
+  --neon: #ff6a1a;
+  --neon-hot: #ffd0a0;
+  --lamp-red: #ff4a32;
+  --lamp-green: #8ff08a;
+  --lamp-amber: #ffb43c;
+  --paper: #f2ebd9;
+  --paper-rule: #ddd2b8;
+  --ink: #2a2521;
+  --ink-dim: #6e665b;
+  --cap: #1d1f1e;
+  --cap-hi: #3a3d3b;
+  --cap-red: #8c2219;
+  --cap-ivory: #d9d2bd;
+  --focus: #ffcf7a;
+
+  --f-label: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --f-type: "Courier Prime", "Courier New", Courier, monospace;
+
+  --tube: clamp(44px, 6.4vw, 76px);
+  --radius: 6px;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--room); color: var(--silk); }
+body {
+  margin: 0;
+  font: 15px/1.45 var(--f-data);
+  padding-inline: 16px;
+  padding-block: 16px 40px;
+}
+.cabinet { max-width: 1240px; margin: 0 auto; display: grid; gap: 14px; }
+.plate {
+  background: linear-gradient(180deg, var(--enamel-hi), var(--enamel) 40%, var(--enamel-lo));
+  border: 1px solid #00000066;
+  border-radius: var(--radius);
+  box-shadow: inset 0 1px 0 #ffffff1a, 0 2px 0 #0000004d;
+  padding: 14px 16px;
+  min-width: 0;
+}
+.silk {
+  font-family: var(--f-label);
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  font-weight: 600;
+  color: var(--silk);
+  font-size: 13px;
+}
+.silk.dim { color: var(--silk-dim); font-weight: 500; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* Nameplate */
+.nameplate { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; justify-content: space-between; }
+.brand { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.brand h1 {
+  margin: 0; font-family: var(--f-label); font-weight: 700; font-size: clamp(28px, 4vw, 40px);
+  letter-spacing: .22em; text-transform: uppercase; color: var(--silk);
+  text-shadow: 0 1px 0 #0008;
+}
+.brand .sub { font-family: var(--f-label); letter-spacing: .14em; color: var(--silk-dim); font-size: 14px; text-transform: uppercase; }
+.prefs { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.radio-group { display: inline-flex; border: 1px solid #0007; border-radius: 4px; overflow: hidden; }
+.radio-group label { cursor: pointer; }
+.radio-group input { position: absolute; opacity: 0; pointer-events: none; }
+.radio-group span {
+  display: block; padding: 4px 10px; font-family: var(--f-label); font-weight: 600; letter-spacing: .1em;
+  font-size: 13px; background: var(--enamel-lo); color: var(--silk-dim);
+}
+.radio-group input:checked + span { background: var(--silk); color: var(--bezel); }
+.radio-group input:focus-visible + span { outline: 2px solid var(--focus); outline-offset: -2px; }
+
+/* Dekatron window */
+.window { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: stretch; }
+.counters {
+  background: var(--bezel); border-radius: 4px; padding: 14px; display: grid;
+  grid-template-columns: repeat(2, auto); justify-content: space-around; gap: 16px 28px;
+  box-shadow: inset 0 2px 10px #000c;
+}
+.group { display: grid; gap: 6px; justify-items: center; }
+.group .tubes { display: flex; gap: 6px; }
+.group canvas { width: var(--tube); height: var(--tube); display: block; }
+.group .readout { font-size: 13px; color: var(--silk-dim); letter-spacing: .08em; font-variant-numeric: tabular-nums; }
+.group .readout b { color: var(--silk); font-weight: 500; }
+.insnbox {
+  background: var(--bezel); border-radius: 4px; padding: 14px 16px; min-width: 210px;
+  display: grid; gap: 10px; align-content: start; box-shadow: inset 0 2px 10px #000c;
+}
+.nixie {
+  display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center;
+  border: 1px solid #ffffff12; border-radius: 4px; padding: 8px 12px; background: radial-gradient(ellipse at center, #1a1310, #0c0b0a);
+}
+.nixie .sym {
+  font: 600 46px/1 var(--f-data); color: var(--neon-hot); min-width: 1.1em; text-align: center;
+  text-shadow: 0 0 6px var(--neon), 0 0 18px var(--neon), 0 0 30px #ff6a1a88;
+}
+.nixie .mn { font: 600 20px/1.1 var(--f-data); color: var(--neon-hot); text-shadow: 0 0 8px #ff6a1aaa; }
+.nixie .op { font-size: 12px; color: var(--silk-dim); letter-spacing: .08em; }
+.status { font-size: 13px; color: var(--silk); min-height: 2.9em; }
+.lamps { display: grid; grid-template-columns: repeat(3, auto); gap: 8px 14px; justify-content: start; }
+.lamp { display: flex; align-items: center; gap: 6px; font-family: var(--f-label); letter-spacing: .1em; font-size: 12px; color: var(--silk-dim); text-transform: uppercase; font-weight: 600; }
+.lamp i {
+  width: 11px; height: 11px; border-radius: 50%; display: block; flex: none;
+  background: radial-gradient(circle at 35% 35%, #4a3a32, #1d1714); box-shadow: inset 0 0 2px #000;
+}
+.lamp.on i { background: radial-gradient(circle at 35% 35%, #fff, var(--c) 45%); box-shadow: 0 0 8px var(--c), 0 0 2px var(--c); }
+.lamp.on { color: var(--silk); }
+.lamp[data-c="red"] { --c: var(--lamp-red); }
+.lamp[data-c="green"] { --c: var(--lamp-green); }
+.lamp[data-c="amber"] { --c: var(--lamp-amber); }
+.lamp.blink.on i { animation: blink .9s steps(2, end) infinite; }
+@keyframes blink { 50% { opacity: .25; } }
+
+/* Memory strips */
+.strips { display: grid; gap: 10px; }
+.strip-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: baseline; }
+.strip {
+  display: flex; gap: 2px; background: var(--bezel); border-radius: 4px; padding: 6px; overflow: hidden;
+  box-shadow: inset 0 2px 8px #000b; justify-content: center;
+}
+.cell {
+  flex: 0 0 40px; display: grid; justify-items: center; gap: 1px; padding: 3px 0 4px;
+  border-radius: 3px; background: #1d211f; border: 1px solid transparent; position: relative; cursor: default;
+}
+.cell .a { font-size: 9px; color: #7d7a6c; font-variant-numeric: tabular-nums; }
+.cell .v { font-size: 16px; color: var(--silk); line-height: 1.2; font-variant-numeric: tabular-nums; }
+.cell .c { font-size: 10px; color: var(--silk-dim); min-height: 1.2em; }
+.cell.rom { background: #22201b; }
+.cell.rom .v { color: var(--lamp-amber); }
+.cell.cur { border-color: var(--neon); background: #2a1a12; box-shadow: 0 0 10px #ff6a1a55; }
+.cell.cur .v { color: var(--neon-hot); }
+.prog .cell { cursor: pointer; }
+.prog .cell:hover { background: #2a302d; }
+.cell.bp::after { content: ""; position: absolute; top: 3px; right: 3px; width: 6px; height: 6px; border-radius: 50%; background: var(--lamp-red); box-shadow: 0 0 6px var(--lamp-red); }
+.data .cell { flex-basis: 44px; }
+
+/* Operator panel */
+.panel { display: grid; gap: 18px; }
+.keys { display: flex; flex-wrap: wrap; gap: 14px 16px; align-items: end; }
+.keygrp { display: flex; gap: 14px; padding: 8px 12px 10px; border: 1px solid #0005; border-radius: 4px; background: #0000001a; flex-wrap: wrap; }
+.key { display: grid; justify-items: center; gap: 6px; }
+.key label { font-family: var(--f-label); font-weight: 600; letter-spacing: .1em; font-size: 12px; text-transform: uppercase; color: var(--silk); white-space: nowrap; }
+.key button {
+  width: 62px; height: 34px; border-radius: 3px; border: 1px solid #000; cursor: pointer;
+  background: linear-gradient(180deg, var(--cap-hi), var(--cap) 60%);
+  box-shadow: 0 3px 0 #000, inset 0 1px 0 #ffffff26;
+  transition: transform .05s, box-shadow .05s;
+}
+.key button:active, .key button.down { transform: translateY(3px); box-shadow: 0 0 0 #000, inset 0 1px 0 #ffffff1a; }
+.key button.red { background: linear-gradient(180deg, #b23a2e, var(--cap-red) 60%); }
+.key button.ivory { background: linear-gradient(180deg, #f2ecdb, var(--cap-ivory) 60%); }
+.key button:disabled { opacity: .45; cursor: not-allowed; }
+.keygrp.service { border-style: dashed; }
+.switches { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: start; }
+.rotary { display: grid; justify-items: center; gap: 4px; width: 92px; }
+.rotary .name { font-family: var(--f-label); font-weight: 600; letter-spacing: .06em; font-size: 12px; color: var(--silk); text-align: center; min-height: 2.4em; display: flex; align-items: end; line-height: 1.15; }
+.dial { position: relative; width: 80px; height: 62px; }
+.dial .pos { position: absolute; font-family: var(--f-label); font-size: 11px; font-weight: 600; letter-spacing: .06em; color: var(--silk-dim); transform: translate(-50%, -50%); white-space: nowrap; }
+.dial .pos.sel { color: var(--silk); }
+.dial button {
+  position: absolute; left: 50%; top: 58%; width: 38px; height: 38px; margin: -19px 0 0 -19px; border-radius: 50%;
+  border: 1px solid #000; cursor: pointer; padding: 0;
+  background: radial-gradient(circle at 40% 35%, #4a4d4b, #191b1a 70%);
+  box-shadow: 0 3px 4px #000a, inset 0 1px 0 #ffffff22;
+}
+.dial button::after {
+  content: ""; position: absolute; left: 50%; top: 3px; width: 4px; height: 15px; margin-left: -2px;
+  border-radius: 2px; background: var(--silk);
+}
+.dial button .rot { position: absolute; inset: 0; }
+.speed { width: 150px; }
+.speed .dial { width: 140px; height: 86px; }
+.speed .dial button { width: 46px; height: 46px; margin: -23px 0 0 -23px; top: 60%; }
+
+/* Desk: program sheet and printer */
+.desk { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+.card { align-content: start; }
+.card h2 { margin: 0 0 10px; font-family: var(--f-label); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; font-size: 17px; }
+.row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.stack { display: grid; gap: 10px; }
+select, input[type=text], textarea {
+  font: 14px/1.4 var(--f-data); background: #161a18; color: var(--silk); border: 1px solid #000; border-radius: 3px;
+  padding: 6px 8px; min-width: 0;
+}
+select { max-width: 100%; }
+#app { width: 100%; }
+textarea { width: 100%; min-height: 220px; resize: vertical; white-space: pre; overflow-wrap: normal; }
+.info { font-size: 12.5px; color: var(--silk-dim); min-height: 1.4em; }
+.info b { color: var(--silk); font-weight: 500; }
+.info a { color: var(--lamp-amber); }
+.warn { color: var(--lamp-amber); }
+.err { color: #ff8a73; }
+.btn {
+  font-family: var(--f-label); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; font-size: 14px;
+  padding: 8px 18px; border-radius: 3px; border: 1px solid #000; cursor: pointer;
+  background: linear-gradient(180deg, #f2ecdb, var(--cap-ivory)); color: var(--bezel); box-shadow: 0 2px 0 #000;
+}
+.btn:active { transform: translateY(2px); box-shadow: none; }
+.btn.ghost { background: transparent; color: var(--silk); border-color: #0008; box-shadow: none; }
+.check { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--silk); cursor: pointer; }
+.paper {
+  background: repeating-linear-gradient(180deg, var(--paper) 0 23px, var(--paper-rule) 23px 24px);
+  color: var(--ink); font: 16px/24px var(--f-type); margin: 0; padding: 8px 14px; height: 300px; overflow: auto;
+  border-radius: 2px; white-space: pre-wrap; overflow-wrap: anywhere; box-shadow: inset 0 0 0 1px #0003, 0 2px 0 #0006;
+  border-left: 10px dotted #cfc3a6;
+}
+.paper .cursor { display: inline-block; width: .6em; height: 1em; background: var(--ink); vertical-align: -2px; animation: blink 1s steps(2, end) infinite; }
+.kbd { display: flex; gap: 8px; }
+.kbd input { flex: 1; }
+.kbd input.want { border-color: var(--lamp-amber); box-shadow: 0 0 0 2px #ffb43c55; }
+.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 8px; }
+.stat { background: #161a18; border-radius: 3px; padding: 6px 8px; border: 1px solid #0006; }
+.stat .k { font-family: var(--f-label); letter-spacing: .1em; font-size: 11.5px; color: var(--silk-dim); text-transform: uppercase; font-weight: 600; }
+.stat .n { font-size: 16px; font-variant-numeric: tabular-nums; color: var(--silk); overflow-wrap: anywhere; }
+footer { font-size: 12.5px; color: var(--silk-dim); line-height: 1.6; max-width: 90ch; }
+footer a { color: var(--lamp-amber); }
+
+@media (max-width: 980px) {
+  .window { grid-template-columns: 1fr; }
+  .desk { grid-template-columns: 1fr; }
+}
+@media (max-width: 720px) {
+  .counters { grid-template-columns: 1fr; }
+  :root { --tube: clamp(34px, 11.5vw, 56px); }
+  .plate { padding: 12px; }
+  .counters { padding: 10px; }
+  .group .tubes { gap: 4px; }
+  .rotary { width: 80px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lamp.blink.on i, .paper .cursor { animation: none; }
+}
+</style>
+</head>
+<body>
+<div class="cabinet">
+
+  <header class="plate nameplate">
+    <div class="brand">
+      <h1>DekatronPC</h1>
+      <span class="sub" data-i18n="subtitle">A110 dekatrons · 6N16B · 6Zh2B · Brainfuck</span>
+    </div>
+    <div class="prefs">
+      <span class="silk dim" data-i18n="sound">Bell sound</span>
+      <div class="radio-group" role="radiogroup" aria-label="Bell sound">
+        <label><input type="radio" name="sound" id="sound-on" value="on" checked><span data-i18n="on">On</span></label>
+        <label><input type="radio" name="sound" id="sound-off" value="off"><span data-i18n="off">Off</span></label>
+      </div>
+      <div class="radio-group" role="radiogroup" aria-label="Language">
+        <label><input type="radio" name="lang" id="lang-en" value="en" checked><span>EN</span></label>
+        <label><input type="radio" name="lang" id="lang-ru" value="ru"><span>RU</span></label>
+      </div>
+    </div>
+  </header>
+
+  <section class="plate window" aria-label="Counters">
+    <div class="counters" id="counters"></div>
+    <div class="insnbox">
+      <div class="silk dim" data-i18n="insn">Instruction</div>
+      <div class="nixie">
+        <div class="sym" id="insn-sym">N</div>
+        <div><div class="mn" id="insn-mn">NOP</div><div class="op" id="insn-op">0x0 · BF</div></div>
+      </div>
+      <div class="status" id="status" aria-live="polite"></div>
+      <div class="lamps" id="lamps"></div>
+    </div>
+  </section>
+
+  <section class="plate strips" aria-label="Memory">
+    <div class="strip-head">
+      <span class="silk" data-i18n="progmem">Program memory around IP</span>
+      <span class="silk dim" data-i18n="bphint">Click a cell to set a breakpoint</span>
+    </div>
+    <div class="strip prog" id="prog-strip"></div>
+    <div class="strip-head">
+      <span class="silk" data-i18n="datamem">Data memory around AP</span>
+      <span class="silk dim" id="ml-note"></span>
+    </div>
+    <div class="strip data" id="data-strip"></div>
+  </section>
+
+  <section class="plate panel" aria-label="Operator panel">
+    <div class="keys" id="keys"></div>
+    <div class="switches" id="switches"></div>
+  </section>
+
+  <section class="desk">
+    <div class="plate card stack">
+      <h2 data-i18n="program">Program</h2>
+      <div class="row">
+        <select id="app" aria-label="Program"></select>
+      </div>
+      <div class="info" id="app-info"></div>
+      <div class="row">
+        <span class="silk dim" data-i18n="dialect">DekatronPC ISA</span>
+        <div class="radio-group" role="radiogroup" aria-label="DekatronPC ISA">
+          <label><input type="radio" name="dialect" id="dialect-dpc" value="dpc"><span data-i18n="on">On</span></label>
+          <label><input type="radio" name="dialect" id="dialect-bf" value="bf" checked><span data-i18n="off">Off</span></label>
+        </div>
+      </div>
+      <div class="info" id="dialect-info"></div>
+      <textarea id="source" spellcheck="false" aria-label="Program text"></textarea>
+      <div class="row">
+        <button class="btn" id="load" data-i18n="load">Load and boot</button>
+        <span class="info" id="asm-info"></span>
+      </div>
+    </div>
+
+    <div class="plate card stack">
+      <h2 data-i18n="printer">Consul printer</h2>
+      <pre class="paper" id="paper" aria-live="off"></pre>
+      <div class="kbd">
+        <input type="text" id="kbd" autocomplete="off" aria-label="Keyboard input" data-i18n-ph="kbdph" placeholder="Type, Enter sends the line to CIN">
+        <button class="btn ghost" id="kbd-send" data-i18n="send">Send</button>
+      </div>
+      <div class="row">
+        <label class="check"><input type="checkbox" id="lf" checked><span data-i18n="lf">Enter adds LF (10)</span></label>
+        <label class="check"><span data-i18n="eof">End of input</span>
+          <select id="eof">
+            <option value="wait" data-i18n="eofwait">wait (hardware)</option>
+            <option value="0">0</option>
+            <option value="255">255</option>
+            <option value="unchanged" data-i18n="eofunch">unchanged</option>
+          </select>
+        </label>
+        <button class="btn ghost" id="paper-clear" data-i18n="clearpaper">Tear off</button>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="k" data-i18n="iret">IRET</div><div class="n" id="st-iret">0</div></div>
+        <div class="stat"><div class="k" data-i18n="rate">Insn/s</div><div class="n" id="st-rate">0</div></div>
+        <div class="stat"><div class="k" data-i18n="rd">Mem reads</div><div class="n" id="st-rd">0</div></div>
+        <div class="stat"><div class="k" data-i18n="wr">Mem writes</div><div class="n" id="st-wr">0</div></div>
+        <div class="stat"><div class="k" data-i18n="bells">Bells</div><div class="n" id="st-bells">0</div></div>
+        <div class="stat"><div class="k" data-i18n="buf">Input buffer</div><div class="n" id="st-buf">0</div></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p data-i18n-html="foot1">The machine is the golden model <a href="https://github.com/radiolok/bfutils/tree/claude_nextGen/dpcrun">dpcrun</a> ported to JavaScript, instruction for instruction. It counts retired instructions (IRET), not clock cycles. Programs load through the bootloader ROM over SOT/EOT; data memory is cleared on power-on, on a new program load and with the MEM CLEAN key. AP wraps at 99999, as in the current RTL (OPEN-001).</p>
+    <p data-i18n-html="foot2">STEP pauses the simulator clock after one instruction. HALT goes through the machine's halt path, like the RTL key: right after a taken bracket it skips the loop scan. Brainfuck-100 programs are from <a href="https://github.com/radiolok/bfutils/tree/claude_nextGen/programs/bf100">bfutils/programs/bf100</a>, each under its own license. Source: <a href="https://github.com/radiolok/dekatronpc">radiolok/dekatronpc</a>.</p>
+  </footer>
+</div>
+
+<script src="dpc.js"></script>
+<script>
+'use strict';
+(function () {
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('dpcsim.' + k); return v === null ? d : v; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('dpcsim.' + k, v); } catch (e) { /* storage unavailable */ } }
+};
+
+//--------------------------------------------------------------------
+// Text
+//--------------------------------------------------------------------
+const T = {
+  en: {
+    subtitle: 'A110 dekatrons · 6N16B · 6Zh2B · Brainfuck', sound: 'Bell sound', on: 'On', off: 'Off',
+    insn: 'Instruction', progmem: 'Program memory around IP', bphint: 'Click a cell to set a breakpoint',
+    datamem: 'Data memory around AP', program: 'Program', dialect: 'DekatronPC ISA',
+    load: 'Load and boot', printer: 'Consul printer', kbdph: 'Type, Enter sends the line to CIN', send: 'Send',
+    lf: 'Enter adds LF (10)', eof: 'End of input', eofwait: 'wait (hardware)', eofunch: 'unchanged',
+    clearpaper: 'Tear off', iret: 'IRET', rate: 'Insn/s', rd: 'Mem reads', wr: 'Mem writes', bells: 'Bells', buf: 'Input buffer',
+    g_ip: 'IP · instruction', g_loop: 'Loop', g_ap: 'AP · address', g_data: 'Data',
+    l_halt: 'Halt', l_run: 'Run', l_bf: 'BF ISA', l_dbg: 'Debug ISA', l_load: 'Load', l_cin: 'CIN',
+    l_ml: 'MemLock', l_dirty: 'Dirty', l_ovf: 'Loop ovf',
+    k_hard: 'Hard rst', k_soft: 'Soft rst', k_halt: 'Halt', k_step: 'Step', k_run: 'Run',
+    k_lstart: 'Load start', k_lstop: 'Load stop', k_prev: 'Prev IP', k_next: 'Next IP', k_clean: 'Mem clean',
+    sw_speed: 'Speed, insn/s', off_: 'OFF', on_: 'ON',
+    d_dpc: 'Full DekatronPC table (H, D, E, S, 0, …). Comments: // ; # to end of line, /* … */.',
+    d_bf: 'Only + - < > [ ] . , count; everything else is a comment.',
+    asm: (n) => `${n.toLocaleString('en')} opcodes`,
+    asm_big: 'does not fit program memory (99 900 cells)',
+    asm_none: 'no instructions in the text',
+    grp_repo: 'DekatronPC programs (rtl/programs)', grp_bf: 'Brainfuck-100 · ',
+    custom: '— your text —',
+    i_steps: 'steps', i_endless: 'endless', i_nofit: 'does not fit 5-2-5-3', i_input: 'reads input', i_eof: 'EOF',
+    i_long: 'long run', i_missing: 'file not in the set',
+    i_nolist: 'Program list not found: run python3 web/build_bf100.py.',
+    s_power: 'Power on. Pick a program and press LOAD AND BOOT.',
+    s_halted: (ip) => `Halted at IP ${ip}. RUN or STEP continues.`,
+    s_running: 'Running.',
+    s_paused: 'Paused by STEP. RUN or STEP continues.',
+    s_boot: 'Hard reset: bootloader ROM running to SOT.',
+    s_loading: (a, b) => `Loading over SOT: ${a} of ${b} opcodes.`,
+    s_loaded: 'Program loaded, Soft Reset done. Press RUN or STEP.',
+    s_loaded_halt: 'EOT received; SoftRstOnEOT is off, the machine halted.',
+    s_wait_insn: 'Loader waiting for opcodes: press LOAD AND BOOT.',
+    s_cin: 'Waiting for input (CIN). Type on the keyboard line.',
+    s_bp: (ip) => `Breakpoint at IP ${ip}.`,
+    s_ovf: 'Loop counter overflow: hardware error, machine halted.',
+    s_finished: (ip) => `HALT at IP ${ip - 1}. Program finished.`,
+    s_clean: 'Data memory cleared.',
+    ml: (on, d) => on ? `MemLock: cell value is in the Data counter${d ? ' (dirty)' : ''}` : 'MemLock off: cell value is in memory'
+  },
+  ru: {
+    subtitle: 'декатроны А110 · 6Н16Б · 6Ж2Б · Brainfuck', sound: 'Звонок', on: 'Вкл', off: 'Выкл',
+    insn: 'Команда', progmem: 'Память программ вокруг IP', bphint: 'Щелчок по ячейке ставит точку останова',
+    datamem: 'Память данных вокруг AP', program: 'Программа', dialect: 'Система команд DekatronPC',
+    load: 'Загрузить', printer: 'Консул', kbdph: 'Набор, Enter отправляет строку в CIN', send: 'Ввод',
+    lf: 'Enter добавляет LF (10)', eof: 'Конец ввода', eofwait: 'ждать (как машина)', eofunch: 'не менять',
+    clearpaper: 'Оторвать', iret: 'IRET', rate: 'Команд/с', rd: 'Чтений', wr: 'Записей', bells: 'Звонков', buf: 'Буфер ввода',
+    g_ip: 'IP · команда', g_loop: 'Цикл', g_ap: 'AP · адрес', g_data: 'Данные',
+    l_halt: 'Останов', l_run: 'Пуск', l_bf: 'BF', l_dbg: 'Отладка', l_load: 'Загрузка', l_cin: 'Ввод',
+    l_ml: 'MemLock', l_dirty: 'Dirty', l_ovf: 'Перепол.',
+    k_hard: 'Апп. сброс', k_soft: 'Прог. сброс', k_halt: 'Останов', k_step: 'Шаг', k_run: 'Пуск',
+    k_lstart: 'Загр. пуск', k_lstop: 'Загр. стоп', k_prev: 'IP −1', k_next: 'IP +1', k_clean: 'Очистка ОЗУ',
+    sw_speed: 'Скорость, команд/с', off_: 'ВЫКЛ', on_: 'ВКЛ',
+    d_dpc: 'Полная таблица DekatronPC (H, D, E, S, 0, …). Комментарии: // ; # до конца строки, /* … */.',
+    d_bf: 'Учитываются только + - < > [ ] . , — всё остальное комментарий.',
+    asm: (n) => `${n.toLocaleString('ru')} опкодов`,
+    asm_big: 'не помещается в память программ (99 900 ячеек)',
+    asm_none: 'в тексте нет команд',
+    grp_repo: 'Программы DekatronPC (rtl/programs)', grp_bf: 'Brainfuck-100 · ',
+    custom: '— свой текст —',
+    i_steps: 'шагов', i_endless: 'бесконечная', i_nofit: 'не помещается в 5-2-5-3', i_input: 'читает ввод', i_eof: 'EOF',
+    i_long: 'долгий счёт', i_missing: 'файла нет в наборе',
+    i_nolist: 'Список программ не найден: запустите python3 web/build_bf100.py.',
+    s_power: 'Питание включено. Выберите программу и нажмите «Загрузить».',
+    s_halted: (ip) => `Останов, IP ${ip}. Пуск или Шаг продолжают.`,
+    s_running: 'Работает.',
+    s_paused: 'Пауза после шага. Пуск или Шаг продолжают.',
+    s_boot: 'Аппаратный сброс: загрузчик в ПЗУ идёт к SOT.',
+    s_loading: (a, b) => `Загрузка по SOT: ${a} из ${b} опкодов.`,
+    s_loaded: 'Программа загружена, выполнен программный сброс. Нажмите Пуск или Шаг.',
+    s_loaded_halt: 'Принят EOT; SoftRstOnEOT выключен, машина остановлена.',
+    s_wait_insn: 'Загрузчик ждёт опкоды: нажмите «Загрузить».',
+    s_cin: 'Ожидание ввода (CIN). Наберите строку.',
+    s_bp: (ip) => `Точка останова, IP ${ip}.`,
+    s_ovf: 'Переполнение счётчика цикла: аппаратная ошибка, машина остановлена.',
+    s_finished: (ip) => `HALT на IP ${ip - 1}. Программа завершена.`,
+    s_clean: 'Память данных очищена.',
+    ml: (on, d) => on ? `MemLock: значение ячейки в счётчике Data${d ? ' (dirty)' : ''}` : 'MemLock снят: значение ячейки в памяти'
+  }
+};
+let lang = store.get('lang', 'en') === 'ru' ? 'ru' : 'en';
+const t = (k, ...a) => { const v = T[lang][k]; return typeof v === 'function' ? v(...a) : v; };
+
+//--------------------------------------------------------------------
+// Machine and simulator state
+//--------------------------------------------------------------------
+const m = new DPC.Machine({ bellOnHalt: true, bellOnError: true });
+const SPEEDS = [1, 4, 16, 64, 256, 1000, 10000, Infinity];
+const SPEED_LABELS = ['1', '4', '16', '64', '256', '1k', '10k', 'MAX'];
+const sim = {
+  clock: false,          // simulator clock runs
+  speed: +store.get('speed', '3'),
+  acc: 0,
+  loadJob: null,         // { total } while LOAD AND BOOT is in progress
+  bps: new Set(),
+  msg: null,             // last event message key/args
+  stepsWindow: [], rate: 0,
+  eof: 'wait',
+  paperDirty: true, outBuf: ''
+};
+if (!(sim.speed >= 0 && sim.speed < SPEEDS.length)) sim.speed = 3;
+
+//--------------------------------------------------------------------
+// Sound
+//--------------------------------------------------------------------
+let audio = null, soundOn = store.get('sound', 'on') !== 'off', lastBell = 0;
+function bellSound() {
+  if (!soundOn) return;
+  const now = performance.now();
+  if (now - lastBell < 250) return;
+  lastBell = now;
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    const t0 = audio.currentTime;
+    [1, 2.76, 5.4].forEach((h, i) => {
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.type = 'sine'; o.frequency.value = 880 * h;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime([0.25, 0.08, 0.04][i], t0 + 0.005);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + [1.4, 0.6, 0.3][i]);
+      o.connect(g).connect(audio.destination);
+      o.start(t0); o.stop(t0 + 1.5);
+    });
+  } catch (e) { /* no audio */ }
+}
+let bellFlash = 0;
+m.onBell = () => { bellFlash = performance.now(); bellSound(); };
+m.onCout = (c) => { sim.outBuf += String.fromCharCode(c); };
+m.onCin = () => {
+  if (m.rx.length) return m.rx.shift();
+  if (sim.eof === 'wait') return -1;
+  if (sim.eof === '0') return 0;
+  if (sim.eof === '255') return 255;
+  return m.cellValue();
+};
+
+//--------------------------------------------------------------------
+// Dekatrons
+//--------------------------------------------------------------------
+const GROUPS = [
+  { id: 'ip', key: 'g_ip', n: 5, val: () => m.ip },
+  { id: 'loop', key: 'g_loop', n: 2, val: () => m.loop },
+  { id: 'ap', key: 'g_ap', n: 5, val: () => m.ap },
+  { id: 'data', key: 'g_data', n: 3, val: () => m.txData() }
+];
+const tubes = [];
+(function buildCounters() {
+  const host = $('counters');
+  for (const g of GROUPS) {
+    const el = document.createElement('div');
+    el.className = 'group';
+    el.innerHTML = `<div class="silk" data-i18n="${g.key}"></div><div class="tubes"></div><div class="readout"></div>`;
+    const row = el.querySelector('.tubes');
+    g.tubes = [];
+    for (let i = 0; i < g.n; i++) {
+      const c = document.createElement('canvas');
+      c.setAttribute('aria-hidden', 'true');
+      row.appendChild(c);
+      const tube = { c, I: new Float32Array(10), digit: 0, w: 0 };
+      tube.I[0] = 1;
+      g.tubes.push(tube); tubes.push(tube);
+    }
+    g.readout = el.querySelector('.readout');
+    host.appendChild(el);
+  }
+})();
+
+const TAU_MS = 70;
+function drawTube(tube) {
+  const c = tube.c, dpr = window.devicePixelRatio || 1;
+  const w = Math.round(c.clientWidth * dpr);
+  if (!w) return;
+  if (c.width !== w) { c.width = w; c.height = w; }
+  const x = c.getContext('2d'), r = w / 2;
+  x.clearRect(0, 0, w, w);
+  // bezel
+  let g = x.createRadialGradient(r, r, r * 0.7, r, r, r);
+  g.addColorStop(0, '#262b29'); g.addColorStop(1, '#0d0f0e');
+  x.fillStyle = g; x.beginPath(); x.arc(r, r, r * 0.99, 0, 7); x.fill();
+  // glass
+  const gr = r * 0.74;
+  g = x.createRadialGradient(r * 0.85, r * 0.8, 0, r, r, gr);
+  g.addColorStop(0, '#1d1714'); g.addColorStop(1, '#080706');
+  x.fillStyle = g; x.beginPath(); x.arc(r, r, gr, 0, 7); x.fill();
+  const pr = r * 0.56;
+  // glow first, behind the pins
+  for (let k = 0; k < 10; k++) {
+    const a = tube.I[k];
+    if (a < 0.02) continue;
+    const ang = (-90 + k * 36) * Math.PI / 180, px = r + pr * Math.cos(ang), py = r + pr * Math.sin(ang);
+    const rad = r * (0.2 + 0.1 * a);
+    g = x.createRadialGradient(px, py, 0, px, py, rad);
+    g.addColorStop(0, `rgba(255,214,170,${a})`);
+    g.addColorStop(0.35, `rgba(255,106,26,${0.85 * a})`);
+    g.addColorStop(1, 'rgba(255,80,10,0)');
+    x.fillStyle = g; x.beginPath(); x.arc(px, py, rad, 0, 7); x.fill();
+  }
+  // 30 cathode pins: main every third
+  for (let p = 0; p < 30; p++) {
+    const ang = (-90 + p * 12) * Math.PI / 180;
+    x.fillStyle = p % 3 === 0 ? '#5a5048' : '#3a332e';
+    x.beginPath(); x.arc(r + pr * Math.cos(ang), r + pr * Math.sin(ang), r * (p % 3 === 0 ? 0.045 : 0.03), 0, 7); x.fill();
+  }
+  // anode disc
+  g = x.createRadialGradient(r * 0.92, r * 0.9, 0, r, r, r * 0.34);
+  g.addColorStop(0, '#55514c'); g.addColorStop(1, '#24221f');
+  x.fillStyle = g; x.beginPath(); x.arc(r, r, r * 0.32, 0, 7); x.fill();
+  // glass highlight
+  x.strokeStyle = 'rgba(255,255,255,0.07)'; x.lineWidth = r * 0.04;
+  x.beginPath(); x.arc(r, r, gr * 0.93, Math.PI * 1.1, Math.PI * 1.45); x.stroke();
+  // digits on the bezel
+  x.font = `600 ${Math.max(7, r * 0.2)}px "IBM Plex Mono", monospace`;
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  for (let k = 0; k < 10; k++) {
+    const ang = (-90 + k * 36) * Math.PI / 180, lr = r * 0.875;
+    x.fillStyle = k === tube.digit ? '#ece4cc' : '#7c7868';
+    x.fillText(String(k), r + lr * Math.cos(ang), r + lr * Math.sin(ang) + r * 0.01);
+  }
+}
+
+let lastFrame = performance.now();
+function updateTubes(dt) {
+  const decay = Math.exp(-dt / TAU_MS);
+  for (const g of GROUPS) {
+    let v = g.val();
+    for (let i = g.n - 1; i >= 0; i--) {
+      const tube = g.tubes[i], d = v % 10;
+      v = Math.floor(v / 10);
+      let changed = tube.digit !== d;
+      tube.digit = d;
+      for (let k = 0; k < 10; k++) {
+        const old = tube.I[k];
+        tube.I[k] = k === d ? 1 : (old * decay < 0.02 ? 0 : old * decay);
+        if (tube.I[k] !== old) changed = true;
+      }
+      if (changed || tube.c.width !== Math.round(tube.c.clientWidth * (window.devicePixelRatio || 1))) drawTube(tube);
+    }
+    g.readout.innerHTML = `<b>${String(g.val()).padStart(g.n, '0')}</b>`;
+  }
+}
+
+//--------------------------------------------------------------------
+// Lamps
+//--------------------------------------------------------------------
+const LAMPS = [
+  ['halt', 'l_halt', 'red', () => m.halted && !sim.loadJob],
+  ['run', 'l_run', 'green', () => sim.clock],
+  ['load', 'l_load', 'amber', () => m.loading],
+  ['bf', 'l_bf', 'amber', () => m.mode === DPC.ISA_BF],
+  ['dbg', 'l_dbg', 'amber', () => m.mode === DPC.ISA_DEBUG],
+  ['cin', 'l_cin', 'amber', () => m.waitingCin && !m.rx.length && sim.eof === 'wait', true],
+  ['ml', 'l_ml', 'amber', () => m.lock],
+  ['dirty', 'l_dirty', 'amber', () => m.dirty],
+  ['ovf', 'l_ovf', 'red', () => m.overflow]
+];
+const lampEls = LAMPS.map(([id, key, color, , blink]) => {
+  const el = document.createElement('div');
+  el.className = 'lamp' + (blink ? ' blink' : '');
+  el.dataset.c = color;
+  el.innerHTML = `<i></i><span data-i18n="${key}"></span>`;
+  $('lamps').appendChild(el);
+  return el;
+});
+
+//--------------------------------------------------------------------
+// Memory strips
+//--------------------------------------------------------------------
+function stripCells(host, n) {
+  if (host.children.length === n) return;
+  host.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const el = document.createElement('div');
+    el.className = 'cell';
+    el.innerHTML = '<span class="a"></span><span class="v"></span><span class="c"></span>';
+    host.appendChild(el);
+  }
+}
+function fitCount(host, cellW) {
+  const w = host.clientWidth - 12;
+  let n = Math.max(5, Math.floor(w / (cellW + 2)));
+  if (n % 2 === 0) n--;
+  return Math.min(n, 41);
+}
+const mod = (a, n) => ((a % n) + n) % n;
+function updateStrips() {
+  const ps = $('prog-strip'), ds = $('data-strip');
+  const pn = fitCount(ps, 40), dn = fitCount(ds, 44);
+  stripCells(ps, pn); stripCells(ds, dn);
+  const ph = (pn - 1) / 2, dh = (dn - 1) / 2;
+  for (let i = 0; i < pn; i++) {
+    const a = mod(m.ip - ph + i, DPC.IP_SIZE), op = m.code(a), rom = a >= DPC.BOOT_BASE;
+    const el = ps.children[i];
+    el.dataset.addr = a;
+    el.className = 'cell' + (rom ? ' rom' : '') + (a === m.ip ? ' cur' : '') + (sim.bps.has(a) ? ' bp' : '');
+    el.children[0].textContent = String(a).padStart(5, '0');
+    el.children[1].textContent = DPC.symbol(op, rom ? DPC.ISA_DEBUG : DPC.ISA_BF);
+    el.children[2].textContent = op.toString(16).toUpperCase();
+  }
+  const n = m.cfg.apTop + 1;
+  for (let i = 0; i < dn; i++) {
+    const a = mod(m.ap - dh + i, n), v = a === m.ap ? m.cellValue() : m.cell(a);
+    const el = ds.children[i];
+    el.className = 'cell' + (a === m.ap ? ' cur' : '');
+    el.children[0].textContent = String(a).padStart(5, '0');
+    el.children[1].textContent = String(v);
+    el.children[2].textContent = v >= 32 && v < 127 ? String.fromCharCode(v) : (v === 10 ? '↵' : '');
+  }
+  $('ml-note').textContent = t('ml', m.lock, m.dirty);
+}
+$('prog-strip').addEventListener('click', (e) => {
+  const el = e.target.closest('.cell');
+  if (!el) return;
+  const a = +el.dataset.addr;
+  if (sim.bps.has(a)) sim.bps.delete(a); else sim.bps.add(a);
+  render();
+});
+
+//--------------------------------------------------------------------
+// Operator panel
+//--------------------------------------------------------------------
+const KEYGROUPS = [
+  [['hard', 'k_hard', 'red'], ['soft', 'k_soft', '']],
+  [['halt', 'k_halt', ''], ['step', 'k_step', ''], ['run', 'k_run', 'ivory']],
+  [['lstart', 'k_lstart', ''], ['lstop', 'k_lstop', '']],
+  [['prev', 'k_prev', ''], ['next', 'k_next', '']],
+  [['clean', 'k_clean', '', true]]
+];
+const keyEls = {};
+for (const grp of KEYGROUPS) {
+  const g = document.createElement('div');
+  g.className = 'keygrp' + (grp[0][3] ? ' service' : '');
+  for (const [id, key, cls] of grp) {
+    const k = document.createElement('div');
+    k.className = 'key';
+    k.innerHTML = `<label for="key-${id}" data-i18n="${key}"></label><button id="key-${id}" class="${cls}" type="button"></button>`;
+    g.appendChild(k);
+    keyEls[id] = k.querySelector('button');
+  }
+  $('keys').appendChild(g);
+}
+
+const SWITCHES = [
+  ['echoMode', 'EchoMode'], ['runOnHardRst', 'RunOnHardRst'], ['runOnSoftRst', 'RunOnSoftRst'],
+  ['softRstOnEot', 'SoftRstOnEOT'], ['bellOnCin', 'BellOnCIN'], ['bellOnHalt', 'BellOnHALT'], ['bellOnError', 'BellOnError']
+];
+const rotaries = [];
+function makeRotary(name, labels, angles, get, set, cls) {
+  const wrap = document.createElement('div');
+  wrap.className = 'rotary' + (cls ? ' ' + cls : '');
+  const id = 'sw-' + name.toLowerCase().replace(/[^a-z]/g, '');
+  wrap.innerHTML = `<label class="name" for="${id}"></label><div class="dial"><button id="${id}" type="button" role="slider"></button></div>`;
+  const dial = wrap.querySelector('.dial'), btn = wrap.querySelector('button');
+  const pos = labels.map((lab, i) => {
+    const s = document.createElement('span');
+    s.className = 'pos';
+    const a = (angles[i] - 90) * Math.PI / 180, R = cls === 'speed' ? 62 : 36;
+    const cx = cls === 'speed' ? 70 : 40, cy = cls === 'speed' ? 52 : 36;
+    s.style.left = (cx + R * Math.cos(a)) + 'px';
+    s.style.top = (cy + R * Math.sin(a) * (cls === 'speed' ? 0.78 : 0.75)) + 'px';
+    dial.appendChild(s);
+    s.addEventListener('click', () => { set(i); render(); });
+    return s;
+  });
+  const r = {
+    name, labels, angles, get, set, btn, pos, wrap,
+    paint() {
+      const i = get();
+      btn.style.transform = `rotate(${angles[i]}deg)`;
+      pos.forEach((p, j) => { p.classList.toggle('sel', j === i); p.textContent = typeof labels[j] === 'function' ? labels[j]() : labels[j]; });
+      btn.setAttribute('aria-valuemin', 0); btn.setAttribute('aria-valuemax', labels.length - 1);
+      btn.setAttribute('aria-valuenow', i);
+      btn.setAttribute('aria-valuetext', pos[i].textContent);
+    }
+  };
+  btn.addEventListener('click', (e) => { set((get() + (e.shiftKey ? labels.length - 1 : 1)) % labels.length); render(); });
+  btn.addEventListener('contextmenu', (e) => { e.preventDefault(); set((get() + labels.length - 1) % labels.length); render(); });
+  btn.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowUp') { set(Math.min(labels.length - 1, get() + 1)); render(); e.preventDefault(); }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') { set(Math.max(0, get() - 1)); render(); e.preventDefault(); }
+  });
+  wrap.querySelector('.name').textContent = name;
+  rotaries.push(r);
+  return wrap;
+}
+for (const [prop, name] of SWITCHES) {
+  const saved = store.get('sw.' + prop, null);
+  if (saved !== null) m.cfg[prop] = saved === '1';
+  $('switches').appendChild(makeRotary(name, [() => t('off_'), () => t('on_')], [-45, 45],
+    () => m.cfg[prop] ? 1 : 0, (i) => { m.cfg[prop] = i === 1; store.set('sw.' + prop, i ? '1' : '0'); }));
+}
+const speedRot = makeRotary('Speed', SPEED_LABELS, SPEED_LABELS.map((_, i) => -120 + i * (240 / 7)),
+  () => sim.speed, (i) => { sim.speed = i; sim.acc = 0; store.set('speed', String(i)); }, 'speed');
+$('switches').appendChild(speedRot);
+const speedName = speedRot.querySelector('.name');
+
+//--------------------------------------------------------------------
+// Execution
+//--------------------------------------------------------------------
+function setMsg(k, ...a) { sim.msg = k ? [k, a] : null; }
+
+// One machine step plus the simulator's checks. Returns false to stop the batch.
+function stepOnce() {
+  const s = m.step();
+  if (s === DPC.OK) {
+    if (!m.loading && sim.bps.has(m.ip) && !sim.loadJob) { sim.clock = false; setMsg('s_bp', m.ip); return false; }
+    return true;
+  }
+  if (s === DPC.WAIT) return false;
+  // halted
+  if (sim.loadJob) return false;   // load job decides below
+  sim.clock = false;
+  if (m.overflow) setMsg('s_ovf');
+  else if (m.code(m.ip - 1) === 0x1) setMsg('s_finished', m.ip);
+  else setMsg('s_halted', m.ip);
+  return false;
+}
+
+function finishLoadJob() {
+  if (!sim.loadJob) return;
+  if (m.loading || m.ip >= DPC.BOOT_BASE || m.insnIn.length) {
+    if (m.halted) { sim.loadJob = null; sim.clock = false; setMsg('s_halted', m.ip); }
+    return;
+  }
+  sim.loadJob = null;
+  if (m.halted) {
+    sim.clock = false;
+    setMsg(m.mode === DPC.ISA_BF && m.ip === 0 ? 's_loaded' : 's_loaded_halt');
+  } else {
+    setMsg('s_running');
+  }
+}
+
+function runFrame(dt) {
+  if (!sim.clock) return 0;
+  let n = 0;
+  const loading = !!sim.loadJob;
+  const speed = loading ? Math.max(SPEEDS[sim.speed], 3000, sim.loadJob.total / 1.5) : SPEEDS[sim.speed];
+  if (speed === Infinity) {
+    const t0 = performance.now();
+    outer: for (;;) {
+      for (let i = 0; i < 4096; i++) {
+        n++;
+        if (!stepOnce()) break outer;
+      }
+      if (performance.now() - t0 > 12) break;
+    }
+  } else {
+    sim.acc += dt / 1000 * speed;
+    let k = Math.min(Math.floor(sim.acc), 200000);
+    sim.acc -= Math.floor(sim.acc);
+    while (k-- > 0) {
+      n++;
+      if (!stepOnce()) { sim.acc = 0; break; }
+      if (sim.loadJob && !m.loading && m.ip < DPC.BOOT_BASE && !m.insnIn.length) break;
+    }
+  }
+  if (loading) finishLoadJob();
+  return n;
+}
+
+//--------------------------------------------------------------------
+// Keys
+//--------------------------------------------------------------------
+function press(id) {
+  switch (id) {
+    case 'hard':
+      sim.loadJob = null; m.hardReset(); sim.clock = !m.halted; setMsg(m.halted ? 's_halted' : 's_boot', m.ip); break;
+    case 'soft':
+      sim.loadJob = null; m.softReset(); sim.clock = !m.halted; setMsg(m.halted ? 's_halted' : 's_running', m.ip); break;
+    case 'run':
+      if (m.halted) m.run();
+      sim.clock = true; sim.acc = 0; setMsg('s_running'); break;
+    case 'halt':
+      m.haltKey(); sim.clock = false; sim.loadJob = null; setMsg('s_halted', m.ip); break;
+    case 'step':
+      sim.clock = false;
+      if (m.halted) m.run();
+      if (stepOnce() || !m.halted) setMsg('s_paused');
+      finishLoadJob();
+      break;
+    case 'lstart':
+      if (!m.halted) break;
+      if (!m.insnIn.length) {
+        const code = assembleCurrent();
+        if (!code) break;
+        m.insnIn = DPC.loadStream(code);
+      }
+      sim.loadJob = { total: m.insnIn.length };
+      m.startLoading(); sim.clock = true; break;
+    case 'lstop':
+      m.loadingStop(); m.insnIn = []; sim.loadJob = null; sim.clock = false; setMsg('s_halted', m.ip); break;
+    case 'prev': m.prevIp(); setMsg('s_halted', m.ip); break;
+    case 'next': m.nextIp(); setMsg('s_halted', m.ip); break;
+    case 'clean': m.clearData(); setMsg('s_clean'); break;
+  }
+  render();
+}
+for (const id in keyEls) keyEls[id].addEventListener('click', () => press(id));
+
+//--------------------------------------------------------------------
+// Programs
+//--------------------------------------------------------------------
+const SAMPLE = '++++++++++[>+++++++>++++++++++>+++>+<<<<-]>++.>+.+++++++..+++.>++.<<+++++++++++++++.>.+++.------.--------.>+.>.HDE';
+let catalog = { repo: [], bf100: [] };
+let current = null;   // selected catalog entry or null for own text
+let inputText = '';   // .in content of the selected program
+
+function dialect() { return $('dialect-dpc').checked ? 'dpc' : 'bf'; }
+function setDialect(d) { $('dialect-dpc').checked = d === 'dpc'; $('dialect-bf').checked = d !== 'dpc'; updateAsmInfo(); }
+
+function assembleCurrent() {
+  const code = DPC.assemble($('source').value, dialect());
+  if (!code.length) { $('asm-info').innerHTML = `<span class="err">${t('asm_none')}</span>`; return null; }
+  if (DPC.loadStream(code).length > DPC.BOOT_BASE) { $('asm-info').innerHTML = `<span class="err">${t('asm_big')}</span>`; return null; }
+  return code;
+}
+function updateAsmInfo() {
+  const code = DPC.assemble($('source').value, dialect());
+  const big = DPC.loadStream(code).length > DPC.BOOT_BASE;
+  $('asm-info').innerHTML = !code.length ? `<span class="err">${t('asm_none')}</span>`
+    : big ? `<span class="err">${t('asm', code.length)} · ${t('asm_big')}</span>` : t('asm', code.length);
+  $('dialect-info').textContent = t(dialect() === 'dpc' ? 'd_dpc' : 'd_bf');
+}
+
+const fmt = (n) => n == null ? '?' : Number(n).toLocaleString(lang === 'ru' ? 'ru' : 'en');
+function appInfo() {
+  const el = $('app-info');
+  if (!current) { el.textContent = ''; return; }
+  const p = current, bits = [];
+  if (p.category) bits.push(`<b>${p.n}. ${p.name}</b>`); else bits.push(`<b>${p.title}</b>`);
+  if (lang === 'ru' && p.description) bits.push(p.description);
+  if (p.steps) bits.push(`${fmt(p.steps)} ${t('i_steps')}${p.steps > 2e8 ? ` <span class="warn">(${t('i_long')})</span>` : ''}`);
+  if (p.infinite) bits.push(`<span class="warn">${t('i_endless')}</span>`);
+  if (p.fits_5_2_5_3 === false) bits.push(`<span class="warn">${t('i_nofit')}</span>`);
+  if (p.reads_input) bits.push(`${t('i_input')}${p.eof_mode ? ` · ${t('i_eof')} ${p.eof_mode}` : ''}`);
+  if (p.source_url) bits.push(`<a href="${p.source_url}" target="_blank" rel="noopener">${p.source_repo}</a> · ${p.license}`);
+  if (p.category && !p.file) bits.push(`<span class="err">${t('i_missing')}</span>`);
+  el.innerHTML = bits.join(' · ');
+}
+
+function fillSelect() {
+  const sel = $('app'), keep = sel.value;
+  sel.innerHTML = '';
+  const own = new Option(t('custom'), 'own');
+  sel.appendChild(own);
+  if (catalog.repo.length) {
+    const og = document.createElement('optgroup');
+    og.label = t('grp_repo');
+    catalog.repo.forEach((p, i) => og.appendChild(new Option(p.title + (p.infinite ? ' ∞' : ''), 'repo:' + i)));
+    sel.appendChild(og);
+  }
+  const cats = {};
+  catalog.bf100.forEach((p, i) => { (cats[p.category] = cats[p.category] || []).push([p, i]); });
+  for (const c of Object.keys(cats)) {
+    const og = document.createElement('optgroup');
+    og.label = t('grp_bf') + c;
+    for (const [p, i] of cats[c]) {
+      const o = new Option(`${p.n}. ${p.name}${p.infinite ? ' ∞' : ''}${p.fits_5_2_5_3 === false ? ' ✕' : ''}`, 'bf:' + i);
+      if (!p.file) o.disabled = true;
+      og.appendChild(o);
+    }
+    sel.appendChild(og);
+  }
+  if (keep && [...sel.options].some(o => o.value === keep)) sel.value = keep;
+}
+
+async function fetchText(path) {
+  const r = await fetch('programs/' + path);
+  if (!r.ok) throw new Error(r.status);
+  return r.text();
+}
+async function selectApp(v) {
+  store.set('app', v);
+  if (v === 'own') { current = null; appInfo(); return; }
+  const [kind, i] = v.split(':');
+  const p = kind === 'repo' ? catalog.repo[+i] : catalog.bf100[+i];
+  if (!p || !p.file) return;
+  current = p; appInfo();
+  try {
+    const [src, inp] = await Promise.all([fetchText(p.file), p.input ? fetchText(p.input) : Promise.resolve('')]);
+    $('source').value = src;
+    inputText = inp;
+    setDialect(p.dialect);
+    sim.eof = p.input && p.reads_input ? (p.eof_mode || '0') : 'wait';
+    $('eof').value = sim.eof;
+    store.set('source', src);
+  } catch (e) {
+    $('app-info').innerHTML += ` · <span class="err">${e}</span>`;
+  }
+}
+$('app').addEventListener('change', (e) => selectApp(e.target.value));
+
+async function loadCatalog() {
+  try {
+    const r = await fetch('programs/index.json');
+    if (!r.ok) throw new Error(r.status);
+    catalog = await r.json();
+  } catch (e) {
+    $('app-info').textContent = t('i_nolist');
+  }
+  fillSelect();
+}
+
+function loadAndBoot() {
+  const code = assembleCurrent();
+  if (!code) return;
+  m.clearCode(); m.clearData();
+  m.tx = ''; sim.outBuf = ''; paperText = ''; $('paper').textContent = '';
+  m.rx = [];
+  if (inputText && current && current.reads_input) for (const ch of inputText) m.rx.push(ch.charCodeAt(0) & 255);
+  m.insnIn = DPC.loadStream(code);
+  m.iret = 0; m.memReads = 0; m.memWrites = 0; m.bells = 0;
+  m.hardReset();
+  m.run();                      // the operator presses RUN after Hard Reset
+  sim.loadJob = { total: m.insnIn.length };
+  sim.clock = true; sim.acc = 0;
+  setMsg('s_boot');
+  updateAsmInfo();
+  render();
+}
+$('load').addEventListener('click', loadAndBoot);
+$('source').addEventListener('input', () => {
+  store.set('source', $('source').value);
+  if (current) { current = null; $('app').value = 'own'; store.set('app', 'own'); appInfo(); inputText = ''; }
+  updateAsmInfo();
+});
+for (const id of ['dialect-dpc', 'dialect-bf']) $(id).addEventListener('change', () => { store.set('dialect', dialect()); updateAsmInfo(); });
+
+//--------------------------------------------------------------------
+// Keyboard and printer
+//--------------------------------------------------------------------
+function sendLine() {
+  const s = $('kbd').value + ($('lf').checked ? '\n' : '');
+  for (const ch of s) m.rx.push(ch.charCodeAt(0) & 255);
+  $('kbd').value = '';
+  render();
+}
+$('kbd').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); sendLine(); } });
+$('kbd-send').addEventListener('click', sendLine);
+$('eof').addEventListener('change', (e) => { sim.eof = e.target.value; });
+$('paper-clear').addEventListener('click', () => { m.tx = ''; sim.outBuf = ''; $('paper').textContent = ''; });
+
+const paper = $('paper');
+let paperText = '';
+function flushPaper() {
+  if (!sim.outBuf) return;
+  let s = sim.outBuf.replace(/\r\n?/g, '\n').replace(/[\x00-\x08\x0b-\x1f\x7f]/g, '');
+  sim.outBuf = '';
+  paperText += s;
+  if (paperText.length > 200000) paperText = paperText.slice(-150000);
+  const atBottom = paper.scrollTop + paper.clientHeight >= paper.scrollHeight - 30;
+  paper.textContent = paperText;
+  if (atBottom) paper.scrollTop = paper.scrollHeight;
+}
+$('paper-clear').addEventListener('click', () => { paperText = ''; });
+
+//--------------------------------------------------------------------
+// Render
+//--------------------------------------------------------------------
+function statusText() {
+  if (sim.loadJob) {
+    if (m.loading) return t('s_loading', sim.loadJob.total - m.insnIn.length, sim.loadJob.total);
+    return t('s_boot');
+  }
+  if (m.waitingInsn && !m.insnIn.length && !m.halted) return t('s_wait_insn');
+  if (m.waitingCin && !m.rx.length && sim.eof === 'wait' && !m.halted) return t('s_cin');
+  if (sim.msg) return t(sim.msg[0], ...sim.msg[1]);
+  return t('s_power');
+}
+function render() {
+  const now = performance.now();
+  const dt = Math.min(250, now - lastFrame);
+  lastFrame = now;
+  updateTubes(dt);
+  const mode = m.mode;
+  $('insn-sym').textContent = DPC.symbol(m.insn, mode);
+  $('insn-mn').textContent = DPC.mnemonic(m.insn, mode);
+  $('insn-op').textContent = `0x${m.insn.toString(16).toUpperCase()} · ${mode === DPC.ISA_BF ? 'BF' : 'DEBUG'}`;
+  $('status').textContent = statusText();
+  LAMPS.forEach((l, i) => lampEls[i].classList.toggle('on', !!l[3]()));
+  updateStrips();
+  flushPaper();
+  $('st-iret').textContent = fmt(m.iret);
+  $('st-rd').textContent = fmt(m.memReads);
+  $('st-wr').textContent = fmt(m.memWrites);
+  $('st-bells').textContent = fmt(m.bells);
+  $('st-buf').textContent = fmt(m.rx.length);
+  $('st-rate').textContent = sim.clock ? fmt(Math.round(sim.rate)) : '0';
+  $('kbd').classList.toggle('want', m.waitingCin && !m.rx.length);
+  keyEls.prev.disabled = keyEls.next.disabled = !m.halted;
+  keyEls.lstart.disabled = !m.halted;
+  keyEls.lstop.disabled = !m.loading;
+  rotaries.forEach(r => r.paint());
+}
+
+function frame(now) {
+  const dt = Math.min(250, now - (frame.last || now));
+  frame.last = now;
+  const n = runFrame(dt);
+  sim.stepsWindow.push([now, n]);
+  while (sim.stepsWindow.length && now - sim.stepsWindow[0][0] > 1000) sim.stepsWindow.shift();
+  if (sim.stepsWindow.length > 1) {
+    const span = Math.max(1, now - sim.stepsWindow[0][0]);
+    sim.rate = sim.stepsWindow.reduce((a, x) => a + x[1], 0) / span * 1000;
+  }
+  render();
+  requestAnimationFrame(frame);
+}
+
+//--------------------------------------------------------------------
+// Language
+//--------------------------------------------------------------------
+function applyLang() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i18n]').forEach(el => { const v = t(el.dataset.i18n); if (typeof v === 'string') el.textContent = v; });
+  document.querySelectorAll('[data-i18n-ph]').forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
+  speedName.textContent = t('sw_speed');
+  const f = FOOT[lang];
+  document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = f[el.dataset.i18nHtml]; });
+  fillSelect(); appInfo(); updateAsmInfo(); render();
+}
+const FOOT = {
+  en: { foot1: document.querySelector('[data-i18n-html=foot1]').innerHTML, foot2: document.querySelector('[data-i18n-html=foot2]').innerHTML },
+  ru: {
+    foot1: 'Машина — golden model <a href="https://github.com/radiolok/bfutils/tree/claude_nextGen/dpcrun">dpcrun</a>, перенесённая на JavaScript команда в команду. Счёт идёт по исполненным командам (IRET), а не по тактам. Программа загружается через ПЗУ загрузчика по SOT/EOT; память данных очищается при включении, при загрузке новой программы и клавишей «Очистка ОЗУ». AP переходит через 99999, как в текущем RTL (OPEN-001).',
+    foot2: '«Шаг» останавливает такт симулятора после одной команды. «Останов» идёт через путь останова машины, как клавиша в RTL: сразу после сработавшей скобки он пропускает промотку цикла. Программы Brainfuck-100 взяты из <a href="https://github.com/radiolok/bfutils/tree/claude_nextGen/programs/bf100">bfutils/programs/bf100</a>, у каждой своя лицензия. Исходники: <a href="https://github.com/radiolok/dekatronpc">radiolok/dekatronpc</a>.'
+  }
+};
+for (const id of ['lang-en', 'lang-ru']) $(id).addEventListener('change', (e) => { lang = e.target.value; store.set('lang', lang); applyLang(); });
+for (const id of ['sound-on', 'sound-off']) $(id).addEventListener('change', (e) => { soundOn = e.target.value === 'on'; store.set('sound', e.target.value); if (soundOn) bellSound(); });
+
+//--------------------------------------------------------------------
+// Start
+//--------------------------------------------------------------------
+$('lang-' + lang).checked = true;
+$(soundOn ? 'sound-on' : 'sound-off').checked = true;
+$('source').value = store.get('source', SAMPLE);
+setDialect(store.get('dialect', 'dpc'));
+applyLang();
+loadCatalog().then(() => {
+  const saved = store.get('app', 'repo:0');
+  if (saved !== 'own' && [...$('app').options].some(o => o.value === saved)) { $('app').value = saved; selectApp(saved); }
+  else if (saved === 'own') $('app').value = 'own';
+});
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
