@@ -52,7 +52,13 @@ body {
   padding-inline: 16px;
   padding-block: 16px 40px;
 }
-.cabinet { max-width: 1240px; margin: 0 auto; display: grid; gap: 14px; }
+.cabinet {
+  max-width: 1240px; margin: 0 auto; display: grid; gap: 14px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas: "name name" "window window" "strips strips" "panel panel" "prog print" "foot foot";
+}
+.prog-card { grid-area: prog; }
+.print-card { grid-area: print; }
 .plate {
   background: linear-gradient(180deg, var(--enamel-hi), var(--enamel) 40%, var(--enamel-lo));
   border: 1px solid #00000066;
@@ -196,7 +202,6 @@ button { font: inherit; color: inherit; }
 .speed .dial button { width: 46px; height: 46px; margin: -23px 0 0 -23px; top: 60%; }
 
 /* Desk: program sheet and printer */
-.desk { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
 .card { align-content: start; }
 .card h2 { margin: 0 0 10px; font-family: var(--f-label); font-weight: 700; letter-spacing: .14em; text-transform: uppercase; font-size: 17px; }
 .row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
@@ -240,7 +245,7 @@ footer a { color: var(--lamp-amber); }
 
 @media (max-width: 980px) {
   .window { grid-template-columns: 1fr; }
-  .desk { grid-template-columns: 1fr; }
+  .cabinet { grid-template-columns: minmax(0, 1fr); grid-template-areas: "name" "window" "strips" "panel" "prog" "print" "foot"; }
 }
 @media (max-width: 720px) {
   .counters { grid-template-columns: 1fr; }
@@ -250,6 +255,33 @@ footer a { color: var(--lamp-amber); }
   .group .tubes { gap: 4px; }
   .rotary { width: 80px; }
 }
+/* Wide screens (Full HD): the whole machine on one screen. Program sheet on
+   the left, console in the middle, printer on the right. */
+@media (min-width: 1680px) {
+  body { padding-block: 12px 24px; }
+  .cabinet {
+    max-width: none; gap: 12px;
+    grid-template-columns: 340px minmax(0, 1fr) 400px;
+    grid-template-areas: "name name name" "prog window print" "prog strips print" "prog panel print" "foot foot foot";
+    grid-template-rows: auto auto auto 1fr auto;
+  }
+  :root { --tube: clamp(42px, calc((100vw - 1050px) / 15), 62px); }
+  .plate { padding: 10px 14px; }
+  .nameplate { padding-block: 6px; }
+  .brand h1 { font-size: 28px; }
+  .window { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .counters { grid-template-columns: repeat(4, auto); padding: 10px; gap: 10px 24px; }
+  .insnbox { grid-template-columns: 240px minmax(0, 1fr) auto; align-items: center; padding: 10px 14px; gap: 6px 18px; }
+  .insnbox > .silk { display: none; }
+  .lamps { grid-template-columns: repeat(3, auto); }
+  .strips { gap: 6px; }
+  .panel { gap: 10px; }
+  .card { display: flex; flex-direction: column; gap: 10px; min-height: 0; }
+  .card h2 { margin: 0; }
+  #source { flex: 1 1 0; height: 0; min-height: 120px; }
+  .paper { flex: 1 1 0; height: 0; min-height: 160px; }
+  .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
 @media (prefers-reduced-motion: reduce) {
   .lamp.blink.on i, .paper .cursor { animation: none; }
 }
@@ -258,7 +290,7 @@ footer a { color: var(--lamp-amber); }
 <body>
 <div class="cabinet">
 
-  <header class="plate nameplate">
+  <header class="plate nameplate" style="grid-area: name">
     <div class="brand">
       <h1>DekatronPC</h1>
       <span class="sub" data-i18n="subtitle">A110 dekatrons · 6N16B · 6Zh2B · Brainfuck</span>
@@ -276,7 +308,7 @@ footer a { color: var(--lamp-amber); }
     </div>
   </header>
 
-  <section class="plate window" aria-label="Counters">
+  <section class="plate window" style="grid-area: window" aria-label="Counters">
     <div class="counters" id="counters"></div>
     <div class="insnbox">
       <div class="silk dim" data-i18n="insn">Instruction</div>
@@ -289,7 +321,7 @@ footer a { color: var(--lamp-amber); }
     </div>
   </section>
 
-  <section class="plate strips" aria-label="Memory">
+  <section class="plate strips" style="grid-area: strips" aria-label="Memory">
     <div class="strip-head">
       <span class="silk" data-i18n="progmem">Program memory around IP</span>
       <span class="silk dim" data-i18n="bphint">Click a cell to set a breakpoint</span>
@@ -302,13 +334,12 @@ footer a { color: var(--lamp-amber); }
     <div class="strip data" id="data-strip"></div>
   </section>
 
-  <section class="plate panel" aria-label="Operator panel">
+  <section class="plate panel" style="grid-area: panel" aria-label="Operator panel">
     <div class="keys" id="keys"></div>
     <div class="switches" id="switches"></div>
   </section>
 
-  <section class="desk">
-    <div class="plate card stack">
+    <section class="plate card stack prog-card" aria-label="Program">
       <h2 data-i18n="program">Program</h2>
       <div class="row">
         <select id="app" aria-label="Program"></select>
@@ -327,9 +358,9 @@ footer a { color: var(--lamp-amber); }
         <button class="btn" id="load" data-i18n="load">Load and boot</button>
         <span class="info" id="asm-info"></span>
       </div>
-    </div>
+    </section>
 
-    <div class="plate card stack">
+    <section class="plate card stack print-card" aria-label="Printer">
       <h2 data-i18n="printer">Consul printer</h2>
       <pre class="paper" id="paper" aria-live="off"></pre>
       <div class="kbd">
@@ -356,10 +387,9 @@ footer a { color: var(--lamp-amber); }
         <div class="stat"><div class="k" data-i18n="bells">Bells</div><div class="n" id="st-bells">0</div></div>
         <div class="stat"><div class="k" data-i18n="buf">Input buffer</div><div class="n" id="st-buf">0</div></div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <footer>
+  <footer style="grid-area: foot">
     <p data-i18n-html="foot1">The machine is the golden model <a href="https://github.com/radiolok/bfutils/tree/claude_nextGen/dpcrun">dpcrun</a> ported to JavaScript, instruction for instruction. It counts retired instructions (IRET), not clock cycles. Programs load through the bootloader ROM over SOT/EOT; data memory is cleared on power-on, on a new program load and with the MEM CLEAN key. AP wraps at 99999, as in the current RTL (OPEN-001).</p>
     <p data-i18n-html="foot2">STEP pauses the simulator clock after one instruction. HALT goes through the machine's halt path, like the RTL key: right after a taken bracket it skips the loop scan. Brainfuck-100 programs are from <a href="https://github.com/radiolok/bfutils/tree/claude_nextGen/programs/bf100">bfutils/programs/bf100</a>, each under its own license. Source: <a href="https://github.com/radiolok/dekatronpc">radiolok/dekatronpc</a>.</p>
   </footer>
