@@ -1,11 +1,12 @@
 name: Web simulator on GitHub Pages
 
 # Publishes web/ (page, model and the generated program bundle) to GitHub
-# Pages. Repository settings: Pages -> Source: GitHub Actions.
+# Pages. Repository settings: Pages -> Source: GitHub Actions, and the
+# branches above allowed in Environments -> github-pages -> Deployment branches.
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "master", "claude_nextGen", "web_simulator" ]
     paths: [ "web/**", "bfutils", "rtl/programs/**", ".github/workflows/pages.yml" ]
   workflow_dispatch:
 

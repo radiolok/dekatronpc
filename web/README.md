@@ -22,7 +22,7 @@ The page fetches `programs/`, so it needs an HTTP server: opening `index.html` a
 
 ## Deploy
 
-- **GitHub Pages:** `.github/workflows/pages.yml` builds and publishes on every push to `master` that touches `web/`, `bfutils` or `rtl/programs/`, and on manual run. Repository settings, Pages, Source: GitHub Actions.
+- **GitHub Pages:** `.github/workflows/pages.yml` builds and publishes on every push to `master`, `claude_nextGen` or `web_simulator` that touches `web/`, `bfutils` or `rtl/programs/`, and on manual run. Repository settings: Pages, Source: GitHub Actions; Environments, `github-pages`, Deployment branches: allow the branch you deploy from.
 - **Own server:** run `build_bf100.py`, then copy `index.html`, `dpc.js` and `programs/` to any static directory. All paths are relative.
 
 ## Tests
