@@ -261,13 +261,15 @@ footer a { color: var(--lamp-amber); }
    the left, console in the middle, printer on the right. */
 @media (min-width: 1680px) {
   body { padding-block: 12px 24px; }
+  /* On ultrawide screens keep the machine at 16:9 of the window height. */
+  :root { --cab: min(100vw - 32px, max(1880px, 100vh * 16 / 9)); }
   .cabinet {
-    max-width: none; gap: 12px;
+    max-width: var(--cab); gap: 12px;
     grid-template-columns: 340px minmax(0, 1fr) 400px;
     grid-template-areas: "name name name" "prog window print" "prog strips print" "prog panel print" "foot foot foot";
     grid-template-rows: auto auto auto 1fr auto;
   }
-  :root { --tube: clamp(42px, calc((100vw - 1050px) / 15), 62px); }
+  :root { --tube: clamp(42px, calc((var(--cab) - 1018px) / 15), 62px); }
   .plate { padding: 10px 14px; }
   .nameplate { padding-block: 6px; }
   .brand h1 { font-size: 28px; }
