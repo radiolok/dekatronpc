@@ -104,10 +104,9 @@ Ainv R nR inv1
 Adffsrn D C S nR Q nQ dffsrn1
 .ENDS DFFSR_n
 
-* Guide gate of a dekatron decade (one J2 double triode): YA = GA & EN, YB = GB & EN
-.SUBCKT GUIDE_EN_J2 EN GA GB YA YB
-E1 YA 0 VALUE = { ((v(GA) > 0.5) && (v(EN) > 0.5)) ? 1 : 0 }
-E2 YB 0 VALUE = { ((v(GB) > 0.5) && (v(EN) > 0.5)) ? 1 : 0 }
+* Guide gate of a dekatron decade, one per guide: J2 pentode, two control grids (guide G and EN): Y = G & EN
+.SUBCKT GUIDE_EN_J2 EN G Y
+E1 Y 0 VALUE = { ((v(G) > 0.5) && (v(EN) > 0.5)) ? 1 : 0 }
 .ENDS GUIDE_EN_J2
 
 .SUBCKT TIEHI H

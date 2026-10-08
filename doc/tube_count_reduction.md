@@ -25,7 +25,7 @@ counters included, memory/reset relay/panel excluded):
 | Relays for panel switches, + 5 relays (REQ-MOD-011) | §15 | 661.5 | 684 | 250 | 1595.5 | +17.5 † |
 | Prefetch P3, opcode latch back in MachineCtrl (REQ-PERF-003) | §16 | **663.8** | **684** ‡ | **318.7** | **≈ 1666.5** | +71 |
 | Binary FSM encoding in DekatronCounter, IpLine, ApLine (T1) | §17.6 | **517.5** | **599** | **334** | **1450.5** (mean of 3 seeds ≈ 1437) | −219 § |
-| One pulse sender per counter + J2 guide gate (T5), busy flag in Loop/AP (T4), MachineCtrl state codes (T6) | §17.7 | **482.5** | **560.5** | **319.5** | **1362.5** (mean of 3 seeds 1362) | −75 § |
+| One pulse sender per counter + J2 guide gates (T5), busy flag in Loop/AP (T4), MachineCtrl state codes (T6) | §17.7 | **489.5** | **568.5** | **319.5** | **1377.5** (mean of 3 seeds 1377) | −60 § |
 
 Δ is the change of the total. Each step re-ran ABC, which moves a block whose RTL
 didn't change by up to ±30 tubes, so the RTL effect alone (old and new RTL synthesized
@@ -40,7 +40,7 @@ means over 3 `&deepsyn` seeds (§16). After P3 the three blocks are about **1666
 5 relays**.
 § T1 row: default seed; Δ is the mean over 3 seeds against HEAD before T1 (≈ 1656 → ≈ 1437, §17.2).
 After T1 the three blocks are **1450.5 tubes + 5 relays** (default seed), 64 triggers. After T4–T6:
-**1362.5 tubes + 5 relays** (default seed; 3 seeds 1362.5 / 1361 / 1362.5), 62 triggers, 15 `GUIDE_EN_J2`.
+**1377.5 tubes + 5 relays** (default seed; 3 seeds 1377.5 / 1376 / 1377.5), 62 triggers, 30 `GUIDE_EN_J2`.
 
 Overall: **2636 → 1578 (−1058, −40 %)** for the three blocks. Of the §5 ideas, R1, R2,
 R3, R4, R6 and R7 are done, R8 and R9 were rejected by the owner, R5 and R11 are open,
@@ -53,7 +53,7 @@ used up; see §6 for what's next.
 
 **Second attempt (2026-10-08, §17):** binary state encoding (measured −219, **done**, §17.6), diode codecs under REQ-AUTH-002 (≈ −150…−170) and latches for the counter
 carry flags (≈ −70…−84) would take the three blocks from ≈ 1656 to ≈ 1170–1200.
-T1 and T4–T6 are in the RTL (three blocks ≈ 1362). Owner (2026-10-08): T2 rejected (diodes
+T1 and T4–T6 are in the RTL (three blocks ≈ 1377). Owner (2026-10-08): T2 rejected (diodes
 only in rectifiers and ferrite memory, REQ-AUTH-002), T3 and T8 postponed, T7 and T9 rejected (§17.5).
 
 ## 1. Baseline
@@ -980,9 +980,12 @@ Owner's decisions: see §17.5. Changes:
   `en_chain[i] = en_chain[i-1] & (dec ? zeroes_q[i-1] : nines_q[i-1])`. Step and direction
   are already in the buses, so the chain needs neither.
 - `DekatronModule`: ports `GuideA`, `GuideB`, `En` instead of `Clk`, `Rst_n`, `StepF`, `StepR`,
-  `Phase1_i`, `Phase2_i`; parameter `EXT_PHASES` removed. Its guides go through `GUIDE_EN_J2`.
-- `GUIDE_EN_J2` is a new liberty cell: one J2 tube, a triode per guide, `YA = GA·EN`,
-  `YB = GB·EN`. Like `RELAY_2CO`, its outputs have no function, so ABC never uses it. It has
+  `Phase1_i`, `Phase2_i`; parameter `EXT_PHASES` removed. Each guide goes through its own
+  `GUIDE_EN_J2` (two per decade, owner: one J2 per guide signal).
+- `GUIDE_EN_J2` is a new liberty cell: one J2 tube, a pentode with two control grids (the guide
+  pulse on one, EN on the other), `Y = G·EN`. Like `RELAY_2CO`, its output has no function,
+  so ABC never uses it. (The first version modelled one cell for both guides as one tube;
+  the owner corrected it: one J2 per guide.) It has
   a model in `vtube_cells.v`, a behavioural model in `DekatronModule.sv` under `ifndef SYNTH`,
   150 ns arcs in `vtube_timing.json` and a subckt in `vtube_cells.sp`.
 - `Dekatron_tb` has its own `DekatronPulseSender` (EXT_PHASES = 0) and drives `En = 1`.
@@ -1016,14 +1019,16 @@ Synthesis (`run_tests.sh -s`, `equiv_opt` proven on all three):
 
 | Block | After T1, mean of 3 seeds | After T4–T6, seeds 0 / 1 / 2 | Mean | Δ |
 |---|---|---|---|---|
-| IpLine | 514.7 | 482.5 / 484 / 480.5 | 482.3 | −32.3 |
-| ApLine | 597.2 | 560.5 / 557 / 565 | 560.8 | −36.3 |
+| IpLine | 514.7 | 489.5 / 491 / 487.5 | 489.3 | −25.3 |
+| ApLine | 597.2 | 568.5 / 565 / 573 | 568.8 | −28.3 |
 | MachineCtrl | 325.2 | 319.5 / 320 / 317 | 318.8 | −6.3 |
-| **Total** | **1437** | 1362.5 / 1361 / 1362.5 | **1362** | **−75** |
+| **Total** | **1437** | 1377.5 / 1376 / 1377.5 | **1377** | **−60** |
 
-Per counter (seed 0): Loop 54 (was ≈ 72.5), IP 177, Data 219.5, AP 165. `DekatronModule`
-went from 6 (pulse sender) to 1 (J2 gate) tube of guide logic per decade; a counter gains a
-6-tube pulse sender. Triggers 64 → 62 (Loop and AP).
+Seed 0 was synthesized with both cell versions: two J2 per decade gives exactly +15 (IpLine
++7, ApLine +8) over one, since the cells are fixed and ABC's logic doesn't change; seeds 1–2
+are the one-cell runs + 15. Per counter (seed 0): Loop 56, IP 182, Data 222.5, AP 170.
+`DekatronModule` went from 6 (pulse sender) to 2 (J2 gates) tubes of guide logic per decade;
+a counter gains a 6-tube pulse sender. Triggers 64 → 62 (Loop and AP).
 
 Verification:
 - `run_tests.sh -t`: Verilator lint clean (DekatronPC, Emulator); Icarus Dekatron, Counter,

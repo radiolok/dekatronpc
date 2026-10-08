@@ -325,15 +325,12 @@ specify
 endspecify
 endmodule
 
-module GUIDE_EN_J2(EN, GA, GB, YA, YB);
-input EN, GA, GB;
-output YA, YB;
-assign YA = GA & EN;
-assign YB = GB & EN;
+module GUIDE_EN_J2(EN, G, Y);
+input EN, G;
+output Y;
+assign Y = G & EN;
 specify
-	(EN => YA) = 0;
-	(GA => YA) = 0;
-	(EN => YB) = 0;
-	(GB => YB) = 0;
+	(EN => Y) = 0;
+	(G => Y) = 0;
 endspecify
 endmodule

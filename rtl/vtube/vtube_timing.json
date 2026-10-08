@@ -33,7 +33,7 @@
       "setuphold": {"D": [150, 150]}},
     "DFFSR_n": {"iopath": {"posedge C->Q": 150, "posedge C->QN": 150, "S->Q": 150, "S->QN": 150, "R->Q": 150, "R->QN": 150},
       "setuphold": {"D": [150, 150]}},
-    "GUIDE_EN_J2": {"iopath": {"EN->YA": 150, "GA->YA": 150, "EN->YB": 150, "GB->YB": 150}},
+    "GUIDE_EN_J2": {"iopath": {"EN->Y": 150, "G->Y": 150}},
     "RELAY_2CO": {"iopath": {"COIL->C1": 0, "NC1->C1": 0, "NO1->C1": 0, "COIL->C2": 0, "NC2->C2": 0, "NO2->C2": 0}}
   }
 }
