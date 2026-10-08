@@ -13,7 +13,9 @@
  *  - AP limit defaults to 99999, as in the current RTL (ApLine has no top
  *    limit, OPEN-001) and as DekatronPC_tb.cpp builds dpcrun.
  *  - Panel keys that dpcrun has no API for: haltKey(), loadingStop(),
- *    nextIp()/prevIp() (manual IP move while halted).
+ *    nextIp()/prevIp() (manual IP move while halted), and manualStep(),
+ *    the page's INC/DEC keys on a counter picked by the counter selector
+ *    (a simulator extension: the RTL has keys for IP only).
  *  - assemble() knows two dialects and comments, see below.
  *
  * Copyright (c) 2016-2026, Artem Kashkanov. BSD-2-Clause, see dpcrun.cpp.
@@ -162,6 +164,23 @@
     // keyNextIp / keyPrevIp in IpLine S_HALT: step IP, re-read on resume.
     nextIp() { if (this.halted) { this.ip = (this.ip + 1) % IP_SIZE; this.ipCounted = false; } }
     prevIp() { if (this.halted) { this.ip = (this.ip + IP_SIZE - 1) % IP_SIZE; this.ipCounted = false; } }
+
+    // Manual INC/DEC of one counter between instructions.
+    //  ip   - as keyNextIp/keyPrevIp: the instruction is re-read on resume
+    //  loop - 0..99 with wrap, the overflow flag is not touched
+    //  ap   - as > / <: a dirty Data counter is flushed first, lazy read after
+    //  data - as + / -: the cell is read if needed, MemLock and dirty are set
+    manualStep(counter, dec) {
+      switch (counter) {
+        case 'ip':
+          this.ip = dec ? (this.ip + IP_SIZE - 1) % IP_SIZE : (this.ip + 1) % IP_SIZE;
+          this.ipCounted = false;
+          break;
+        case 'loop': this.loop = dec ? (this.loop + LOOP_SIZE - 1) % LOOP_SIZE : (this.loop + 1) % LOOP_SIZE; break;
+        case 'ap': this.apMove(false, dec); break;
+        case 'data': this.dataStep(dec); break;
+      }
+    }
 
     enterHalt() {
       this.halted = true;
