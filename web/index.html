@@ -229,9 +229,12 @@ textarea { width: 100%; min-height: 260px; resize: vertical; white-space: pre-wr
 .btn.ghost { background: transparent; color: var(--silk); border-color: #0008; box-shadow: none; }
 .check { display: inline-flex; gap: 6px; align-items: center; font-size: 13px; color: var(--silk); cursor: pointer; }
 .paper {
-  background: repeating-linear-gradient(180deg, var(--paper) 0 23px, var(--paper-rule) 23px 24px);
-  color: var(--ink); font: 16px/24px var(--f-type); margin: 0; padding: 8px 14px; height: 300px; overflow: auto;
-  border-radius: 2px; white-space: pre-wrap; overflow-wrap: anywhere; box-shadow: inset 0 0 0 1px #0003, 0 2px 0 #0006;
+  --pfs: 16px; --plh: 24px;
+  background: repeating-linear-gradient(180deg, var(--paper) 0 calc(var(--plh) - 1px), var(--paper-rule) calc(var(--plh) - 1px) var(--plh));
+  background-attachment: local;
+  color: var(--ink); font-family: var(--f-type); font-size: var(--pfs); line-height: var(--plh);
+  margin: 0; padding: 8px 10px; height: 300px; overflow-y: auto; overflow-x: hidden;
+  border-radius: 2px; white-space: pre; box-shadow: inset 0 0 0 1px #0003, 0 2px 0 #0006;
   border-left: 10px dotted #cfc3a6;
 }
 .paper .cursor { display: inline-block; width: .6em; height: 1em; background: var(--ink); vertical-align: -2px; animation: blink 1s steps(2, end) infinite; }
@@ -265,11 +268,11 @@ footer a { color: var(--lamp-amber); }
   :root { --cab: min(100vw - 32px, max(1880px, 100vh * 16 / 9)); }
   .cabinet {
     max-width: var(--cab); gap: 12px;
-    grid-template-columns: 340px minmax(0, 1fr) 400px;
+    grid-template-columns: 320px minmax(0, 1fr) 480px;
     grid-template-areas: "name name name" "prog window print" "prog strips print" "prog panel print" "foot foot foot";
     grid-template-rows: auto auto auto 1fr auto;
   }
-  :root { --tube: clamp(42px, calc((var(--cab) - 1018px) / 15), 62px); }
+  :root { --tube: clamp(42px, calc((var(--cab) - 1098px) / 15), 62px); }
   .plate { padding: 10px 14px; }
   .nameplate { padding-block: 6px; }
   .brand h1 { font-size: 28px; }
@@ -381,6 +384,15 @@ footer a { color: var(--lamp-amber); }
             <option value="unchanged" data-i18n="eofunch">unchanged</option>
           </select>
         </label>
+        <label class="check"><span data-i18n="cols">Columns</span>
+          <select id="cols">
+            <option value="40">40</option>
+            <option value="64">64</option>
+            <option value="72">72</option>
+            <option value="80">80</option>
+            <option value="132">132</option>
+          </select>
+        </label>
         <button class="btn ghost" id="paper-clear" data-i18n="clearpaper">Tear off</button>
       </div>
       <div class="stats">
@@ -418,7 +430,7 @@ const T = {
     insn: 'Instruction', progmem: 'Program memory around IP', bphint: 'Click a cell to set a breakpoint',
     datamem: 'Data memory around AP', program: 'Program', dialect: 'DekatronPC ISA',
     load: 'Load and boot', printer: 'Consul printer', kbdph: 'Type, Enter sends the line to CIN', send: 'Send',
-    lf: 'Enter adds LF (10)', eof: 'End of input', eofwait: 'wait (hardware)', eofunch: 'unchanged',
+    lf: 'Enter adds LF (10)', eof: 'End of input', eofwait: 'wait (hardware)', eofunch: 'unchanged', cols: 'Columns',
     clearpaper: 'Tear off', iret: 'IRET', rate: 'Insn/s', rd: 'Mem reads', wr: 'Mem writes', bells: 'Bells', buf: 'Input buffer',
     g_ip: 'IP · instruction', g_loop: 'Loop', g_ap: 'AP · address', g_data: 'Data',
     l_halt: 'Halt', l_run: 'Run', l_bf: 'BF ISA', l_dbg: 'Debug ISA', l_load: 'Load', l_cin: 'CIN',
@@ -457,7 +469,7 @@ const T = {
     insn: 'Команда', progmem: 'Память программ вокруг IP', bphint: 'Щелчок по ячейке ставит точку останова',
     datamem: 'Память данных вокруг AP', program: 'Программа', dialect: 'Система команд DekatronPC',
     load: 'Загрузить', printer: 'Консул', kbdph: 'Набор, Enter отправляет строку в CIN', send: 'Ввод',
-    lf: 'Enter добавляет LF (10)', eof: 'Конец ввода', eofwait: 'ждать (как машина)', eofunch: 'не менять',
+    lf: 'Enter добавляет LF (10)', eof: 'Конец ввода', eofwait: 'ждать (как машина)', eofunch: 'не менять', cols: 'Колонок',
     clearpaper: 'Оторвать', iret: 'IRET', rate: 'Команд/с', rd: 'Чтений', wr: 'Записей', bells: 'Звонков', buf: 'Буфер ввода',
     g_ip: 'IP · команда', g_loop: 'Цикл', g_ap: 'AP · адрес', g_data: 'Данные',
     l_halt: 'Останов', l_run: 'Пуск', l_bf: 'BF', l_dbg: 'Отладка', l_load: 'Загрузка', l_cin: 'Ввод',
@@ -1054,18 +1066,58 @@ $('kbd-send').addEventListener('click', sendLine);
 $('eof').addEventListener('change', (e) => { sim.eof = e.target.value; });
 $('paper-clear').addEventListener('click', () => { m.tx = ''; sim.outBuf = ''; $('paper').textContent = ''; });
 
+// Printer with a fixed number of columns, like a terminal: lines longer
+// than the width wrap, and the type is sized so that the width fits the paper.
 const paper = $('paper');
-let paperText = '';
+let paperText = '', paperDirty = false;
+let cols = +store.get('cols', '80');
+if (![40, 64, 72, 80, 132].includes(cols)) cols = 80;
+$('cols').value = String(cols);
+let charRatio = 0.6;   // advance width / font size, measured below
+function measureChar() {
+  const probe = document.createElement('span');
+  probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;font-size:100px;font-family:' + getComputedStyle(paper).fontFamily;
+  probe.textContent = 'M'.repeat(20);
+  document.body.appendChild(probe);
+  const w = probe.getBoundingClientRect().width / 20 / 100;
+  probe.remove();
+  if (w > 0.3 && w < 1) charRatio = w;
+}
+function fitPaper() {
+  const cs = getComputedStyle(paper);
+  const inner = paper.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 2;
+  if (inner <= 0) return;
+  const fs = Math.max(4, Math.min(18, inner / (cols * charRatio)));
+  paper.style.setProperty('--pfs', fs.toFixed(2) + 'px');
+  paper.style.setProperty('--plh', Math.round(fs * 1.45) + 'px');
+}
+function wrapText(text) {
+  const out = [];
+  for (const line of text.split('\n')) {
+    let l = line.includes('\t') ? line.replace(/[^\t]*\t/g, (seg) => { const b = seg.slice(0, -1); return b + ' '.repeat(8 - (b.length % 8)); }) : line;
+    if (l.length <= cols) { out.push(l); continue; }
+    for (let i = 0; i < l.length; i += cols) out.push(l.slice(i, i + cols));
+  }
+  return out.join('\n');
+}
 function flushPaper() {
-  if (!sim.outBuf) return;
-  let s = sim.outBuf.replace(/\r\n?/g, '\n').replace(/[\x00-\x08\x0b-\x1f\x7f]/g, '');
-  sim.outBuf = '';
-  paperText += s;
-  if (paperText.length > 200000) paperText = paperText.slice(-150000);
+  if (sim.outBuf) {
+    const s = sim.outBuf.replace(/\r\n?/g, '\n').replace(/[\x00-\x08\x0b-\x1f\x7f]/g, '');
+    sim.outBuf = '';
+    paperText += s;
+    if (paperText.length > 200000) paperText = paperText.slice(-150000);
+    paperDirty = true;
+  }
+  if (!paperDirty) return;
+  paperDirty = false;
   const atBottom = paper.scrollTop + paper.clientHeight >= paper.scrollHeight - 30;
-  paper.textContent = paperText;
+  paper.textContent = wrapText(paperText);
   if (atBottom) paper.scrollTop = paper.scrollHeight;
 }
+$('cols').addEventListener('change', (e) => { cols = +e.target.value; store.set('cols', String(cols)); fitPaper(); paperDirty = true; flushPaper(); });
+measureChar(); fitPaper();
+if (window.ResizeObserver) new ResizeObserver(fitPaper).observe(paper);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measureChar(); fitPaper(); });
 $('paper-clear').addEventListener('click', () => { paperText = ''; });
 
 //--------------------------------------------------------------------

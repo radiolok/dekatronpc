@@ -39,6 +39,8 @@ Memory is cleared only at power-on, on LOAD AND BOOT and by the MEM CLEAN key. H
 
 Keys (rectangles, label above): Hard rst, Soft rst, Halt, Step, Run, Load start, Load stop, Prev IP, Next IP, plus the simulator's Mem clean. Switches (rotary OFF/ON): EchoMode, RunOnHardRst, RunOnSoftRst, SoftRstOnEOT, BellOnCIN, BellOnHALT, BellOnError. Defaults are the Emulator's hard-wired values (OPEN-011) except BellOnHALT and BellOnError, which are on so a finished program rings. Speed: 1, 4, 16, 64, 256, 1k, 10k instructions/s or MAX. The page counts retired instructions only.
 
+The printer has a column selector (40, 64, 72, 80, 132; default 80): lines longer than the width wrap like on a terminal, tabs stop every 8 columns, and the type is sized so the chosen width fills the paper.
+
 `key_next_app_i` is replaced by the program selector. The bell sound plays on every Bell output and has an On/Off radio.
 
 ## 5. Finding: halt step skips a pending loop scan
