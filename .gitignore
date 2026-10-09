@@ -17,6 +17,7 @@ vhdl/share/
 *.dot
 *.vcd
 *_synth.v
+!webui/test/fixtures/*_synth.v
 *_ilang.txt
 *.svg
 *.txt
