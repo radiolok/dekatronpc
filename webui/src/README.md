@@ -160,21 +160,28 @@ const addModuleInstance = useProjectStore(s => s.addModuleInstance);
 ```
 
 `useProjectStore.getState()` is fine inside event handlers. During render it gives a
-value that doesn't update, which is the cause of D4 in the README's Known issues.
+value that doesn't update when the store changes.
 
 ## Persistence (`services/projectIO.ts`)
 
 - `serializeProject` and `deserializeProject` convert to and from JSON.
-  `deserializeProject` runs `migrateProject()`. That currently handles only the
-  pre-0.2 format (single `netlist`, which becomes a `Legacy` block). A
-  `0.2.0 → 0.3.0` step (`modules` becomes `moduleTypes` plus `ModuleInstance`s,
-  and the old chassis fields map to `BlockConfig`) still needs to be written.
+  `serializeProject` writes only `pickProjectState(state)`, so you can pass it the
+  whole store: actions, undo history and `activeBlockId` are dropped.
+- `deserializeProject` runs `migrateProject()`, which chains the steps:
+  - pre-0.2: a single `netlist` becomes a `Legacy` block;
+  - 0.2.0 → 0.3.0 (`migrateFrom02`): each `HardwareModule` becomes a `ModuleType`
+    plus, if it was placed, a `ModuleInstance` with the same id. The slot's single
+    `pinMapping` becomes the map of copy 0. The old chassis fields have no
+    counterpart, so the chassis is reset to `DEFAULT_BLOCK_CONFIG` (keeping
+    `rows`), and placements that no longer pass `canPlaceModule` are dropped,
+    along with their elements and wires.
+
+  Missing top-level fields are then filled with defaults (`withDefaults`).
 - `saveProjectToFile` downloads `<name>.dpc.json`. `loadProjectFromFile` opens a
   file picker.
-- `startAutosave` writes to `localStorage` (`dekatronpc-project-autosave`) every 30 s.
-
-**Always pass `pickProjectState(store)` to save and autosave, never the store
-itself.** Otherwise the undo history ends up in the file.
+- `startAutosave` writes to `localStorage` (`dekatronpc-project-autosave`) every
+  30 s and on `pagehide`. `main.tsx` restores it with `loadAutosave()` before the
+  first render. `ProjectManager`'s *New Project* clears it.
 
 ## Parsers
 
@@ -192,9 +199,12 @@ under plain Node.
 ## Testing
 
 - Use Vitest with `globals: true` (`npm test`). Tests live outside `src/`, in
-  `webui/test/`, mirroring the source tree (`test/parsers/`, `test/store/`), as
-  `*.test.ts`. They import code through the `@/` alias. CI runs them from
-  `.github/workflows/webui.yml`.
+  `webui/test/`, mirroring the source tree (`test/parsers/`, `test/store/`,
+  `test/services/`), as `*.test.ts`. They import code through the `@/` alias. CI
+  runs them from `.github/workflows/webui.yml`.
+- Component tests go in `test/ui/` as `*.test.tsx`, starting with
+  `// @vitest-environment jsdom`, and use `@testing-library/react`. `app.test.tsx`
+  clicks through every tab, so a component that throws on render fails CI.
 - Store tests create a fresh store per test with `createProjectStore()`.
 - **Add fixtures, not paths into `rtl/`.** Put small hand-written `.lib`, `.v` and
   `.dpc.json` files in `test/fixtures/`. Synthesis outputs such as

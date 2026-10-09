@@ -7,7 +7,8 @@ tube module, where each module sits in the chassis, and how the modules are wire
 together. The end product is a wiring list you can build the machine from.
 
 > **Status: early development (Stage 1 of 7).** Project management, netlist/liberty
-> import, multi-block projects and the custom-element editor work. Modules, Placement,
+> import, multi-block projects and the custom-element editor work. The netlist import
+> handles flat netlists only (H1). Modules, Placement,
 > Routing and Assembly are placeholder tabs. See [Status](#status) and
 > [Known issues](#known-issues) before using it.
 
@@ -51,13 +52,13 @@ module designs and one chassis geometry.
 |---|---|---|
 | 1 | Vite + React + TypeScript skeleton, tab shell | ✅ Done |
 | 1 | Zustand + Immer store with undo/redo (50 steps) | ✅ Done. Every edit is undoable |
-| 1 | JSON project save / open | ✅ Done (see D1: saves extra state) |
-| 1 | Autosave to `localStorage` every 30 s | ⚠️ Writes only. Never restored on start (D2) |
+| 1 | JSON project save / open, migration from older formats | ✅ Done |
+| 1 | Autosave to `localStorage` every 30 s and on page close | ✅ Restored on start |
 | 1 | Liberty parser (`vtube_cells.lib`, incl. `tubes`, `ff`, `latch`) | ✅ Done, unit-tested |
 | 1 | Verilog parser (Yosys flat structural) | ✅ Done, unit-tested |
 | 1 | Multi-block projects (2–3 netlists, shared library/modules/chassis) | ✅ Done |
 | 2 | **Elements** tab: custom elements not in the library (e.g. dekatron) | ✅ Done |
-| 2 | Data model v0.3.0: `ModuleType` + per-block `ModuleInstance`, per-copy pin maps, top-view chassis | ✅ In store and types. UI not migrated yet (N1, N2) |
+| 2 | Data model v0.3.0: `ModuleType` + per-block `ModuleInstance`, per-copy pin maps, top-view chassis | ✅ In store, types and the Project tab |
 | 2 | **Modules** tab: module-type editor, 2×36 connector, slot pin maps | ⏳ Store actions only |
 | 2 | KiCad netlist import for module pin maps | ⏳ Not started |
 | 3–4 | **Placement** canvas (Konva): rows, 12 mm grid, drag / lock | ⏳ Not started. `konva` is a dependency but unused |
@@ -65,11 +66,12 @@ module designs and one chassis geometry.
 | 5 | **Routing**: channel graph, A*, manual pencil | ⏳ Store actions only |
 | 6 | **Assembly**: mark wired segments, CSV/JSON/PNG/SVG export | ⏳ Store actions only |
 
-The source is about 2.6 k lines of TS/TSX plus about 360 lines of tests.
+The source is about 2.7 k lines of TS/TSX plus about 540 lines of tests.
 
 ## Quick start
 
-Requirements: **Node.js 20+** (developed on 22) and npm.
+Requirements: **Node.js 22.22+** and npm. The app itself builds on Node 20, but the
+jsdom-based UI tests need 22.22 or later.
 
 ```bash
 cd webui
@@ -88,6 +90,11 @@ npm run dev       # dev server on http://localhost:5173 (opens a browser)
 On Windows, `dev_server.bat` and `test/test_parsers.bat` do the same without a shell.
 Both expect Node at `C:\Program Files\nodejs\node.exe`, and `dev_server.bat` needs
 `npm ci` to have been run first.
+
+**WSL:** use a Linux Node (for example `nvm install 22`), not the Windows one that
+WSL puts on `PATH`. Windows Node can't run Vitest from a `\\wsl.localhost\…` path.
+`node_modules` holds platform-specific binaries (Rollup), so run `npm ci` again
+when you switch between Windows and WSL.
 
 The app runs entirely in the browser. There is no backend, and files are opened
 through the browser's file picker.
@@ -237,8 +244,12 @@ A project is saved as `<name>.dpc.json`. The current format is **0.3.0**:
   `(slot, copy)`.
 - Editing slots or removing module types or instances automatically drops element
   placements and wire segments that no longer point at anything valid.
-- Files in the pre-0.2 single-netlist format are migrated into a `Legacy` block when
-  opened. **There is no migration from 0.2.0 to 0.3.0 yet** (N4).
+- Older files are migrated when opened. A pre-0.2 single-netlist file becomes a
+  `Legacy` block. In a 0.2.0 file each hardware module becomes a module type plus,
+  where it was placed, an instance with the same id. The old chassis geometry has no
+  0.3.0 equivalent, so the chassis is reset to the defaults (keeping `rows`).
+  Placements that don't fit the new rows are dropped, with their elements and wires.
+- Saved files and the autosave hold project data only, never the undo history.
 
 ## Tests
 
@@ -249,16 +260,18 @@ npm test
 | File | Covers |
 |---|---|
 | `test/parsers/liberty.test.ts` | Parses `../rtl/run/vtube_cells.lib`: cells, pins, `tubes`, sequential flags |
-| `test/parsers/verilog.test.ts` | Parses `../rtl/run/IpLine_synth.v`: instances, nets, escaped names |
+| `test/parsers/verilog.test.ts` | Parses `test/fixtures/IpLine_synth.v`: instances, nets, escaped names |
 | `test/store/projectStore.test.ts` | Blocks, multi-netlist, undo/redo, per-block placement |
+| `test/services/projectIO.test.ts` | Save writes project data only; pre-0.2 and 0.2.0 → 0.3.0 migration |
+| `test/ui/app.test.tsx` | jsdom smoke test: every tab renders; autosave round-trip |
 
 CI: `.github/workflows/webui.yml` runs `npm ci && npm test` on Node 22 for pushes and
 pull requests to `master` that touch `webui/` or `rtl/run/vtube_cells.lib`. It can
 also be started by hand (*Run workflow*).
 
-The tests read real files from `rtl/run/`. `IpLine_synth.v` is a synthesis output
-that is **not in the repository**, so `verilog.test.ts` and the netlist-based store
-tests fail on a fresh clone (N5).
+The liberty test reads `rtl/run/vtube_cells.lib`, which is in git. The netlist tests
+use `test/fixtures/IpLine_synth.v`, a checked-in synthesis output, so they pass on a
+fresh clone. Regenerate it when the IpLine RTL changes.
 
 `test/test_parsers.mjs` is a standalone smoke test that needs only Node:
 `node test/test_parsers.mjs ../rtl/run/vtube_cells.lib <netlist.v>`. It contains its own
@@ -266,36 +279,29 @@ copy of the parser code (D6).
 
 ## Known issues
 
-Items D1–D7 come from the review in [`doc/webui_status.md`](../doc/webui_status.md).
-Items N1–N6 were introduced by the 0.3.0 model refactor, which changed `types/` and
-`store/` but not their consumers. H1–H2 come from the review against the computer
-project on 2026-10-09 ([`doc/webui_review.md`](../doc/webui_review.md), where they are F1
+Item D6 comes from the review in [`doc/webui_status.md`](../doc/webui_status.md).
+H1–H2 come from the review against the computer project on 2026-10-09 ([`doc/webui_review.md`](../doc/webui_review.md), where they are F1
 and F2/F4).
 
 | # | Severity | Where | Problem |
 |---|---|---|---|
 | H1 | **Blocker** | `parsers/verilog.ts` | Ignores `module` boundaries. On a hierarchical netlist it merges same-named nets from different modules and does not expand submodules, silently. A hierarchical parser is needed. |
 | H2 | High | model | A block has no HD-68 connectors to other blocks, and block netlists aren't linked, so the whole computer can't be routed in one project. Power-net flag and small interconnect boards are missing too. Planned for format 0.4.0 (`agents.md` §4). |
-| N2 | **Blocker** | `ProjectManager.tsx` | Reads `modules.length`, `block.maxCols` and `block.verticalPitch.toFixed()`, none of which exist in 0.3.0. The Project tab is the default tab, so the app throws on first render. |
-| N1 | **Blocker** | `App.tsx` | Destructures `pushHistory`, which no longer exists. `tsc -b` fails, so `npm run build` fails. The dev server still runs. |
-| N3 | High | `projectStore.test.ts` | Calls `setModulePlacements` and expects `moduleId`. Should use `addModuleInstance` and `typeId`. |
-| N4 | High | `projectIO.ts` | No `0.2.0 → 0.3.0` migration. Opening an older project leaves `moduleTypes` undefined. |
-| N5 | Medium | tests | Depend on the untracked `rtl/run/IpLine_synth.v`. They need small checked-in fixtures (`test/fixtures/`). |
-| D1 | Medium | `App.tsx` save / autosave | Passes the whole store, so `past` and `future` (up to 50 snapshots) get written to disk and `localStorage`. It should use `pickProjectState()`. |
-| D2 | Medium | `projectIO.loadAutosave` | Never called on start, so autosave can't be recovered. |
-| D4 | Low | `NetlistPanel.tsx` | The `missingTypes` memo reads the library through `getState()` and doesn't re-run when the library or elements change. |
 | D6 | Low | `test/test_parsers.mjs` | Has its own inline copy of the parsers, which will drift from `src/services/parsers`. |
 | — | Low | `tsconfig.json` | `baseUrl` is deprecated in TypeScript 6. Harmless with the pinned `~5.8`. |
 
 Fixed in `c51ecfa`: D3 (some edits weren't undoable) and D5 (stale `activeBlockId`
 after undo). D7 (the README overstated features) is fixed by this README. N6 (`agents.md`
-described the 0.2 format) was fixed on 2026-10-09.
+described the 0.2 format) was fixed on 2026-10-09. Fixed on 2026-10-09: N1 and N2 (the
+build failed and the Project tab threw on render), N3 and N5 (tests used a removed
+store action and an untracked netlist), N4 (no 0.2.0 migration), D1 (undo history
+written to files), D2 (autosave never restored) and D4 (stale missing-types check).
 
 ## Roadmap
 
 The order below follows the 2026-10-09 review ([`doc/webui_review.md`](../doc/webui_review.md) §6–7):
 
-1. Fix N1–N5 and D1, D2 and D4 so that `main` builds, runs and passes tests.
+1. ~~Fix N1–N5 and D1, D2 and D4 so that `main` builds, runs and passes tests.~~ Done.
 2. **Hierarchical netlist parser** (H1). A submodule mapped to a module type becomes
    one module instance; other submodules expand to base elements.
 3. **Format 0.4.0** (H2). Add HD-68 block connectors, cables between blocks, a power

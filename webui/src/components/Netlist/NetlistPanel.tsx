@@ -5,7 +5,6 @@
 import { useCallback, useState, useMemo, useRef } from 'react';
 import { useProjectStore } from '@/store';
 import { parseVerilogNetlist, parseLiberty, validateCellTypes } from '@/services/parsers';
-import { getAllCellTypes } from '@/types';
 
 type SubTab = 'overview' | 'instances' | 'nets' | 'liberty';
 
@@ -35,6 +34,7 @@ export function NetlistPanel() {
   const blocks = useProjectStore(s => s.blocks);
   const activeBlockId = useProjectStore(s => s.activeBlockId);
   const liberty = useProjectStore(s => s.liberty);
+  const externalElements = useProjectStore(s => s.externalElements);
   const setLiberty = useProjectStore(s => s.setLiberty);
   const setBlockNetlist = useProjectStore(s => s.setBlockNetlist);
   const addBlock = useProjectStore(s => s.addBlock);
@@ -100,9 +100,9 @@ export function NetlistPanel() {
   // Validate cell types against ALL blocks (shared liberty)
   const missingTypes = useMemo(() => {
     if (activeNetlist.instances.length === 0) return [];
-    const knownTypes = new Set(getAllCellTypes(useProjectStore.getState()).map(c => c.name));
+    const knownTypes = new Set([...Object.keys(liberty), ...Object.keys(externalElements)]);
     return validateCellTypes(activeNetlist, knownTypes);
-  }, [activeNetlist]);
+  }, [activeNetlist, liberty, externalElements]);
 
   const subTabs: { id: SubTab; label: string }[] = [
     { id: 'overview', label: 'Overview' },

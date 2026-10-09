@@ -31,7 +31,7 @@ const TABS: TabInfo[] = [
 export function App() {
   const [activeTab, setActiveTab] = useState<TabId>('project');
 
-  const { meta, undo, redo, past, future, pushHistory } = useProjectStore();
+  const { meta, undo, redo, past, future } = useProjectStore();
   const canUndo = past.length > 0;
   const canRedo = future.length > 0;
 

@@ -5,12 +5,15 @@
 import { useCallback, useState } from 'react';
 import { useProjectStore } from '@/store';
 import { saveProjectToFile, loadProjectFromFile, clearAutosave } from '@/services';
-import { DEFAULT_BLOCK_CONFIG } from '@/types';
+import { blockHeight, columnsPerRow, type Block } from '@/types';
 
 export function ProjectManager() {
-  const { meta, block } = useProjectStore();
+  const { meta, block, liberty, externalElements, moduleTypes, blocks } = useProjectStore();
   const setProjectName = useProjectStore(s => s.setProjectName);
   const [isSaving, setIsSaving] = useState(false);
+
+  const blockList = Object.values(blocks);
+  const total = (f: (b: Block) => number) => blockList.reduce((sum, b) => sum + f(b), 0);
 
   const handleOpen = useCallback(async () => {
     try {
@@ -91,41 +94,42 @@ export function ProjectManager() {
               <input type="number" readOnly value={block.rows} />
             </div>
             <div className="form-group">
-              <label>Max Columns</label>
-              <input type="number" readOnly value={block.maxCols} />
+              <label>Columns per Row</label>
+              <input type="number" readOnly value={columnsPerRow(block)} />
             </div>
           </div>
 
           <div className="form-row">
             <div className="form-group">
-              <label>Vertical Pitch (mm)</label>
-              <input type="number" readOnly value={block.verticalPitch.toFixed(1)} />
+              <label>Row Width (mm)</label>
+              <input type="number" readOnly value={block.rowWidth} />
             </div>
+            <div className="form-group">
+              <label>Row Height (mm)</label>
+              <input type="number" readOnly value={block.rowHeight} />
+            </div>
+          </div>
+
+          <div className="form-row">
             <div className="form-group">
               <label>Grid Step (mm)</label>
               <input type="number" readOnly value={block.gridStep} />
             </div>
+            <div className="form-group">
+              <label>Transformer Width (mm)</label>
+              <input type="number" readOnly value={block.transformerWidth} />
+            </div>
           </div>
 
           <div className="form-row">
             <div className="form-group">
-              <label>Chassis Width (mm)</label>
-              <input type="number" readOnly value={block.chassisWidth} />
+              <label>Chassis Height (mm)</label>
+              <input type="number" readOnly value={blockHeight(block)} />
             </div>
             <div className="form-group">
-              <label>Chassis Height (mm)</label>
-              <input type="number" readOnly value={block.chassisHeight} />
+              <label>Obstructions</label>
+              <input type="text" readOnly value={`${block.obstructions.length} zones defined`} />
             </div>
-          </div>
-
-          <div className="form-group">
-            <label>Margin (mm)</label>
-            <input type="number" readOnly value={block.margin} />
-          </div>
-
-          <div className="form-group">
-            <label>Obstructions</label>
-            <input type="text" readOnly value={`${block.obstructions.length} zones defined`} />
           </div>
         </div>
 
@@ -133,42 +137,15 @@ export function ProjectManager() {
           <h2>Project Summary</h2>
           <table className="data-table">
             <tbody>
-              <tr>
-                <td>Liberty cells loaded</td>
-                <td>{Object.keys(useProjectStore.getState().liberty).length}</td>
-              </tr>
-              <tr>
-                <td>External elements</td>
-                <td>{Object.keys(useProjectStore.getState().externalElements).length}</td>
-              </tr>
-              <tr>
-                <td>Modules defined</td>
-                <td>{useProjectStore.getState().modules.length}</td>
-              </tr>
-              <tr>
-                <td>Blocks</td>
-                <td>{Object.keys(useProjectStore.getState().blocks).length}</td>
-              </tr>
-              <tr>
-                <td>Netlist instances (total)</td>
-                <td>{Object.values(useProjectStore.getState().blocks).reduce((sum, b) => sum + b.netlist.instances.length, 0)}</td>
-              </tr>
-              <tr>
-                <td>Nets (total)</td>
-                <td>{Object.values(useProjectStore.getState().blocks).reduce((sum, b) => sum + b.netlist.nets.length, 0)}</td>
-              </tr>
-              <tr>
-                <td>Modules placed (total)</td>
-                <td>{Object.values(useProjectStore.getState().blocks).reduce((sum, b) => sum + b.placement.modules.length, 0)}</td>
-              </tr>
-              <tr>
-                <td>Elements placed (total)</td>
-                <td>{Object.values(useProjectStore.getState().blocks).reduce((sum, b) => sum + b.placement.elements.length, 0)}</td>
-              </tr>
-              <tr>
-                <td>Routed nets (total)</td>
-                <td>{Object.values(useProjectStore.getState().blocks).reduce((sum, b) => sum + b.routing.nets.length, 0)}</td>
-              </tr>
+              <tr><td>Liberty cells loaded</td><td>{Object.keys(liberty).length}</td></tr>
+              <tr><td>External elements</td><td>{Object.keys(externalElements).length}</td></tr>
+              <tr><td>Module types defined</td><td>{moduleTypes.length}</td></tr>
+              <tr><td>Blocks</td><td>{blockList.length}</td></tr>
+              <tr><td>Netlist instances (total)</td><td>{total(b => b.netlist.instances.length)}</td></tr>
+              <tr><td>Nets (total)</td><td>{total(b => b.netlist.nets.length)}</td></tr>
+              <tr><td>Modules placed (total)</td><td>{total(b => b.placement.modules.length)}</td></tr>
+              <tr><td>Elements placed (total)</td><td>{total(b => b.placement.elements.length)}</td></tr>
+              <tr><td>Routed nets (total)</td><td>{total(b => b.routing.nets.length)}</td></tr>
             </tbody>
           </table>
         </div>
