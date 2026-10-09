@@ -1,0 +1,211 @@
+# Web UI source: architecture guide
+
+This guide is for contributors and coding agents working on `webui/src`. For what the
+tool does and how to run it, see [`../README.md`](../README.md). The full functional
+spec is [`../agents.md`](../agents.md) (in Russian).
+
+## Layout
+
+```
+src/
+├── main.tsx                     # React root
+├── components/
+│   ├── App.tsx / App.css        # Shell: header toolbar, tab bar, tab router, autosave timer
+│   ├── ProjectManager/          # "Project" tab: name, new/open/save, counters
+│   ├── Netlist/NetlistPanel.tsx # "Netlist" tab: liberty + per-block Verilog import, block selector
+│   └── Elements/ElementEditor.tsx  # "Elements" tab: custom (non-liberty) elements
+├── hooks/useKeyboardShortcuts.ts   # Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z
+├── services/
+│   ├── parsers/liberty.ts       # .lib → Record<cell, LibertyCell>
+│   ├── parsers/verilog.ts       # flat structural .v → ParsedNetlist
+│   └── projectIO.ts             # JSON (de)serialize, migration, file dialogs, localStorage autosave
+├── store/projectStore.ts        # The single Zustand store (data + actions + history)
+├── types/project.ts             # Data model, defaults, pure geometry/slot helpers
+└── utils/helpers.ts             # clamp, uid, stringToColor, routing palette, distances
+```
+
+Each folder re-exports through an `index.ts`. Import with the `@/` alias, which
+`vite.config.ts`, `vitest.config.ts` and `tsconfig.json` all map to `src/`:
+
+```ts
+import { useProjectStore } from '@/store';
+import type { ModuleType } from '@/types';
+```
+
+## Layering rules
+
+```
+components ──► store ──► types
+     │           │
+     └──► services ──► types
+```
+
+- **`types/`** holds plain data and pure functions only (`fitsInRow`, `resolveSlot`,
+  `slotCount`, `pickProjectState`, …). It has no React or Zustand imports, which lets
+  it run in tests and later in Web Workers (placer and router).
+- **`services/`** holds parsers and I/O. It has no store imports: a parser takes
+  text and returns typed data.
+- **`store/`** is the only place where project data changes.
+- **`components/`** read from the store with selectors and call store actions. They
+  never mutate data directly.
+
+## Data model
+
+All of it is in `types/project.ts`. `ProjectState` is what gets saved:
+
+| Field | Scope | Notes |
+|---|---|---|
+| `meta` | project | name, timestamps, format `version` (`PROJECT_FORMAT_VERSION = '0.3.0'`) |
+| `liberty` | shared | parsed `.lib` cells |
+| `externalElements` | shared | user-defined parts with typed pins |
+| `moduleTypes` | shared | PCB designs: `widthSteps`, `slots[{cellType, count, pinMaps[copy][]}]` |
+| `block` | shared | chassis geometry (`BlockConfig`): rows, row size, grid step, transformer width, obstructions |
+| `blocks[name]` | per block | `netlist`, `placement.modules` (`ModuleInstance[]`), `placement.elements`, `routing.nets` |
+
+**Type vs. instance.** A `ModuleType` describes one PCB design. A `ModuleInstance`
+(`{id, typeId, row, col, locked}`) is one physical copy of it in one block. Instance
+ids (`M1`, `M2`, …) are unique only within their block.
+
+**Slots.** `ModuleSlot.count` copies of `cellType`, and `pinMaps[i]` maps copy `i`'s
+cell pins to connector contacts (`A1..A36`, `B1..B36`). An `ElementPlacement`
+addresses a copy by its flat `slotIndex`. `resolveSlot(type, slotIndex)` turns that
+back into `{slotDefIndex, copy}`.
+
+**Geometry.** The chassis is seen from the top: x runs along a row (0…`rowWidth` mm)
+and y runs across rows. `col` counts `gridStep` (12 mm) steps from the left edge.
+`transformerSpan()` gives the keep-out in the middle of each row.
+
+`activeBlockId` is **UI state**. It lives in the store but isn't part of
+`ProjectState`, isn't saved, and isn't snapshotted.
+
+## Store
+
+`store/projectStore.ts` builds a single Zustand store with the Immer middleware:
+
+```
+ProjectStore = ProjectState & HistorySlice & ProjectActions & { activeBlockId }
+```
+
+`createProjectStore(initial?)` is a factory. The app uses the singleton
+`useProjectStore`, and tests call `createProjectStore()` in `beforeEach` to get a
+fresh store.
+
+### Undo / redo
+
+Every mutating action goes through one of two wrappers:
+
+```ts
+edit(label, (s) => { /* mutate the Immer draft */ });         // project-wide
+editBlock(label, (b, s) => { /* mutate the active block */ }); // no-op without an active block
+```
+
+`edit` takes a reference snapshot of the project fields before the change. Immer
+state is frozen, so no deep copy is needed. It then applies the change and pushes
+`{state, label}` onto `past` **only if a top-level project field changed by
+reference**. As a result:
+
+- rejected or no-op edits (an occupied position, a locked module) don't create
+  empty undo steps
+- `future` is cleared on every real edit
+- history is capped at `MAX_HISTORY = 50`
+
+`undo` and `redo` swap the current `pickProjectState()` with the stored snapshot,
+then call `fixActiveBlock()` so the selection still points at a block that exists.
+
+Some actions don't go through history, on purpose:
+
+- `newProject` and `loadProject` reset history.
+- `setProjectName` fires on every keystroke.
+- `setActiveBlock` changes UI state only.
+
+### Invariants the store maintains
+
+Validation lives in the action. An invalid request is **ignored silently** rather
+than throwing; `addModuleInstance` returns `null`.
+
+- **Module positions** go through `canPlaceModule()`: integer row and column, the
+  row exists, the module fits inside it and clears the transformer, and it doesn't
+  overlap another instance in the same row. A locked instance can't be moved.
+- **Chassis shrink.** `setBlockConfig` clamps `rows` to `[max(3, highest used row
+  + 1), 5]` and `transformerWidth` to `[70, 100]` mm.
+- **Element placement.** The instance's cell type has to match the slot's
+  `cellType`, the slot has to be free, and a locked element can't be moved.
+- **Cascading cleanup.**
+  - After a netlist, slot or module-type change, `pruneElementPlacements()` drops
+    placements whose instance or slot no longer exists or no longer matches.
+  - After an instance or type is removed, `pruneRouting()` drops wire segments
+    that end on a missing instance, and then any net left with no segments.
+  - `updateSlot` with a new `cellType` clears that slot's pin maps, because the
+    pin names changed. A new `count` resizes `pinMaps` and keeps existing copies.
+
+### Adding an action
+
+1. Declare it in `ProjectActions`.
+2. Implement it in `createProjectSlice` with `edit` or `editBlock`. Mutate the
+   draft and don't return a value; read derived data from the draft `s`.
+3. Validate inside the callback and `return` early when the request is invalid, so
+   no history entry is recorded.
+4. If it can invalidate references, call the prune helpers.
+5. Add a case to `projectStore.test.ts` covering the effect, a rejected input, and
+   undo/redo.
+
+### Reading from components
+
+Prefer a narrow selector over destructuring the whole store, so a component only
+re-renders when its slice changes:
+
+```ts
+const moduleTypes = useProjectStore(s => s.moduleTypes);
+const addModuleInstance = useProjectStore(s => s.addModuleInstance);
+```
+
+`useProjectStore.getState()` is fine inside event handlers. During render it gives a
+value that doesn't update, which is the cause of D4 in the README's Known issues.
+
+## Persistence (`services/projectIO.ts`)
+
+- `serializeProject` and `deserializeProject` convert to and from JSON.
+  `deserializeProject` runs `migrateProject()`. That currently handles only the
+  pre-0.2 format (single `netlist`, which becomes a `Legacy` block). A
+  `0.2.0 → 0.3.0` step (`modules` becomes `moduleTypes` plus `ModuleInstance`s,
+  and the old chassis fields map to `BlockConfig`) still needs to be written.
+- `saveProjectToFile` downloads `<name>.dpc.json`. `loadProjectFromFile` opens a
+  file picker.
+- `startAutosave` writes to `localStorage` (`dekatronpc-project-autosave`) every 30 s.
+
+**Always pass `pickProjectState(store)` to save and autosave, never the store
+itself.** Otherwise the undo history ends up in the file.
+
+## Parsers
+
+Both parsers use regex plus brace counting and have no dependencies, so they can run
+under plain Node.
+
+- `parseLiberty(src)`: cells, pins (direction, function, driver type, fan-out,
+  clock), `area`, `heat_current`, `current_unit`, `tubes(names){…}`, and `ff`/`latch`
+  flags. Also exports `extractCellNames` and `generateSkeletonLiberty`.
+- `parseVerilogNetlist(src)`: `wire` declarations (scalar and bus), instances
+  (including escaped `\$paramod…` cell types), connections with bit-selects folded
+  to the base net, and constants skipped. Also exports `extractWireNames` and
+  `validateCellTypes(netlist, knownTypes)`.
+
+## Testing
+
+- Use Vitest with `globals: true` (`npm test`). Put test files next to their source
+  as `*.test.ts`.
+- Store tests create a fresh store per test with `createProjectStore()`.
+- **Add fixtures, not paths into `rtl/`.** Put small hand-written `.lib`, `.v` and
+  `.dpc.json` files in `src/**/__fixtures__/`. Synthesis outputs such as
+  `IpLine_synth.v` aren't in git, so tests that depend on them fail on a fresh clone.
+
+## Conventions
+
+- Use TypeScript `strict`, React 19 function components and hooks, and CSS in
+  `components/App.css`.
+- Lengths are in **mm**, and grid positions are in **`gridStep` units**. State the
+  unit in names or comments.
+- Use 0-based `row` and `col`. Connector contacts are strings, `"A1"`…`"B36"`.
+- Undo labels are short and imperative, because they will show up in the UI:
+  `Place module M3`, `Edit pin map`.
+- Bump `PROJECT_FORMAT_VERSION` **and** add a migration step whenever the saved
+  shape changes.
