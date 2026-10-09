@@ -32,7 +32,7 @@ describe('Store — Blocks', () => {
   });
 
   it('setBlockNetlist creates block and sets netlist', () => {
-    const vlogPath = join(__dirname, '..', '..', '..', 'rtl', 'run', 'IpLine_synth.v');
+    const vlogPath = join(__dirname, '..', 'fixtures', 'IpLine_synth.v');
     const source = readFileSync(vlogPath, 'utf-8');
     const netlist = parseVerilogNetlist(source);
 
@@ -83,7 +83,7 @@ describe('Store — Liberty', () => {
 
 describe('Store — netlist in block + undo', () => {
   it('setBlockNetlist pushes history and undo works', async () => {
-    const vlogPath = join(__dirname, '..', '..', '..', 'rtl', 'run', 'IpLine_synth.v');
+    const vlogPath = join(__dirname, '..', 'fixtures', 'IpLine_synth.v');
     const source = readFileSync(vlogPath, 'utf-8');
     const netlist = parseVerilogNetlist(source);
 
@@ -103,7 +103,7 @@ describe('Store — full pipeline with blocks', () => {
     const libPath = join(__dirname, '..', '..', '..', 'rtl', 'run', 'vtube_cells.lib');
     getStore().setLiberty(parseLiberty(readFileSync(libPath, 'utf-8')));
 
-    const vlogPath = join(__dirname, '..', '..', '..', 'rtl', 'run', 'IpLine_synth.v');
+    const vlogPath = join(__dirname, '..', 'fixtures', 'IpLine_synth.v');
     getStore().setBlockNetlist('IpLine', parseVerilogNetlist(readFileSync(vlogPath, 'utf-8')));
 
     const knownTypes = new Set(getAllCellTypes(getStore()).map(c => c.name));
@@ -117,7 +117,7 @@ describe('Store — full pipeline with blocks', () => {
     const libPath = join(__dirname, '..', '..', '..', 'rtl', 'run', 'vtube_cells.lib');
     getStore().setLiberty(parseLiberty(readFileSync(libPath, 'utf-8')));
 
-    const vlogPath = join(__dirname, '..', '..', '..', 'rtl', 'run', 'IpLine_synth.v');
+    const vlogPath = join(__dirname, '..', 'fixtures', 'IpLine_synth.v');
     const netlist = parseVerilogNetlist(readFileSync(vlogPath, 'utf-8'));
 
     getStore().setBlockNetlist('IpLine', netlist);
@@ -129,20 +129,24 @@ describe('Store — full pipeline with blocks', () => {
   });
 
   it('placement actions target active block', async () => {
+    getStore().addModuleType({ id: 'logic', name: 'Logic', widthSteps: 2, slots: [] });
     getStore().addBlock('Block1');
     getStore().addBlock('Block2');
 
     getStore().setActiveBlock('Block1');
-    getStore().setModulePlacements([{ moduleId: 'mod1', row: 0, col: 0, locked: false }]);
+    const id1 = getStore().addModuleInstance('logic', 0, 0);
     await flush();
 
     getStore().setActiveBlock('Block2');
-    getStore().setModulePlacements([{ moduleId: 'mod2', row: 1, col: 1, locked: true }]);
+    const id2 = getStore().addModuleInstance('logic', 1, 2);
+    getStore().lockModuleInstance(id2!, true);
     await flush();
 
-    expect(getStore().blocks['Block1'].placement.modules).toHaveLength(1);
-    expect(getStore().blocks['Block2'].placement.modules).toHaveLength(1);
-    expect(getStore().blocks['Block1'].placement.modules[0].moduleId).toBe('mod1');
-    expect(getStore().blocks['Block2'].placement.modules[0].moduleId).toBe('mod2');
+    const m1 = getStore().blocks['Block1'].placement.modules;
+    const m2 = getStore().blocks['Block2'].placement.modules;
+    expect(m1).toHaveLength(1);
+    expect(m2).toHaveLength(1);
+    expect(m1[0]).toMatchObject({ id: id1, typeId: 'logic', row: 0, col: 0, locked: false });
+    expect(m2[0]).toMatchObject({ id: id2, typeId: 'logic', row: 1, col: 2, locked: true });
   });
 });

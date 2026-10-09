@@ -11,7 +11,7 @@ import type { ParsedNetlist } from '@/types';
 let netlist: ParsedNetlist;
 
 beforeAll(() => {
-  const vlogPath = join(__dirname, '..', '..', '..', 'rtl', 'run', 'IpLine_synth.v');
+  const vlogPath = join(__dirname, '..', 'fixtures', 'IpLine_synth.v');
   const source = readFileSync(vlogPath, 'utf-8');
   netlist = parseVerilogNetlist(source);
 });
@@ -65,7 +65,7 @@ describe('parseVerilogNetlist', () => {
     const escaped = netlist.instances.filter(i => i.cellType.startsWith('\\'));
     expect(escaped.length).toBeGreaterThanOrEqual(2);
     // Both DekatronCounter variants should be found
-    const hasIpCounter = escaped.some(i => i.cellType.includes('D_NUM=4\'0101'));
+    const hasIpCounter = escaped.some(i => i.cellType.includes('D_NUM=32\'00000000000000000000000000000100'));
     const hasLoopCounter = escaped.some(i => i.cellType.includes('D_NUM=4\'0011'));
     expect(hasIpCounter).toBe(true);
     expect(hasLoopCounter).toBe(true);
@@ -96,7 +96,7 @@ describe('parseVerilogNetlist', () => {
 
 describe('extractWireNames', () => {
   it('extracts 150+ wire names', () => {
-    const vlogPath = join(__dirname, '..', '..', '..', 'rtl', 'run', 'IpLine_synth.v');
+    const vlogPath = join(__dirname, '..', 'fixtures', 'IpLine_synth.v');
     const source = readFileSync(vlogPath, 'utf-8');
     const wires = extractWireNames(source);
     expect(wires.length).toBeGreaterThan(150);
