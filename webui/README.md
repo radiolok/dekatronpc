@@ -125,9 +125,11 @@ all edit one shared project. **Undo** / **Redo** (`Ctrl+Z`, `Ctrl+Y` or
 
 ### Liberty (`.lib`)
 
-One file per project, normally [`rtl/run/vtube_cells.lib`](../rtl/run/vtube_cells.lib)
-(23 cells: `BUF_*`, `NOT_*`, `NAND*`, `NOR*`, `OR*`, `AND2`, `A*OOI`, `LATCH`, `DFF`,
-`DFFSR*`, `TIEHI`, `TIELO`). The parser counts braces, so nested groups are fine. It
+One file per project. On this branch it is
+[`rtl/run/vtube_cells.lib`](../rtl/run/vtube_cells.lib), which has 23 cells. On
+`claude_nextGen` it moved to `rtl/vtube/vtube_cells.lib`, which has 27 cells and adds
+`NOT_J2`, `OR10_X7`, `NOR10_N16X7`, `RELAY_2CO`, `GUIDE_EN_J2` and a `QN` pin on the
+triggers. The parser reads all 27 cells; the `relays(names)` group is ignored. The parser counts braces, so nested groups are fine. It
 reads:
 
 - `cell(NAME) { … }`, plus `area`, `heat_current` and `current_unit`
@@ -139,7 +141,11 @@ Timing tables are ignored.
 
 ### Verilog netlist (`.v`)
 
-A flat structural netlist as Yosys writes it:
+A structural netlist as Yosys writes it. **The project's netlists are hierarchical**,
+and they stay that way on purpose: a submodule such as `DekatronModule` becomes one
+physical board (owner decision, 2026-10-09, `agents.md` §3.8). The current parser only
+handles **flat** netlists (see H1 under [Known issues](#known-issues)). Example of the
+flat input it does understand:
 
 ```verilog
 wire [3:0] bus;  wire n1, n2;
@@ -149,22 +155,26 @@ NAND2_N16X7 U1 (.A(a), .B(b), .Y(n1));
 
 It supports scalar and bus `wire` declarations, escaped identifiers (`\$paramod…`),
 bit-selects and part-selects (folded to the base net name) and constants (`1'b0`,
-`4'h3`, which are skipped as nets). Comments are stripped. Hierarchy and `assign`
-statements are not supported, so flatten before export (`flatten; opt_clean`).
+`4'h3`, which are skipped as nets). Comments are stripped. `assign` statements are not supported.
 
-The netlists come from `rtl/run/synth` (Yosys + `vtube_cells.lib`). **They are not
+The netlists come from `rtl/run/run_tests.sh -s`, which runs `./synth` for IpLine,
+ApLine and MachineCtrl (Yosys, `synt_dpc.tcl`, no `-flatten`). **They are not
 checked in**, so you need to run synthesis locally to get `IpLine_synth.v` and the
 others.
 
 ## Physical model
 
-These figures follow the owner's 2026-09-27 decisions, recorded in `agents.md` §3.7 and
-`doc/webui_status.md` §5.
+These figures follow the owner's decisions of 2026-09-27 and 2026-10-09, recorded in
+`agents.md` §3.7–3.8. A **block** is one functional block (IpLine, ApLine or
+MachineCtrl) and one cabinet of the machine. A **row** is one basket (корзина). The
+basket backplane carries power only; signals go by wire. HD-68 connectors to other
+blocks sit along the top of the block page.
 
 **The chassis, seen from above.** It has 3–5 rows stacked vertically. Each row is
 140 mm deep (one module) and 420 mm wide (19″ class), which gives 35 grid steps of
-12 mm. In the middle of every row sits a transformer keep-out 70–100 mm wide (85 mm
-by default). The chassis height is 140 mm × rows.
+12 mm. In the middle of every row sits a transformer keep-out. The code currently
+allows 70–100 mm (85 mm by default); the decision is 72 + 12·K mm, a whole number of
+grid steps. The chassis height is 140 mm × rows.
 
 ```
  0                     167.5     252.5                    420 mm
@@ -256,18 +266,21 @@ copy of the parser code (D6).
 
 ## Known issues
 
-Status as of branch head `c51ecfa`. Items D1–D7 come from the review in
-[`doc/webui_status.md`](../doc/webui_status.md). Items N1–N6 were introduced by the
-0.3.0 model refactor, which changed `types/` and `store/` but not their consumers.
+Items D1–D7 come from the review in [`doc/webui_status.md`](../doc/webui_status.md).
+Items N1–N6 were introduced by the 0.3.0 model refactor, which changed `types/` and
+`store/` but not their consumers. H1–H2 come from the review against the computer
+project on 2026-10-09 ([`doc/webui_review.md`](../doc/webui_review.md), where they are F1
+and F2/F4).
 
 | # | Severity | Where | Problem |
 |---|---|---|---|
+| H1 | **Blocker** | `parsers/verilog.ts` | Ignores `module` boundaries. On a hierarchical netlist it merges same-named nets from different modules and does not expand submodules, silently. A hierarchical parser is needed. |
+| H2 | High | model | A block has no HD-68 connectors to other blocks, and block netlists aren't linked, so the whole computer can't be routed in one project. Power-net flag and small interconnect boards are missing too. Planned for format 0.4.0 (`agents.md` §4). |
 | N2 | **Blocker** | `ProjectManager.tsx` | Reads `modules.length`, `block.maxCols` and `block.verticalPitch.toFixed()`, none of which exist in 0.3.0. The Project tab is the default tab, so the app throws on first render. |
 | N1 | **Blocker** | `App.tsx` | Destructures `pushHistory`, which no longer exists. `tsc -b` fails, so `npm run build` fails. The dev server still runs. |
 | N3 | High | `projectStore.test.ts` | Calls `setModulePlacements` and expects `moduleId`. Should use `addModuleInstance` and `typeId`. |
 | N4 | High | `projectIO.ts` | No `0.2.0 → 0.3.0` migration. Opening an older project leaves `moduleTypes` undefined. |
 | N5 | Medium | tests | Depend on the untracked `rtl/run/IpLine_synth.v`. They need small checked-in fixtures (`test/fixtures/`). |
-| N6 | Low | `agents.md` §3.3, §4 | The JSON model and chassis description still show the old format (`modules`, `slotInstances`, `maxCols`, `verticalPitch`). |
 | D1 | Medium | `App.tsx` save / autosave | Passes the whole store, so `past` and `future` (up to 50 snapshots) get written to disk and `localStorage`. It should use `pickProjectState()`. |
 | D2 | Medium | `projectIO.loadAutosave` | Never called on start, so autosave can't be recovered. |
 | D4 | Low | `NetlistPanel.tsx` | The `missingTypes` memo reads the library through `getState()` and doesn't re-run when the library or elements change. |
@@ -275,22 +288,27 @@ Status as of branch head `c51ecfa`. Items D1–D7 come from the review in
 | — | Low | `tsconfig.json` | `baseUrl` is deprecated in TypeScript 6. Harmless with the pinned `~5.8`. |
 
 Fixed in `c51ecfa`: D3 (some edits weren't undoable) and D5 (stale `activeBlockId`
-after undo). D7 (the README overstated features) is fixed by this README.
+after undo). D7 (the README overstated features) is fixed by this README. N6 (`agents.md`
+described the 0.2 format) was fixed on 2026-10-09.
 
 ## Roadmap
 
-The next stage, agreed 2026-09-27, doesn't depend on synthesized netlists:
+The order below follows the 2026-10-09 review ([`doc/webui_review.md`](../doc/webui_review.md) §6–7):
 
 1. Fix N1–N5 and D1, D2 and D4 so that `main` builds, runs and passes tests.
-2. **Modules tab.** A module-type library editor: width in 12 mm steps, a 2×36
+2. **Hierarchical netlist parser** (H1). A submodule mapped to a module type becomes
+   one module instance; other submodules expand to base elements.
+3. **Format 0.4.0** (H2). Add HD-68 block connectors, cables between blocks, a power
+   flag on nets and small interconnect boards, so all three blocks can be routed in
+   one project.
+4. **Modules tab.** A module-type library editor: width in 12 mm steps, a 2×36
    connector view, and slots with per-copy contact assignment. Manual entry comes
    first (REQ-PR-006), then KiCad `.net` S-expression import (REQ-PR-004).
-3. **Placement canvas** (Konva): rows, 12 mm grid, transformer keep-out, and
+5. **Placement canvas** (Konva): rows, 12 mm grid, transformer keep-out, and
    placing, dragging and locking module instances (REQ-PR-007).
-4. Then: element-to-slot placement, HPWL, auto-placement, routing, assembly and export.
+6. Then: element-to-slot placement, HPWL, auto-placement, routing, assembly and export.
 
-Open questions: should the transformer be a placeable module type or a fixed
-per-row keep-out? Does the inter-module wiring channel need a width of its own?
+Open question: does the inter-module wiring channel need a width of its own?
 
 ## Repository layout
 
@@ -310,6 +328,9 @@ webui/
   for contributors.
 - [`agents.md`](agents.md): the full specification (Russian), covering features, data
   model, algorithms and the staged plan.
+- [`../doc/webui_review.md`](../doc/webui_review.md): the 2026-10-09 review against
+  the computer project (`claude_nextGen`). It covers inputs, the physical model,
+  findings F1–F13, owner decisions Q1–Q11 and the TODO list.
 - [`../doc/webui_status.md`](../doc/webui_status.md): the 2026-09-27 status review
   and owner decisions.
 - [`../.kilo/plans/`](../.kilo/plans/): implementation and master plans written by

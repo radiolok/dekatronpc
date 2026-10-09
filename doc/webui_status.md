@@ -1,5 +1,8 @@
 # Web UI (Block Place & Route) — status review, 2026-09-27
 
+> Superseded in part by [`webui_review.md`](webui_review.md) (2026-10-09). That review covers
+> the inputs from the computer project, the physical model and owner decisions Q1–Q11.
+
 Scope: `webui/` on branch `webui` (head `d1e41da`), measured against `webui/agents.md`
 (the P&R spec) and TRS §17 (REQ-PR-001..010). Static review only: Node.js is not
 installed on the review node, so `npm test` / `vite build` were **not** run.
