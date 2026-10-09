@@ -30,6 +30,7 @@ import {
   resolveSlot,
   fitsInRow,
   canPlaceModule,
+  planModuleMove,
   contactUsage,
   getCellPins,
   isContactId,
@@ -126,7 +127,8 @@ export interface ProjectActions {
   // Module instances (active block). Invalid positions are ignored.
   /** Returns the new instance id, or null if the position is not free */
   addModuleInstance: (typeId: string, row: number, col: number) => string | null;
-  moveModuleInstance: (id: string, row: number, col: number) => void;
+  /** With `push`, unlocked modules in the way are shifted aside (planModuleMove) */
+  moveModuleInstance: (id: string, row: number, col: number, opts?: { push?: boolean }) => void;
   lockModuleInstance: (id: string, locked: boolean) => void;
   removeModuleInstance: (id: string) => void;
 
@@ -565,13 +567,22 @@ function createProjectSlice(set: SetFn, get: GetFn): ProjectActions {
       return id;
     },
 
-    moveModuleInstance: (id, row, col) => {
+    moveModuleInstance: (id, row, col, opts) => {
       editBlock(`Move module ${id}`, (b, s) => {
         const m = b.placement.modules.find(x => x.id === id);
         if (!m || m.locked || (m.row === row && m.col === col)) return;
-        if (!canPlaceModule(s, b.rows, b.placement.modules, m.typeId, row, col, id)) return;
-        m.row = row;
-        m.col = col;
+        if (!opts?.push) {
+          if (!canPlaceModule(s, b.rows, b.placement.modules, m.typeId, row, col, id)) return;
+          m.row = row;
+          m.col = col;
+          return;
+        }
+        const plan = planModuleMove(s, b.rows, b.placement.modules, { id, typeId: m.typeId }, row, col);
+        if (!plan) return;
+        for (const x of b.placement.modules) {
+          const p = plan.get(x.id);
+          if (p) Object.assign(x, p);
+        }
       });
     },
 

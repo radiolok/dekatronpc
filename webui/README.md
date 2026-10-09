@@ -6,11 +6,12 @@ tube cell library and helps turn it into hardware: which logic cell goes into wh
 tube module, where each module sits in the chassis, and how the modules are wired
 together. The end product is a wiring list you can build the machine from.
 
-> **Status: early development (Stage 1 of 7).** Project management, netlist/liberty
-> import (hierarchical, bit-level), multi-block projects, the custom-element editor
-> and the module-type editor work. Placement, Routing and Assembly are placeholder
-> tabs. See [Status](#status) and
-> [Known issues](#known-issues) before using it.
+> **Status: early development (stages 1–5 of 10 done).** Project management, netlist/liberty
+> import (hierarchical, bit-level), multi-block projects, the custom-element editor,
+> the module-type editor and module placement on the block canvas work. Element
+> placement, Routing and Assembly are not built yet. See [Status](#status),
+> [Known issues](#known-issues) and the progress report
+> [`doc/webui_progress.md`](../doc/webui_progress.md) before using it.
 
 ---
 
@@ -62,12 +63,12 @@ module designs and one chassis geometry.
 | 2 | `ModuleType` + per-block `ModuleInstance`, per-copy pin maps, top-view chassis | ✅ In store and types |
 | 2 | **Modules** tab: module-type editor, slots, per-copy pin maps, 2×36 connector view, auto-assign | ✅ Done (manual entry, REQ-PR-006) |
 | 2 | KiCad netlist import for module pin maps (REQ-PR-004) | ⏳ Waiting for a module board design to import |
-| 3–4 | **Placement** canvas (Konva): rows, 12 mm grid, drag / lock | ⏳ Not started. `konva` is a dependency but unused |
+| 3–4 | **Placement** canvas (Konva): baskets, 12 mm grid, transformer, connector strip; place, drag with push-aside, lock, zoom / pan | ✅ Module instances done (REQ-PR-007); elements into slots not yet |
 | 3–4 | Auto-placement (simulated annealing, Hungarian assignment) | ⏳ Not started |
 | 5 | **Routing**: channel graph, A*, manual pencil | ⏳ Store actions only |
 | 6 | **Assembly**: mark wired segments, CSV/JSON/PNG/SVG export | ⏳ Store actions only |
 
-The source is about 4.5 k lines of TS/TSX plus about 1.1 k lines of tests.
+The source is about 5 k lines of TS/TSX plus about 1.3 k lines of tests.
 
 ## Quick start
 
@@ -139,9 +140,16 @@ all edit one shared project. **Undo** / **Redo** (`Ctrl+Z`, `Ctrl+Y` or
    unmapped signal pins of every copy with the next free contacts in order
    (power and ground pins are skipped). A width that would push a placed module out
    of its row or into a neighbour is refused.
-5. **Placement** *(planned).* Place module instances on the chassis grid, then
-   place netlist instances into module slots. Manual drag and lock come first,
-   auto-placement later.
+5. **Placement.** The canvas shows the active block from above: the HD-68
+   connector strip on top (each connector with its cable), then the baskets with
+   the 12 mm grid and the transformer. **Place** puts a module type at the first
+   free position; **✚** arms it, then a click on an empty cell places it there.
+   Drag a module to move it: it snaps to the grid, a dashed outline shows the drop
+   (green if it fits, red if not), and unlocked modules in the way shift aside if
+   their half of the row has room. Locked modules (🔒) don't move and block the
+   push. Select a module to lock, unlock or remove it. Drag connectors to reorder
+   them. The wheel zooms around the pointer; dragging the background pans.
+   *Planned:* netlist instances into module slots, HPWL, auto-placement.
 6. **Routing** *(planned).* Orthogonal two-pin wire segments run along the
    channels between modules. Auto-routing will use A*, with a manual pencil tool
    for touch-ups.
@@ -156,7 +164,11 @@ One file per project. On this branch it is
 [`rtl/run/vtube_cells.lib`](../rtl/run/vtube_cells.lib), which has 23 cells. On
 `claude_nextGen` it moved to `rtl/vtube/vtube_cells.lib`, which has 27 cells and adds
 `NOT_J2`, `OR10_X7`, `NOR10_N16X7`, `RELAY_2CO`, `GUIDE_EN_J2` and a `QN` pin on the
-triggers. The parser reads all 27 cells; the `relays(names)` group is ignored. The parser counts braces, so nested groups are fine. It
+triggers. **Netlists synthesized from the current RTL need the 27-cell file**: they
+use `NOT_N16`, `A1OOI_N16J2`, `A2OOI_J2`, `BUF_N16` and `RELAY_2CO`, which the
+23-cell file lacks, so with it those cells show as missing and tubes are
+undercounted. The parser reads all 27 cells; the `relays(names)` group is ignored.
+The parser counts braces, so nested groups are fine. It
 reads:
 
 - `cell(NAME) { … }`, plus `area`, `heat_current` and `current_unit`
@@ -344,11 +356,18 @@ npm test
 | `test/store/moduleTypes.test.ts` | Contact ids, tube count, module-type validation, pin-map cleanup, clashes, auto-assign |
 | `test/store/interconnect.test.ts` | Rows, transformer snapping, connectors, port pins, cables, cable links and their problems, power nets |
 | `test/services/projectIO.test.ts` | Save writes project data only; pre-0.2, 0.2.0 and 0.3.0 → 0.4.0 migration |
-| `test/ui/app.test.tsx` | jsdom: every tab renders; Netlist tab parses `hier.v` with *Keep* and *Add as element*; connector pin, power net and cable through the UI; Modules tab: type, slot, pin map, clash, auto-assign, width; autosave round-trip |
+| `test/types/placement.test.ts` | Push-aside planning (insert rule, cascades, locks, transformer and row ends), first free spot |
+| `test/ui/layout.test.ts` | Canvas layout: row positions, size, grid snapping, cell under the pointer, connector slots |
+| `test/ui/app.test.tsx` | jsdom: every tab renders; Netlist tab parses `hier.v` with *Keep* and *Add as element*; connector pin, power net and cable through the UI; Modules tab: type, slot, pin map, clash, auto-assign, width; Placement: place, drag with push-aside, lock refusal, connector reorder; autosave round-trip |
 
 CI: `.github/workflows/webui.yml` runs `npm ci && npm test` on Node 22 for pushes and
 pull requests to `master` that touch `webui/` or `rtl/run/vtube_cells.lib`. It can
 also be started by hand (*Run workflow*).
+
+Konva needs the native `canvas` package under Node, so `vitest.config.ts` aliases
+`react-konva` to `test/mocks/react-konva.tsx`, which renders plain `<div>`s. A test
+ends a drag by dispatching a `konva-dragend` event with the drop position. The real
+canvas was checked in Chrome (drag, push-aside, lock refusal, click-to-place, zoom).
 
 The liberty test reads `rtl/run/vtube_cells.lib`, which is in git. The netlist tests
 use `test/fixtures/IpLine_synth.v`, a checked-in synthesis output, so they pass on a
@@ -382,22 +401,23 @@ boards) was fixed on 2026-10-09 by format 0.4.0.
 
 ## Roadmap
 
-The order below follows the 2026-10-09 review ([`doc/webui_review.md`](../doc/webui_review.md) §6–7):
+Steps 1–5 follow the 2026-10-09 review ([`doc/webui_review.md`](../doc/webui_review.md) §6–7)
+and are done; see [`doc/webui_progress.md`](../doc/webui_progress.md) for what each
+delivered and how it was checked. Next, from the same report (§7):
 
-1. ~~Fix N1–N5 and D1, D2 and D4 so that `main` builds, runs and passes tests.~~ Done.
-2. ~~**Hierarchical netlist parser** (H1). A submodule mapped to a module type becomes
-   one module instance; other submodules expand to base elements.~~ Done: kept
-   submodules stay whole; the link from a kept module to a `ModuleType` moves to step 3.
-3. ~~**Format 0.4.0** (H2). Add HD-68 block connectors, cables between blocks, a power
-   flag on nets, small interconnect boards and the Verilog module → `ModuleType`
-   link, so all three blocks can be routed in one project.~~ Done.
-4. ~~**Modules tab.** A module-type library editor: width in 12 mm steps, a 2×36
-   connector view, and slots with per-copy contact assignment.~~ Manual entry
-   (REQ-PR-006) done. KiCad `.net` import (REQ-PR-004) follows once a module board
-   exists in KiCad.
-5. **Placement canvas** (Konva): rows, 12 mm grid, transformer keep-out, and
-   placing, dragging and locking module instances (REQ-PR-007).
-6. Then: element-to-slot placement, HPWL, auto-placement, routing, assembly and export.
+| Step | Scope | Done when |
+|---|---|---|
+| ~~1–5~~ | Build fixes, hierarchical parser, format 0.4.0, Modules tab, Placement canvas | ✅ `3f49d98` … |
+| 6 | Netlist cells into module slots: drag from an unplaced list, displacement, capacity check per cell type, tube summary per block and basket | every leaf of a block can be placed by hand; capacity matches the netlist |
+| 7 | Live HPWL: contact positions from pin maps, per-net and total, clock weighting, net highlight | HPWL behaves on a hand-made example |
+| 8 | Auto-placement in a Web Worker: Hungarian assignment of cells to slots, simulated annealing of modules, locks honoured | beats random placement on IpLine, repeatable with a seed |
+| 9 | Routing: channel graph, A* per two-pin link (MST for multi-pin nets), connector pins as ends, power and interconnect skipped, pencil tool, colours | every non-power net routed or listed as failed |
+| 10 | Assembly and export: mark built wires, CSV/JSON wiring table, PNG/SVG | — |
+
+Alongside: the nextGen liberty and a current-RTL netlist as fixtures, KiCad `.net`
+import once a module board exists, bulk port-to-pin assignment once the RTL groups
+the ports, load the Placement tab on demand (bundle > 500 kB), retire
+`test/test_parsers.mjs` (D6).
 
 Open questions:
 
@@ -422,6 +442,9 @@ webui/
 
 ## Related documents
 
+- [`../doc/webui_progress.md`](../doc/webui_progress.md): the 2026-10-09 progress
+  report: steps 1–5, verification, what the netlists show (cells, tubes, space),
+  decisions to confirm, open questions and the plan for steps 6–10.
 - [`src/README.md`](src/README.md): code architecture, store design and conventions
   for contributors.
 - [`agents.md`](agents.md): the full specification (Russian), covering features, data

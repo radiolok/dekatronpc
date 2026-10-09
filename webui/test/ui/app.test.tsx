@@ -6,7 +6,8 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, within, act } from '@testing-library/react';
+import { ROWS_TOP } from '@/components/Placement/layout';
 import { App } from '@/components/App';
 import { useProjectStore } from '@/store';
 import { autosaveProject, loadAutosave, clearAutosave } from '@/services';
@@ -100,6 +101,52 @@ describe('Modules tab', () => {
 
     fireEvent.change(screen.getByLabelText('Width'), { target: { value: '3' } });
     expect(useProjectStore.getState().moduleTypes[0].widthSteps).toBe(3);
+  });
+});
+
+describe('Placement tab', () => {
+  /** End a drag of a canvas shape at (x, y) mm, in rows coordinates */
+  const dropAt = (name: string, x: number, y: number) => {
+    const el = document.querySelector(`[data-name="${name}"]`)!;
+    el.dispatchEvent(new CustomEvent('konva-dragend', { detail: { x, y } }));
+  };
+
+  it('places modules, drags one onto another to push it aside, and respects locks', () => {
+    const s = useProjectStore.getState();
+    s.addModuleType({ id: 'L', name: 'Logic', kind: 'board', widthSteps: 2, slots: [] });
+    s.addBlock('IpLine');
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Placement' }));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Place' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Place' }));
+    expect(screen.getByText('Placed (2)')).toBeTruthy();
+    const cols = () => useProjectStore.getState().blocks.IpLine.placement.modules.map(m => [m.id, m.col]);
+    expect(cols()).toEqual([['M1', 0], ['M2', 2]]);
+
+    // Drop M2 at column 0 (x = 0 mm, row 0): M1 starts there, so it shifts right
+    act(() => dropAt('module-M2', 0, ROWS_TOP));
+    expect(cols()).toEqual([['M1', 2], ['M2', 0]]);
+    expect(screen.getByRole('status').textContent).toMatch(/shifted 1 module aside/);
+
+    // Lock M1 (selected by clicking it), then try to push it
+    fireEvent.click(document.querySelector('[data-name="module-M1"]')!);
+    fireEvent.click(screen.getByRole('button', { name: 'Lock' }));
+    act(() => dropAt('module-M2', 24, ROWS_TOP));
+    expect(cols()).toEqual([['M1', 2], ['M2', 0]]);
+    expect(screen.getByRole('status').textContent).toMatch(/locked module is in the way/);
+  });
+
+  it('reorders connectors by dragging', () => {
+    const s = useProjectStore.getState();
+    s.addBlock('IpLine');
+    s.addConnector();
+    s.addConnector();
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Placement' }));
+    act(() => dropAt('connector-J2', 0, 4));
+    expect(useProjectStore.getState().blocks.IpLine.connectors.map(c => [c.id, c.position]))
+      .toEqual([['J1', 1], ['J2', 0]]);
   });
 });
 

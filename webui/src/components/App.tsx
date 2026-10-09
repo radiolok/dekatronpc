@@ -10,6 +10,7 @@ import { ProjectManager } from './ProjectManager/ProjectManager';
 import { NetlistPanel } from './Netlist/NetlistPanel';
 import { ElementEditor } from './Elements/ElementEditor';
 import { ModuleEditor } from './Modules/ModuleEditor';
+import { PlacementView } from './Placement/PlacementView';
 import './App.css';
 
 type TabId = 'project' | 'netlist' | 'elements' | 'modules' | 'placement' | 'routing' | 'assembly';
@@ -81,7 +82,7 @@ export function App() {
       case 'modules':
         return <ModuleEditor />;
       case 'placement':
-        return <PlaceholderTab label="Placement" />;
+        return <PlacementView />;
       case 'routing':
         return <PlaceholderTab label="Routing" />;
       case 'assembly':

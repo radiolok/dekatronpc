@@ -15,7 +15,11 @@ src/
 │   ├── Netlist/NetlistPanel.tsx # "Netlist" tab: liberty + per-block Verilog import, keep list,
 │   │                            #   connectors and port pins, power nets
 │   ├── Elements/ElementEditor.tsx  # "Elements" tab: custom (non-liberty) elements
-│   └── Modules/ModuleEditor.tsx    # "Modules" tab: module types, slots, pin maps, connector view
+│   ├── Modules/ModuleEditor.tsx    # "Modules" tab: module types, slots, pin maps, connector view
+│   └── Placement/
+│       ├── PlacementView.tsx    # "Placement" tab: block select, palette, selection, messages
+│       ├── BlockCanvas.tsx      # Konva drawing: connector strip, baskets, modules, drag
+│       └── layout.ts            # canvas geometry in mm: rows, strip, snapping
 ├── hooks/useKeyboardShortcuts.ts   # Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z
 ├── services/
 │   ├── parsers/liberty.ts       # .lib → Record<cell, LibertyCell>
@@ -24,6 +28,7 @@ src/
 │   └── projectIO.ts             # JSON (de)serialize, migration, file dialogs, localStorage autosave
 ├── store/projectStore.ts        # The single Zustand store (data + actions + history)
 ├── types/project.ts             # Data model, defaults, pure geometry/slot helpers
+├── types/placement.ts           # planModuleMove (push-aside), firstFreeSpot, rowHalves
 └── utils/helpers.ts             # clamp, uid, stringToColor, routing palette, distances
 ```
 
@@ -150,6 +155,11 @@ than throwing; `addModuleInstance` returns `null`.
   row exists in that block, the module fits inside it and clears the transformer,
   and it doesn't overlap another instance in the same row. A locked instance can't
   be moved.
+- **Push-aside moves.** `moveModuleInstance(id, row, col, { push: true })` applies
+  `planModuleMove()`: modules starting at or after the drop column shift right,
+  those starting before it shift left, within the drop's half of the row (the
+  transformer is a wall). Any locked module in the way, or no room, rejects the
+  whole move. Without `push` a move must land on free space.
 - **Rows.** `setBlockRows` clamps to `[max(3, highest used row + 1), 5]`.
 - **Geometry.** `setBlockConfig` snaps `transformerWidth` to 72 + 12·K mm (at most
   100) and is ignored if a placed module would no longer fit.
@@ -255,6 +265,11 @@ recursive-descent parser.
   `webui/test/`, mirroring the source tree (`test/parsers/`, `test/store/`,
   `test/services/`), as `*.test.ts`. They import code through the `@/` alias. CI
   runs them from `.github/workflows/webui.yml`.
+- `react-konva` is aliased to `test/mocks/react-konva.tsx` in tests (Konva needs
+  the native `canvas` package under Node). Shapes become `<div data-konva=… data-name=…>`;
+  give draggable groups a `name` so a test can dispatch `konva-dragend` with
+  `{x, y}` on them. Keep canvas maths in `layout.ts` and `types/placement.ts`,
+  where it is tested without a canvas.
 - Component tests go in `test/ui/` as `*.test.tsx`, starting with
   `// @vitest-environment jsdom`, and use `@testing-library/react`. `app.test.tsx`
   clicks through every tab, so a component that throws on render fails CI.
