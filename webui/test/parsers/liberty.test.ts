@@ -5,12 +5,12 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { parseLiberty, extractCellNames } from './liberty';
+import { parseLiberty, extractCellNames } from '@/services/parsers/liberty';
 
 let cells: ReturnType<typeof parseLiberty>;
 
 beforeAll(() => {
-  const libPath = join(__dirname, '..', '..', '..', '..', 'rtl', 'run', 'vtube_cells.lib');
+  const libPath = join(__dirname, '..', '..', '..', 'rtl', 'run', 'vtube_cells.lib');
   const source = readFileSync(libPath, 'utf-8');
   cells = parseLiberty(source);
 });
@@ -79,7 +79,7 @@ describe('parseLiberty', () => {
 
 describe('extractCellNames', () => {
   it('returns all 23 cell names', () => {
-    const libPath = join(__dirname, '..', '..', '..', '..', 'rtl', 'run', 'vtube_cells.lib');
+    const libPath = join(__dirname, '..', '..', '..', 'rtl', 'run', 'vtube_cells.lib');
     const source = readFileSync(libPath, 'utf-8');
     const names = extractCellNames(source);
     expect(names).toHaveLength(23);

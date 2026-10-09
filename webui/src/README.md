@@ -146,7 +146,7 @@ than throwing; `addModuleInstance` returns `null`.
 3. Validate inside the callback and `return` early when the request is invalid, so
    no history entry is recorded.
 4. If it can invalidate references, call the prune helpers.
-5. Add a case to `projectStore.test.ts` covering the effect, a rejected input, and
+5. Add a case to `test/store/projectStore.test.ts` covering the effect, a rejected input, and
    undo/redo.
 
 ### Reading from components
@@ -191,11 +191,13 @@ under plain Node.
 
 ## Testing
 
-- Use Vitest with `globals: true` (`npm test`). Put test files next to their source
-  as `*.test.ts`.
+- Use Vitest with `globals: true` (`npm test`). Tests live outside `src/`, in
+  `webui/test/`, mirroring the source tree (`test/parsers/`, `test/store/`), as
+  `*.test.ts`. They import code through the `@/` alias. CI runs them from
+  `.github/workflows/webui.yml`.
 - Store tests create a fresh store per test with `createProjectStore()`.
 - **Add fixtures, not paths into `rtl/`.** Put small hand-written `.lib`, `.v` and
-  `.dpc.json` files in `src/**/__fixtures__/`. Synthesis outputs such as
+  `.dpc.json` files in `test/fixtures/`. Synthesis outputs such as
   `IpLine_synth.v` aren't in git, so tests that depend on them fail on a fresh clone.
 
 ## Conventions

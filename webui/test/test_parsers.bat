@@ -8,8 +8,8 @@ if not exist "%NODE%" (
     exit /b 1
 )
 set SCRIPT=%~dp0test_parsers.mjs
-set LIB=%~dp0..\rtl\run\vtube_cells.lib
-set VERILOG=%~dp0..\rtl\run\IpLine_synth.v
+set LIB=%~dp0..\..\rtl\run\vtube_cells.lib
+set VERILOG=%~dp0..\..\rtl\run\IpLine_synth.v
 if not exist "%LIB%" (
     echo ERROR: Liberty file not found: %LIB%
     pause

@@ -85,7 +85,7 @@ npm run dev       # dev server on http://localhost:5173 (opens a browser)
 | `npm test` | Run the Vitest suite once |
 | `npm run test:watch` | Vitest in watch mode |
 
-On Windows, `dev_server.bat` and `test_parsers.bat` do the same without a shell.
+On Windows, `dev_server.bat` and `test/test_parsers.bat` do the same without a shell.
 Both expect Node at `C:\Program Files\nodejs\node.exe`, and `dev_server.bat` needs
 `npm ci` to have been run first.
 
@@ -238,16 +238,20 @@ npm test
 
 | File | Covers |
 |---|---|
-| `src/services/parsers/liberty.test.ts` | Parses `../rtl/run/vtube_cells.lib`: cells, pins, `tubes`, sequential flags |
-| `src/services/parsers/verilog.test.ts` | Parses `../rtl/run/IpLine_synth.v`: instances, nets, escaped names |
-| `src/store/projectStore.test.ts` | Blocks, multi-netlist, undo/redo, per-block placement |
+| `test/parsers/liberty.test.ts` | Parses `../rtl/run/vtube_cells.lib`: cells, pins, `tubes`, sequential flags |
+| `test/parsers/verilog.test.ts` | Parses `../rtl/run/IpLine_synth.v`: instances, nets, escaped names |
+| `test/store/projectStore.test.ts` | Blocks, multi-netlist, undo/redo, per-block placement |
+
+CI: `.github/workflows/webui.yml` runs `npm ci && npm test` on Node 22 for pushes and
+pull requests to `master` that touch `webui/` or `rtl/run/vtube_cells.lib`. It can
+also be started by hand (*Run workflow*).
 
 The tests read real files from `rtl/run/`. `IpLine_synth.v` is a synthesis output
 that is **not in the repository**, so `verilog.test.ts` and the netlist-based store
 tests fail on a fresh clone (N5).
 
-`test_parsers.mjs` is a standalone smoke test that needs only Node:
-`node test_parsers.mjs ../rtl/run/vtube_cells.lib <netlist.v>`. It contains its own
+`test/test_parsers.mjs` is a standalone smoke test that needs only Node:
+`node test/test_parsers.mjs ../rtl/run/vtube_cells.lib <netlist.v>`. It contains its own
 copy of the parser code (D6).
 
 ## Known issues
@@ -262,12 +266,12 @@ Status as of branch head `c51ecfa`. Items D1–D7 come from the review in
 | N1 | **Blocker** | `App.tsx` | Destructures `pushHistory`, which no longer exists. `tsc -b` fails, so `npm run build` fails. The dev server still runs. |
 | N3 | High | `projectStore.test.ts` | Calls `setModulePlacements` and expects `moduleId`. Should use `addModuleInstance` and `typeId`. |
 | N4 | High | `projectIO.ts` | No `0.2.0 → 0.3.0` migration. Opening an older project leaves `moduleTypes` undefined. |
-| N5 | Medium | tests | Depend on the untracked `rtl/run/IpLine_synth.v`. They need small checked-in fixtures (`src/**/__fixtures__`). |
+| N5 | Medium | tests | Depend on the untracked `rtl/run/IpLine_synth.v`. They need small checked-in fixtures (`test/fixtures/`). |
 | N6 | Low | `agents.md` §3.3, §4 | The JSON model and chassis description still show the old format (`modules`, `slotInstances`, `maxCols`, `verticalPitch`). |
 | D1 | Medium | `App.tsx` save / autosave | Passes the whole store, so `past` and `future` (up to 50 snapshots) get written to disk and `localStorage`. It should use `pickProjectState()`. |
 | D2 | Medium | `projectIO.loadAutosave` | Never called on start, so autosave can't be recovered. |
 | D4 | Low | `NetlistPanel.tsx` | The `missingTypes` memo reads the library through `getState()` and doesn't re-run when the library or elements change. |
-| D6 | Low | `test_parsers.mjs` | Has its own inline copy of the parsers, which will drift from `src/services/parsers`. |
+| D6 | Low | `test/test_parsers.mjs` | Has its own inline copy of the parsers, which will drift from `src/services/parsers`. |
 | — | Low | `tsconfig.json` | `baseUrl` is deprecated in TypeScript 6. Harmless with the pinned `~5.8`. |
 
 Fixed in `c51ecfa`: D3 (some edits weren't undoable) and D5 (stale `activeBlockId`
@@ -296,8 +300,8 @@ webui/
 ├── package.json, package-lock.json
 ├── agents.md              # Full functional spec (Russian), written for AI coding agents
 ├── dev_server.bat         # Windows: start the dev server
-├── test_parsers.bat/.mjs  # Standalone parser smoke test
-└── src/                   # Application code: see src/README.md
+├── src/                   # Application code: see src/README.md
+└── test/                  # Vitest suites (parsers/, store/) + standalone test_parsers.mjs/.bat
 ```
 
 ## Related documents

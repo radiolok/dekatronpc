@@ -5,13 +5,13 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { parseVerilogNetlist, extractWireNames, validateCellTypes } from './verilog';
+import { parseVerilogNetlist, extractWireNames, validateCellTypes } from '@/services/parsers/verilog';
 import type { ParsedNetlist } from '@/types';
 
 let netlist: ParsedNetlist;
 
 beforeAll(() => {
-  const vlogPath = join(__dirname, '..', '..', '..', '..', 'rtl', 'run', 'IpLine_synth.v');
+  const vlogPath = join(__dirname, '..', '..', '..', 'rtl', 'run', 'IpLine_synth.v');
   const source = readFileSync(vlogPath, 'utf-8');
   netlist = parseVerilogNetlist(source);
 });
@@ -96,7 +96,7 @@ describe('parseVerilogNetlist', () => {
 
 describe('extractWireNames', () => {
   it('extracts 150+ wire names', () => {
-    const vlogPath = join(__dirname, '..', '..', '..', '..', 'rtl', 'run', 'IpLine_synth.v');
+    const vlogPath = join(__dirname, '..', '..', '..', 'rtl', 'run', 'IpLine_synth.v');
     const source = readFileSync(vlogPath, 'utf-8');
     const wires = extractWireNames(source);
     expect(wires.length).toBeGreaterThan(150);

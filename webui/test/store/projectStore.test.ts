@@ -5,11 +5,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { createProjectStore } from './projectStore';
+import { createProjectStore } from '@/store/projectStore';
 import { parseLiberty } from '@/services/parsers/liberty';
 import { parseVerilogNetlist, validateCellTypes } from '@/services/parsers/verilog';
 import { getAllCellTypes } from '@/types';
-import type { ProjectStore } from './projectStore';
+import type { ProjectStore } from '@/store/projectStore';
 
 let useStore: ReturnType<typeof createProjectStore>;
 
