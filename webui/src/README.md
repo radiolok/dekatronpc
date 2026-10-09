@@ -14,7 +14,8 @@ src/
 │   ├── ProjectManager/          # "Project" tab: name, new/open/save, geometry, blocks, cables
 │   ├── Netlist/NetlistPanel.tsx # "Netlist" tab: liberty + per-block Verilog import, keep list,
 │   │                            #   connectors and port pins, power nets
-│   └── Elements/ElementEditor.tsx  # "Elements" tab: custom (non-liberty) elements
+│   ├── Elements/ElementEditor.tsx  # "Elements" tab: custom (non-liberty) elements
+│   └── Modules/ModuleEditor.tsx    # "Modules" tab: module types, slots, pin maps, connector view
 ├── hooks/useKeyboardShortcuts.ts   # Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z
 ├── services/
 │   ├── parsers/liberty.ts       # .lib → Record<cell, LibertyCell>
@@ -43,7 +44,8 @@ components ──► store ──► types
 ```
 
 - **`types/`** holds plain data and pure functions only (`fitsInRow`,
-  `canPlaceModule`, `resolveSlot`, `snapTransformerWidth`, `pickProjectState`, …). It has no React or Zustand imports, which lets
+  `canPlaceModule`, `resolveSlot`, `snapTransformerWidth`, `contactUsage`,
+  `moduleTubes`, `pickProjectState`, …). It has no React or Zustand imports, which lets
   it run in tests and later in Web Workers (placer and router).
 - **`services/`** holds parsers, I/O and derived views (`interconnect.ts`). It has
   no store imports: a parser takes text and returns typed data.
@@ -70,7 +72,9 @@ All of it is in `types/project.ts`. `ProjectState` is what gets saved:
 ids (`M1`, `M2`, …) are unique only within their block.
 
 **Slots.** `ModuleSlot.count` copies of `cellType`, and `pinMaps[i]` maps copy `i`'s
-cell pins to connector contacts (`A1..A36`, `B1..B36`). An `ElementPlacement`
+cell pins to connector contacts (`CONTACT_IDS`: `A1..A36`, `B1..B36`).
+`contactUsage(type)` gives contact → pins; more than one pin on a contact is
+allowed but shown as a clash. An `ElementPlacement`
 addresses a copy by its flat `slotIndex`. `resolveSlot(type, slotIndex)` turns that
 back into `{slotDefIndex, copy}`.
 
@@ -155,6 +159,12 @@ than throwing; `addModuleInstance` returns `null`.
 - **Cables.** Both connectors exist, belong to different blocks and have the same
   type, and neither has a cable yet. Removing a block or connector removes its
   cables.
+- **Module types.** `updateModuleType` ignores an empty name, stores an empty
+  `verilogModule` as absent, and refuses a `widthSteps` that isn't a positive
+  integer or that a placed instance would no longer fit. `setSlotPinMap` drops
+  entries with an unknown contact or a cell pin already mapped in that copy.
+  `autoAssignContacts` gives unmapped signal pins (not power or ground) the next
+  free contacts in `CONTACT_IDS` order, until the connector is full.
 - **Element placement.** The instance's cell type has to match the slot's
   `cellType`, the slot has to be free, and a locked element can't be moved.
 - **Cascading cleanup.**

@@ -72,6 +72,37 @@ describe('Netlist tab', () => {
   });
 });
 
+describe('Modules tab', () => {
+  it('creates a type, adds a slot, maps a pin and shows it on the connector', () => {
+    useProjectStore.getState().setLiberty({
+      NAND2: { name: 'NAND2', pins: [{ name: 'A', direction: 'input' }, { name: 'Y', direction: 'output' }], tubes: { J2B: 1 } },
+    });
+    render(<App />);
+    fireEvent.click(screen.getByRole('button', { name: 'Modules' }));
+    fireEvent.change(screen.getByPlaceholderText('New type name'), { target: { value: 'Logic' } });
+    fireEvent.click(screen.getByRole('button', { name: '+ Type' }));
+    expect(screen.getByText('Properties — T1')).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText('New slot cell type'), { target: { value: 'NAND2' } });
+    fireEvent.change(screen.getByLabelText('New slot count'), { target: { value: '2' } });
+    fireEvent.click(screen.getByRole('button', { name: '+ Slot' }));
+    expect(screen.getByDisplayValue('J2B×2')).toBeTruthy();
+
+    fireEvent.change(screen.getByLabelText('Contact of Y'), { target: { value: 'B5' } });
+    expect(screen.getByTestId('contact-B5').textContent).toBe('NAND2 #1.Y');
+
+    fireEvent.click(screen.getByRole('button', { name: 'NAND2 #2' }));
+    fireEvent.change(screen.getByLabelText('Contact of Y'), { target: { value: 'B5' } });
+    expect(screen.getByText(/1 contact carry more than one pin/)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Auto-assign free contacts' }));
+    expect(useProjectStore.getState().moduleTypes[0].slots[0].pinMaps.map(m => m.length)).toEqual([2, 2]);
+
+    fireEvent.change(screen.getByLabelText('Width'), { target: { value: '3' } });
+    expect(useProjectStore.getState().moduleTypes[0].widthSteps).toBe(3);
+  });
+});
+
 describe('Connectors and cables', () => {
   it('assigns a port to a connector pin, marks a power net and cables two blocks', () => {
     const s = useProjectStore.getState();

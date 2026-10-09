@@ -394,7 +394,7 @@ export function createDefaultProject(name: string = 'New Project'): ProjectState
 // ---------------------------------------------------------------------------
 
 export function getCellPins(
-  state: ProjectState,
+  state: Pick<ProjectState, 'liberty' | 'externalElements'>,
   cellType: string,
 ): ElementPin[] | null {
   const lib = state.liberty[cellType];
@@ -412,7 +412,7 @@ export function getCellPins(
   return null;
 }
 
-export function getAllCellTypes(state: ProjectState): CellType[] {
+export function getAllCellTypes(state: Pick<ProjectState, 'liberty' | 'externalElements'>): CellType[] {
   const result: CellType[] = [];
   for (const [name, cell] of Object.entries(state.liberty)) {
     result.push({
@@ -499,6 +499,58 @@ export function canPlaceModule(
     if (col < oEnd && other.col < end) return false;
   }
   return true;
+}
+
+// ---------------------------------------------------------------------------
+// Module connector (2×36 edge connector)
+// ---------------------------------------------------------------------------
+
+export const CONTACTS_PER_SIDE = 36;
+
+/** All edge-connector contacts in order: A1..A36, then B1..B36 */
+export const CONTACT_IDS: string[] = (['A', 'B'] as const).flatMap(side =>
+  Array.from({ length: CONTACTS_PER_SIDE }, (_, i) => `${side}${i + 1}`));
+
+const CONTACT_SET = new Set(CONTACT_IDS);
+
+export function isContactId(id: string): boolean {
+  return CONTACT_SET.has(id);
+}
+
+/** One cell pin on a contact */
+export interface ContactUse {
+  slotDefIndex: number;
+  copy: number;
+  cellPin: string;
+}
+
+/** Contact id → the cell pins mapped onto it (more than one is a clash, unless meant) */
+export function contactUsage(type: ModuleType): Map<string, ContactUse[]> {
+  const usage = new Map<string, ContactUse[]>();
+  type.slots.forEach((slot, slotDefIndex) => {
+    slot.pinMaps.forEach((map, copy) => {
+      for (const m of map) {
+        const list = usage.get(m.contactId) ?? [];
+        list.push({ slotDefIndex, copy, cellPin: m.cellPin });
+        usage.set(m.contactId, list);
+      }
+    });
+  });
+  return usage;
+}
+
+/** Tubes a module type carries, from the liberty `tubes` groups: { N16B: 2, X7B: 4 } */
+export function moduleTubes(
+  type: ModuleType,
+  liberty: Record<string, LibertyCell>,
+): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const slot of type.slots) {
+    for (const [tube, n] of Object.entries(liberty[slot.cellType]?.tubes ?? {})) {
+      out[tube] = (out[tube] ?? 0) + n * slot.count;
+    }
+  }
+  return out;
 }
 
 /** Total number of cell slots on a module type */

@@ -7,9 +7,9 @@ tube module, where each module sits in the chassis, and how the modules are wire
 together. The end product is a wiring list you can build the machine from.
 
 > **Status: early development (Stage 1 of 7).** Project management, netlist/liberty
-> import (hierarchical, bit-level), multi-block projects and the custom-element
-> editor work. Modules, Placement,
-> Routing and Assembly are placeholder tabs. See [Status](#status) and
+> import (hierarchical, bit-level), multi-block projects, the custom-element editor
+> and the module-type editor work. Placement, Routing and Assembly are placeholder
+> tabs. See [Status](#status) and
 > [Known issues](#known-issues) before using it.
 
 ---
@@ -60,14 +60,14 @@ module designs and one chassis geometry.
 | 2 | Format 0.4.0: rows per block, HD-68 connectors with port pins, cables between blocks, power nets, interconnect boards, Verilog module → board link | ✅ In store, types and the Project / Netlist tabs |
 | 2 | **Elements** tab: custom elements not in the library (e.g. dekatron) | ✅ Done |
 | 2 | `ModuleType` + per-block `ModuleInstance`, per-copy pin maps, top-view chassis | ✅ In store and types |
-| 2 | **Modules** tab: module-type editor, 2×36 connector, slot pin maps | ⏳ Store actions only |
-| 2 | KiCad netlist import for module pin maps | ⏳ Not started |
+| 2 | **Modules** tab: module-type editor, slots, per-copy pin maps, 2×36 connector view, auto-assign | ✅ Done (manual entry, REQ-PR-006) |
+| 2 | KiCad netlist import for module pin maps (REQ-PR-004) | ⏳ Waiting for a module board design to import |
 | 3–4 | **Placement** canvas (Konva): rows, 12 mm grid, drag / lock | ⏳ Not started. `konva` is a dependency but unused |
 | 3–4 | Auto-placement (simulated annealing, Hungarian assignment) | ⏳ Not started |
 | 5 | **Routing**: channel graph, A*, manual pencil | ⏳ Store actions only |
 | 6 | **Assembly**: mark wired segments, CSV/JSON/PNG/SVG export | ⏳ Store actions only |
 
-The source is about 4 k lines of TS/TSX plus about 900 lines of tests.
+The source is about 4.5 k lines of TS/TSX plus about 1.1 k lines of tests.
 
 ## Quick start
 
@@ -128,10 +128,17 @@ all edit one shared project. **Undo** / **Redo** (`Ctrl+Z`, `Ctrl+Y` or
    drivers, a power module, a connector) with named pins. Each pin has a direction
    and a type: signal, power, ground or clock. Netlist instances of these types then
    count as known.
-4. **Modules** *(planned).* Define PCB designs. Each is 140×140 mm with a 2×36
-   edge connector (`A1..A36`, `B1..B36`) and a width in 12 mm steps. Its *slots* say
-   which cells it carries and how many, and each copy of a cell maps its pins to its
-   own connector contacts.
+4. **Modules.** Define PCB designs. Each is 140×140 mm with a 2×36 edge connector
+   (`A1..A36`, `B1..B36`) and a width in 12 mm steps. Set the kind (*board*, or a
+   small *interconnect* board whose links aren't routed), the Verilog module the
+   board replaces (then the Netlist tab keeps it whole), and a power figure for
+   reference. *Slots* say which cells the board carries and how many; the tube count
+   follows from the liberty. Pick a copy of a cell (`NAND2_J2 #2`) and choose a
+   contact for each of its pins. The connector view shows every contact's pins and
+   highlights contacts with more than one. **Auto-assign free contacts** fills the
+   unmapped signal pins of every copy with the next free contacts in order
+   (power and ground pins are skipped). A width that would push a placed module out
+   of its row or into a neighbour is refused.
 5. **Placement** *(planned).* Place module instances on the chassis grid, then
    place netlist instances into module slots. Manual drag and lock come first,
    auto-placement later.
@@ -334,9 +341,10 @@ npm test
 | `test/parsers/liberty.test.ts` | Parses `../rtl/run/vtube_cells.lib`: cells, pins, `tubes`, sequential flags |
 | `test/parsers/verilog.test.ts` | `test/fixtures/hier.v`: exact nets, buses, constants, `keep`, black boxes, errors. `IpLine_synth.v`: leaf counts and every pin's net equal to `IpLine_flat.v`, the Yosys-flattened reference |
 | `test/store/projectStore.test.ts` | Blocks, multi-netlist, undo/redo, per-block placement |
+| `test/store/moduleTypes.test.ts` | Contact ids, tube count, module-type validation, pin-map cleanup, clashes, auto-assign |
 | `test/store/interconnect.test.ts` | Rows, transformer snapping, connectors, port pins, cables, cable links and their problems, power nets |
 | `test/services/projectIO.test.ts` | Save writes project data only; pre-0.2, 0.2.0 and 0.3.0 → 0.4.0 migration |
-| `test/ui/app.test.tsx` | jsdom: every tab renders; Netlist tab parses `hier.v` with *Keep* and *Add as element*; connector pin, power net and cable through the UI; autosave round-trip |
+| `test/ui/app.test.tsx` | jsdom: every tab renders; Netlist tab parses `hier.v` with *Keep* and *Add as element*; connector pin, power net and cable through the UI; Modules tab: type, slot, pin map, clash, auto-assign, width; autosave round-trip |
 
 CI: `.github/workflows/webui.yml` runs `npm ci && npm test` on Node 22 for pushes and
 pull requests to `master` that touch `webui/` or `rtl/run/vtube_cells.lib`. It can
@@ -357,7 +365,8 @@ Item D6 comes from the review in [`doc/webui_status.md`](../doc/webui_status.md)
 | # | Severity | Where | Problem |
 |---|---|---|---|
 | D6 | Low | `test/test_parsers.mjs` | Has its own inline copy of the old flat parser; it should import `src/services/parsers` or be removed. |
-| — | Medium | UI | `ModuleType.kind` and `verilogModule` are in the model and store but have no editor until the Modules tab (step 4). |
+| — | Medium | Modules tab | No KiCad `.net` import yet (REQ-PR-004). `sch/logic` holds cell sketches, not a module board with the 2×36 connector, so there is nothing real to match against. |
+| — | Low | Modules tab | A contact can carry several pins on purpose (a shared input or clock), so clashes are only highlighted, never refused. |
 | — | Low | Netlist tab | Port bits go on connector pins one at a time. Once the RTL groups inter-block ports into one wire struct per connector (`doc/webui_review.md` §6), a bulk assignment would help. |
 | — | Low | `tsconfig.json` | `baseUrl` is deprecated in TypeScript 6. Harmless with the pinned `~5.8`. |
 
@@ -382,9 +391,10 @@ The order below follows the 2026-10-09 review ([`doc/webui_review.md`](../doc/we
 3. ~~**Format 0.4.0** (H2). Add HD-68 block connectors, cables between blocks, a power
    flag on nets, small interconnect boards and the Verilog module → `ModuleType`
    link, so all three blocks can be routed in one project.~~ Done.
-4. **Modules tab.** A module-type library editor: width in 12 mm steps, a 2×36
-   connector view, and slots with per-copy contact assignment. Manual entry comes
-   first (REQ-PR-006), then KiCad `.net` S-expression import (REQ-PR-004).
+4. ~~**Modules tab.** A module-type library editor: width in 12 mm steps, a 2×36
+   connector view, and slots with per-copy contact assignment.~~ Manual entry
+   (REQ-PR-006) done. KiCad `.net` import (REQ-PR-004) follows once a module board
+   exists in KiCad.
 5. **Placement canvas** (Konva): rows, 12 mm grid, transformer keep-out, and
    placing, dragging and locking module instances (REQ-PR-007).
 6. Then: element-to-slot placement, HPWL, auto-placement, routing, assembly and export.

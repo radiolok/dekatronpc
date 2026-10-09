@@ -30,7 +30,11 @@ import {
   resolveSlot,
   fitsInRow,
   canPlaceModule,
+  contactUsage,
+  getCellPins,
+  isContactId,
   isConnectorTerminal,
+  CONTACT_IDS,
   snapTransformerWidth,
   CONNECTOR_PINS,
   ROWS_MIN,
@@ -108,12 +112,16 @@ export interface ProjectActions {
 
   // Module types (shared by all blocks)
   addModuleType: (type: ModuleType) => void;
+  /** Ignored if a new width would push a placed instance out of its row or into a neighbour */
   updateModuleType: (id: string, patch: Partial<Omit<ModuleType, 'id' | 'slots'>>) => void;
   removeModuleType: (id: string) => void;
   addSlot: (typeId: string, cellType: string, count: number) => void;
   updateSlot: (typeId: string, slotDefIndex: number, patch: { cellType?: string; count?: number }) => void;
   removeSlot: (typeId: string, slotDefIndex: number) => void;
+  /** Entries with an unknown contact or a repeated cell pin are dropped */
   setSlotPinMap: (typeId: string, slotDefIndex: number, copy: number, map: PinMapping[]) => void;
+  /** Give every unmapped signal pin of every copy the next free contact (A1..A36, B1..B36) */
+  autoAssignContacts: (typeId: string) => void;
 
   // Module instances (active block). Invalid positions are ignored.
   /** Returns the new instance id, or null if the position is not free */
@@ -449,7 +457,21 @@ function createProjectSlice(set: SetFn, get: GetFn): ProjectActions {
     updateModuleType: (id, patch) => {
       edit('Update module type', (s) => {
         const t = s.moduleTypes.find(m => m.id === id);
-        if (t) Object.assign(t, patch);
+        if (!t) return;
+        const next = { ...patch };
+        if (next.name !== undefined && !next.name.trim()) delete next.name;
+        if (next.verilogModule !== undefined) next.verilogModule = next.verilogModule.trim() || undefined;
+        if (next.widthSteps !== undefined && next.widthSteps !== t.widthSteps) {
+          if (!Number.isInteger(next.widthSteps) || next.widthSteps < 1) return;
+          // Every placed instance must still fit with the new width
+          const trial = { ...s, moduleTypes: s.moduleTypes.map(m => (m.id === id ? { ...m, widthSteps: next.widthSteps! } : m)) };
+          for (const b of Object.values(s.blocks)) {
+            for (const inst of b.placement.modules) {
+              if (inst.typeId === id && !canPlaceModule(trial, b.rows, b.placement.modules, id, inst.row, inst.col, inst.id)) return;
+            }
+          }
+        }
+        Object.assign(t, next);
       });
     },
 
@@ -500,7 +522,34 @@ function createProjectSlice(set: SetFn, get: GetFn): ProjectActions {
     setSlotPinMap: (typeId, slotDefIndex, copy, map) => {
       edit('Edit pin map', (s) => {
         const slot = s.moduleTypes.find(m => m.id === typeId)?.slots[slotDefIndex];
-        if (slot && copy >= 0 && copy < slot.count) slot.pinMaps[copy] = map;
+        if (!slot || copy < 0 || copy >= slot.count) return;
+        const seen = new Set<string>();
+        slot.pinMaps[copy] = map.filter(m => {
+          if (!isContactId(m.contactId) || !m.cellPin || seen.has(m.cellPin)) return false;
+          seen.add(m.cellPin);
+          return true;
+        }).map(m => ({ cellPin: m.cellPin, contactId: m.contactId }));
+      });
+    },
+
+    autoAssignContacts: (typeId) => {
+      edit('Auto-assign contacts', (s) => {
+        const t = s.moduleTypes.find(m => m.id === typeId);
+        if (!t) return;
+        const used = new Set(contactUsage(t).keys());
+        const free = CONTACT_IDS.filter(c => !used.has(c));
+        t.slots.forEach((slot) => {
+          const pins = (getCellPins(s, slot.cellType) ?? [])
+            .filter(p => p.type !== 'power' && p.type !== 'ground');
+          slot.pinMaps.forEach((map) => {
+            for (const pin of pins) {
+              if (map.some(m => m.cellPin === pin.name)) continue;
+              const contactId = free.shift();
+              if (!contactId) return;
+              map.push({ cellPin: pin.name, contactId });
+            }
+          });
+        });
       });
     },
 

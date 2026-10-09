@@ -9,6 +9,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { ProjectManager } from './ProjectManager/ProjectManager';
 import { NetlistPanel } from './Netlist/NetlistPanel';
 import { ElementEditor } from './Elements/ElementEditor';
+import { ModuleEditor } from './Modules/ModuleEditor';
 import './App.css';
 
 type TabId = 'project' | 'netlist' | 'elements' | 'modules' | 'placement' | 'routing' | 'assembly';
@@ -78,7 +79,7 @@ export function App() {
       case 'elements':
         return <ElementEditor />;
       case 'modules':
-        return <PlaceholderTab label="Modules" />;
+        return <ModuleEditor />;
       case 'placement':
         return <PlaceholderTab label="Placement" />;
       case 'routing':
