@@ -108,9 +108,8 @@ describe('Store — full pipeline with blocks', () => {
 
     const knownTypes = new Set(getAllCellTypes(getStore()).map(c => c.name));
     const missing = validateCellTypes(getStore().blocks['IpLine'].netlist, knownTypes);
-    expect(missing.length).toBeGreaterThanOrEqual(4);
-    expect(missing).toContain('Dekatron');
-    expect(missing).toContain('InsnLoopDetector');
+    // Submodules are expanded; only base elements outside the liberty remain
+    expect(missing.sort()).toEqual(['Dekatron', 'Impulse', 'OneShot']);
   });
 
   it('two blocks with same liberty', () => {

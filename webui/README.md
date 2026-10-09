@@ -7,8 +7,8 @@ tube module, where each module sits in the chassis, and how the modules are wire
 together. The end product is a wiring list you can build the machine from.
 
 > **Status: early development (Stage 1 of 7).** Project management, netlist/liberty
-> import, multi-block projects and the custom-element editor work. The netlist import
-> handles flat netlists only (H1). Modules, Placement,
+> import (hierarchical, bit-level), multi-block projects and the custom-element
+> editor work. Modules, Placement,
 > Routing and Assembly are placeholder tabs. See [Status](#status) and
 > [Known issues](#known-issues) before using it.
 
@@ -42,8 +42,8 @@ KiCad module schematics (planned) ───────────────�
 
 DekatronPC is split into computational **blocks**: `IpLine` (instruction pointer
 line), `ApLine` (address pointer line) and `MachineCtrl`. Each block is synthesized
-separately into a flat structural netlist of tube cells (`NAND2_N16X7`, `DFF`, …).
-The tool loads one netlist per block. All blocks share one cell library, one set of
+separately into a hierarchical structural netlist of tube cells (`NAND2_N16X7`,
+`DFF`, …). The tool loads one netlist per block and expands it to leaf cells. All blocks share one cell library, one set of
 module designs and one chassis geometry.
 
 ## Status
@@ -55,7 +55,7 @@ module designs and one chassis geometry.
 | 1 | JSON project save / open, migration from older formats | ✅ Done |
 | 1 | Autosave to `localStorage` every 30 s and on page close | ✅ Restored on start |
 | 1 | Liberty parser (`vtube_cells.lib`, incl. `tubes`, `ff`, `latch`) | ✅ Done, unit-tested |
-| 1 | Verilog parser (Yosys flat structural) | ✅ Done, unit-tested |
+| 1 | Verilog parser (Yosys hierarchical structural): bit-level nets, keep submodules whole | ✅ Done; connectivity matches Yosys `flatten` |
 | 1 | Multi-block projects (2–3 netlists, shared library/modules/chassis) | ✅ Done |
 | 2 | **Elements** tab: custom elements not in the library (e.g. dekatron) | ✅ Done |
 | 2 | Data model v0.3.0: `ModuleType` + per-block `ModuleInstance`, per-copy pin maps, top-view chassis | ✅ In store, types and the Project tab |
@@ -66,7 +66,7 @@ module designs and one chassis geometry.
 | 5 | **Routing**: channel graph, A*, manual pencil | ⏳ Store actions only |
 | 6 | **Assembly**: mark wired segments, CSV/JSON/PNG/SVG export | ⏳ Store actions only |
 
-The source is about 2.7 k lines of TS/TSX plus about 540 lines of tests.
+The source is about 3.4 k lines of TS/TSX plus about 650 lines of tests.
 
 ## Quick start
 
@@ -108,9 +108,14 @@ all edit one shared project. **Undo** / **Redo** (`Ctrl+Z`, `Ctrl+Y` or
 1. **Project.** Name the project, create a new one, open or save a `.dpc.json`
    file, and see summary counters.
 2. **Netlist.** Load the liberty file once, then one Verilog netlist per block. The
-   block name comes from the file name (`IpLine_synth.v` → `IpLine`). A block selector
-   switches between loaded blocks. The tab lists instances and nets, and flags
-   cell types missing from both the library and the custom elements.
+   block name comes from the file name (`IpLine_synth.v` → `IpLine`) and is also
+   used to find the top module. The **Hierarchy** panel lists the submodules: tick
+   *Keep* for one that is a single board (`DekatronModule`), and the rest are
+   expanded to cells. A block selector switches between loaded blocks. The tab lists
+   instances, nets and block ports, and flags cell types missing from both the
+   library and the custom elements. A missing type that the netlist defines as a
+   module (`DekatronTubeV2`, `OneShot`, or a kept board) gets an **Add as element**
+   button that creates it with pins from its Verilog ports.
 3. **Elements.** Define parts that aren't liberty cells (a dekatron with its
    drivers, a power module, a connector) with named pins. Each pin has a direction
    and a type: signal, power, ground or clock. Netlist instances of these types then
@@ -150,19 +155,39 @@ Timing tables are ignored.
 
 A structural netlist as Yosys writes it. **The project's netlists are hierarchical**,
 and they stay that way on purpose: a submodule such as `DekatronModule` becomes one
-physical board (owner decision, 2026-10-09, `agents.md` §3.8). The current parser only
-handles **flat** netlists (see H1 under [Known issues](#known-issues)). Example of the
-flat input it does understand:
+physical board (owner decision, 2026-10-09, `agents.md` §3.8).
 
-```verilog
-wire [3:0] bus;  wire n1, n2;
-NAND2_N16X7 U1 (.A(a), .B(b), .Y(n1));
-\$paramod\Dekatron\WIDTH=10  dek0 (.Clk(clk), .Out(bus[0]));
-```
+The parser (`services/parsers/verilog.ts`) tokenizes the file, reads every `module`
+and then elaborates from the top module down. The top is the block name if a module
+has it, otherwise the only module no other module instantiates. An instance is a
+**leaf** if:
 
-It supports scalar and bus `wire` declarations, escaped identifiers (`\$paramod…`),
-bit-selects and part-selects (folded to the base net name) and constants (`1'b0`,
-`4'h3`, which are skipped as nets). Comments are stripped. `assign` statements are not supported.
+- its type has no module definition (a liberty cell);
+- its module has no instances inside: a Yosys black box such as `DekatronTubeV2`,
+  `OneShot` or `Impulse`, which are base elements (Q11);
+- its module is in the *keep* list (a whole board, e.g. `DekatronModule`, Q3/Q7).
+
+Every other submodule is expanded. Leaf names are hierarchical paths joined with `/`
+(`ipCounter/dek[0].dModule/guideEnA`). Yosys's `$paramod…` names are reduced to the
+base module name for `cellType`; the full name is kept in `module`.
+
+**Nets are bit-level.** Each bus bit is its own wire (`MainOneHot[3]`). Nets are
+merged across module ports and `assign` statements, and same-named nets in different
+instances stay apart. A merged net takes its shallowest user-given name, so `w[0]`
+wins over `p0/out[0]` and over Yosys's `_005_`. Pins tied to a constant record it
+(`1'b0`, `1'b1`) instead of a net. Pins of a liberty cell that connect to more than
+one bit are named `D[3]`…`D[0]` by connection width; pins of defined modules use
+their declared bits.
+
+Supported: non-ANSI and ANSI port lists, `wire`/`reg` declarations with ranges,
+`assign` (including concatenations on the left), named and positional connections,
+part-selects, concatenations and replications, sized constants with `x`/`z`, escaped
+identifiers, `(* attributes *)` and comments. Behavioral code (`always`, `initial`,
+`function`, `generate`) is rejected with a line number.
+
+Checked against Yosys: for IpLine, ApLine and MachineCtrl the leaf cell counts and
+the net of every pin match `hierarchy; setattr -mod -unset keep_hierarchy *; flatten`
+exactly. `test/parsers/verilog.test.ts` repeats that check on the checked-in fixture.
 
 The netlists come from `rtl/run/run_tests.sh -s`, which runs `./synth` for IpLine,
 ApLine and MachineCtrl (Yosys, `synt_dpc.tcl`, no `-flatten`). **They are not
@@ -250,6 +275,13 @@ A project is saved as `<name>.dpc.json`. The current format is **0.3.0**:
   0.3.0 equivalent, so the chassis is reset to the defaults (keeping `rows`).
   Placements that don't fit the new rows are dropped, with their elements and wires.
 - Saved files and the autosave hold project data only, never the undo history.
+- `netlist` may also hold `top` (the top module), `keep` (submodules kept whole) and
+  `ports` (top-level port bits: `{ "name": "insn[3]", "direction": "input", "net": "insn[3]" }`).
+  Instance names are hierarchical paths, connection keys are pin bits, and an
+  instance of a kept or black-box module has `"module": "<full Yosys name>"`.
+  These fields are optional, so the format stays 0.3.0. Projects saved before
+  2026-10-09 hold netlists from the old flat parser, which merged nets across
+  modules: open the `.v` again and parse it.
 
 ## Tests
 
@@ -260,10 +292,10 @@ npm test
 | File | Covers |
 |---|---|
 | `test/parsers/liberty.test.ts` | Parses `../rtl/run/vtube_cells.lib`: cells, pins, `tubes`, sequential flags |
-| `test/parsers/verilog.test.ts` | Parses `test/fixtures/IpLine_synth.v`: instances, nets, escaped names |
+| `test/parsers/verilog.test.ts` | `test/fixtures/hier.v`: exact nets, buses, constants, `keep`, black boxes, errors. `IpLine_synth.v`: leaf counts and every pin's net equal to `IpLine_flat.v`, the Yosys-flattened reference |
 | `test/store/projectStore.test.ts` | Blocks, multi-netlist, undo/redo, per-block placement |
 | `test/services/projectIO.test.ts` | Save writes project data only; pre-0.2 and 0.2.0 → 0.3.0 migration |
-| `test/ui/app.test.tsx` | jsdom smoke test: every tab renders; autosave round-trip |
+| `test/ui/app.test.tsx` | jsdom: every tab renders; Netlist tab parses `hier.v` with *Keep* and *Add as element*; autosave round-trip |
 
 CI: `.github/workflows/webui.yml` runs `npm ci && npm test` on Node 22 for pushes and
 pull requests to `master` that touch `webui/` or `rtl/run/vtube_cells.lib`. It can
@@ -275,19 +307,19 @@ fresh clone. Regenerate it when the IpLine RTL changes.
 
 `test/test_parsers.mjs` is a standalone smoke test that needs only Node:
 `node test/test_parsers.mjs ../rtl/run/vtube_cells.lib <netlist.v>`. It contains its own
-copy of the parser code (D6).
+copy of the old flat parser (D6), so it no longer matches the app.
 
 ## Known issues
 
 Item D6 comes from the review in [`doc/webui_status.md`](../doc/webui_status.md).
-H1–H2 come from the review against the computer project on 2026-10-09 ([`doc/webui_review.md`](../doc/webui_review.md), where they are F1
-and F2/F4).
+H2 comes from the review against the computer project on 2026-10-09
+([`doc/webui_review.md`](../doc/webui_review.md), where it is F2/F4).
 
 | # | Severity | Where | Problem |
 |---|---|---|---|
-| H1 | **Blocker** | `parsers/verilog.ts` | Ignores `module` boundaries. On a hierarchical netlist it merges same-named nets from different modules and does not expand submodules, silently. A hierarchical parser is needed. |
 | H2 | High | model | A block has no HD-68 connectors to other blocks, and block netlists aren't linked, so the whole computer can't be routed in one project. Power-net flag and small interconnect boards are missing too. Planned for format 0.4.0 (`agents.md` §4). |
-| D6 | Low | `test/test_parsers.mjs` | Has its own inline copy of the parsers, which will drift from `src/services/parsers`. |
+| D6 | Low | `test/test_parsers.mjs` | Has its own inline copy of the old flat parser; it should import `src/services/parsers` or be removed. |
+| — | Medium | Netlist tab | The *keep* list is per parse, not linked to a `ModuleType`. Linking a Verilog module to a board type is part of format 0.4.0. |
 | — | Low | `tsconfig.json` | `baseUrl` is deprecated in TypeScript 6. Harmless with the pinned `~5.8`. |
 
 Fixed in `c51ecfa`: D3 (some edits weren't undoable) and D5 (stale `activeBlockId`
@@ -296,17 +328,20 @@ described the 0.2 format) was fixed on 2026-10-09. Fixed on 2026-10-09: N1 and N
 build failed and the Project tab threw on render), N3 and N5 (tests used a removed
 store action and an untracked netlist), N4 (no 0.2.0 migration), D1 (undo history
 written to files), D2 (autosave never restored) and D4 (stale missing-types check).
+H1 (the parser ignored `module` boundaries) was fixed on 2026-10-09 by the
+hierarchical parser.
 
 ## Roadmap
 
 The order below follows the 2026-10-09 review ([`doc/webui_review.md`](../doc/webui_review.md) §6–7):
 
 1. ~~Fix N1–N5 and D1, D2 and D4 so that `main` builds, runs and passes tests.~~ Done.
-2. **Hierarchical netlist parser** (H1). A submodule mapped to a module type becomes
-   one module instance; other submodules expand to base elements.
+2. ~~**Hierarchical netlist parser** (H1). A submodule mapped to a module type becomes
+   one module instance; other submodules expand to base elements.~~ Done: kept
+   submodules stay whole; the link from a kept module to a `ModuleType` moves to step 3.
 3. **Format 0.4.0** (H2). Add HD-68 block connectors, cables between blocks, a power
-   flag on nets and small interconnect boards, so all three blocks can be routed in
-   one project.
+   flag on nets, small interconnect boards and the Verilog module → `ModuleType`
+   link, so all three blocks can be routed in one project.
 4. **Modules tab.** A module-type library editor: width in 12 mm steps, a 2×36
    connector view, and slots with per-copy contact assignment. Manual entry comes
    first (REQ-PR-006), then KiCad `.net` S-expression import (REQ-PR-004).

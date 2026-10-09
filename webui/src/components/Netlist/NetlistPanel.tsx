@@ -2,11 +2,12 @@
 // NetlistPanel — Load & view Verilog netlists + Liberty file, multi-block
 // ============================================================================
 
-import { useCallback, useState, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import { useProjectStore } from '@/store';
-import { parseVerilogNetlist, parseLiberty, validateCellTypes } from '@/services/parsers';
+import { parseVerilogSource, elaborateNetlist, summarizeDesign, parseLiberty, validateCellTypes } from '@/services/parsers';
+import type { VerilogDesign, ModuleSummary } from '@/services/parsers';
 
-type SubTab = 'overview' | 'instances' | 'nets' | 'liberty';
+type SubTab = 'overview' | 'instances' | 'nets' | 'ports' | 'liberty';
 
 /** Read a file from a file input and call setText with its contents */
 function loadFileContent(file: File, setText: (s: string) => void) {
@@ -39,7 +40,7 @@ export function NetlistPanel() {
   const setBlockNetlist = useProjectStore(s => s.setBlockNetlist);
   const addBlock = useProjectStore(s => s.addBlock);
   const setActiveBlock = useProjectStore(s => s.setActiveBlock);
-  const removeBlock = useProjectStore(s => s.removeBlock);
+  const addExternalElement = useProjectStore(s => s.addExternalElement);
 
   // Derive active block data for display
   const activeBlock = activeBlockId ? blocks[activeBlockId] : null;
@@ -49,6 +50,47 @@ export function NetlistPanel() {
 
   // Store the filename for block naming
   const [lastVerilogFilename, setLastVerilogFilename] = useState('');
+  const targetBlock = deriveBlockName(lastVerilogFilename);
+  // Top module: typed by the user, else the block name, else auto-detected
+  const [topInput, setTopInput] = useState('');
+  const topHint = topInput.trim() || targetBlock || undefined;
+
+  // Parse the source as it changes; elaborate only on "Parse Verilog"
+  const parsedSource = useMemo((): { design?: VerilogDesign; error?: string } => {
+    if (!verilogText.trim()) return {};
+    try {
+      return { design: parseVerilogSource(verilogText) };
+    } catch (err) {
+      return { error: (err as Error).message };
+    }
+  }, [verilogText]);
+
+  const summary = useMemo((): { top: string; modules: ModuleSummary[] } | { error: string } | null => {
+    if (!parsedSource.design) return null;
+    try {
+      return summarizeDesign(parsedSource.design, topHint);
+    } catch (err) {
+      return { error: (err as Error).message };
+    }
+  }, [parsedSource, topHint]);
+  const hierarchy = summary && 'modules' in summary ? summary : null;
+
+  // Submodules kept as one instance; defaults to what the block was last parsed with
+  const [keep, setKeep] = useState<Set<string>>(new Set());
+  const previousKeep = (targetBlock && blocks[targetBlock]?.netlist.keep) || [];
+  useEffect(() => {
+    setKeep(new Set(previousKeep));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parsedSource, targetBlock]);
+
+  const toggleKeep = useCallback((name: string) => {
+    setKeep(prev => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  }, []);
 
   const handleOpenVerilog = useCallback(() => verilogInputRef.current?.click(), []);
   const handleOpenLiberty = useCallback(() => libertyInputRef.current?.click(), []);
@@ -71,13 +113,23 @@ export function NetlistPanel() {
   const handleParseVerilog = useCallback(() => {
     try {
       setParseError(null);
-      const parsed = parseVerilogNetlist(verilogText);
-      const blockName = deriveBlockName(lastVerilogFilename) || 'Block_' + Date.now();
+      if (!parsedSource.design) throw new Error(parsedSource.error ?? 'nothing to parse');
+      const blockName = targetBlock || 'Block_' + Date.now();
+      const parsed = elaborateNetlist(parsedSource.design, { top: topHint, keep });
       setBlockNetlist(blockName, parsed);
     } catch (err) {
       setParseError(`Verilog parse error: ${(err as Error).message}`);
     }
-  }, [verilogText, lastVerilogFilename, setBlockNetlist]);
+  }, [parsedSource, targetBlock, topHint, keep, setBlockNetlist]);
+
+  /** Create a base element from a module's port bits (agents.md §3.2, F8) */
+  const handleAddElement = useCallback((m: ModuleSummary) => {
+    addExternalElement({
+      name: m.baseName,
+      description: 'Pins from the Verilog netlist ports',
+      pins: m.pins.map(p => ({ name: p.name, direction: p.direction, type: 'signal' })),
+    });
+  }, [addExternalElement]);
 
   const handleParseLiberty = useCallback(() => {
     try {
@@ -108,6 +160,7 @@ export function NetlistPanel() {
     { id: 'overview', label: 'Overview' },
     { id: 'instances', label: `Instances (${activeNetlist.instances.length})` },
     { id: 'nets', label: `Nets (${activeNetlist.nets.length})` },
+    { id: 'ports', label: `Ports (${activeNetlist.ports?.length ?? 0})` },
     { id: 'liberty', label: `Liberty (${Object.keys(liberty).length})` },
   ];
 
@@ -172,7 +225,24 @@ export function NetlistPanel() {
             The netlist references cell types not found in liberty or external elements:
           </p>
           <ul style={{ marginLeft: 20, marginTop: 8 }}>
-            {missingTypes.map(t => <li key={t} style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>{t}</li>)}
+            {missingTypes.map(t => {
+              const mod = hierarchy?.modules.find(m => m.baseName === t);
+              return (
+                <li key={t} style={{ fontFamily: 'var(--font-mono)', fontSize: 12, marginBottom: 4 }}>
+                  {t}
+                  {mod && (
+                    <button
+                      className="btn btn-small"
+                      style={{ marginLeft: 8 }}
+                      onClick={() => handleAddElement(mod)}
+                      title={`Add ${t} on the Elements tab with ${mod.pins.length} pins from its Verilog ports`}
+                    >
+                      Add as element
+                    </button>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}
@@ -202,15 +272,75 @@ export function NetlistPanel() {
                   style={{ minHeight: 200 }}
                 />
               </div>
-              <button className="btn btn-primary" onClick={handleParseVerilog}>
+              {(parsedSource.error || (summary && 'error' in summary)) && (
+                <p style={{ color: 'var(--accent)', fontSize: 12, marginBottom: 8 }}>
+                  {parsedSource.error ?? (summary as { error: string }).error}
+                </p>
+              )}
+              <div className="form-group">
+                <label>Top module (optional)</label>
+                <input
+                  type="text"
+                  value={topInput}
+                  onChange={e => setTopInput(e.target.value)}
+                  placeholder={targetBlock || 'auto-detect'}
+                  style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}
+                />
+              </div>
+              <button className="btn btn-primary" onClick={handleParseVerilog} disabled={!hierarchy}>
                 Parse Verilog
               </button>
               {lastVerilogFilename && (
                 <span style={{ marginLeft: 8, fontSize: 11, color: 'var(--text-secondary)' }}>
-                  Block: <span style={{ fontFamily: 'var(--font-mono)' }}>{deriveBlockName(lastVerilogFilename)}</span>
+                  Block: <span style={{ fontFamily: 'var(--font-mono)' }}>{targetBlock}</span>
                 </span>
               )}
             </div>
+
+            {hierarchy && (
+              <div className="panel">
+                <h2>Hierarchy</h2>
+                <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 8 }}>
+                  Top module <span style={{ fontFamily: 'var(--font-mono)' }}>{hierarchy.top}</span>.
+                  Submodules are expanded to cells unless kept as one instance (one board).
+                  Modules without cells inside are base elements and always stay whole.
+                </p>
+                {hierarchy.modules.length === 0 ? (
+                  <p style={{ fontSize: 12, fontStyle: 'italic' }}>No submodules: the netlist is flat.</p>
+                ) : (
+                  <table className="data-table">
+                    <thead>
+                      <tr><th>Keep</th><th>Module</th><th>Uses</th><th>Pins</th></tr>
+                    </thead>
+                    <tbody>
+                      {hierarchy.modules.map(m => (
+                        <tr key={m.baseName}>
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={m.blackBox || keep.has(m.baseName)}
+                              disabled={m.blackBox}
+                              onChange={() => toggleKeep(m.baseName)}
+                            />
+                          </td>
+                          <td style={{ fontFamily: 'var(--font-mono)' }} title={m.variants.join('\n')}>
+                            {m.baseName}
+                            {m.blackBox && <span className="badge badge-input" style={{ marginLeft: 6 }}>base element</span>}
+                            {m.variants.length > 1 && (
+                              <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--text-secondary)' }}>
+                                {m.variants.length} variants
+                              </span>
+                            )}
+                          </td>
+                          <td>{m.uses}</td>
+                          <td>{m.pins.length}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
 
             <div className="panel">
               <h2>Liberty File</h2>
@@ -294,7 +424,7 @@ export function NetlistPanel() {
               <tbody>
                 {activeNetlist.instances.map(inst => (
                   <tr key={inst.name}>
-                    <td style={{ fontFamily: 'var(--font-mono)' }}>{inst.name}</td>
+                    <td style={{ fontFamily: 'var(--font-mono)' }} title={inst.module}>{inst.name}</td>
                     <td>
                       <span className={`badge badge-input`}>{inst.cellType}</span>
                     </td>
@@ -340,6 +470,31 @@ export function NetlistPanel() {
                       {net.terminals.map(t => `${t.instance}.${t.port}`).join(', ')}
                     </td>
                     <td>{net.terminals.length}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      {/* Ports */}
+      {subTab === 'ports' && (
+        <div className="panel">
+          <h2>Block Ports {activeBlockId ? `— ${activeBlockId}` : ''}</h2>
+          {!activeNetlist.ports?.length ? (
+            <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>No ports parsed.</p>
+          ) : (
+            <table className="data-table">
+              <thead>
+                <tr><th>Port</th><th>Direction</th><th>Net</th></tr>
+              </thead>
+              <tbody>
+                {activeNetlist.ports.map(p => (
+                  <tr key={p.name}>
+                    <td style={{ fontFamily: 'var(--font-mono)' }}>{p.name}</td>
+                    <td><span className={`badge badge-${p.direction}`}>{p.direction}</span></td>
+                    <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--success)' }}>{p.net}</td>
                   </tr>
                 ))}
               </tbody>

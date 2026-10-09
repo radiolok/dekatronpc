@@ -137,9 +137,14 @@ export const TRANSFORMER_WIDTH_MAX = 100;
 // ---------------------------------------------------------------------------
 
 export interface NetlistInstance {
-  name: string;         // e.g. "U1", "U2"
-  cellType: string;     // e.g. "AND2", "DECATRON_CELL"
-  connections: Record<string, string>; // port → net name
+  /** Hierarchical path, '/'-separated: "ipCounter/dek[0].dModule/guideEnA" */
+  name: string;
+  /** Liberty cell or base module name ("NAND2_J2", "DekatronModule") */
+  cellType: string;
+  /** Full Verilog module name when it differs (Yosys "$paramod…" variants) */
+  module?: string;
+  /** Pin bit ("A", "In[2]") → net name, or a constant such as "1'b0" */
+  connections: Record<string, string>;
 }
 
 export interface NetlistNet {
@@ -148,9 +153,27 @@ export interface NetlistNet {
   terminals: { instance: string; port: string }[];
 }
 
+/** One bit of a top-level port of the block */
+export interface NetlistPort {
+  name: string;          // "insn[3]", "clk"
+  direction: PinDirection;
+  /** Net name, or a constant such as "1'b0" */
+  net: string;
+}
+
+/**
+ * Leaf instances and bit-level nets of one block. Submodules are expanded
+ * unless they are black boxes or listed in `keep` (see services/parsers/verilog.ts).
+ */
 export interface ParsedNetlist {
   instances: NetlistInstance[];
   nets: NetlistNet[];
+  /** Top module the netlist was elaborated from */
+  top?: string;
+  /** Module names kept as single instances when elaborating */
+  keep?: string[];
+  /** Top-level port bits */
+  ports?: NetlistPort[];
 }
 
 // ---------------------------------------------------------------------------

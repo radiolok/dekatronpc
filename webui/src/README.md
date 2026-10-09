@@ -185,16 +185,27 @@ value that doesn't update when the store changes.
 
 ## Parsers
 
-Both parsers use regex plus brace counting and have no dependencies, so they can run
-under plain Node.
+Both parsers have no dependencies, so they can run under plain Node. The liberty
+parser uses regex plus brace counting; the Verilog parser has a tokenizer and a
+recursive-descent parser.
 
 - `parseLiberty(src)`: cells, pins (direction, function, driver type, fan-out,
   clock), `area`, `heat_current`, `current_unit`, `tubes(names){…}`, and `ff`/`latch`
   flags. Also exports `extractCellNames` and `generateSkeletonLiberty`.
-- `parseVerilogNetlist(src)`: `wire` declarations (scalar and bus), instances
-  (including escaped `\$paramod…` cell types), connections with bit-selects folded
-  to the base net, and constants skipped. Also exports `extractWireNames` and
-  `validateCellTypes(netlist, knownTypes)`.
+- Verilog, in two stages:
+  - `parseVerilogSource(src)` → `VerilogDesign`: every `module` with its ports,
+    ranges, `assign`s and instances. Throws `VerilogParseError` with a line number.
+  - `elaborateNetlist(design, { top?, keep? })` → `ParsedNetlist`: expands from the
+    top to leaves (undefined types, black boxes, modules in `keep`). Bits are nodes
+    in a union-find; ports and `assign`s union them; each group is named after its
+    best member (shallowest, not Yosys `_N_`, shortest) or becomes a constant.
+  - `parseVerilogNetlist(src, options)` does both. `summarizeDesign(design, top?)`
+    lists the submodules below the top by base name, with use counts and port bits,
+    for the *Keep* list and *Add as element*. `baseModuleName()` strips `$paramod`.
+  - Also exports `extractWireNames` and `validateCellTypes(netlist, knownTypes)`.
+  - When changing elaboration, keep the Yosys comparison in
+    `test/parsers/verilog.test.ts` passing. To regenerate the reference, run the
+    command at the top of `test/fixtures/IpLine_flat.v`.
 
 ## Testing
 
