@@ -8,6 +8,9 @@ import type {
   ProjectState,
   Block,
   BlockConfig,
+  BlockConnector,
+  CableEnd,
+  ConnectorType,
   ModuleType,
   ModuleSlot,
   ModuleInstance,
@@ -18,6 +21,7 @@ import type {
   PinMapping,
   RoutedNet,
   RouteSegment,
+  TerminalPoint,
 } from '@/types';
 import {
   createDefaultBlock,
@@ -25,10 +29,12 @@ import {
   pickProjectState,
   resolveSlot,
   fitsInRow,
+  canPlaceModule,
+  isConnectorTerminal,
+  snapTransformerWidth,
+  CONNECTOR_PINS,
   ROWS_MIN,
   ROWS_MAX,
-  TRANSFORMER_WIDTH_MIN,
-  TRANSFORMER_WIDTH_MAX,
 } from '@/types';
 import { clamp, stringToColor } from '@/utils/helpers';
 
@@ -71,9 +77,25 @@ export interface ProjectActions {
   removeBlock: (blockId: string) => void;
   setActiveBlock: (blockId: string | null) => void;
   setBlockNetlist: (blockId: string, netlist: ParsedNetlist) => void;
+  /** Clamped to ROWS_MIN..ROWS_MAX, and never below a row that holds modules */
+  setBlockRows: (blockId: string, rows: number) => void;
 
-  // Chassis geometry
+  // Basket geometry (all blocks). Ignored if a placed module would no longer fit.
   setBlockConfig: (cfg: Partial<BlockConfig>) => void;
+
+  // Block connectors (active block) and cables between blocks
+  /** Returns the new connector id, or null without an active block */
+  addConnector: (type?: ConnectorType) => string | null;
+  removeConnector: (connectorId: string) => void;
+  moveConnector: (connectorId: string, position: number) => void;
+  /** Put a block port bit on a connector pin (null clears the pin). A port sits on one pin only. */
+  assignConnectorPin: (connectorId: string, pin: number, port: string | null) => void;
+  /** Returns the new cable id, or null if the ends are invalid or already cabled */
+  addCable: (from: CableEnd, to: CableEnd) => string | null;
+  removeCable: (cableId: string) => void;
+
+  // Power nets (active block): not routed
+  setPowerNet: (netName: string, power: boolean) => void;
 
   // Liberty
   setLiberty: (cells: Record<string, LibertyCell>) => void;
@@ -134,7 +156,7 @@ type GetFn = () => ProjectStore;
 function projectChanged(a: ProjectState, b: ProjectState): boolean {
   return a.meta !== b.meta || a.liberty !== b.liberty
     || a.externalElements !== b.externalElements || a.moduleTypes !== b.moduleTypes
-    || a.block !== b.block || a.blocks !== b.blocks;
+    || a.block !== b.block || a.blocks !== b.blocks || a.cables !== b.cables;
 }
 
 /** Keep activeBlockId pointing at an existing block */
@@ -146,33 +168,6 @@ function fixActiveBlock(s: ProjectStore): void {
 /** Cell type of every netlist instance of a block */
 function instanceCellType(b: Block, instanceName: string): string | undefined {
   return b.netlist.instances.find(i => i.name === instanceName)?.cellType;
-}
-
-/**
- * Is [col, col+width) in `row` free: inside the row, clear of the transformer
- * and of other module instances (except `ignoreId`)?
- */
-export function canPlaceModule(
-  state: Pick<ProjectState, 'block' | 'moduleTypes'>,
-  instances: ModuleInstance[],
-  typeId: string,
-  row: number,
-  col: number,
-  ignoreId?: string,
-): boolean {
-  const type = state.moduleTypes.find(t => t.id === typeId);
-  if (!type) return false;
-  if (!Number.isInteger(row) || !Number.isInteger(col)) return false;
-  if (row < 0 || row >= state.block.rows) return false;
-  if (!fitsInRow(state.block, col, type.widthSteps)) return false;
-  const end = col + type.widthSteps;
-  for (const other of instances) {
-    if (other.id === ignoreId || other.row !== row) continue;
-    const ot = state.moduleTypes.find(t => t.id === other.typeId);
-    const oEnd = other.col + (ot?.widthSteps ?? 1);
-    if (col < oEnd && other.col < end) return false;
-  }
-  return true;
 }
 
 /**
@@ -192,15 +187,40 @@ function pruneElementPlacements(s: ProjectStore): void {
   }
 }
 
-/** Drop route segments that end on a module instance that no longer exists */
+/** Drop route segments that end on a module instance or connector pin that no longer exists */
 function pruneRouting(b: Block): void {
   const ids = new Set(b.placement.modules.map(m => m.id));
+  const valid = (t: TerminalPoint) => {
+    if (!isConnectorTerminal(t)) return ids.has(t.moduleInstanceId);
+    const c = b.connectors.find(x => x.id === t.connectorId);
+    return !!c && t.pin >= 1 && t.pin <= c.pins;
+  };
   for (const net of b.routing.nets) {
-    net.segments = net.segments.filter(
-      g => ids.has(g.start.moduleInstanceId) && ids.has(g.end.moduleInstanceId),
-    );
+    net.segments = net.segments.filter(g => valid(g.start) && valid(g.end));
   }
   b.routing.nets = b.routing.nets.filter(n => n.segments.length > 0);
+}
+
+function nextConnectorId(b: Block): string {
+  let n = 1;
+  const used = new Set(b.connectors.map(c => c.id));
+  while (used.has(`J${n}`)) n++;
+  return `J${n}`;
+}
+
+function nextCableId(s: ProjectState): string {
+  let n = 1;
+  const used = new Set(s.cables.map(c => c.id));
+  while (used.has(`C${n}`)) n++;
+  return `C${n}`;
+}
+
+const cableUses = (c: { from: CableEnd; to: CableEnd }, end: CableEnd) =>
+  [c.from, c.to].some(e => e.block === end.block && e.connector === end.connector);
+
+/** Row index + 1 of the lowest row holding a module (0 if none) */
+function usedRows(b: Block): number {
+  return Math.max(0, ...b.placement.modules.map(m => m.row + 1));
 }
 
 function nextInstanceId(b: Block): string {
@@ -282,6 +302,7 @@ function createProjectSlice(set: SetFn, get: GetFn): ProjectActions {
     removeBlock: (blockId) => {
       edit(`Remove block: ${blockId}`, (s) => {
         delete s.blocks[blockId];
+        s.cables = s.cables.filter(c => c.from.block !== blockId && c.to.block !== blockId);
         fixActiveBlock(s);
       });
     },
@@ -299,16 +320,96 @@ function createProjectSlice(set: SetFn, get: GetFn): ProjectActions {
       });
     },
 
-    // --- Chassis geometry ---
+    setBlockRows: (blockId, rows) => {
+      edit(`Set rows of ${blockId}`, (s) => {
+        const b = s.blocks[blockId];
+        if (b) b.rows = clamp(Math.round(rows), Math.max(ROWS_MIN, usedRows(b)), ROWS_MAX);
+      });
+    },
+
+    // --- Basket geometry ---
     setBlockConfig: (cfg) => {
-      edit('Change chassis geometry', (s) => {
+      edit('Change basket geometry', (s) => {
         const next = { ...s.block, ...cfg };
-        // Never drop a row that still holds modules
-        const usedRows = Math.max(0, ...Object.values(s.blocks)
-          .flatMap(b => b.placement.modules.map(m => m.row + 1)));
-        next.rows = clamp(Math.round(next.rows), Math.max(ROWS_MIN, usedRows), ROWS_MAX);
-        next.transformerWidth = clamp(next.transformerWidth, TRANSFORMER_WIDTH_MIN, TRANSFORMER_WIDTH_MAX);
+        next.transformerWidth = snapTransformerWidth(next.transformerWidth, next.gridStep);
+        // Every placed module must still fit its row
+        for (const b of Object.values(s.blocks)) {
+          for (const m of b.placement.modules) {
+            const type = s.moduleTypes.find(t => t.id === m.typeId);
+            if (type && !fitsInRow(next, m.col, type.widthSteps)) return;
+          }
+        }
         Object.assign(s.block, next);
+      });
+    },
+
+    // --- Block connectors and cables ---
+    addConnector: (type = 'HD68') => {
+      const b0 = get().activeBlockId ? get().blocks[get().activeBlockId!] : undefined;
+      if (!b0) return null;
+      const id = nextConnectorId(b0);
+      editBlock(`Add connector ${id}`, (b) => {
+        const position = Math.max(-1, ...b.connectors.map(c => c.position)) + 1;
+        b.connectors.push({ id, type, pins: CONNECTOR_PINS[type], position, ports: [] });
+      });
+      return id;
+    },
+
+    removeConnector: (connectorId) => {
+      editBlock(`Remove connector ${connectorId}`, (b, s) => {
+        if (!b.connectors.some(c => c.id === connectorId)) return;
+        b.connectors = b.connectors.filter(c => c.id !== connectorId);
+        s.cables = s.cables.filter(c => !cableUses(c, { block: b.name, connector: connectorId }));
+        pruneRouting(b);
+      });
+    },
+
+    moveConnector: (connectorId, position) => {
+      editBlock(`Move connector ${connectorId}`, (b) => {
+        const c = b.connectors.find(x => x.id === connectorId);
+        if (!c || !Number.isInteger(position) || position < 0 || c.position === position) return;
+        // Swap with the connector already there
+        const other = b.connectors.find(x => x.position === position);
+        if (other) other.position = c.position;
+        c.position = position;
+      });
+    },
+
+    assignConnectorPin: (connectorId, pin, port) => {
+      editBlock(`Assign ${connectorId} pin ${pin}`, (b) => {
+        const c: BlockConnector | undefined = b.connectors.find(x => x.id === connectorId);
+        if (!c || !Number.isInteger(pin) || pin < 1 || pin > c.pins) return;
+        if (port !== null && b.netlist.ports && !b.netlist.ports.some(p => p.name === port)) return;
+        c.ports = c.ports.filter(a => a.pin !== pin);
+        if (port === null) return;
+        for (const other of b.connectors) other.ports = other.ports.filter(a => a.port !== port);
+        c.ports.push({ pin, port });
+        c.ports.sort((x, y) => x.pin - y.pin);
+      });
+    },
+
+    addCable: (from, to) => {
+      const s0 = get();
+      const conn = (e: CableEnd) => s0.blocks[e.block]?.connectors.find(c => c.id === e.connector);
+      const a = conn(from);
+      const b = conn(to);
+      if (!a || !b || from.block === to.block || a.type !== b.type) return null;
+      if (s0.cables.some(c => cableUses(c, from) || cableUses(c, to))) return null;
+      const id = nextCableId(s0);
+      edit(`Add cable ${id}`, (s) => { s.cables.push({ id, from: { ...from }, to: { ...to } }); });
+      return id;
+    },
+
+    removeCable: (cableId) => {
+      edit(`Remove cable ${cableId}`, (s) => { s.cables = s.cables.filter(c => c.id !== cableId); });
+    },
+
+    // --- Power nets ---
+    setPowerNet: (netName, power) => {
+      editBlock(`${power ? 'Mark' : 'Unmark'} power net: ${netName}`, (b) => {
+        const has = b.powerNets.includes(netName);
+        if (power && !has) b.powerNets.push(netName);
+        if (!power && has) b.powerNets = b.powerNets.filter(n => n !== netName);
       });
     },
 
@@ -407,7 +508,7 @@ function createProjectSlice(set: SetFn, get: GetFn): ProjectActions {
     addModuleInstance: (typeId, row, col) => {
       const s0 = get();
       const b0 = s0.activeBlockId ? s0.blocks[s0.activeBlockId] : undefined;
-      if (!b0 || !canPlaceModule(s0, b0.placement.modules, typeId, row, col)) return null;
+      if (!b0 || !canPlaceModule(s0, b0.rows, b0.placement.modules, typeId, row, col)) return null;
       const id = nextInstanceId(b0);
       editBlock(`Place module ${id}`, (b) => {
         b.placement.modules.push({ id, typeId, row, col, locked: false });
@@ -419,7 +520,7 @@ function createProjectSlice(set: SetFn, get: GetFn): ProjectActions {
       editBlock(`Move module ${id}`, (b, s) => {
         const m = b.placement.modules.find(x => x.id === id);
         if (!m || m.locked || (m.row === row && m.col === col)) return;
-        if (!canPlaceModule(s, b.placement.modules, m.typeId, row, col, id)) return;
+        if (!canPlaceModule(s, b.rows, b.placement.modules, m.typeId, row, col, id)) return;
         m.row = row;
         m.col = col;
       });

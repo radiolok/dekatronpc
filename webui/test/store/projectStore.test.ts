@@ -128,7 +128,7 @@ describe('Store — full pipeline with blocks', () => {
   });
 
   it('placement actions target active block', async () => {
-    getStore().addModuleType({ id: 'logic', name: 'Logic', widthSteps: 2, slots: [] });
+    getStore().addModuleType({ id: 'logic', name: 'Logic', kind: 'board', widthSteps: 2, slots: [] });
     getStore().addBlock('Block1');
     getStore().addBlock('Block2');
 

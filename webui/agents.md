@@ -125,26 +125,34 @@
 
 ### 4. Модель данных (структура JSON проекта)
 
-Действующий формат — **0.3.0** (`webui/src/types/project.ts`). Блок (`blocks[...]`) — это ящик со своим нетлистом, размещением и трассировкой. Liberty, базовые элементы, типы модулей и геометрия корзины общие для всех блоков.
+Действующий формат — **0.4.0** (`webui/src/types/project.ts`, с 2026-10-09). Блок (`blocks[...]`) — это ящик со своим числом корзин, нетлистом, разъёмами, размещением и трассировкой. Liberty, базовые элементы, типы модулей и геометрия корзины общие для всех блоков; кабели между блоками — на уровне проекта.
 
 ```jsonc
 {
-  "meta": { "projectName": "DPC", "createdAt": "…", "updatedAt": "…", "version": "0.3.0" },
+  "meta": { "projectName": "DPC", "createdAt": "…", "updatedAt": "…", "version": "0.4.0" },
   "liberty": { "NAND2_N16X7": { "name": "NAND2_N16X7", "pins": [ … ], "tubes": { "N16B": 0.5, "X7B": 1 } } },
   "externalElements": {                    // базовые элементы, добавленные вручную
     "Impulse": { "name": "Impulse", "pins": [ { "name": "In", "direction": "input", "type": "signal" } ] }
   },
   "moduleTypes": [                         // проекты плат, общие для всех блоков
-    { "id": "LOGIC_A", "name": "4×NAND2", "widthSteps": 2,
+    { "id": "LOGIC_A", "name": "4×NAND2", "kind": "board", "widthSteps": 2,
       "slots": [ { "cellType": "NAND2_N16X7", "count": 4,
-                   "pinMaps": [ [ { "cellPin": "A", "contactId": "A1" } ], [], [], [] ] } ] }
+                   "pinMaps": [ [ { "cellPin": "A", "contactId": "A1" } ], [], [], [] ] } ] },
+    { "id": "DEK", "name": "Декатрон", "kind": "board", "widthSteps": 3, "slots": [ … ],
+      "verilogModule": "DekatronModule" }  // модуль нетлиста, который эта плата заменяет (Q3, Q7)
   ],
-  "block": { "rows": 5, "rowHeight": 140, "rowWidth": 420, "gridStep": 12,
-             "transformerWidth": 72, "obstructions": [] },
+  "block": { "rowHeight": 140, "rowWidth": 420, "gridStep": 12,   // геометрия корзины
+             "transformerWidth": 84, "obstructions": [] },        // 72 + 12·K мм (Q4)
   "blocks": {
     "IpLine": {
       "name": "IpLine",
-      "netlist": { "instances": [ … ], "nets": [ … ] },
+      "rows": 4,                           // корзин в ящике, 3–5
+      "netlist": { "top": "IpLine", "keep": [ "DekatronModule" ],
+                   "ports": [ { "name": "insn[3]", "direction": "input", "net": "insn[3]" } ],
+                   "instances": [ … ], "nets": [ … ] },
+      "connectors": [ { "id": "J1", "type": "HD68", "pins": 68, "position": 0,   // ряд над корзинами
+                        "ports": [ { "pin": 17, "port": "insn[3]" } ] } ],     // бит порта → контакт
+      "powerNets": [ "hs_clk" ],           // цепи питания: идут по соединительной плате, не трассируются (Q10)
       "placement": {
         "modules":  [ { "id": "M1", "typeId": "LOGIC_A", "row": 0, "col": 0, "locked": false } ],
         "elements": [ { "instanceName": "U1", "moduleInstanceId": "M1", "slotIndex": 0, "locked": false } ]
@@ -152,25 +160,22 @@
       "routing": { "nets": [ { "netName": "n1", "color": "#e6194b",
         "segments": [ { "id": "s1",
                         "start": { "moduleInstanceId": "M1", "pin": "A3" },
-                        "end":   { "moduleInstanceId": "M2", "pin": "B7" },
+                        "end":   { "connectorId": "J1", "pin": 17 },   // конец на контакте разъёма блока
                         "path": [],            // пусто = связь; точки = проложенный провод
                         "assembled": false } ] } ] }
     }
-  }
+  },
+  "cables": [ { "id": "C1", "from": { "block": "IpLine", "connector": "J1" },   // кабель HD-68: контакт n ↔ контакт n
+                            "to":   { "block": "ApLine", "connector": "J2" } } ]
 }
 ```
 
 - `slotIndex` — сквозной номер копии по слотам типа; разбирает его `resolveSlot()`.
-- Каскадная очистка: при правке слотов или удалении модулей неверные размещения и трассы удаляются.
-
-**Планируется (0.4.0, по решениям §3.8).** Формат поднимается с миграцией:
-- `blocks[...].connectors[]` — разъёмы HD-68: `{ "id": "J1", "type": "HD68", "pins": 68, "position": 0 }`, ряд сверху страницы блока;
-- `cables[]` на уровне проекта — `{ "id": "C1", "from": { "block": "IpLine", "connector": "J1" }, "to": { "block": "ApLine", "connector": "J2" } }`;
-- конец сегмента может быть контактом разъёма: `{ "connectorId": "J1", "pin": 17 }`;
-- флаг `power` у цепи — такие цепи не трассируются;
-- `ModuleType.kind`: `"board"` или `"interconnect"` (малая соединительная плата для группы модулей);
-- связь «модуль Verilog → ModuleType» (иерархические пути экземпляров, `top`, `keep` и `ports` в `netlist` уже есть с 2026-10-09 как необязательные поля 0.3.0);
-- `rows` — у каждого блока свой (3–5).
+- Каскадная очистка: при правке слотов или удалении модулей и разъёмов неверные размещения, кабели и трассы удаляются.
+- Межблочные связи выводятся из кабелей (`services/interconnect.ts`, `cableLinks()`): порт на контакте n одного конца соединяется с портом на контакте n другого. Ошибки: порт только на одном конце, порта нет в нетлисте, два выхода или два входа на одном проводе.
+- `powerNets` хранит имена цепей в блоке, а не флаг у цепи: так отметка переживает повторный разбор нетлиста.
+- `kind: "interconnect"` — малая соединительная плата для группы модулей; её связи проводами не трассируются.
+- Миграция 0.3.0 → 0.4.0: `rows` переходит в каждый блок, ширина трансформатора округляется до 72 + 12·K (85 → 84), добавляются пустые `connectors`, `powerNets`, `cables` и `kind: "board"`; модули, которые больше не помещаются, удаляются вместе с элементами и трассами.
 
 ---
 

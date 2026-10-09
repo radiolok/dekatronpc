@@ -56,9 +56,10 @@ module designs and one chassis geometry.
 | 1 | Autosave to `localStorage` every 30 s and on page close | ✅ Restored on start |
 | 1 | Liberty parser (`vtube_cells.lib`, incl. `tubes`, `ff`, `latch`) | ✅ Done, unit-tested |
 | 1 | Verilog parser (Yosys hierarchical structural): bit-level nets, keep submodules whole | ✅ Done; connectivity matches Yosys `flatten` |
-| 1 | Multi-block projects (2–3 netlists, shared library/modules/chassis) | ✅ Done |
+| 1 | Multi-block projects (2–3 netlists, shared library/modules/basket geometry) | ✅ Done |
+| 2 | Format 0.4.0: rows per block, HD-68 connectors with port pins, cables between blocks, power nets, interconnect boards, Verilog module → board link | ✅ In store, types and the Project / Netlist tabs |
 | 2 | **Elements** tab: custom elements not in the library (e.g. dekatron) | ✅ Done |
-| 2 | Data model v0.3.0: `ModuleType` + per-block `ModuleInstance`, per-copy pin maps, top-view chassis | ✅ In store, types and the Project tab |
+| 2 | `ModuleType` + per-block `ModuleInstance`, per-copy pin maps, top-view chassis | ✅ In store and types |
 | 2 | **Modules** tab: module-type editor, 2×36 connector, slot pin maps | ⏳ Store actions only |
 | 2 | KiCad netlist import for module pin maps | ⏳ Not started |
 | 3–4 | **Placement** canvas (Konva): rows, 12 mm grid, drag / lock | ⏳ Not started. `konva` is a dependency but unused |
@@ -66,7 +67,7 @@ module designs and one chassis geometry.
 | 5 | **Routing**: channel graph, A*, manual pencil | ⏳ Store actions only |
 | 6 | **Assembly**: mark wired segments, CSV/JSON/PNG/SVG export | ⏳ Store actions only |
 
-The source is about 3.4 k lines of TS/TSX plus about 650 lines of tests.
+The source is about 4 k lines of TS/TSX plus about 900 lines of tests.
 
 ## Quick start
 
@@ -106,7 +107,11 @@ all edit one shared project. **Undo** / **Redo** (`Ctrl+Z`, `Ctrl+Y` or
 `Ctrl+Shift+Z`) work across all tabs.
 
 1. **Project.** Name the project, create a new one, open or save a `.dpc.json`
-   file, and see summary counters.
+   file, and see summary counters. Set the transformer width (72, 84 or 96 mm) and
+   the number of baskets of each block (3–5), and join connectors of two blocks
+   with an HD-68 **cable**. The panel warns about cable pins with a problem: a port
+   on one end only, a port no longer in the netlist, or two outputs or two inputs
+   on one wire.
 2. **Netlist.** Load the liberty file once, then one Verilog netlist per block. The
    block name comes from the file name (`IpLine_synth.v` → `IpLine`) and is also
    used to find the top module. The **Hierarchy** panel lists the submodules: tick
@@ -115,7 +120,10 @@ all edit one shared project. **Undo** / **Redo** (`Ctrl+Z`, `Ctrl+Y` or
    instances, nets and block ports, and flags cell types missing from both the
    library and the custom elements. A missing type that the netlist defines as a
    module (`DekatronTubeV2`, `OneShot`, or a kept board) gets an **Add as element**
-   button that creates it with pins from its Verilog ports.
+   button that creates it with pins from its Verilog ports. On **Ports**, add HD-68
+   connectors to the block and type a pin such as `J1:17` next to each port bit. On
+   **Nets**, tick *Power* for nets that the basket backplane carries; they won't be
+   routed.
 3. **Elements.** Define parts that aren't liberty cells (a dekatron with its
    drivers, a power module, a connector) with named pins. Each pin has a direction
    and a type: signal, power, ground or clock. Netlist instances of these types then
@@ -202,14 +210,14 @@ MachineCtrl) and one cabinet of the machine. A **row** is one basket (корзи
 basket backplane carries power only; signals go by wire. HD-68 connectors to other
 blocks sit along the top of the block page.
 
-**The chassis, seen from above.** It has 3–5 rows stacked vertically. Each row is
-140 mm deep (one module) and 420 mm wide (19″ class), which gives 35 grid steps of
-12 mm. In the middle of every row sits a transformer keep-out. The code currently
-allows 70–100 mm (85 mm by default); the decision is 72 + 12·K mm, a whole number of
-grid steps. The chassis height is 140 mm × rows.
+**The chassis, seen from above.** Each block has its own number of rows, 3–5,
+stacked vertically. Each row is 140 mm deep (one module) and 420 mm wide (19″
+class), which gives 35 grid steps of 12 mm. In the middle of every row sits a
+transformer keep-out of 72 + 12·K mm (Q4): 72, 84 (default) or 96 mm, since the
+code keeps the old 100 mm limit. The block height is 140 mm × rows.
 
 ```
- 0                     167.5     252.5                    420 mm
+ 0                      168       252                     420 mm
  ├──────────────────────┬─────────┬────────────────────────┤
  │ M1 │ M2 │ M3 │ …     │  TRAFO  │  … │ Mk │ Mk+1 │       │  row 0  (140 mm)
  ├──────────────────────┼─────────┼────────────────────────┤
@@ -226,31 +234,51 @@ for a dekatron module.
 **Placement rules** (enforced by `canPlaceModule`). A module must lie inside its
 row, must not overlap the transformer span, and must not overlap other modules in
 the same row. Moving a locked module is ignored. If a row still holds modules, the
-chassis can't be shrunk below it.
+block can't be shrunk below it, and a transformer width that would cover a placed
+module is refused.
+
+**Connectors and cables** (Q1, Q9). A block has HD-68 connectors in a row above its
+baskets. Each block port bit is put on one connector pin. A cable joins two
+connectors of different blocks pin for pin, so the port on pin 17 of one end
+connects to the port on pin 17 of the other. One project can hold all three blocks
+and the cables between them. Wire segments can end on a connector pin.
+
+**Power** (Q10). Nets marked as power ride on the basket backplane and are not
+routed. Small **interconnect boards** (`kind: "interconnect"`) link neighbouring
+modules, for example a dekatron with its write and read circuits; their links are
+not routed either.
 
 **Tubes.** The tube types are 6N16B (double triode), 6J2B (pentode) and 6X7B (double
 diode), plus A110 dekatrons.
 
 ## Project file format
 
-A project is saved as `<name>.dpc.json`. The current format is **0.3.0**:
+A project is saved as `<name>.dpc.json`. The current format is **0.4.0**:
 
 ```jsonc
 {
-  "meta": { "projectName": "DPC", "createdAt": "…", "updatedAt": "…", "version": "0.3.0" },
+  "meta": { "projectName": "DPC", "createdAt": "…", "updatedAt": "…", "version": "0.4.0" },
   "liberty":          { "NAND2_N16X7": { "name": "…", "pins": [ … ], "tubes": { "N16B": 0.5, "X7B": 1 } } },
   "externalElements": { "DEKATRON": { "name": "DEKATRON", "pins": [ { "name": "Clk", "direction": "input", "type": "clock" } ] } },
   "moduleTypes": [                       // PCB designs, shared by all blocks
-    { "id": "LOGIC4", "name": "4×NAND2", "widthSteps": 2,
+    { "id": "LOGIC4", "name": "4×NAND2", "kind": "board", "widthSteps": 2,
       "slots": [ { "cellType": "NAND2_N16X7", "count": 4,
-                   "pinMaps": [ [ { "cellPin": "A", "contactId": "A1" } ], [], [], [] ] } ] }
+                   "pinMaps": [ [ { "cellPin": "A", "contactId": "A1" } ], [], [], [] ] } ] },
+    { "id": "DEK", "name": "Dekatron", "kind": "board", "widthSteps": 3, "slots": [ … ],
+      "verilogModule": "DekatronModule" }  // kept whole when parsing
   ],
-  "block": { "rows": 3, "rowHeight": 140, "rowWidth": 420, "gridStep": 12,
-             "transformerWidth": 85, "obstructions": [] },
+  "block": { "rowHeight": 140, "rowWidth": 420, "gridStep": 12,   // basket geometry, all blocks
+             "transformerWidth": 84, "obstructions": [] },
   "blocks": {                            // one per netlist
     "IpLine": {
       "name": "IpLine",
-      "netlist":   { "instances": [ … ], "nets": [ … ] },
+      "rows": 4,
+      "netlist":   { "top": "IpLine", "keep": [ "DekatronModule" ],
+                     "ports": [ { "name": "insn[3]", "direction": "input", "net": "insn[3]" } ],
+                     "instances": [ … ], "nets": [ … ] },
+      "connectors": [ { "id": "J1", "type": "HD68", "pins": 68, "position": 0,
+                        "ports": [ { "pin": 17, "port": "insn[3]" } ] } ],
+      "powerNets": [ "hs_clk" ],
       "placement": {
         "modules":  [ { "id": "M1", "typeId": "LOGIC4", "row": 0, "col": 0, "locked": false } ],
         "elements": [ { "instanceName": "U1", "moduleInstanceId": "M1", "slotIndex": 0, "locked": false } ]
@@ -258,9 +286,14 @@ A project is saved as `<name>.dpc.json`. The current format is **0.3.0**:
       "routing": { "nets": [ { "netName": "n1", "color": "#e6194b",
                                "segments": [ { "id": "s1", "start": { "moduleInstanceId": "M1", "pin": "A3" },
                                                "end": { "moduleInstanceId": "M2", "pin": "B7" },
-                                               "path": [ { "x": 0, "y": 0 } ], "assembled": false } ] } ] }
+                                               "path": [ { "x": 0, "y": 0 } ], "assembled": false },
+                                             { "id": "s2", "start": { "moduleInstanceId": "M1", "pin": "A4" },
+                                               "end": { "connectorId": "J1", "pin": 17 },
+                                               "path": [], "assembled": false } ] } ] }
     }
-  }
+  },
+  "cables": [ { "id": "C1", "from": { "block": "IpLine", "connector": "J1" },
+                            "to":   { "block": "MachineCtrl", "connector": "J2" } } ]
 }
 ```
 
@@ -269,19 +302,26 @@ A project is saved as `<name>.dpc.json`. The current format is **0.3.0**:
   `(slot, copy)`.
 - Editing slots or removing module types or instances automatically drops element
   placements and wire segments that no longer point at anything valid.
-- Older files are migrated when opened. A pre-0.2 single-netlist file becomes a
-  `Legacy` block. In a 0.2.0 file each hardware module becomes a module type plus,
-  where it was placed, an instance with the same id. The old chassis geometry has no
-  0.3.0 equivalent, so the chassis is reset to the defaults (keeping `rows`).
-  Placements that don't fit the new rows are dropped, with their elements and wires.
+- Older files are migrated when opened:
+  - pre-0.2: the single netlist becomes a `Legacy` block;
+  - 0.2.0: each hardware module becomes a module type plus, where it was placed, an
+    instance with the same id. The old chassis geometry has no equivalent, so it is
+    reset to the defaults, keeping `rows`;
+  - 0.3.0: `rows` moves into every block, the transformer width snaps to 72 + 12·K
+    mm (85 → 84), and blocks get empty `connectors` and `powerNets`, the project
+    empty `cables`, module types `kind: "board"`.
+
+  Then module instances that no longer fit are dropped, with their elements and
+  wires.
 - Saved files and the autosave hold project data only, never the undo history.
 - `netlist` may also hold `top` (the top module), `keep` (submodules kept whole) and
   `ports` (top-level port bits: `{ "name": "insn[3]", "direction": "input", "net": "insn[3]" }`).
   Instance names are hierarchical paths, connection keys are pin bits, and an
   instance of a kept or black-box module has `"module": "<full Yosys name>"`.
-  These fields are optional, so the format stays 0.3.0. Projects saved before
-  2026-10-09 hold netlists from the old flat parser, which merged nets across
-  modules: open the `.v` again and parse it.
+  These fields are optional. Projects saved before 2026-10-09 hold netlists from the
+  old flat parser, which merged nets across modules: open the `.v` again and parse
+  it. Connector pins and power nets refer to port and net names, so they survive a
+  re-parse as long as the names stay.
 
 ## Tests
 
@@ -294,8 +334,9 @@ npm test
 | `test/parsers/liberty.test.ts` | Parses `../rtl/run/vtube_cells.lib`: cells, pins, `tubes`, sequential flags |
 | `test/parsers/verilog.test.ts` | `test/fixtures/hier.v`: exact nets, buses, constants, `keep`, black boxes, errors. `IpLine_synth.v`: leaf counts and every pin's net equal to `IpLine_flat.v`, the Yosys-flattened reference |
 | `test/store/projectStore.test.ts` | Blocks, multi-netlist, undo/redo, per-block placement |
-| `test/services/projectIO.test.ts` | Save writes project data only; pre-0.2 and 0.2.0 → 0.3.0 migration |
-| `test/ui/app.test.tsx` | jsdom: every tab renders; Netlist tab parses `hier.v` with *Keep* and *Add as element*; autosave round-trip |
+| `test/store/interconnect.test.ts` | Rows, transformer snapping, connectors, port pins, cables, cable links and their problems, power nets |
+| `test/services/projectIO.test.ts` | Save writes project data only; pre-0.2, 0.2.0 and 0.3.0 → 0.4.0 migration |
+| `test/ui/app.test.tsx` | jsdom: every tab renders; Netlist tab parses `hier.v` with *Keep* and *Add as element*; connector pin, power net and cable through the UI; autosave round-trip |
 
 CI: `.github/workflows/webui.yml` runs `npm ci && npm test` on Node 22 for pushes and
 pull requests to `master` that touch `webui/` or `rtl/run/vtube_cells.lib`. It can
@@ -312,14 +353,12 @@ copy of the old flat parser (D6), so it no longer matches the app.
 ## Known issues
 
 Item D6 comes from the review in [`doc/webui_status.md`](../doc/webui_status.md).
-H2 comes from the review against the computer project on 2026-10-09
-([`doc/webui_review.md`](../doc/webui_review.md), where it is F2/F4).
 
 | # | Severity | Where | Problem |
 |---|---|---|---|
-| H2 | High | model | A block has no HD-68 connectors to other blocks, and block netlists aren't linked, so the whole computer can't be routed in one project. Power-net flag and small interconnect boards are missing too. Planned for format 0.4.0 (`agents.md` §4). |
 | D6 | Low | `test/test_parsers.mjs` | Has its own inline copy of the old flat parser; it should import `src/services/parsers` or be removed. |
-| — | Medium | Netlist tab | The *keep* list is per parse, not linked to a `ModuleType`. Linking a Verilog module to a board type is part of format 0.4.0. |
+| — | Medium | UI | `ModuleType.kind` and `verilogModule` are in the model and store but have no editor until the Modules tab (step 4). |
+| — | Low | Netlist tab | Port bits go on connector pins one at a time. Once the RTL groups inter-block ports into one wire struct per connector (`doc/webui_review.md` §6), a bulk assignment would help. |
 | — | Low | `tsconfig.json` | `baseUrl` is deprecated in TypeScript 6. Harmless with the pinned `~5.8`. |
 
 Fixed in `c51ecfa`: D3 (some edits weren't undoable) and D5 (stale `activeBlockId`
@@ -329,7 +368,8 @@ build failed and the Project tab threw on render), N3 and N5 (tests used a remov
 store action and an untracked netlist), N4 (no 0.2.0 migration), D1 (undo history
 written to files), D2 (autosave never restored) and D4 (stale missing-types check).
 H1 (the parser ignored `module` boundaries) was fixed on 2026-10-09 by the
-hierarchical parser.
+hierarchical parser. H2 (no block connectors, cables, power nets or interconnect
+boards) was fixed on 2026-10-09 by format 0.4.0.
 
 ## Roadmap
 
@@ -339,9 +379,9 @@ The order below follows the 2026-10-09 review ([`doc/webui_review.md`](../doc/we
 2. ~~**Hierarchical netlist parser** (H1). A submodule mapped to a module type becomes
    one module instance; other submodules expand to base elements.~~ Done: kept
    submodules stay whole; the link from a kept module to a `ModuleType` moves to step 3.
-3. **Format 0.4.0** (H2). Add HD-68 block connectors, cables between blocks, a power
+3. ~~**Format 0.4.0** (H2). Add HD-68 block connectors, cables between blocks, a power
    flag on nets, small interconnect boards and the Verilog module → `ModuleType`
-   link, so all three blocks can be routed in one project.
+   link, so all three blocks can be routed in one project.~~ Done.
 4. **Modules tab.** A module-type library editor: width in 12 mm steps, a 2×36
    connector view, and slots with per-copy contact assignment. Manual entry comes
    first (REQ-PR-006), then KiCad `.net` S-expression import (REQ-PR-004).
@@ -349,7 +389,14 @@ The order below follows the 2026-10-09 review ([`doc/webui_review.md`](../doc/we
    placing, dragging and locking module instances (REQ-PR-007).
 6. Then: element-to-slot placement, HPWL, auto-placement, routing, assembly and export.
 
-Open question: does the inter-module wiring channel need a width of its own?
+Open questions:
+
+- Does the inter-module wiring channel need a width of its own?
+- The transformer is centred in the 420 mm row. At 84 mm its edges (168 and 252 mm)
+  fall on the 12 mm grid; at 72 or 96 mm they fall half a step off it. Should it be
+  centred, or aligned to the grid?
+- Should the transformer be allowed wider than 96 mm? The old 70–100 mm limit is
+  kept for now.
 
 ## Repository layout
 

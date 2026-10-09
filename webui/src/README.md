@@ -11,13 +11,15 @@ src/
 ├── main.tsx                     # React root
 ├── components/
 │   ├── App.tsx / App.css        # Shell: header toolbar, tab bar, tab router, autosave timer
-│   ├── ProjectManager/          # "Project" tab: name, new/open/save, counters
-│   ├── Netlist/NetlistPanel.tsx # "Netlist" tab: liberty + per-block Verilog import, block selector
+│   ├── ProjectManager/          # "Project" tab: name, new/open/save, geometry, blocks, cables
+│   ├── Netlist/NetlistPanel.tsx # "Netlist" tab: liberty + per-block Verilog import, keep list,
+│   │                            #   connectors and port pins, power nets
 │   └── Elements/ElementEditor.tsx  # "Elements" tab: custom (non-liberty) elements
 ├── hooks/useKeyboardShortcuts.ts   # Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z
 ├── services/
 │   ├── parsers/liberty.ts       # .lib → Record<cell, LibertyCell>
-│   ├── parsers/verilog.ts       # flat structural .v → ParsedNetlist
+│   ├── parsers/verilog.ts       # hierarchical structural .v → bit-level ParsedNetlist
+│   ├── interconnect.ts          # cable links between blocks, port locations, board modules
 │   └── projectIO.ts             # JSON (de)serialize, migration, file dialogs, localStorage autosave
 ├── store/projectStore.ts        # The single Zustand store (data + actions + history)
 ├── types/project.ts             # Data model, defaults, pure geometry/slot helpers
@@ -40,11 +42,11 @@ components ──► store ──► types
      └──► services ──► types
 ```
 
-- **`types/`** holds plain data and pure functions only (`fitsInRow`, `resolveSlot`,
-  `slotCount`, `pickProjectState`, …). It has no React or Zustand imports, which lets
+- **`types/`** holds plain data and pure functions only (`fitsInRow`,
+  `canPlaceModule`, `resolveSlot`, `snapTransformerWidth`, `pickProjectState`, …). It has no React or Zustand imports, which lets
   it run in tests and later in Web Workers (placer and router).
-- **`services/`** holds parsers and I/O. It has no store imports: a parser takes
-  text and returns typed data.
+- **`services/`** holds parsers, I/O and derived views (`interconnect.ts`). It has
+  no store imports: a parser takes text and returns typed data.
 - **`store/`** is the only place where project data changes.
 - **`components/`** read from the store with selectors and call store actions. They
   never mutate data directly.
@@ -55,12 +57,13 @@ All of it is in `types/project.ts`. `ProjectState` is what gets saved:
 
 | Field | Scope | Notes |
 |---|---|---|
-| `meta` | project | name, timestamps, format `version` (`PROJECT_FORMAT_VERSION = '0.3.0'`) |
+| `meta` | project | name, timestamps, format `version` (`PROJECT_FORMAT_VERSION = '0.4.0'`) |
 | `liberty` | shared | parsed `.lib` cells |
 | `externalElements` | shared | user-defined parts with typed pins |
-| `moduleTypes` | shared | PCB designs: `widthSteps`, `slots[{cellType, count, pinMaps[copy][]}]` |
-| `block` | shared | chassis geometry (`BlockConfig`): rows, row size, grid step, transformer width, obstructions |
-| `blocks[name]` | per block | `netlist`, `placement.modules` (`ModuleInstance[]`), `placement.elements`, `routing.nets` |
+| `moduleTypes` | shared | PCB designs: `kind` (`board` / `interconnect`), `widthSteps`, `slots[{cellType, count, pinMaps[copy][]}]`, optional `verilogModule` |
+| `block` | shared | basket geometry (`BlockConfig`): row size, grid step, transformer width, obstructions |
+| `blocks[name]` | per block | `rows`, `netlist`, `connectors`, `powerNets`, `placement.modules` (`ModuleInstance[]`), `placement.elements`, `routing.nets` |
+| `cables` | project | `{id, from: {block, connector}, to: {block, connector}}` |
 
 **Type vs. instance.** A `ModuleType` describes one PCB design. A `ModuleInstance`
 (`{id, typeId, row, col, locked}`) is one physical copy of it in one block. Instance
@@ -74,6 +77,22 @@ back into `{slotDefIndex, copy}`.
 **Geometry.** The chassis is seen from the top: x runs along a row (0…`rowWidth` mm)
 and y runs across rows. `col` counts `gridStep` (12 mm) steps from the left edge.
 `transformerSpan()` gives the keep-out in the middle of each row.
+
+**Connectors and cables.** A block's `connectors` are HD-68 sockets in a row above
+its baskets (`position` is the place in that row). `ports` puts block port bits
+(`ParsedNetlist.ports[].name`) on pins 1…68. A cable joins two connectors of
+different blocks pin for pin, so inter-block signals come from matching pin
+numbers: `services/interconnect.ts` `cableLinks()` lists them and flags pins
+assigned on one end only, ports missing after a re-parse, and two outputs or two
+inputs on one wire. A wire end (`TerminalPoint`) is either a module contact
+(`{moduleInstanceId, pin: "A12"}`) or a connector pin (`{connectorId, pin: 17}`);
+tell them apart with `isConnectorTerminal()`.
+
+**Power nets** are listed by name in `Block.powerNets`, not flagged on the net, so
+the choice survives re-parsing the netlist. The router will skip them (Q10).
+
+**Board modules.** A `ModuleType` with `verilogModule` implements that Verilog
+module; the Netlist tab pre-ticks *Keep* for it (`boardModules()`).
 
 `activeBlockId` is **UI state**. It lives in the store but isn't part of
 `ProjectState`, isn't saved, and isn't snapshotted.
@@ -124,17 +143,26 @@ Validation lives in the action. An invalid request is **ignored silently** rathe
 than throwing; `addModuleInstance` returns `null`.
 
 - **Module positions** go through `canPlaceModule()`: integer row and column, the
-  row exists, the module fits inside it and clears the transformer, and it doesn't
-  overlap another instance in the same row. A locked instance can't be moved.
-- **Chassis shrink.** `setBlockConfig` clamps `rows` to `[max(3, highest used row
-  + 1), 5]` and `transformerWidth` to `[70, 100]` mm.
+  row exists in that block, the module fits inside it and clears the transformer,
+  and it doesn't overlap another instance in the same row. A locked instance can't
+  be moved.
+- **Rows.** `setBlockRows` clamps to `[max(3, highest used row + 1), 5]`.
+- **Geometry.** `setBlockConfig` snaps `transformerWidth` to 72 + 12·K mm (at most
+  100) and is ignored if a placed module would no longer fit.
+- **Connectors.** Pins are 1…`pins`; a port sits on one pin of one connector
+  (assigning it elsewhere moves it); a port must exist in the netlist when the
+  netlist has ports. `moveConnector` swaps with the connector already there.
+- **Cables.** Both connectors exist, belong to different blocks and have the same
+  type, and neither has a cable yet. Removing a block or connector removes its
+  cables.
 - **Element placement.** The instance's cell type has to match the slot's
   `cellType`, the slot has to be free, and a locked element can't be moved.
 - **Cascading cleanup.**
   - After a netlist, slot or module-type change, `pruneElementPlacements()` drops
     placements whose instance or slot no longer exists or no longer matches.
-  - After an instance or type is removed, `pruneRouting()` drops wire segments
-    that end on a missing instance, and then any net left with no segments.
+  - After an instance, type or connector is removed, `pruneRouting()` drops wire
+    segments that end on a missing instance or connector pin, and then any net
+    left with no segments.
   - `updateSlot` with a new `cellType` clears that slot's pin maps, because the
     pin names changed. A new `count` resizes `pinMaps` and keeps existing copies.
 
@@ -172,9 +200,13 @@ value that doesn't update when the store changes.
   - 0.2.0 → 0.3.0 (`migrateFrom02`): each `HardwareModule` becomes a `ModuleType`
     plus, if it was placed, a `ModuleInstance` with the same id. The slot's single
     `pinMapping` becomes the map of copy 0. The old chassis fields have no
-    counterpart, so the chassis is reset to `DEFAULT_BLOCK_CONFIG` (keeping
-    `rows`), and placements that no longer pass `canPlaceModule` are dropped,
-    along with their elements and wires.
+    counterpart, so the geometry is reset to `DEFAULT_BLOCK_CONFIG`, keeping `rows`.
+  - 0.3.0 → 0.4.0 (`migrateFrom03`): `rows` moves from `block` to every block,
+    `transformerWidth` snaps to 72 + 12·K mm (85 → 84), blocks get empty
+    `connectors` and `powerNets`, the project gets `cables`, and module types get
+    `kind: 'board'`.
+  - Then `dropInvalidPlacements` removes module instances that no longer pass
+    `canPlaceModule`, with their elements and the wires ending on them.
 
   Missing top-level fields are then filled with defaults (`withDefaults`).
 - `saveProjectToFile` downloads `<name>.dpc.json`. `loadProjectFromFile` opens a

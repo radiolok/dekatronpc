@@ -58,7 +58,7 @@ describe('serializeProject', () => {
 
     const json = JSON.parse(serializeProject(store.getState()));
     expect(Object.keys(json).sort())
-      .toEqual(['block', 'blocks', 'externalElements', 'liberty', 'meta', 'moduleTypes']);
+      .toEqual(['block', 'blocks', 'cables', 'externalElements', 'liberty', 'meta', 'moduleTypes']);
   });
 
   it('round-trips through deserializeProject', () => {
@@ -70,7 +70,7 @@ describe('serializeProject', () => {
   });
 });
 
-describe('deserializeProject — 0.2.0 → 0.3.0', () => {
+describe('deserializeProject — 0.2.0 → 0.4.0', () => {
   const p = deserializeProject(JSON.stringify(PROJECT_02));
   const b = p.blocks.IpLine;
 
@@ -84,8 +84,13 @@ describe('deserializeProject — 0.2.0 → 0.3.0', () => {
     expect(p.moduleTypes[0].slots[0].pinMaps).toEqual([[{ cellPin: 'A', contactId: 'A1' }], []]);
   });
 
-  it('resets the chassis to the 0.3 geometry, keeping rows', () => {
-    expect(p.block).toEqual({ ...DEFAULT_BLOCK_CONFIG, rows: 3 });
+  it('resets the basket geometry to the defaults; rows go to each block', () => {
+    expect(p.block).toEqual(DEFAULT_BLOCK_CONFIG);
+    expect(b.rows).toBe(3);
+    expect(b.connectors).toEqual([]);
+    expect(b.powerNets).toEqual([]);
+    expect(p.cables).toEqual([]);
+    expect(p.moduleTypes.every(t => t.kind === 'board')).toBe(true);
   });
 
   it('keeps placements that fit and drops the rest with their elements and wires', () => {
@@ -105,6 +110,57 @@ describe('deserializeProject — 0.2.0 → 0.3.0', () => {
   });
 });
 
+/** A 0.3.0 project: rows and a free transformer width on the shared geometry */
+function project03(transformerWidth: number) {
+  return {
+    meta: { projectName: 'P3', createdAt: 'x', updatedAt: 'x', version: '0.3.0' },
+    liberty: {}, externalElements: {},
+    moduleTypes: [{ id: 'L', name: 'L', widthSteps: 2, slots: [] }],
+    block: { rows: 4, rowHeight: 140, rowWidth: 420, gridStep: 12, transformerWidth, obstructions: [] },
+    blocks: {
+      A: {
+        name: 'A',
+        netlist: { instances: [], nets: [] },
+        placement: {
+          modules: [
+            { id: 'M1', typeId: 'L', row: 3, col: 0, locked: false },
+            { id: 'M2', typeId: 'L', row: 0, col: 12, locked: false }, // x 144..168 mm
+          ],
+          elements: [],
+        },
+        routing: { nets: [{ netName: 'n', color: '#000', segments: [
+          { id: 's', start: { moduleInstanceId: 'M1', pin: 'A1' }, end: { moduleInstanceId: 'M2', pin: 'A1' },
+            path: [], assembled: false },
+        ] }] },
+      },
+    },
+  };
+}
+
+describe('deserializeProject — 0.3.0 → 0.4.0', () => {
+  it('moves rows to each block and adds connectors, power nets, cables and kind', () => {
+    const p = deserializeProject(JSON.stringify(project03(84)));
+    expect(p.meta.version).toBe('0.4.0');
+    expect((p.block as any).rows).toBeUndefined();
+    expect(p.blocks.A.rows).toBe(4);
+    expect(p.blocks.A.connectors).toEqual([]);
+    expect(p.blocks.A.powerNets).toEqual([]);
+    expect(p.cables).toEqual([]);
+    expect(p.moduleTypes[0].kind).toBe('board');
+    expect(p.blocks.A.placement.modules.map(m => m.id)).toEqual(['M1', 'M2']);
+  });
+
+  it('snaps the transformer to 72 + 12·K mm and drops modules it now covers', () => {
+    // 85 → 84: span 168..252 mm, M2 (144..168 mm) still fits
+    expect(deserializeProject(JSON.stringify(project03(85))).block.transformerWidth).toBe(84);
+    // 100 → 96: span 162..258 mm covers M2 (144..168); its wire goes too
+    const p = deserializeProject(JSON.stringify(project03(100)));
+    expect(p.block.transformerWidth).toBe(96);
+    expect(p.blocks.A.placement.modules.map(m => m.id)).toEqual(['M1']);
+    expect(p.blocks.A.routing.nets).toEqual([]);
+  });
+});
+
 describe('deserializeProject — pre-0.2 single netlist', () => {
   it('wraps the netlist into a Legacy block and migrates on to 0.3.0', () => {
     const p = deserializeProject(JSON.stringify({
@@ -116,5 +172,6 @@ describe('deserializeProject — pre-0.2 single netlist', () => {
     expect(Object.keys(p.blocks)).toEqual(['Legacy']);
     expect(p.moduleTypes).toEqual([]);
     expect(p.meta.version).toBe(PROJECT_FORMAT_VERSION);
+    expect(p.blocks.Legacy.rows).toBe(3);
   });
 });

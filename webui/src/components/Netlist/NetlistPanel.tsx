@@ -6,6 +6,7 @@ import { useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import { useProjectStore } from '@/store';
 import { parseVerilogSource, elaborateNetlist, summarizeDesign, parseLiberty, validateCellTypes } from '@/services/parsers';
 import type { VerilogDesign, ModuleSummary } from '@/services/parsers';
+import { boardModules, portLocation } from '@/services/interconnect';
 
 type SubTab = 'overview' | 'instances' | 'nets' | 'ports' | 'liberty';
 
@@ -41,6 +42,11 @@ export function NetlistPanel() {
   const addBlock = useProjectStore(s => s.addBlock);
   const setActiveBlock = useProjectStore(s => s.setActiveBlock);
   const addExternalElement = useProjectStore(s => s.addExternalElement);
+  const moduleTypes = useProjectStore(s => s.moduleTypes);
+  const addConnector = useProjectStore(s => s.addConnector);
+  const removeConnector = useProjectStore(s => s.removeConnector);
+  const assignConnectorPin = useProjectStore(s => s.assignConnectorPin);
+  const setPowerNet = useProjectStore(s => s.setPowerNet);
 
   // Derive active block data for display
   const activeBlock = activeBlockId ? blocks[activeBlockId] : null;
@@ -75,13 +81,14 @@ export function NetlistPanel() {
   }, [parsedSource, topHint]);
   const hierarchy = summary && 'modules' in summary ? summary : null;
 
-  // Submodules kept as one instance; defaults to what the block was last parsed with
+  // Submodules kept as one instance: what the block was last parsed with,
+  // plus every module a board type implements (ModuleType.verilogModule)
   const [keep, setKeep] = useState<Set<string>>(new Set());
   const previousKeep = (targetBlock && blocks[targetBlock]?.netlist.keep) || [];
   useEffect(() => {
-    setKeep(new Set(previousKeep));
+    setKeep(new Set([...previousKeep, ...boardModules({ moduleTypes })]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [parsedSource, targetBlock]);
+  }, [parsedSource, targetBlock, moduleTypes]);
 
   const toggleKeep = useCallback((name: string) => {
     setKeep(prev => {
@@ -121,6 +128,26 @@ export function NetlistPanel() {
       setParseError(`Verilog parse error: ${(err as Error).message}`);
     }
   }, [parsedSource, targetBlock, topHint, keep, setBlockNetlist]);
+
+  /** "J1:17" puts the port on that pin; empty clears it */
+  const handlePortPin = useCallback((port: string, text: string) => {
+    if (!activeBlock) return;
+    const current = portLocation(activeBlock, port);
+    const value = text.trim();
+    if (value === (current ?? '')) return;
+    if (!value) {
+      const [cid, pin] = current!.split(':');
+      assignConnectorPin(cid, Number(pin), null);
+      return;
+    }
+    const m = value.match(/^(\w+)\s*[:.]\s*(\d+)$/);
+    const conn = m && activeBlock.connectors.find(c => c.id === m[1]);
+    if (!m || !conn || Number(m[2]) < 1 || Number(m[2]) > conn.pins) {
+      alert(`"${value}" is not a connector pin. Use e.g. J1:17 (pins 1..68).`);
+      return;
+    }
+    assignConnectorPin(conn.id, Number(m[2]), port);
+  }, [activeBlock, assignConnectorPin]);
 
   /** Create a base element from a module's port bits (agents.md §3.2, F8) */
   const handleAddElement = useCallback((m: ModuleSummary) => {
@@ -460,6 +487,7 @@ export function NetlistPanel() {
                   <th>Net Name</th>
                   <th>Terminals</th>
                   <th>Fanout</th>
+                  <th title="Carried by the basket backplane, not wired by hand">Power</th>
                 </tr>
               </thead>
               <tbody>
@@ -470,6 +498,14 @@ export function NetlistPanel() {
                       {net.terminals.map(t => `${t.instance}.${t.port}`).join(', ')}
                     </td>
                     <td>{net.terminals.length}</td>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={activeBlock?.powerNets.includes(net.name) ?? false}
+                        onChange={e => setPowerNet(net.name, e.target.checked)}
+                        aria-label={`${net.name} is a power net`}
+                      />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -482,21 +518,57 @@ export function NetlistPanel() {
       {subTab === 'ports' && (
         <div className="panel">
           <h2>Block Ports {activeBlockId ? `— ${activeBlockId}` : ''}</h2>
+          {activeBlock && (
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginBottom: 12 }}>
+              <span style={{ fontSize: 12, fontWeight: 600 }}>Connectors:</span>
+              {[...activeBlock.connectors].sort((a, b) => a.position - b.position).map(c => (
+                <span key={c.id} className="badge badge-inout" style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+                  {c.id} {c.type} · {c.ports.length}/{c.pins}
+                  <button
+                    className="btn btn-small"
+                    style={{ padding: '0 4px' }}
+                    onClick={() => removeConnector(c.id)}
+                    title={`Remove ${c.id} with its cable`}
+                    aria-label={`Remove ${c.id}`}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+              <button className="btn btn-small" onClick={() => addConnector('HD68')}>+ HD-68</button>
+            </div>
+          )}
           {!activeNetlist.ports?.length ? (
             <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>No ports parsed.</p>
           ) : (
             <table className="data-table">
               <thead>
-                <tr><th>Port</th><th>Direction</th><th>Net</th></tr>
+                <tr><th>Port</th><th>Direction</th><th>Net</th><th>Pin</th></tr>
               </thead>
               <tbody>
-                {activeNetlist.ports.map(p => (
-                  <tr key={p.name}>
-                    <td style={{ fontFamily: 'var(--font-mono)' }}>{p.name}</td>
-                    <td><span className={`badge badge-${p.direction}`}>{p.direction}</span></td>
-                    <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--success)' }}>{p.net}</td>
-                  </tr>
-                ))}
+                {activeNetlist.ports.map(p => {
+                  const loc = activeBlock ? portLocation(activeBlock, p.name) ?? '' : '';
+                  return (
+                    <tr key={p.name}>
+                      <td style={{ fontFamily: 'var(--font-mono)' }}>{p.name}</td>
+                      <td><span className={`badge badge-${p.direction}`}>{p.direction}</span></td>
+                      <td style={{ fontFamily: 'var(--font-mono)', color: 'var(--success)' }}>{p.net}</td>
+                      <td>
+                        <input
+                          key={loc}
+                          type="text"
+                          defaultValue={loc}
+                          placeholder={activeBlock?.connectors.length ? 'J1:1' : '—'}
+                          disabled={!activeBlock?.connectors.length}
+                          aria-label={`Pin of ${p.name}`}
+                          onBlur={e => handlePortPin(p.name, e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                          style={{ width: 70, fontFamily: 'var(--font-mono)', fontSize: 12, padding: '1px 4px' }}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}

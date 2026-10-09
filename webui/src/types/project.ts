@@ -88,13 +88,26 @@ export interface ModuleSlot {
   pinMaps: PinMapping[][];
 }
 
+/**
+ * `board`: an ordinary module, wired by hand.
+ * `interconnect`: a small board that links a group of neighbouring modules
+ * (dekatron + write + read circuits); its connections are not routed (Q10).
+ */
+export type ModuleKind = 'board' | 'interconnect';
+
 /** A PCB design (140×140 mm, 2×36 connector). Shared by all blocks; placed as ModuleInstance. */
 export interface ModuleType {
   id: string;
   name: string;
+  kind: ModuleKind;
   /** Width in 12 mm grid steps: 2 = 24 mm (logic), 3 = 36 mm (dekatron) */
   widthSteps: number;
   slots: ModuleSlot[];
+  /**
+   * Base name of the Verilog module this board implements ("DekatronModule").
+   * Such submodules are kept whole when a netlist is parsed (Q3, Q7).
+   */
+  verilogModule?: string;
   powerW?: number;
 }
 
@@ -114,23 +127,61 @@ export interface Obstruction {
 }
 
 /**
- * Chassis seen from the top: `rows` rows stacked vertically, each `rowHeight` mm
- * (module depth) and `rowWidth` mm wide. A transformer of `transformerWidth` mm
- * sits in the middle of every row. Overall height = rowHeight × rows.
+ * Basket geometry shared by all blocks, seen from the top. Each block stacks
+ * `Block.rows` rows vertically, each `rowHeight` mm (module depth) and
+ * `rowWidth` mm wide. A transformer of `transformerWidth` mm sits in the middle
+ * of every row. Block height = rowHeight × rows.
  */
 export interface BlockConfig {
-  rows: number;              // 3..5
   rowHeight: number;         // mm, 140
   rowWidth: number;          // mm, 420 (19" class)
   gridStep: number;          // mm, horizontal grid (12)
-  transformerWidth: number;  // mm, 70..100
+  /** mm, 72 + gridStep·K (Q4), at most TRANSFORMER_WIDTH_MAX */
+  transformerWidth: number;
   obstructions: Obstruction[];
 }
 
 export const ROWS_MIN = 3;
 export const ROWS_MAX = 5;
-export const TRANSFORMER_WIDTH_MIN = 70;
+export const ROWS_DEFAULT = 3;
+export const TRANSFORMER_WIDTH_MIN = 72;
 export const TRANSFORMER_WIDTH_MAX = 100;
+
+// ---------------------------------------------------------------------------
+// Block connectors and cables (Q1, Q9)
+// ---------------------------------------------------------------------------
+
+export type ConnectorType = 'HD68';
+
+export const CONNECTOR_PINS: Record<ConnectorType, number> = { HD68: 68 };
+
+/** Which block port bit sits on which connector pin */
+export interface ConnectorPinAssignment {
+  pin: number;    // 1..pins
+  port: string;   // NetlistPort.name, e.g. "insn[3]"
+}
+
+/** A cable connector of a block, in the row above the baskets */
+export interface BlockConnector {
+  id: string;         // unique within the block, "J1"
+  type: ConnectorType;
+  pins: number;       // 68 for HD68
+  /** 0-based place in the connector row, left to right */
+  position: number;
+  ports: ConnectorPinAssignment[];
+}
+
+export interface CableEnd {
+  block: string;
+  connector: string;
+}
+
+/** A straight-through cable: pin n of one end goes to pin n of the other */
+export interface Cable {
+  id: string;
+  from: CableEnd;
+  to: CableEnd;
+}
 
 // ---------------------------------------------------------------------------
 // Netlist types (Verilog)
@@ -202,9 +253,22 @@ export interface ElementPlacement {
 // Routing types
 // ---------------------------------------------------------------------------
 
-export interface TerminalPoint {
+/** End of a wire on a module contact */
+export interface ModuleTerminal {
   moduleInstanceId: string;
   pin: string;          // connector contact id like "A12", "B5"
+}
+
+/** End of a wire on a pin of a block connector (HD-68) */
+export interface ConnectorTerminal {
+  connectorId: string;
+  pin: number;          // 1..68
+}
+
+export type TerminalPoint = ModuleTerminal | ConnectorTerminal;
+
+export function isConnectorTerminal(t: TerminalPoint): t is ConnectorTerminal {
+  return 'connectorId' in t;
 }
 
 export interface RouteSegment {
@@ -249,7 +313,13 @@ export interface ProjectMeta {
 
 export interface Block {
   name: string;
+  /** Baskets in this block, ROWS_MIN..ROWS_MAX */
+  rows: number;
   netlist: ParsedNetlist;
+  /** Cable connectors above the baskets */
+  connectors: BlockConnector[];
+  /** Nets carried by the basket backplane, not wired by hand (Q10). Survives re-parsing. */
+  powerNets: string[];
   placement: {
     modules: ModuleInstance[];
     elements: ElementPlacement[];
@@ -259,10 +329,13 @@ export interface Block {
   };
 }
 
-export function createDefaultBlock(name: string): Block {
+export function createDefaultBlock(name: string, rows: number = ROWS_DEFAULT): Block {
   return {
     name,
+    rows,
     netlist: { instances: [], nets: [] },
+    connectors: [],
+    powerNets: [],
     placement: { modules: [], elements: [] },
     routing: { nets: [] },
   };
@@ -280,20 +353,21 @@ export interface ProjectState {
   block: BlockConfig;
   /** Multiple computational blocks sharing the same liberty/modules/chassis */
   blocks: Record<string, Block>;
+  /** Cables between connectors of different blocks */
+  cables: Cable[];
 }
 
 // ---------------------------------------------------------------------------
 // Default values
 // ---------------------------------------------------------------------------
 
-export const PROJECT_FORMAT_VERSION = '0.3.0';
+export const PROJECT_FORMAT_VERSION = '0.4.0';
 
 export const DEFAULT_BLOCK_CONFIG: BlockConfig = {
-  rows: 3,
   rowHeight: 140,
   rowWidth: 420,
   gridStep: 12,
-  transformerWidth: 85,
+  transformerWidth: 84,
   obstructions: [],
 };
 
@@ -311,6 +385,7 @@ export function createDefaultProject(name: string = 'New Project'): ProjectState
     moduleTypes: [],
     block: { ...DEFAULT_BLOCK_CONFIG, obstructions: [] },
     blocks: {},
+    cables: [],
   };
 }
 
@@ -354,17 +429,24 @@ export function getAllCellTypes(state: ProjectState): CellType[] {
 
 /** The data fields of a ProjectState — use to strip UI/history state from a store. */
 export function pickProjectState(s: ProjectState): ProjectState {
-  const { meta, liberty, externalElements, moduleTypes, block, blocks } = s;
-  return { meta, liberty, externalElements, moduleTypes, block, blocks };
+  const { meta, liberty, externalElements, moduleTypes, block, blocks, cables } = s;
+  return { meta, liberty, externalElements, moduleTypes, block, blocks, cables };
 }
 
 // ---------------------------------------------------------------------------
 // Geometry helpers
 // ---------------------------------------------------------------------------
 
-/** Overall chassis height in mm */
-export function blockHeight(cfg: BlockConfig): number {
-  return cfg.rowHeight * cfg.rows;
+/** Height of a block's baskets in mm */
+export function blockHeight(cfg: BlockConfig, rows: number): number {
+  return cfg.rowHeight * rows;
+}
+
+/** Nearest allowed transformer width: 72 + gridStep·K mm, within the limits (Q4) */
+export function snapTransformerWidth(mm: number, gridStep: number): number {
+  const k = Math.max(0, Math.round((mm - TRANSFORMER_WIDTH_MIN) / gridStep));
+  const maxK = Math.floor((TRANSFORMER_WIDTH_MAX - TRANSFORMER_WIDTH_MIN) / gridStep);
+  return TRANSFORMER_WIDTH_MIN + Math.min(k, maxK) * gridStep;
 }
 
 /** Number of 12 mm columns in a row */
@@ -389,6 +471,34 @@ export function fitsInRow(cfg: BlockConfig, col: number, widthSteps: number): bo
   if (x1 > cfg.rowWidth) return false;
   const [t0, t1] = transformerSpan(cfg);
   return x1 <= t0 || x0 >= t1;
+}
+
+/**
+ * Is [col, col+width) in `row` free: inside the row, clear of the transformer
+ * and of other module instances (except `ignoreId`)?
+ */
+export function canPlaceModule(
+  state: Pick<ProjectState, 'block' | 'moduleTypes'>,
+  rows: number,
+  instances: ModuleInstance[],
+  typeId: string,
+  row: number,
+  col: number,
+  ignoreId?: string,
+): boolean {
+  const type = state.moduleTypes.find(t => t.id === typeId);
+  if (!type) return false;
+  if (!Number.isInteger(row) || !Number.isInteger(col)) return false;
+  if (row < 0 || row >= rows) return false;
+  if (!fitsInRow(state.block, col, type.widthSteps)) return false;
+  const end = col + type.widthSteps;
+  for (const other of instances) {
+    if (other.id === ignoreId || other.row !== row) continue;
+    const ot = state.moduleTypes.find(t => t.id === other.typeId);
+    const oEnd = other.col + (ot?.widthSteps ?? 1);
+    if (col < oEnd && other.col < end) return false;
+  }
+  return true;
 }
 
 /** Total number of cell slots on a module type */
