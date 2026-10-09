@@ -12,7 +12,7 @@ Names in the TRS don't always match the tree: the TRS says Ram.sv, the file is r
 2. What the project is
 A Brainfuck computer built from A110 dekatrons and vacuum tubes, plus an FPGA emulator (DE0-Nano-SoC, Cyclone V) that stands in for tube blocks that aren't built yet.
 - Authenticity (REQ-AUTH-*): no silicon semiconductors in the real machine's compute path; germanium diodes allowed only in rectifiers (power) and ferrite-memory support; BCD codecs are tubes (owner, 2026-10-08, REQ-AUTH-002). FPGA is a temporary dev tool only. UART/terminals/loaders are external and may be non-tube.
-- Priorities (REQ-SCOPE-003): RTL, then test stand, then tube modules, then measurements/liberty. The P&R tool is a separate project that takes netlist/liberty/connector requirements from the TRS (section 17).
+- Priorities (REQ-SCOPE-003): RTL, then test stand, then tube modules, then measurements/liberty. The P&R tool is a separate project that takes netlist/liberty/connector requirements from the TRS (section 17). P&R decisions of 2026-10-09 (REQ-PR-011..019) shape synthesis output. The netlist stays hierarchical: a submodule with a board type, such as DekatronModule, is one board. A P&R block is a cabinet of 3–5 baskets. Inter-block wires go through HD-68 connectors, and RTL should group them into one wire structure per connector (REQ-PR-019). The review is doc/webui_review.md on branch webui (PR #28).
 
 3. Architecture facts (don't break these)
 - Four reversible BCD dekatron counters, Harvard architecture. Widths come from rtl/parameters.sv:
