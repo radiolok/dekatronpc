@@ -77,26 +77,29 @@ export interface PinMapping {
   contactId: string;   // "A1" .. "A36", "B1" .. "B36"
 }
 
-/** A logical slot on a module: type + count + pin mappings */
+/**
+ * A logical slot on a module type: `count` copies of one cell type.
+ * Every copy has its own contacts, so `pinMaps[i]` is the mapping of copy i
+ * (length == count; a copy without contacts yet has an empty array).
+ */
 export interface ModuleSlot {
   cellType: string;          // references CellType.name
-  count: number;             // how many instances of this type fit
-  pinMapping: PinMapping[];  // maps logical cell pins → connector contacts
+  count: number;
+  pinMaps: PinMapping[][];
 }
 
-/** A hardware module (PCB 140×140mm) */
-export interface HardwareModule {
+/** A PCB design (140×140 mm, 2×36 connector). Shared by all blocks; placed as ModuleInstance. */
+export interface ModuleType {
   id: string;
   name: string;
-  /** Width in 12mm grid steps: 2 = 24mm (logic), 3 = 36mm (dekatron) */
+  /** Width in 12 mm grid steps: 2 = 24 mm (logic), 3 = 36 mm (dekatron) */
   widthSteps: number;
   slots: ModuleSlot[];
-  /** Filled during placement: one entry per instance */
-  slotInstances: SlotInstance[];
+  powerW?: number;
 }
 
 // ---------------------------------------------------------------------------
-// Block geometry
+// Block geometry (top view of the chassis)
 // ---------------------------------------------------------------------------
 
 export interface Obstruction {
@@ -110,17 +113,24 @@ export interface Obstruction {
   points?: { x: number; y: number }[];
 }
 
+/**
+ * Chassis seen from the top: `rows` rows stacked vertically, each `rowHeight` mm
+ * (module depth) and `rowWidth` mm wide. A transformer of `transformerWidth` mm
+ * sits in the middle of every row. Overall height = rowHeight × rows.
+ */
 export interface BlockConfig {
-  rows: number;              // 3 (per wiki: IpLine, ApLine, MachineCtrl)
-  maxCols: number;           // max positions in a row (24)
-  verticalPitch: number;     // mm, distance between module centers vertically
+  rows: number;              // 3..5
+  rowHeight: number;         // mm, 140
+  rowWidth: number;          // mm, 420 (19" class)
   gridStep: number;          // mm, horizontal grid (12)
-  margin: number;            // mm, edge margin inside block
-  /** Physical block dimensions in mm (4U chassis: 920×420×178) */
-  chassisWidth: number;      // 920
-  chassisHeight: number;     // 420 (effective)
+  transformerWidth: number;  // mm, 70..100
   obstructions: Obstruction[];
 }
+
+export const ROWS_MIN = 3;
+export const ROWS_MAX = 5;
+export const TRANSFORMER_WIDTH_MIN = 70;
+export const TRANSFORMER_WIDTH_MAX = 100;
 
 // ---------------------------------------------------------------------------
 // Netlist types (Verilog)
@@ -147,19 +157,21 @@ export interface ParsedNetlist {
 // Placement types
 // ---------------------------------------------------------------------------
 
-/** Position of a module in the block grid */
-export interface ModulePlacement {
-  moduleId: string;
+/** A placed copy of a ModuleType in one block */
+export interface ModuleInstance {
+  id: string;           // unique within the block, e.g. "M3"
+  typeId: string;       // ModuleType.id
   row: number;          // 0-based row index
-  col: number;          // 0-based column in 12mm steps
+  col: number;          // 0-based column in 12 mm steps
   locked: boolean;
 }
 
-/** Placement of a netlist instance into a module slot */
+/** Placement of a netlist instance into a slot of a placed module */
 export interface ElementPlacement {
   instanceName: string;
-  moduleId: string;
-  slotIndex: number;    // index into module.slotInstances
+  moduleInstanceId: string;
+  /** Flat slot index over the type's slots: copies of slots[0], then slots[1], ... */
+  slotIndex: number;
   locked: boolean;
 }
 
@@ -168,7 +180,7 @@ export interface ElementPlacement {
 // ---------------------------------------------------------------------------
 
 export interface TerminalPoint {
-  moduleId: string;
+  moduleInstanceId: string;
   pin: string;          // connector contact id like "A12", "B5"
 }
 
@@ -185,19 +197,6 @@ export interface RoutedNet {
   netName: string;
   color: string;        // hex color
   segments: RouteSegment[];
-}
-
-// ---------------------------------------------------------------------------
-// Sub-placement data — for elements inside module slots
-// ---------------------------------------------------------------------------
-
-export interface SlotInstance {
-  /** Index into parent module's slotInstances array */
-  index: number;
-  /** Which slot definition this belongs to (index into module.slots) */
-  slotDefIndex: number;
-  /** The netlist instance occupying this slot (null = empty) */
-  instanceName: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -229,7 +228,7 @@ export interface Block {
   name: string;
   netlist: ParsedNetlist;
   placement: {
-    modules: ModulePlacement[];
+    modules: ModuleInstance[];
     elements: ElementPlacement[];
   };
   routing: {
@@ -254,7 +253,7 @@ export interface ProjectState {
   meta: ProjectMeta;
   liberty: Record<string, LibertyCell>;
   externalElements: Record<string, ExternalElement>;
-  modules: HardwareModule[];
+  moduleTypes: ModuleType[];
   block: BlockConfig;
   /** Multiple computational blocks sharing the same liberty/modules/chassis */
   blocks: Record<string, Block>;
@@ -264,14 +263,14 @@ export interface ProjectState {
 // Default values
 // ---------------------------------------------------------------------------
 
+export const PROJECT_FORMAT_VERSION = '0.3.0';
+
 export const DEFAULT_BLOCK_CONFIG: BlockConfig = {
   rows: 3,
-  maxCols: 24,
-  verticalPitch: 178 / 3,   // ~59.3mm between module centers
-  gridStep: 12,             // 12mm horizontal grid
-  margin: 20,
-  chassisWidth: 920,
-  chassisHeight: 420,
+  rowHeight: 140,
+  rowWidth: 420,
+  gridStep: 12,
+  transformerWidth: 85,
   obstructions: [],
 };
 
@@ -282,12 +281,12 @@ export function createDefaultProject(name: string = 'New Project'): ProjectState
       projectName: name,
       createdAt: now,
       updatedAt: now,
-      version: '0.2.0',
+      version: PROJECT_FORMAT_VERSION,
     },
     liberty: {},
     externalElements: {},
-    modules: [],
-    block: { ...DEFAULT_BLOCK_CONFIG },
+    moduleTypes: [],
+    block: { ...DEFAULT_BLOCK_CONFIG, obstructions: [] },
     blocks: {},
   };
 }
@@ -328,4 +327,63 @@ export function getAllCellTypes(state: ProjectState): CellType[] {
     result.push({ name, source: 'external', pins: el.pins });
   }
   return result;
+}
+
+/** The data fields of a ProjectState — use to strip UI/history state from a store. */
+export function pickProjectState(s: ProjectState): ProjectState {
+  const { meta, liberty, externalElements, moduleTypes, block, blocks } = s;
+  return { meta, liberty, externalElements, moduleTypes, block, blocks };
+}
+
+// ---------------------------------------------------------------------------
+// Geometry helpers
+// ---------------------------------------------------------------------------
+
+/** Overall chassis height in mm */
+export function blockHeight(cfg: BlockConfig): number {
+  return cfg.rowHeight * cfg.rows;
+}
+
+/** Number of 12 mm columns in a row */
+export function columnsPerRow(cfg: BlockConfig): number {
+  return Math.floor(cfg.rowWidth / cfg.gridStep);
+}
+
+/** Transformer keep-out of every row, [x0, x1) in mm, centred */
+export function transformerSpan(cfg: BlockConfig): [number, number] {
+  const x0 = (cfg.rowWidth - cfg.transformerWidth) / 2;
+  return [x0, x0 + cfg.transformerWidth];
+}
+
+/**
+ * Can a module of `widthSteps` sit at `col` without leaving the row or
+ * overlapping the transformer? (Overlap with other modules is checked by the caller.)
+ */
+export function fitsInRow(cfg: BlockConfig, col: number, widthSteps: number): boolean {
+  if (col < 0 || widthSteps < 1) return false;
+  const x0 = col * cfg.gridStep;
+  const x1 = x0 + widthSteps * cfg.gridStep;
+  if (x1 > cfg.rowWidth) return false;
+  const [t0, t1] = transformerSpan(cfg);
+  return x1 <= t0 || x0 >= t1;
+}
+
+/** Total number of cell slots on a module type */
+export function slotCount(type: ModuleType): number {
+  return type.slots.reduce((n, s) => n + s.count, 0);
+}
+
+/** Map a flat slot index to (slot definition, copy); null when out of range */
+export function resolveSlot(
+  type: ModuleType,
+  slotIndex: number,
+): { slotDefIndex: number; copy: number } | null {
+  if (slotIndex < 0) return null;
+  let base = 0;
+  for (let i = 0; i < type.slots.length; i++) {
+    const n = type.slots[i].count;
+    if (slotIndex < base + n) return { slotDefIndex: i, copy: slotIndex - base };
+    base += n;
+  }
+  return null;
 }
