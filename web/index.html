@@ -444,7 +444,7 @@ const T = {
     clearpaper: 'Tear off', iret: 'IRET', rate: 'Insn/s', rd: 'Mem reads', wr: 'Mem writes', bells: 'Bells', buf: 'Input buffer',
     g_ip: 'IP · instruction', g_loop: 'Loop', g_ap: 'AP · address', g_data: 'Data',
     l_halt: 'Halt', l_run: 'Run', l_bf: 'BF ISA', l_dbg: 'Debug ISA', l_load: 'Load', l_cin: 'CIN',
-    l_ml: 'MemLock', l_dirty: 'Dirty', l_ovf: 'Loop ovf',
+    l_ml: 'MemLock', l_ovf: 'Loop ovf',
     k_hard: 'Hard rst', k_soft: 'Soft rst', k_halt: 'Halt', k_step: 'Step', k_run: 'Run',
     k_lstart: 'Load start', k_lstop: 'Load stop', k_prev: 'Dec', k_next: 'Inc', k_clean: 'Mem clean',
     sw_speed: 'Speed, insn/s', sw_counter: 'Counter', cnt_ip: 'IP', cnt_loop: 'Loop', cnt_ap: 'AP', cnt_data: 'Data',
@@ -473,7 +473,7 @@ const T = {
     s_ovf: 'Loop counter overflow: hardware error, machine halted.',
     s_finished: (ip) => `HALT at IP ${ip - 1}. Program finished.`,
     s_clean: 'Data memory cleared.',
-    ml: (on, d) => on ? `MemLock: cell value is in the Data counter${d ? ' (dirty)' : ''}` : 'MemLock off: cell value is in memory'
+    ml: (on) => on ? 'MemLock: cell value is in the Data counter' : 'MemLock off: cell value is in memory'
   },
   ru: {
     subtitle: 'декатроны А110 · 6Н16Б · 6Ж2Б · Brainfuck', sound: 'Звонок', on: 'Вкл', off: 'Выкл',
@@ -484,7 +484,7 @@ const T = {
     clearpaper: 'Оторвать', iret: 'IRET', rate: 'Команд/с', rd: 'Чтений', wr: 'Записей', bells: 'Звонков', buf: 'Буфер ввода',
     g_ip: 'IP · команда', g_loop: 'Цикл', g_ap: 'AP · адрес', g_data: 'Данные',
     l_halt: 'Останов', l_run: 'Пуск', l_bf: 'BF', l_dbg: 'Отладка', l_load: 'Загрузка', l_cin: 'Ввод',
-    l_ml: 'MemLock', l_dirty: 'Dirty', l_ovf: 'Перепол.',
+    l_ml: 'MemLock', l_ovf: 'Перепол.',
     k_hard: 'Апп. сброс', k_soft: 'Прог. сброс', k_halt: 'Останов', k_step: 'Шаг', k_run: 'Пуск',
     k_lstart: 'Загр. пуск', k_lstop: 'Загр. стоп', k_prev: '−1', k_next: '+1', k_clean: 'Очистка ОЗУ',
     sw_speed: 'Скорость, команд/с', sw_counter: 'Счётчик', cnt_ip: 'IP', cnt_loop: 'Цикл', cnt_ap: 'AP', cnt_data: 'Данные',
@@ -513,7 +513,7 @@ const T = {
     s_ovf: 'Переполнение счётчика цикла: аппаратная ошибка, машина остановлена.',
     s_finished: (ip) => `HALT на IP ${ip - 1}. Программа завершена.`,
     s_clean: 'Память данных очищена.',
-    ml: (on, d) => on ? `MemLock: значение ячейки в счётчике Data${d ? ' (dirty)' : ''}` : 'MemLock снят: значение ячейки в памяти'
+    ml: (on) => on ? 'MemLock: значение ячейки в счётчике Data' : 'MemLock снят: значение ячейки в памяти'
   }
 };
 let lang = store.get('lang', 'en') === 'ru' ? 'ru' : 'en';
@@ -689,7 +689,6 @@ const LAMPS = [
   ['dbg', 'l_dbg', 'amber', () => m.mode === DPC.ISA_DEBUG],
   ['cin', 'l_cin', 'amber', () => m.waitingCin && !m.rx.length && sim.eof === 'wait', true],
   ['ml', 'l_ml', 'amber', () => m.lock],
-  ['dirty', 'l_dirty', 'amber', () => m.dirty],
   ['ovf', 'l_ovf', 'red', () => m.overflow]
 ];
 const lampEls = LAMPS.map(([id, key, color, , blink]) => {
@@ -744,7 +743,7 @@ function updateStrips() {
     el.children[1].textContent = String(v);
     el.children[2].textContent = v >= 32 && v < 127 ? String.fromCharCode(v) : (v === 10 ? '↵' : '');
   }
-  $('ml-note').textContent = t('ml', m.lock, m.dirty);
+  $('ml-note').textContent = t('ml', m.lock);
 }
 $('prog-strip').addEventListener('click', (e) => {
   const el = e.target.closest('.cell');

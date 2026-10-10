@@ -122,7 +122,7 @@
       this.dataMem = new Uint8Array(this.cfg.apTop + 1);
       this.memReg = 0;
       this.ip = 0; this.ap = 0; this.loop = 0; this.data = 0;
-      this.lock = false; this.dirty = false; this.memHere = false;
+      this.lock = false; this.memHere = false;
       this.ipCounted = false; this.insn = 0; this.overflow = false;
       this.mode = ISA_DEBUG; this.loading = false; this.halted = true; this.phase = PH_FETCH;
       this.iret = 0; this.bells = 0; this.memReads = 0; this.memWrites = 0;
@@ -138,7 +138,7 @@
     resetCounters(hard) {
       this.ip = hard ? BOOT_BASE : 0;
       this.ap = 0; this.loop = 0; this.data = 0;
-      this.lock = this.dirty = this.memHere = false;
+      this.lock = this.memHere = false;
       this.ipCounted = false; this.overflow = false; this.loading = false;
       this.phase = PH_FETCH;
       this.mode = hard ? ISA_DEBUG : ISA_BF;
@@ -168,8 +168,8 @@
     // Manual INC/DEC of one counter between instructions.
     //  ip   - as keyNextIp/keyPrevIp: the instruction is re-read on resume
     //  loop - 0..99 with wrap, the overflow flag is not touched
-    //  ap   - as > / <: a dirty Data counter is flushed first, lazy read after
-    //  data - as + / -: the cell is read if needed, MemLock and dirty are set
+    //  ap   - as > / <: a locked Data counter is flushed first, lazy read after
+    //  data - as + / -: the cell is read if needed, MemLock is set
     manualStep(counter, dec) {
       switch (counter) {
         case 'ip':
@@ -209,12 +209,13 @@
       this.memWrites++;
       this.dataMem[this.ap] = this.data;
       this.memReg = this.data;
-      this.dirty = false;
       this.memHere = true;
     }
-    // RTL: only a dirty counter is flushed, and only the flush releases MemLock.
+    // MemLock is the only flag: a locked counter is flushed before the address
+    // moves, which releases the lock (REQ-ML-005/007). After STORE this writes
+    // the same value again.
     apMove(zero, dec) {
-      if (this.dirty) { this.flush(); this.lock = false; }
+      if (this.lock) { this.flush(); this.lock = false; }
       const n = this.cfg.apTop + 1;
       if (zero) this.ap = 0;
       else if (dec) this.ap = (this.ap + n - 1) % n;
@@ -224,7 +225,7 @@
     dataStep(dec) {
       if (!this.lock) { if (!this.memHere) this.memRead(); this.data = this.memReg; }
       this.data = dec ? (this.data + DATA_TOP) % (DATA_TOP + 1) : (this.data + 1) % (DATA_TOP + 1);
-      this.lock = true; this.dirty = true;
+      this.lock = true;
     }
 
     //--- IpLine ----------------------------------------------------------
@@ -301,7 +302,7 @@
         case 0x0F: case 0x1F: this.mode = ISA_BF; break;
         case 0x06: case 0x07: break;
         case 0x16: case 0x17: if (!this.lock && !this.memHere) this.memRead(); break;
-        case 0x0A: case 0x1A: this.data = 0; this.lock = true; this.dirty = true; break;
+        case 0x0A: case 0x1A: this.data = 0; this.lock = true; break;
         case 0x02: this.bell(); break;
         case 0x05: this.loading = true; break;
         case 0x08: this.loop = 0; this.overflow = false; break;
@@ -316,7 +317,7 @@
           this.cout(this.data);
           break;
         case 0x19: if (this.cfg.bellOnCin) this.bell(); this.phase = PH_CIN; break;
-        case 0x1B: if (this.dirty) this.flush(); this.lock = false; break;
+        case 0x1B: if (this.lock) this.flush(); this.lock = false; break;
         case 0x1C: if (!this.memHere) this.memRead(); this.data = this.memReg; break;
         case 0x1D: this.flush(); break;
         default: break;
@@ -329,7 +330,7 @@
       if (c < 0) return WAIT;
       this.phase = PH_FETCH;
       this.data = c % (DATA_TOP + 1);
-      this.lock = true; this.dirty = true;
+      this.lock = true;
       if (this.cfg.echoMode) this.cout(this.data);
       return OK;
     }
