@@ -85,3 +85,88 @@ jobs:
           -v ${{ github.workspace }}:/var/rtl/run \
           dekatron-pc-ci:latest \
           bash -c "source /var/venv/bin/activate && cd /var/rtl/run/rtl/run && ./run_tests.sh -s"
+
+  # Gate-level simulation: the Icarus tests of run_tests.sh -t on the Yosys
+  # netlists (rtl/run/synth_sim.sh). A failing run fails the pipeline.
+  synth_sim:
+    needs: build-image
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        submodules: recursive
+    - uses: actions/download-artifact@v5
+      with:
+        name: docker-image
+        path: /tmp
+    - name: Load Docker image
+      run: docker load -i /tmp/image.tar
+    - name: Run netlist simulation
+      run: |
+        docker run --rm \
+          -v ${{ github.workspace }}:/var/rtl/run \
+          dekatron-pc-ci:latest \
+          bash -c "source /var/venv/bin/activate && cd /var/rtl/run/rtl/run && ./synth_sim.sh"
+    - uses: actions/upload-artifact@v5
+      if: always()
+      with:
+        name: synth-sim-logs
+        path: |
+          rtl/run/synth_sim/**/*.log
+          rtl/run/synth_sim/**/*_synth.v
+        retention-days: 7
+
+  # Delay-based dekatron model (DekatronTubeDelay: #N delays, no hsClk) on
+  # Icarus RTL: the module tests, helloworld, program.bfk and pi.bfk
+  # (rtl/run/run_tests.sh -d, doc/dekatron_delay_model.md).
+  sim_delay:
+    needs: build-image
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        submodules: recursive
+    - uses: actions/download-artifact@v5
+      with:
+        name: docker-image
+        path: /tmp
+    - name: Load Docker image
+      run: docker load -i /tmp/image.tar
+    - name: Run RTL simulation with the delay model
+      run: |
+        docker run --rm \
+          -v ${{ github.workspace }}:/var/rtl/run \
+          dekatron-pc-ci:latest \
+          bash -c "cd /var/rtl/run/rtl/run && ./run_tests.sh -d"
+
+  # The same on the Yosys netlists: synth_sim.sh -d, all tests plus pi.bfk.
+  synth_sim_delay:
+    needs: build-image
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        submodules: recursive
+    - uses: actions/download-artifact@v5
+      with:
+        name: docker-image
+        path: /tmp
+    - name: Load Docker image
+      run: docker load -i /tmp/image.tar
+    - name: Run netlist simulation with the delay model
+      run: |
+        docker run --rm \
+          -v ${{ github.workspace }}:/var/rtl/run \
+          dekatron-pc-ci:latest \
+          bash -c "source /var/venv/bin/activate && cd /var/rtl/run/rtl/run && ./synth_sim.sh -d Dekatron Counter IpLine ApLine MachineCtrl DekatronPC Pi"
+    - uses: actions/upload-artifact@v5
+      if: always()
+      with:
+        name: synth-sim-delay-logs
+        path: |
+          rtl/run/synth_sim_delay/**/*.log
+          rtl/run/synth_sim_delay/**/*_synth.v
+        retention-days: 7

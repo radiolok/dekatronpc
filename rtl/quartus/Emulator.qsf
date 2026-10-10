@@ -197,6 +197,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../DekatronPC/IpLine.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../DekatronPC/InsnLoopDetector.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../DekatronPC/ApLine.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/UpCounter.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/Relay.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/RsLatch.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/RegisterFileSharedOut.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../Logic/RegisterFileFlatOut.sv

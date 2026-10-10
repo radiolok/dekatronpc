@@ -1,0 +1,68 @@
+name: FPGA build
+
+# Quartus Prime Lite build of the Emulator bitstream (rtl/run/build_fpga.sh, doc/fpga_build.md).
+#   pull_request to master : analysis & elaboration only (syntax, hierarchy, parameters)
+#   push to master, manual : full compile, .sof/.rbf and reports uploaded as artifacts
+#
+# Quartus comes from the community image chriz2600/quartus-lite (Ubuntu 22.04, Quartus Prime Lite
+# 23.1std.1, all device families), pinned by digest. Altera blocks scripted installer downloads, so
+# if this image goes away the fallback is a self-hosted runner with Quartus installed (doc/fpga_build.md §6).
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+env:
+  QUARTUS_IMAGE: chriz2600/quartus-lite:23.1.1-1@sha256:50eac410e54617e93ad6c13d9129f7e52c89108a819ded31e66d1eb4577cd8ef
+
+jobs:
+  quartus:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    # Not a gate yet: the community image is untested here (doc/fpga_build.md §6)
+    continue-on-error: true
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        submodules: recursive
+
+    # The image is 6.3 GB compressed; the runner starts with about 14 GB free
+    - name: Free disk space
+      run: |
+        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
+        df -h /
+
+    - name: Pull Quartus image
+      run: docker pull "$QUARTUS_IMAGE"
+
+    # The image has no Python: build the firmware hex files here, run Quartus with --no-fw
+    - name: Generate firmware images
+      run: |
+        p=rtl/programs g=rtl/run/generate_rom.py
+        python3 $g -f $p/helloworld.bfk $p/fibonachi.bfk $p/pi.bfk $p/rot13.bfk $p/triangle.bfk $p/fractal.bfk -o rtl/firmware.hex --hex --pack
+        python3 $g -f $p/program.bfk -o rtl/load_firmware.hex --hex
+        python3 $g -f $p/helloworld.bfk -o rtl/load_firmware_hello.hex --hex
+        python3 $g -f $p/pi.bfk -o rtl/load_firmware_pi.hex --hex
+
+    - name: Quartus build
+      env:
+        STAGE: ${{ github.event_name == 'pull_request' && 'elab' || '--rbf compile' }}
+      run: |
+        # bash -l: the image puts Quartus on PATH through the login profile
+        docker run --rm -v "$GITHUB_WORKSPACE":/build -w /build/rtl/run "$QUARTUS_IMAGE" \
+          bash -lc "quartus_sh --version && ./build_fpga.sh --no-fw $STAGE"
+
+    - uses: actions/upload-artifact@v5
+      if: always()
+      with:
+        name: fpga-${{ github.event_name == 'pull_request' && 'elab' || 'bitstream' }}
+        path: |
+          rtl/quartus_build/output_files/*.sof
+          rtl/quartus_build/output_files/*.rbf
+          rtl/quartus_build/output_files/*.rpt
+          rtl/quartus_build/output_files/*.summary
+        if-no-files-found: ignore
+        retention-days: 14

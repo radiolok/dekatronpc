@@ -6,6 +6,7 @@
 ../Functions/In12CathodeToPin.sv
 ../Logic/UpCounter.sv
 ../Logic/bn_mux_n_1_generate.sv
+../DekatronPC/Dekatron/BcdToBin.sv
 ../Logic/RegisterFileSharedOut.sv
 ../Logic/RegisterFileFlatOut.sv
 ../Logic/Register.sv

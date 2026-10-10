@@ -105,7 +105,7 @@ module Emulator #(
     output logic [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApAddress,
     output logic [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount,
     output logic [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd,
-    
+
     /* verilator lint_off UNUSEDSIGNAL */
     input logic [INSN_WIDTH-1:0] InsnIn,
     input logic InsnInValid,
@@ -114,7 +114,7 @@ module Emulator #(
     /* verilator lint_on UNUSEDSIGNAL */
 `endif
 
-    output logic [2:0] DPC_currentState
+    output logic [3:0] DPC_currentState
 );
 
 assign LED[0] = Rst_n;
@@ -261,8 +261,9 @@ DekatronPC dekatronPC(
     .LoopCount(LoopCount),
     .hsClk(Clock_10MHz),
     .Clk(Clock_1MHz),
-    .SoftRst_n(SoftRst_n),
-    .HardRst_n(HardRst_n),
+    .rst_n(Rst_n),
+    .SoftRstKey(~SoftRst_n),
+    .HardRstKey(~HardRst_n),
     .Halt(keyHalt),
     .Run(keyRun),
     .InsnIn(InsnInInternal),
@@ -273,11 +274,15 @@ DekatronPC dekatronPC(
     .RunOnHardRst(RunOnHardRst),
     .RunOnSoftRst(RunOnSoftRst),
     .SoftRstOnEOT(SoftRstOnEOT),
+    .BellOnCIN(1'b0),
+    .BellOnHALT(1'b0),
+    .BellOnError(1'b0),
     .tx_data_bcd(tx_data_bcd),
     .tx_vld(tx_vld),
     .tx_rdy(tx_rdy),
     .rx_data_bcd(rx_data_bcd),
     .rx_vld(rx_vld),
+    .rx_rdy(rx_rdy),
     .Step(keyStep),
     .keyNextIp(keyNextIp),
     .keyPrevIp(keyPrevIp),
@@ -290,6 +295,9 @@ DekatronPC dekatronPC(
     .ApData1(ApData1),
     .RomData1(RomData1),
     .state(DPC_currentState),
+    .IsHalted(),
+    .Bell(),
+    .LoopOverflow(),
     .Insn(Insn)
 );
 
@@ -365,6 +373,11 @@ logic                        tx_rdy  ;
 logic                        tx_vld  ;
 //rx signal
 logic                          rx_vld  ;
+logic                          rx_rdy  ;
+// Источник терминала до буфера приёма
+logic [7:0]                    term_rx_data;
+logic                          term_rx_vld;
+logic                          term_rx_vld_old;
 
 
 logic [7:0] uart_rx_data;
@@ -434,14 +447,34 @@ always_comb begin
         uart_tx_vld  = tx_vld;
         consul_tx_vld  = '0;
         tx_rdy  = uart_tx_rdy;
-        rx_data = uart_rx_data;
-        rx_vld  = uart_rx_vld;
+        term_rx_data = uart_rx_data;
+        term_rx_vld  = uart_rx_vld;
     end else begin
         uart_tx_vld  = '0;
         consul_tx_vld  = tx_vld;
         tx_rdy  = consul_tx_rdy;
-        rx_data = consul_rx_data;
-        rx_vld  = consul_rx_vld;
+        term_rx_data = consul_rx_data;
+        term_rx_vld  = consul_rx_vld;
+    end
+end
+
+// Буфер приёма: DekatronPC не защёлкивает символ и пишет счётчик данных
+// прямо с rx_data_bcd, поэтому символ держится здесь до rx_vld & rx_rdy
+// (REQ-UART-008). Приём по фронту: kb_data_vld консула медленный и
+// длится много тактов 1 МГц.
+always @(posedge Clock_1MHz, negedge Rst_n) begin
+    if (~Rst_n) begin
+        rx_data         <= 8'h0;
+        rx_vld          <= 1'b0;
+        term_rx_vld_old <= 1'b0;
+    end else begin
+        term_rx_vld_old <= term_rx_vld;
+        if (rx_vld & rx_rdy)
+            rx_vld <= 1'b0;
+        else if (~rx_vld & term_rx_vld & ~term_rx_vld_old) begin
+            rx_data <= term_rx_data;
+            rx_vld  <= 1'b1;
+        end
     end
 end
 
@@ -545,13 +578,13 @@ assign uart_rx_data[7] = 1'b0;
 KeyboardOpcodeInput keyboardOpcodeInput(
     .Clk(Clock_1MHz),
     .Rst_n(Rst_n),
-    
+
     .ReadEnable(KeyboardReadEnable),
 
     .Symbol(keyboardSymbol),
     .Opcode(KeyboardInsn),
     .Ready(KeyboardInsnReady),
-    .Valid(KeyboardInsnValid)  
+    .Valid(KeyboardInsnValid)
 );
 
 FirmwareLoader #(
@@ -560,7 +593,7 @@ FirmwareLoader #(
 ) firmwareLoader_hello(
     .Clk(Clock_1MHz),
     .Rst_n(Rst_n),
-    
+
     .Enable(FirmwareReadEnable_1),
 
     .Valid(FirmwareValid_1),
@@ -574,7 +607,7 @@ FirmwareLoader #(
 ) firmwareLoader_pi(
     .Clk(Clock_1MHz),
     .Rst_n(Rst_n),
-    
+
     .Enable(FirmwareReadEnable_2),
 
     .Valid(FirmwareValid_2),

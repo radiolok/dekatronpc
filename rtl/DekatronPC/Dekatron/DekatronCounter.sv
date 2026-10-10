@@ -1,222 +1,602 @@
+//======================================================================
+// DekatronCounter — многоразрядный реверсивный декатронный счётчик
+//----------------------------------------------------------------------
+// Собран из DekatronModule. Предоставляет вышестоящим блокам
+// классический Valid/Ready интерфейс.
+//
+// Это ПЕРВЫЙ уровень иерархии, где handshake вообще имеет смысл: сам
+// декатрон физически не может выдавать ready/busy, он только отрабатывает
+// внешние воздействия заданной длительности. Вся дисциплина операций
+// (выдержка длительностей, удержание уровней весь такт, ожидание
+// установления разряда) сосредоточена здесь.
+//
+//----------------------------------------------------------------------
+// ПРОТОКОЛ
+//
+//   accept = valid & ready — операция принимается по фронту clk.
+//   ready НЕ зависит от valid.
+//
+//   Быстрый путь (инкремент/декремент): ready не снимается вовсе,
+//   пропускная способность — одна операция за такт clk.
+//
+//   Медленный путь (запись, сбросы): ready снимается на время окна
+//   записи, около WRITE_MIN_HS тактов hs_clk (по умолчанию 10 тактов clk).
+//
+//   Готовность выводится из известных длительностей, а не из показаний
+//   декатрона: шаг гарантированно укладывается в один такт clk (это
+//   проверяет DekatronModule при компиляции), запись и сброс — в окно
+//   реле времени writeTimer. Таймер запускается в момент, когда счётчик
+//   видит операцию записи или поднятую линию сброса; ready снимается в
+//   тот же момент и возвращается по окончании окна.
+//
+//   Операнды не защёлкиваются (экономия ламп): признаки операции dec,
+//   set, set_zero нужны только до рукопожатия, а in идёт прямо в схему
+//   записи и должен оставаться неизменным до возврата ready.
+//
+//----------------------------------------------------------------------
+// ЧТО ИЗМЕНИЛОСЬ ОТНОСИТЕЛЬНО ПРЕЖНЕЙ ВЕРСИИ
+//
+// 1. Импульсный Request заменён на Valid/Ready. Прежде ready зависел от
+//    ~request, и мастер был обязан сначала снять запрос и только потом
+//    ждать готовности — это был квазидвухфазный протокол, а не ST.
+//
+// 2. Состояния INC и DEC исчезли. Прежде они существовали только чтобы
+//    сформировать одиночный импульс и стоили лишнего такта. Теперь шаг
+//    формируется комбинационно из accept, инкремент занимает один такт.
+//
+// 3. Шаг подаётся УРОВНЕМ на весь такт, а не импульсом. Новый
+//    DekatronPulseSender сам нарезает такт на трети: два подкатодных
+//    импульса и пауза на сваливание разряда. Импульсные прослойки
+//    Impulse на пути шага больше не нужны.
+//
+// 4. Сбросы стали физическими линиями счётчика, а не асинхронными
+//    входами декатрона. У декатрона цифровых сбросов нет вовсе:
+//    установка позиции — это импульс по катоду. Разводку выполняет
+//    счётчик, потому что только он знает, куда сбрасываться:
+//
+//      soft_rst -> линия set0 всех декад                  -> 0
+//      hard_rst -> линия set9 старших HARD_RST_D_CNT декад,
+//                  линия set0 остальных                   -> 99900
+//
+//    Длительность обеспечивает внешнее реле времени: линия удерживается
+//    не менее RESET_MIN_HS тактов hs_clk. Растяжки внутри счётчика нет —
+//    это была бы лишняя логика поверх уже существующей физической цепи.
+//
+// 5. Признака out_valid больше нет. Он строился из ИЛИ по главным катодам
+//    и говорил только «разряд на каком-то главном катоде», а не «операция
+//    закончена». Мастер ждёт ready: после шага показание out достоверно
+//    на следующем фронте clk, после записи и сброса — по возврату ready.
+//
+// 6. Генератор фаз один на весь счётчик, а не в каждом модуле: фазы
+//    одинаковы для всех декад, а шагает та, которой цепочка переноса
+//    разрешила. Для шестидекадного счётчика это пять сэкономленных
+//    времязадающих цепей.
+//
+// 7. Формирователь подкатодных импульсов (DekatronPulseSender) тоже один
+//    на счётчик: он выдаёт общие шины guide_a/guide_b, уже с учётом
+//    направления, а декада пропускает их двумя ключами GUIDE_EN_J2 (по
+//    лампе J2 на подкатод) по разрешению en_chain[d] из цепочки переноса. Прежде в каждой
+//    декаде стояло И-ИЛИ на 6 ламп (doc/tube_count_reduction.md §17, T5).
+//
+// 8. Счётчик без записи, без верхнего предела и со сбросом только в нуль
+//    (вложенность, AP) обходится одним триггером занятости busy_q вместо
+//    автомата: запись в нуль и физический сброс ведут декады в одно и то
+//    же положение, поэтому их окна можно не различать (§17, T4).
+//
+//----------------------------------------------------------------------
+// ЦЕПОЧКА ПЕРЕНОСА
+//
+// Перенос «бесплатный»: разряд сам уходит в соседнюю декаду. Шаг
+// пробрасывается дальше, если младшая декада стояла на 9 (инкремент)
+// или на 0 (декремент) ДО текущего шага. Значения nines/zeroes
+// защёлкиваются по фронту clk, поэтому весь такт стабильны и вся
+// цепочка распространяется в пределах одного такта clk.
+//======================================================================
+
+`default_nettype none
+
 module DekatronCounter #(
-	parameter D_NUM = 3,
-	parameter WIDTH = D_NUM * DEKATRON_WIDTH,
-	parameter READ = 1'b1,
-    parameter WRITE = 1'b1,
-	parameter HARD_RST_D_CNT = 0,
-	parameter TOP_LIMIT_MODE = 1'b0,
-	/* verilator lint_off WIDTHEXPAND */
-	parameter [WIDTH-1:0] TOP_VALUE  = {4'd5, 4'd5, 4'd5}
-	/* verilator lint_on WIDTHEXPAND */
+    parameter unsigned D_NUM          = 3,
+    parameter unsigned WIDTH          = D_NUM * DEKATRON_WIDTH,
+
+    // Состав обвязки декад
+    parameter bit          READ           = 1'b1,
+    parameter bit          WRITE          = 1'b1,
+
+    // Режим верхнего предела: при достижении TOP_VALUE инкремент даёт 0,
+    // а декремент из нуля даёт TOP_VALUE
+    parameter bit          TOP_LIMIT_MODE = 1'b0,
+    // По умолчанию 5 во всех декадах; ширина следует за D_NUM
+    parameter [WIDTH-1:0]  TOP_VALUE      = {D_NUM{4'd5}},
+
+    // Сколько старших декад операция set_hard устанавливает в 9.
+    // 0 — операция set_hard не поддерживается.
+    parameter unsigned HARD_RST_D_CNT = 0,
+
+    // Временные характеристики декатрона (такты hs_clk)
+    parameter unsigned GUIDE_STEP_HS  = 2,
+    parameter unsigned FALL_STEP_HS   = 3,
+    parameter unsigned WRITE_MIN_HS   = 100,
+    parameter unsigned RESET_MIN_HS   = 100,
+
+    // Нарезка такта счёта
+    parameter unsigned HS_PER_CLK     = 10,
+    parameter unsigned PHASE1_HS      = 3,
+    parameter unsigned PHASE2_HS      = 3
+
 )(
-	input wire Rst_n,
-	input wire HardRst_n,
-	input wire Clk,
+    input  wire             rst_n,      // сброс логики счётчика; разряд НЕ двигает
+    input  wire             clk,        // такт счёта
+    input  wire             hs_clk,     // временная база модели декатронов
 
-	//highSpeed Clock to emulate delay of dekatron circuits. Clk is hsClk/10
-	input wire hsClk,
+    // Физические линии сброса. Идут прямо на катодные линии декад в
+    // обход handshake: разводку по декадам делает счётчик.
+    //   soft_rst — все декады в нуль
+    //   hard_rst — старшие HARD_RST_D_CNT декад в девятку, остальные в нуль
+    // Длительность держит внешнее реле времени: не менее RESET_MIN_HS
+    // тактов hs_clk, иначе разряд не успеет перейти на нужный катод.
+    input  wire             soft_rst,
+    input  wire             hard_rst,
 
-	// All changes start on Request
-    //If Set == 1, Out <= In
-    //If Dec = 1, Out <= Out-1
-    //Else, Out <= Out + 1
-	input wire Request,
-    input wire Dec,
-    input wire Set,
-	input wire SetZero,
+    // Valid/Ready
+    input  wire             valid,
+    output wire             ready,
 
-    input wire [WIDTH-1:0] In,
-
-    output wire Ready,
-    output wire Zero,
-	output wire [WIDTH-1:0] Out
-);
-
-wire _Request;
-
-Impulse reqPulse(
-	.Rst_n(Rst_n),
-	.Clk(Clk),
-	.En(Request),
-	.Impulse(_Request)
-);
-
-reg [D_NUM-1:0] Zeroes;
-reg [D_NUM-1:0] Nines;
+    // Признаки операции, квалифицируются valid
+    input  wire             dec,        // 1 — декремент, 0 — инкремент
+    input  wire             set,        // записать in
+    input  wire             set_zero,   // сбросить в нуль
 /* verilator lint_off UNUSEDSIGNAL */
-wire [D_NUM-1:0] TopOut;
+    input  wire [WIDTH-1:0] in,
 /* verilator lint_on UNUSEDSIGNAL */
-wire [D_NUM-1:0] DekatronBusy;
 
-assign Zero = &Zeroes;
-
-localparam [2:0]
-		IDLE = 3'b000,
-		INC = 3'b010,
-		DEC = 3'b011,
-		SET_ZERO = 3'b101,
-		SET_TOP = 3'b110,
-		SET = 3'b111;
-//state[2] - SET
-
-reg [2:0] state, next;
-
-always @(posedge Clk, negedge Rst_n) begin
-	if (~Rst_n) state <= 0;
-	else state <= next;
-end
-
-wire SetTop;
-wire SetZeroInt;
-wire SetAny;
-
-generate
-if (TOP_LIMIT_MODE > 0) begin : top_limit_en
-	assign SetTop = Zero & Dec;
-	assign SetZeroInt = (&TopOut & ~Dec);
-end
-else begin : top_limit_dis
-	assign SetTop = 1'b0;
-	assign SetZeroInt = 1'b0;
-end
-
-assign SetAny = Set | SetTop | SetZeroInt | SetZero;
-
-endgenerate
-
-always_comb begin
-	next = IDLE;
-	case(state)
-		IDLE: begin
-			if (_Request) begin
-				if (~SetAny) begin
-					if (Dec)
-						next = DEC;
-					else
-						next = INC;
-				end
-				else if (Set) next = SET;
-				else if (SetZero) next = SET_ZERO;
-				else if (TOP_LIMIT_MODE) begin
-					if (SetTop) next = SET_TOP;
-					else if (SetZeroInt) next = SET_ZERO;
-					else next = IDLE;
-				end
-				else next = IDLE;
-			end
-		end
-		SET_TOP: begin
-			if ( writed_n)
-				next = SET_TOP;
-		end
-		SET_ZERO: begin
-			if (writed_n)
-				next = SET_ZERO;
-		end
-		SET: begin
-			if (writed_n)
-				next = SET;
-		end
-		default:
-			next = IDLE;
-	endcase
-end
-
-assign Ready = ~Request & ~(|DekatronBusy) & (state == IDLE);
-
-wire PulseR = (state == DEC);
-wire PulseF = (state == INC);
-wire [1:0] Pulses;
-Impulse pulsesImpDec(
-		.Clk(Clk),
-		.Rst_n(Rst_n),
-		.En(PulseR),
-		.Impulse(Pulses[1])
-	);
-
-Impulse pulsesImpInc(
-		.Clk(Clk),
-		.Rst_n(Rst_n),
-		.En(PulseF),
-		.Impulse(Pulses[0])
-	);
-
-wire write_set;
-Impulse writeimpulse(
-		.Clk(Clk),
-		.Rst_n(Rst_n),
-		.En(state[2]),
-		.Impulse(write_set)
-	);
-
-wire writed_n;
-OneShot #(.DELAY(100)
-)writeOneShot(
-    .Clk(hsClk),
-    .Rst_n(Rst_n),
-    .En(write_set),
-    .Impulse(writed_n)
+    // Результат
+    output wire [WIDTH-1:0] out,        // достоверно на фронтах clk при ready
+    output wire             zero,       // счётчик равен нулю
+    output wire             at_top      // счётчик равен TOP_VALUE
 );
 
-wire [2:0] SetTopZero;
+    localparam unsigned DW = DEKATRON_WIDTH;
 
-assign SetTopZero[0] = ((state == SET_ZERO) & writed_n);
-assign SetTopZero[1] = ((state == SET_TOP) & writed_n);
-assign SetTopZero[2] = ((state == SET) & writed_n);
+    //------------------------------------------------------------------
+    // Состояния
+    //------------------------------------------------------------------
+    localparam logic [2:0]
+        ST_IDLE = 3'd0,
+        ST_SET  = 3'd1,   // запись числа из in (мастер держит его до ready)
+        ST_ZERO = 3'd2,   // сброс всех декад в 0
+        ST_TOP  = 3'd3,   // установка всех декад в TOP_VALUE
+        ST_RST  = 3'd4;   // физический сброс: ждём окончания линии и окна
+
+    // Упрощённый режим (п. 8 заголовка): операций set/ТОП нет, и
+    // аппаратный сброс ведёт все декады в нуль, как и программный
+    localparam bit ZERO_ONLY = !WRITE && !TOP_LIMIT_MODE && (HARD_RST_D_CNT == 0);
+
+    //------------------------------------------------------------------
+    // Показания декад
+    //------------------------------------------------------------------
+    logic [D_NUM-1:0] dek_zero;      // комбинационно с декад
+    logic [D_NUM-1:0] dek_nine;
+    logic [D_NUM-1:0] dek_top;
+
+    // Выходные признаки берутся прямо с катодов, как и out: достоверны
+    // на фронтах clk при ready, внутри такта шага проваливаются в нуль.
+    // В режиме без верхнего предела at_top — «все декады на девятке»;
+    // он нужен только счётчику вложенности для ошибки переполнения.
+    assign zero   = &dek_zero;
+    assign at_top = TOP_LIMIT_MODE ? &dek_top : &dek_nine;
+
+    //------------------------------------------------------------------
+    // Признаки ДО текущего шага, защёлкнутые по фронту clk
+    //
+    // Нужны там, где решение принимается внутри такта шага: разряд
+    // уходит с главного катода уже в первой трети такта, а шаг обязан
+    // держаться на декаде весь такт. Защёлкивается только то, что
+    // действительно читается:
+    //   nines_q/zeroes_q — цепочка переноса; старшая декада переноса
+    //                      никуда не отдаёт, поэтому D_NUM-1 разрядов;
+    //   zero_q/at_top_q  — автопереходы через край, только в режиме
+    //                      верхнего предела.
+    //
+    // Сброса у них нет: все потребители маскированы accept, а ready
+    // поднимается не раньше первого фронта clk после rst_n (автомат
+    // выходит из сброса в ST_RST), и на этом фронте признаки уже
+    // защёлкнуты с реальных катодов. Во время окна записи или сброса
+    // защёлкивается мусор, но ready в это время снят.
+    //------------------------------------------------------------------
+    localparam unsigned CW = (D_NUM > 1) ? D_NUM - 1 : 1;
+
+    logic [CW-1:0] zeroes_q;
+    logic [CW-1:0] nines_q;
+
+    always_ff @(posedge clk) begin
+        zeroes_q <= dek_zero[CW-1:0];
+        nines_q  <= dek_nine[CW-1:0];
+    end
+
+    //------------------------------------------------------------------
+    // Разбор операции в такте accept
+    //------------------------------------------------------------------
+    wire accept = valid & ready;
+
+    // Автопереходы через край в режиме верхнего предела
+    wire set_top_int;
+    wire set_zero_int;
+
+    generate
+        if (TOP_LIMIT_MODE) begin : g_top_limit
+            logic zero_q;
+            logic at_top_q;
+
+            always_ff @(posedge clk) begin
+                zero_q   <= &dek_zero;
+                at_top_q <= &dek_top;
+            end
+
+            // Только защёлкнутые признаки: живые с катодов изменятся
+            // внутри такта шага и запустят ложную запись (254+1 -> 0)
+            assign set_top_int  = zero_q   &  dec;   // 0 - 1   -> TOP_VALUE
+            assign set_zero_int = at_top_q & ~dec;   // TOP + 1 -> 0
+        end
+        else begin : g_no_top_limit
+            assign set_top_int  = 1'b0;
+            assign set_zero_int = 1'b0;
+        end
+    endgenerate
+
+    // Любая операция класса «запись»: выполняется через окно записи
+    wire set_any = set | set_zero | set_top_int | set_zero_int;
+
+    //------------------------------------------------------------------
+    // Физические линии сброса
+    //
+    // Никакой обработки: линии идут на катодные входы декад как есть.
+    // Требуемую длительность обеспечивает внешнее реле времени, поэтому
+    // за время сигнала сброс гарантированно успевает отработать.
+    //
+    // Пока сброс активен, счётчик не готов и шаги не выдаются:
+    // подкатодные импульсы во время сброса недопустимы. Подъём линии
+    // запускает то же окно writeTimer, что и запись: ready вернётся,
+    // только когда линия снята и окно истекло.
+    //------------------------------------------------------------------
+    wire rst_active = soft_rst | hard_rst;
+    wire rst_hard   = hard_rst;
+
+    //------------------------------------------------------------------
+    // Быстрый путь: шаг подаётся уровнем на весь такт accept.
+    // Промежуточных состояний INC/DEC нет.
+    //------------------------------------------------------------------
+    wire step_f = accept & ~set_any & ~dec;
+    wire step_r = accept & ~set_any &  dec;
+
+    //------------------------------------------------------------------
+    // Медленный путь: окно записи на hs_clk
+    //------------------------------------------------------------------
+    // Запас поверх минимальной длительности, требуемой декатроном
+    localparam unsigned WR_WINDOW_HS =
+        ((WRITE_MIN_HS > RESET_MIN_HS) ? WRITE_MIN_HS : RESET_MIN_HS) + 4;
+
+    // Временная база реле времени и генератора фаз. В модели на задержках
+    // (`DEKATRON_DELAY_MODEL) OneShot/Impulse отсчитывают время сами, и
+    // hs_clk внутрь счётчика не подводится вовсе.
+`ifdef DEKATRON_DELAY_MODEL
+    wire tclk = 1'b0;
+`else
+    wire tclk = hs_clk;
+`endif
+
+    wire write_req = accept & set_any;
+    wire timer_req = write_req | rst_active;
+    wire write_start;
+    wire writing;
+
+    Impulse writeStart (
+        .Clk     (tclk),
+        .Rst_n   (rst_n),
+        .En      (timer_req),
+        .Impulse (write_start)
+    );
+
+    OneShot #(
+        .DELAY (WR_WINDOW_HS)
+    ) writeTimer (
+        .Clk     (tclk),
+        .Rst_n   (rst_n),
+        .En      (write_start),
+        .Impulse (writing)
+    );
+
+    //------------------------------------------------------------------
+    // Линии записи на декады и готовность
+    //------------------------------------------------------------------
+    wire wr_set;
+    wire wr_zero;
+    wire wr_top;
+
+    generate
+        if (ZERO_ONLY) begin : g_busy
+            //----------------------------------------------------------
+            // Один триггер занятости вместо автомата (п. 8 заголовка).
+            //
+            // busy_q взводится приёмом операции set_zero или поднятой
+            // линией сброса и держится, пока идёт окно writeTimer.
+            // Переходы те же, что у полного автомата с состояниями
+            // IDLE/ZERO/RST, только ZERO и RST слиты: обе операции ведут
+            // декады в нуль, поэтому линия записи нуля может оставаться
+            // поднятой и в хвосте окна после снятия линии сброса.
+            // Операция set (WRITE = 0) — пустая: шаг не выдаётся, окно
+            // не держится (assertion ниже сообщает о ней как об ошибке).
+            //----------------------------------------------------------
+            logic busy_q;
+
+            always_ff @(posedge clk, negedge rst_n) begin
+                if (~rst_n) busy_q <= 1'b1;   // выход из сброса как через ST_RST
+                else        busy_q <= rst_active | (accept & set_zero) |
+                                      (busy_q & writing);
+            end
+
+            // ready не зависит от valid и от writing (см. ниже про петлю)
+            assign ready   = ~busy_q & ~rst_active;
+            assign wr_set  = 1'b0;
+            assign wr_zero = busy_q & writing;
+            assign wr_top  = 1'b0;
+        end
+        else begin : g_fsm
+        //------------------------------------------------------------------
+        // Машина состояний
+        //------------------------------------------------------------------
+        // Двоичное кодирование: Yosys иначе перекодирует автомат в one-hot,
+        // а триггер стоит 7 ламп (doc/tube_count_reduction.md §17.2)
+        (* fsm_encoding = "binary" *) logic [2:0] state;
+        logic [2:0] next;
+
+        // Выход из сброса через ST_RST: окно записи сброшено rst_n, поэтому
+        // на первом фронте автомат уходит в ST_IDLE, а признаки *_q на этом
+        // же фронте защёлкиваются с катодов. Отдельный primed_q не нужен.
+        always_ff @(posedge clk, negedge rst_n) begin
+            if (~rst_n) state <= ST_RST;
+            else        state <= next;
+        end
+
+        always_comb begin
+            // Поднятая линия сброса перебивает всё: ждём её снятия и окна
+            next = ST_RST;
+            if (!rst_active) begin
+                next = ST_IDLE;
+                case (state)
+                    ST_IDLE: begin
+                        if (accept) begin
+                            // Явные операции приоритетнее автопереходов через край
+                            if      (set)          next = ST_SET;
+                            else if (set_zero)     next = ST_ZERO;
+                            else if (set_top_int)  next = ST_TOP;
+                            else if (set_zero_int) next = ST_ZERO;
+                            else                   next = ST_IDLE;  // быстрый путь
+                        end
+                    end
+                    ST_SET, ST_ZERO, ST_TOP: begin
+                        if (writing) next = state;   // держим до конца окна записи
+                    end
+                    ST_RST: begin
+                        if (writing) next = state;   // линия снята, окно ещё идёт
+                    end
+                    default: next = ST_IDLE;
+                endcase
+            end
+        end
+
+        // ready не зависит от valid. В быстром пути не снимается вовсе.
+        //
+        // ВАЖНО: ready НЕ должен зависеть от writing. Окно записи запускается
+        // от accept, а accept — от ready, поэтому такая зависимость замыкает
+        // нуль-задержечную комбинационную петлю
+        //
+        //   ready -> accept -> write_req -> Impulse -> OneShot -> writing -> ready
+        //
+        // Петля возникала при любой операции записи, включая автопереходы
+        // через верхний предел, и делала set, set_zero и rollover
+        // неработоспособными: iverilog зацикливался, Verilator выдавал
+        // UNOPTFLAT, синтез был бы некорректен.
+        //
+        // Условие избыточно: автомат покидает ST_IDLE при приёме операции
+        // записи и возвращается только по окончании окна, поэтому состояние
+        // уже несёт нужную информацию.
+        assign ready = (state == ST_IDLE) & ~rst_active;
+
+        //------------------------------------------------------------------
+        // Линии записи на декады
+        //------------------------------------------------------------------
+        assign wr_set  = (state == ST_SET ) & writing;
+        assign wr_zero = (state == ST_ZERO) & writing;
+        assign wr_top  = (state == ST_TOP ) & writing;
+        end
+    endgenerate
+
+    // Сброс: в старшие декады девятка, если сброс аппаратный
+    wire rst_to_nine = rst_active &  rst_hard;
+    wire rst_to_zero = rst_active & ~rst_hard;
+
+    //------------------------------------------------------------------
+    // Общий генератор фаз на весь счётчик
+    //------------------------------------------------------------------
+    wire phase1;
+    wire phase2;
+
+    DekatronPhaseGen #(
+        .PHASE1_HS (PHASE1_HS),
+        .PHASE2_HS (PHASE2_HS)
+    ) phaseGen (
+        .hsClk  (tclk),
+        .Clk    (clk),
+        .Rst_n  (rst_n),
+        .Phase1 (phase1),
+        .Phase2 (phase2)
+    );
+
+    //------------------------------------------------------------------
+    // Общий формирователь подкатодных импульсов (п. 7 заголовка)
+    //
+    // Шины guide_a/guide_b несут импульсы шага всего счётчика, уже в
+    // порядке, заданном направлением. Какие декады шагнут, решает
+    // en_chain: декада пропускает шины на свои подкатоды ключом
+    // GUIDE_EN_J2 (по лампе на подкатод) внутри DekatronModule.
+    //------------------------------------------------------------------
+    wire guide_a;
+    wire guide_b;
+
+    DekatronPulseSender #(
+        .EXT_PHASES (1'b1),
+        .PHASE1_HS  (PHASE1_HS),
+        .PHASE2_HS  (PHASE2_HS)
+    ) pulseSender (
+        .hsClk    (tclk),
+        .Clk      (clk),
+        .Rst_n    (rst_n),
+        .StepF    (step_f),
+        .StepR    (step_r),
+        .Phase1_i (phase1),
+        .Phase2_i (phase2),
+        .GuideA   (guide_a),
+        .GuideB   (guide_b)
+    );
+
+    //------------------------------------------------------------------
+    // Декады
+    //------------------------------------------------------------------
+    //------------------------------------------------------------------
+    // Цепочка переноса
+    //
+    // Перенос идёт строго от младшей декады к старшей и распространяется
+    // в пределах одного такта. Шаг проходит дальше, если младшая декада
+    // стояла на 9 (инкремент) или на 0 (декремент) ДО текущего шага.
+    // Сам шаг и направление уже несут шины guide_a/guide_b, поэтому
+    // цепочка одна: en_chain[d] — разрешение декаде d, младшая разрешена
+    // всегда. Вне такта шага шины пусты и en_chain ни на что не влияет.
+    //
+    // Рипл вынесен в локальные переменные, а вектор en_chain только
+    // записывается и нигде не читается. Если писать его поразрядно как
+    //
+    //     assign en_chain[d] = en_chain[d-1] & nines_q[d-1];
+    //
+    // то Verilator анализирует зависимости с точностью до целого сигнала
+    // и видит зависимость вектора от самого себя: UNOPTFLAT на en_chain.
+    // Физически петли нет, но предупреждение приходится либо подавлять,
+    // либо устранять структурно. Здесь выбрано второе: подавление скрыло
+    // бы и настоящие петли, если они появятся.
+    //------------------------------------------------------------------
+    logic [D_NUM-1:0] en_chain;
+
+    always_comb begin
+        logic carry;
+
+        carry = 1'b1;
+        en_chain[0] = carry;
+
+        for (int i = 1; i < int'(D_NUM); i++) begin
+            carry = carry & (dec ? zeroes_q[i-1] : nines_q[i-1]);
+            en_chain[i] = carry;
+        end
+    end
+
+    generate
+        genvar d;
+        for (d = 0; d < int'(D_NUM); d++) begin : dek
+
+            // Декада, которую операция set_hard устанавливает в 9
+            localparam bit IS_HARD_DEC =
+                (HARD_RST_D_CNT > 0) && (d + int'(HARD_RST_D_CNT) >= int'(D_NUM));
+
+            // Позиция линии resetN этой декады:
+            //   в режиме верхнего предела — цифра TOP_VALUE,
+            //   для предустановки — девятка,
+            //   иначе линия не ставится вовсе.
+            localparam unsigned RESET_N_POS_D =
+                TOP_LIMIT_MODE ? int'(TOP_VALUE[(d+1)*DW-1 -: DW]) :
+                (IS_HARD_DEC   ? 9 : 0);
+
+            localparam bit EN_RESET_N_D = TOP_LIMIT_MODE || IS_HARD_DEC;
 
 
-generate
-genvar d;
-for (d = 0; d < D_NUM; d++) begin: dek
-	wire [1:0] pulses;
-	/* verilator lint_off UNUSEDSIGNAL */
-	wire [1:0] npulses;
-	/* verilator lint_off UNUSEDSIGNAL */
-	if (d == 0) begin : dek0
-		assign pulses = Pulses;
-	end
-	else begin : det_oth
-		assign pulses = dek[d-1].npulses;
-	end
-	wire DekZero;
-	wire DekNine;
-	wire Equal;
-	DekatronModule #(
-		.READ(READ),
-		.WRITE(WRITE),
-		.TOP_LIMIT_MODE(TOP_LIMIT_MODE),
-		.TOP_PIN_OUT(TOP_VALUE[(d+1)*DEKATRON_WIDTH-1:d*DEKATRON_WIDTH]),
-		.EN_HARD_RST(d + HARD_RST_D_CNT >= D_NUM)
-	)dModule (
-		.Rst_n(Rst_n),
-		.HardRst_n(HardRst_n),
-		.hsClk(hsClk),
-		.Set(SetTopZero),
-		.PulseR(pulses[1]),
-		.PulseF(pulses[0]),
-		.In(In[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),
-		.Out(Out[DEKATRON_WIDTH*(d+1)-1:DEKATRON_WIDTH*d]),
-		.Zero(DekZero),
-		.Nine(DekNine),
-		.Equal(Equal),
-		.TopPin(TopOut[d])
-	);
-	assign DekatronBusy[d] = |pulses |  |SetTopZero;
+            //----------------------------------------------------------
+            // Линии установки для этой декады
+            //----------------------------------------------------------
+            // Сюда сходятся оба источника: операции по handshake и
+            // физические линии сброса
+            wire dek_set_zero = wr_zero | rst_to_zero |
+                                (rst_to_nine & ~IS_HARD_DEC);
+            wire dek_set_top  = wr_top  | (rst_to_nine & IS_HARD_DEC);
 
-	always @(posedge Clk, negedge Rst_n) begin
-		if (~Rst_n) begin
-			Zeroes[d] <= 1'b0;
-			Nines[d] <= 1'b0;
-		end
-		else begin
-			Zeroes[d] <= DekZero;
-			Nines[d] <= DekNine;
-		end
-	end
+            DekatronModule #(
+                .READ            (READ),
+                .WRITE           (WRITE),
+                .TOP_LIMIT_MODE  (EN_RESET_N_D),
+                .TOP_PIN_OUT     (RESET_N_POS_D),
+                .INIT_DIGIT      (4'd0),
+                .GUIDE_STEP_HS   (GUIDE_STEP_HS),
+                .FALL_STEP_HS    (FALL_STEP_HS),
+                .WRITE_MIN_HS    (WRITE_MIN_HS),
+                .RESET_MIN_HS    (RESET_MIN_HS),
+                .HS_PER_CLK      (HS_PER_CLK),
+                .PHASE1_HS       (PHASE1_HS),
+                .PHASE2_HS       (PHASE2_HS)
+            ) dModule (
+                .hsClk    (tclk),
+                .GuideA   (guide_a),
+                .GuideB   (guide_b),
+                .En       (en_chain[d]),
+                .In       (in[(d+1)*DW-1 -: DW]),
+                .SetData  (wr_set),
+                .SetZero  (dek_set_zero),
+                .SetTop   (dek_set_top),
+                .Out      (out[(d+1)*DW-1 -: DW]),
+                .Zero     (dek_zero[d]),
+                .Nine     (dek_nine[d]),
+                .TopPin   (dek_top[d])
+            );
+        end
+    endgenerate
 
-	assign npulses = ((Nines[d] & (state == INC)) | (Zeroes[d] & (state == DEC))) ?
-						pulses : 2'b0;
-end
-endgenerate
+    //------------------------------------------------------------------
+    // Проверки
+    //------------------------------------------------------------------
+`ifndef SYNTH
+    initial begin
+        if (TOP_LIMIT_MODE && (HARD_RST_D_CNT > 0))
+            $error("DekatronCounter: TOP_LIMIT_MODE и HARD_RST_D_CNT используют одну и ту же линию resetN декатрона и несовместимы");
+        if (HARD_RST_D_CNT > D_NUM)
+            $error("DekatronCounter: HARD_RST_D_CNT (%0d) больше числа декад (%0d)",
+                   HARD_RST_D_CNT, D_NUM);
+        // Окно записи обязано быть заметно длиннее такта счёта: автомат
+        // проверяет writing по фронту clk, и если окно короче такта, он
+        // может увидеть его уже снятым и прервать операцию записи
+        if (WR_WINDOW_HS <= HS_PER_CLK)
+            $error("DekatronCounter: окно записи (%0d hs) не длиннее такта счёта (%0d hs) — операция записи может быть прервана",
+                   WR_WINDOW_HS, HS_PER_CLK);
+        if (WIDTH != D_NUM * DEKATRON_WIDTH)
+            $error("DekatronCounter: WIDTH (%0d) не соответствует D_NUM*DEKATRON_WIDTH (%0d)",
+                   WIDTH, D_NUM * DEKATRON_WIDTH);
+        if (!WRITE)
+            $display("DekatronCounter: WRITE=0, операция set недоступна (схема записи не ставится)");
+    end
+
+
+`ifdef ASSERTIONS
+    always @(posedge clk) begin
+        if (rst_n && valid) begin
+            if ((set + set_zero) > 1)
+                $error("DekatronCounter: одновременно запрошено несколько операций установки");
+            if (set && !WRITE)
+                $error("DekatronCounter: операция set при WRITE=0");
+        end
+        if (rst_n && soft_rst && hard_rst)
+            $error("DekatronCounter: soft_rst и hard_rst подняты одновременно");
+        // valid не должен сниматься до handshake
+        if (rst_n && $past(valid) && !$past(ready) && !valid)
+            $error("DekatronCounter: valid снят до handshake");
+    end
+`endif
+`endif
 
 endmodule
+
+`default_nettype wire

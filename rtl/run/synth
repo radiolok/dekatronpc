@@ -12,3 +12,4 @@ chmod 777 ${1}.txt
 echo 'tcl '${script_dir}'/synt_dpc.tcl '${files_path}' '${1}'' > ${1}.txt
 cat ${1}.txt
 yosys < ${1}.txt
+python3 ${script_dir}/dpc_hier.py -j ${1}.json -t ${1}

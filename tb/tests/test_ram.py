@@ -1,160 +1,151 @@
 """
-Tests for RAM module — synchronous memory with chip select.
+Tests for Ram — the banked BCD memory with a Valid/Ready interface
+(rtl/DekatronPC/RAM.sv, TRS 5 and 12.5).
 
-RAM parameters:
-  ROWS=30000, ADDR_WIDTH=$clog2(ROWS)=15, DATA_WIDTH=8
-Ports:
-  Rst_n, Clk, Address[ADDR_WIDTH-1:0], In[DATA_WIDTH-1:0],
-  Out[DATA_WIDTH-1:0], WE, CS
+Default parameters: D_NUM = 5 (address 00000..99999 in BCD tetrads),
+DATA_WIDTH = 10, BANK_DIGITS = 4, READ_CYCLES = WRITE_CYCLES = 1,
+INIT_ZERO = 1, no overlay, no debug port.
+
+Behaviour checked:
+- ready does not depend on valid; it drops for the access and returns
+  when rd_valid/err are set;
+- read after write returns the written value in every bank;
+- write-through: after a write rd_data already holds the written value;
+- cells start at zero;
+- an address tetrad above 9 raises err, gives no rd_valid and does not
+  touch the memory.
 """
+
+import random
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import Timer, RisingEdge
+from cocotb.triggers import RisingEdge, FallingEdge, ReadOnly
 
-import random
-import logging
-log = logging.getLogger(__name__)
+DATA_MASK = (1 << 10) - 1
 
 
-def _is_high_z(value):
-    """Check if a BinaryValue represents all high-impedance bits."""
-    binstr = value.binstr
-    return all(c in ('z', 'Z') for c in binstr)
+def bcd(n, digits=5):
+    """Decimal number -> packed BCD address."""
+    v = 0
+    for i in range(digits):
+        v |= (n % 10) << (4 * i)
+        n //= 10
+    return v
 
 
-async def _ram_reset(dut):
-    """Assert and deassert reset, then wait for stabilization."""
-    dut.Rst_n.value = 1  # ensure clean 1→0 negedge
-    dut.CS.value = 1
-    dut.WE.value = 0
-    dut.In.value = 0
-    dut.Address.value = 0
-    for _ in range(2):
-        await RisingEdge(dut.Clk)
-    dut.Rst_n.value = 0
+async def setup(dut):
+    cocotb.start_soon(Clock(dut.clk, 1000, unit="ns").start())
+    dut.rst_n.value = 0
+    dut.valid.value = 0
+    dut.wr.value = 0
+    dut.addr.value = 0
+    dut.wr_data.value = 0
+    dut.ovl_hit.value = 0
+    dut.ovl_data.value = 0
+    dut.dbg_addr.value = 0
+    for _ in range(3):
+        await RisingEdge(dut.clk)
+    await FallingEdge(dut.clk)
+    dut.rst_n.value = 1
+    await RisingEdge(dut.clk)
+
+
+async def access(dut, addr, wr=0, data=0, timeout=50):
+    """One Valid/Ready transfer. Returns (rd_data, rd_valid, err)."""
+    await FallingEdge(dut.clk)
+    dut.addr.value = addr
+    dut.wr.value = wr
+    dut.wr_data.value = data
+    dut.valid.value = 1
+    # accept: valid & ready on a rising edge, then the memory is busy
+    for _ in range(timeout):
+        await RisingEdge(dut.clk)
+        await ReadOnly()
+        if int(dut.ready.value) == 0:
+            break
+    else:
+        raise AssertionError("request was not accepted")
+    await FallingEdge(dut.clk)
+    dut.valid.value = 0
+    for _ in range(timeout):
+        await RisingEdge(dut.clk)
+        await ReadOnly()
+        if int(dut.ready.value) == 1:
+            break
+    else:
+        raise AssertionError("ready did not return")
+    return int(dut.rd_data.value), int(dut.rd_valid.value), int(dut.err.value)
+
+
+@cocotb.test()
+async def test_ready_after_reset(dut):
+    """Idle memory is ready with and without valid (ready does not depend on valid)."""
+    await setup(dut)
+    await ReadOnly()
+    assert int(dut.ready.value) == 1
+    await FallingEdge(dut.clk)
+    dut.valid.value = 1
+    dut.addr.value = bcd(0)
+    await ReadOnly()
+    assert int(dut.ready.value) == 1, "ready must not depend on valid"
+
+
+@cocotb.test()
+async def test_init_zero(dut):
+    """Untouched cells read as zero."""
+    await setup(dut)
+    for a in (0, 1, 9999, 10000, 54321, 99999):
+        data, rv, err = await access(dut, bcd(a))
+        assert (rv, err) == (1, 0), f"addr {a}: rd_valid={rv} err={err}"
+        assert data == 0, f"addr {a}: expected 0, got {data}"
+
+
+@cocotb.test()
+async def test_write_read_banks(dut):
+    """Write then read back across all ten banks and bank boundaries."""
+    await setup(dut)
+    rng = random.Random(110)
+    addrs = [0, 9, 10, 99, 100, 9999, 10000, 29999, 30000, 50505, 89999, 99998, 99999]
+    addrs += [rng.randrange(100000) for _ in range(20)]
+    addrs = list(dict.fromkeys(addrs))
+    ref = {}
+    for a in addrs:
+        v = rng.randrange(DATA_MASK + 1)
+        ref[a] = v
+        data, rv, err = await access(dut, bcd(a), wr=1, data=v)
+        assert err == 0 and rv == 1, f"write {a}: rd_valid={rv} err={err}"
+        assert data == v, f"write-through at {a}: expected {v}, got {data}"
+    for a in reversed(addrs):
+        data, rv, err = await access(dut, bcd(a))
+        assert (rv, err) == (1, 0), f"read {a}: rd_valid={rv} err={err}"
+        assert data == ref[a], f"addr {a}: expected {ref[a]}, got {data}"
+
+
+@cocotb.test()
+async def test_register_holds_last_cell(dut):
+    """rd_data holds the last accessed cell until the next access."""
+    await setup(dut)
+    await access(dut, bcd(123), wr=1, data=0x155)
+    await access(dut, bcd(456), wr=1, data=0x2AA)
+    data, _, _ = await access(dut, bcd(123))
+    assert data == 0x155
     for _ in range(5):
-        await RisingEdge(dut.Clk)
-    dut.Rst_n.value = 1
-    for _ in range(3):
-        await RisingEdge(dut.Clk)
-
-
-async def _ram_write(dut, address, data):
-    """Write a single value to RAM."""
-    dut.Address.value = address
-    dut.In.value = data
-    dut.WE.value = 1
-    dut.CS.value = 1
-    await RisingEdge(dut.Clk)
-
-
-async def _ram_read(dut, address):
-    """Read a single value from RAM and return the result."""
-    dut.Address.value = address
-    dut.WE.value = 0
-    dut.CS.value = 1
-    await RisingEdge(dut.Clk)
-    await Timer(1, unit='ns')
-    return int(dut.Out.value)
+        await RisingEdge(dut.clk)
+    await ReadOnly()
+    assert int(dut.rd_data.value) == 0x155, "rd_data changed without an access"
 
 
 @cocotb.test()
-async def test_ram_write_read(dut):
-    """RAM: write random data to random addresses, read back, verify."""
-    clock = Clock(dut.Clk, 1000, unit="ns")
-    cocotb.start_soon(clock.start())
-    await _ram_reset(dut)
-
-    random.seed(42)
-
-    # Collect test data — use first 100 addresses
-    test_data = {}
-    for _ in range(50):
-        addr = random.randint(0, 99)
-        data = random.randint(0, 255)
-        test_data[addr] = data
-
-    # Write phase
-    for addr, data in test_data.items():
-        await _ram_write(dut, addr, data)
-
-    # Read back and verify
-    for addr, expected in test_data.items():
-        actual = await _ram_read(dut, addr)
-        assert actual == expected, (
-            f"RAM mismatch at address {addr}: expected {expected:#04x}, got {actual:#04x}"
-        )
-
-    log.info(f"RAM write/read: verified {len(test_data)} addresses")
-
-
-@cocotb.test()
-async def test_ram_cs_zero(dut):
-    """RAM: CS=0 should give Hi-Z output on all data lines."""
-    clock = Clock(dut.Clk, 1000, unit="ns")
-    cocotb.start_soon(clock.start())
-    await _ram_reset(dut)
-
-    # Write some known data first
-    await _ram_write(dut, 0, 0xA5)
-
-    # Read with CS=1 to confirm data is there
-    actual = await _ram_read(dut, 0)
-    assert actual == 0xA5, f"Expected 0xA5, got {actual:#04x}"
-
-    # Now read with CS=0 — output should be all-Z
-    dut.Address.value = 0
-    dut.WE.value = 0
-    dut.CS.value = 0
-    await RisingEdge(dut.Clk)
-
-    assert _is_high_z(dut.Out.value), (
-        f"CS=0: expected all-Z output, got {dut.Out.value.binstr}"
-    )
-    log.info("RAM CS=0: confirmed Hi-Z output")
-
-
-@cocotb.test()
-async def test_ram_reset_clears_output(dut):
-    """RAM: reset clears Data output register (memory retained, cleared by bootloader)."""
-    clock = Clock(dut.Clk, 1000, unit="ns")
-    cocotb.start_soon(clock.start())
-    await _ram_reset(dut)
-
-    await _ram_write(dut, 0, 0x5A)
-    actual = await _ram_read(dut, 0)
-    assert actual == 0x5A, f"Pre-reset read failed: expected 0x5A, got {actual:#04x}"
-
-    dut.Rst_n.value = 0
-    for _ in range(3):
-        await RisingEdge(dut.Clk)
-    await Timer(1, unit='ns')
-    assert int(dut.Out.value) == 0, (
-        f"Data output not cleared during reset: got {int(dut.Out.value):#04x}"
-    )
-    dut.Rst_n.value = 1
-    for _ in range(3):
-        await RisingEdge(dut.Clk)
-    log.info("RAM reset: Data output cleared")
-
-
-@cocotb.test()
-async def test_ram_we_zero_reads(dut):
-    """RAM: WE=0 reads current address content without modifying."""
-    clock = Clock(dut.Clk, 1000, unit="ns")
-    cocotb.start_soon(clock.start())
-    await _ram_reset(dut)
-
-    await _ram_write(dut, 7, 0xAB)
-    await _ram_write(dut, 8, 0xCD)
-
-    # Read 7, then 8, then 7 again without writing
-    v1 = await _ram_read(dut, 7)
-    v2 = await _ram_read(dut, 8)
-    v3 = await _ram_read(dut, 7)
-
-    assert v1 == 0xAB, f"First read of addr 7: expected 0xAB, got {v1:#04x}"
-    assert v2 == 0xCD, f"Read of addr 8: expected 0xCD, got {v2:#04x}"
-    assert v3 == 0xAB, f"Second read of addr 7: expected 0xAB, got {v3:#04x}"
-    log.info("RAM WE=0: consecutive reads return correct values")
+async def test_bad_bcd_address(dut):
+    """A tetrad above 9 raises err and leaves the memory untouched."""
+    await setup(dut)
+    await access(dut, bcd(1230), wr=1, data=0x77)
+    bad = bcd(1230) | 0xA          # 0123A
+    _, rv, err = await access(dut, bad, wr=1, data=0x3FF)
+    assert (rv, err) == (0, 1), f"write to {bad:05x}: rd_valid={rv} err={err}"
+    _, rv, err = await access(dut, 0xF0000)
+    assert (rv, err) == (0, 1), f"read from F0000: rd_valid={rv} err={err}"
+    data, rv, err = await access(dut, bcd(1230))
+    assert (rv, err) == (1, 0)
+    assert data == 0x77, f"bad write disturbed cell 01230: {data:#x}"

@@ -31,3 +31,18 @@ rtl/load_firmware.hex
 rtl/run/*.json
 run/*.json
 *.dip~
+
+# структурные схемы для SCHEMES.md
+!img/schemes/*.svg
+tools/schemes/out/
+__pycache__/
+
+# netlist simulation outputs (rtl/run/synth_sim.sh)
+rtl/run/synth_sim/
+rtl/run/synth_sim_delay/
+rtl/run/synth_sim_timing/
+# Icarus runs with the delay-based dekatron model (rtl/run/run_tests.sh -d)
+rtl/run/delay/
+
+# Quartus CLI build (rtl/run/build_fpga.sh)
+rtl/quartus_build/

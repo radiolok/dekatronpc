@@ -2,13 +2,13 @@
 Tests for OneShot module — pulse generator with configurable delay.
 
 Uses OneShot_test_wrapper to avoid cocotb name collision with the output signal.
-Known bug (from audit): DELAY=1 produces incorrect pulse width due to
-counter width miscalculation (WIDTH=$clog2(1)=1 → 2-bit counter).
+With IMP_ON_EN=1 a one-cycle En yields an Impulse exactly DELAY cycles long
+(the En cycle plus count=1..DELAY-1). The wrapper default is DELAY=1.
 """
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import Timer, RisingEdge
+from cocotb.triggers import Timer, RisingEdge, ReadOnly
 
 import logging
 log = logging.getLogger(__name__)
@@ -28,24 +28,24 @@ async def test_oneshot_basic(dut):
     for _ in range(3):
         await RisingEdge(dut.Clk)
 
+    DELAY = 1  # OneShot_test_wrapper default
+
+    # One-cycle En; En must be released, otherwise Impulse = |count | En
+    # simply follows En.
     dut.En.value = 1
     await RisingEdge(dut.Clk)
+    await ReadOnly()
+    pulse_width = int(dut.pulse_out.value)
+    await RisingEdge(dut.Clk)
+    dut.En.value = 0
 
-    # Count how long pulse stays high
-    pulse_width = 0
     for _ in range(20):
-        if int(dut.pulse_out.value) == 1:
-            pulse_width += 1
+        await ReadOnly()
+        pulse_width += int(dut.pulse_out.value)
         await RisingEdge(dut.Clk)
 
-    log.info(f"OneShot (DELAY=1 default) pulse width: {pulse_width} cycles")
-    # Known bug: DELAY=1 gives 4-cycle pulse instead of 1
-    if pulse_width == 1:
-        log.info("OneShot: correct 1-cycle pulse")
-    elif pulse_width == 4:
-        log.warning(f"KNOWN BUG: DELAY=1 produces {pulse_width}-cycle pulse (expected 1)")
-    else:
-        log.warning(f"Unexpected pulse width: {pulse_width}")
+    log.info(f"OneShot (DELAY={DELAY}) pulse width: {pulse_width} cycles")
+    assert pulse_width == DELAY, f"expected {DELAY}-cycle pulse, got {pulse_width}"
 
 
 @cocotb.test()

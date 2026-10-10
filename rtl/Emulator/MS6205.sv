@@ -25,7 +25,7 @@ module MS6205(
     input wire tx_switch_view_i, //if 1 enable automatic switch on MS6205
 
     /* verilator lint_off UNUSEDSIGNAL */
-    input wire [2:0] DPC_State
+    input wire [3:0] DPC_State
     /* verilator lint_on UNUSEDSIGNAL */
 );
 

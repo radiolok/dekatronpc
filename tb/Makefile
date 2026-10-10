@@ -90,7 +90,7 @@ test_up_counter:       sim
 # --- Phase 2: Dekatron Subsystem ---
 test_bcd_to_bin:       MODULE = tests.test_dekatron_modules
 test_bcd_to_bin:       TOPLEVEL = BcdToBin
-test_bcd_to_bin:       VERILOG_SOURCES = $(DEKATRON_PATH)/BcdToBin.v
+test_bcd_to_bin:       VERILOG_SOURCES = $(DEKATRON_PATH)/BcdToBin.sv
 test_bcd_to_bin:       sim
 
 test_bin_to_bcd:       MODULE = tests.test_dekatron_modules
@@ -105,7 +105,7 @@ test_dek_carry:        sim
 
 test_pulse_sender:     MODULE = tests.test_dekatron_pulse
 test_pulse_sender:     TOPLEVEL = DekatronPulseSender
-test_pulse_sender:     VERILOG_SOURCES = $(LOGIC_PATH)/Impulse.sv $(LOGIC_PATH)/OneShot.sv $(DEKATRON_PATH)/DekatronPulseSender.sv
+test_pulse_sender:     VERILOG_SOURCES = $(LOGIC_PATH)/Impulse.sv $(LOGIC_PATH)/OneShot.sv $(DEKATRON_PATH)/DekatronPhaseGen.sv $(DEKATRON_PATH)/DekatronPulseSender.sv
 test_pulse_sender:     sim
 
 test_write_amp:        MODULE = tests.test_dekatron_modules
@@ -125,18 +125,19 @@ test_dekatron_module:  sim
 
 test_dek_counter:      MODULE = tests.test_dekatron_counter
 test_dek_counter:      TOPLEVEL = DekatronCounter
-test_dek_counter:      VERILOG_SOURCES = $(VHDL_ROOT)/parameters.sv $(LOGIC_PATH)/Compare.sv $(LOGIC_PATH)/Impulse.sv $(LOGIC_PATH)/OneShot.sv $(DEKATRON_PATH)/BcdToBin.v $(DEKATRON_PATH)/BinToBcd.v $(DEKATRON_PATH)/Dekatron.sv $(DEKATRON_PATH)/DekatronPulseSender.sv $(DEKATRON_PATH)/DekatronCarrySignal.sv $(LOGIC_PATH)/RsLatch.sv $(DEKATRON_PATH)/DekatronWriteAmp.sv $(DEKATRON_PATH)/DekatronModule.sv $(DEKATRON_PATH)/DekatronCounter.sv $(LOGIC_PATH)/ClockDivider.sv $(FUNC_PATH)/BcdToBinEnc.sv
+test_dek_counter:      VERILOG_SOURCES = $(VHDL_ROOT)/parameters.sv $(LOGIC_PATH)/Impulse.sv $(LOGIC_PATH)/OneShot.sv $(DEKATRON_PATH)/DekatronPhaseGen.sv $(DEKATRON_PATH)/DekatronPulseSender.sv $(DEKATRON_PATH)/DekatronTubeV2.sv $(DEKATRON_PATH)/BcdToBinEn.sv $(DEKATRON_PATH)/BinToBcd.v $(DEKATRON_PATH)/DekatronModule.sv $(DEKATRON_PATH)/DekatronCounter.sv $(CURDIR)/tests/DekatronCounter_vcd_dump.sv
+test_dek_counter:      COMPILE_ARGS = -f sim_build/cmds.f -s DekatronCounter_vcd_dump
 test_dek_counter:      sim
 
 # --- Phase 3: Memory Subsystem ---
 test_ram:              MODULE = tests.test_ram
-test_ram:              TOPLEVEL = RAM
-test_ram:              VERILOG_SOURCES = $(DPC_PATH)/RAM.sv $(VHDL_ROOT)/parameters.sv
+test_ram:              TOPLEVEL = Ram
+test_ram:              VERILOG_SOURCES = $(VHDL_ROOT)/parameters.sv $(DPC_PATH)/RAM.sv
 test_ram:              sim
 
 test_ip_memory:        MODULE = tests.test_ip_memory
 test_ip_memory:        TOPLEVEL = IpMemory
-test_ip_memory:        VERILOG_SOURCES = $(VHDL_ROOT)/parameters.sv $(LOGIC_PATH)/Impulse.sv $(LOGIC_PATH)/OneShot.sv $(FUNC_PATH)/BcdToBinEnc.sv $(VHDL_ROOT)/programs/bootloader/bootloader.sv $(DPC_PATH)/IpMemory.sv
+test_ip_memory:        VERILOG_SOURCES = $(VHDL_ROOT)/parameters.sv $(DPC_PATH)/RAM.sv $(VHDL_ROOT)/programs/bootloader/bootloader.sv $(DPC_PATH)/IpMemory.sv
 test_ip_memory:        sim
 
 test_rom:              MODULE = tests.test_rom
@@ -258,11 +259,13 @@ test_in12:             sim
 # Core simulation target
 # =====================================================================
 sim:
+	rm -rf sim_build
 	COCOTB_HDL_TIMEUNIT=1ns COCOTB_HDL_TIMEPRECISION=1ps \
 	$(MAKE) TOPLEVEL=$(TOPLEVEL) TOPLEVEL_LANG=$(TOPLEVEL_LANG) \
 		SIM=$(SIM) MODULE=$(MODULE) \
 		VERILOG_SOURCES="$(VERILOG_SOURCES)" \
 		EXTRA_ARGS="$(EXTRA_ARGS)" \
+		$(if $(COMPILE_ARGS),COMPILE_ARGS="$(COMPILE_ARGS)") \
 		-f $(shell cocotb-config --makefile)/Makefile.sim
 
 # =====================================================================
@@ -277,24 +280,27 @@ regression:
 	@python3 -c "open('zeros.txt','w').write('\n'.join(['00']*30000))"
 	@python3 -c "open('$(VHDL_ROOT)/zeros.txt','w').write('\n'.join(['00']*30000))"
 	@TMPFILE=$$(mktemp /tmp/dek_regress.XXXXXX); \
+	LOGDIR=$$(mktemp -d /tmp/dek_logs.XXXXXX); \
 	MODULES="Logic:compare impulse oneshot rs_latch bcd_counter up_counter clock_divider \
 	         Dekatron:bcd_to_bin bin_to_bcd dek_carry pulse_sender dekatron_unit dek_counter \
 	         Memory:ram ip_memory rom \
 	         DPC:loop_detect insn_decoder \
 	         Emulator:sequencer ms6205 keyboard io_register uart uart_rx uart_loopback key_symbol seg7 \
 	         Functions:ascii_bcd bcd_ascii bcd_bin bin_hex opcode_to_sym sym_to_opcode in12"; \
-	for group in $$MODULES; do \
-	    grp=$${group%%:*}; \
-	    tests=$${group##*:}; \
-	    for t in $$tests; do \
+	grp=""; \
+	for tok in $$MODULES; do \
+	    case $$tok in *:*) grp=$${tok%%:*}; tok=$${tok##*:};; esac; \
+	    for t in $$tok; do \
 	        rm -rf sim_build; \
 	        printf "  %-28s " "$$t:"; \
-	        if make test_$$t SIM=icarus >/dev/null 2>&1; then \
+	        if make test_$$t SIM=icarus >$$LOGDIR/$$t.log 2>&1; then \
 	            echo "PASS"; \
 	            echo "$$grp|$$t|PASS" >> $$TMPFILE; \
 	        else \
 	            echo "FAIL"; \
 	            echo "$$grp|$$t|FAIL" >> $$TMPFILE; \
+	            tail -n 30 $$LOGDIR/$$t.log | sed 's/^/      | /'; \
+	            echo "::error title=UVM $$t::$$( (grep -E 'AssertionError|[Ee]rror:|Traceback|not found|No such' $$LOGDIR/$$t.log | sed 's/^ *//' | head -n 25; grep -E 'TESTS=' $$LOGDIR/$$t.log) | sed 's/%/%25/g' | awk '{printf "%s%%0A", $$0}')"; \
 	        fi; \
 	    done; \
 	done; \

@@ -13,7 +13,7 @@ that connects TX directly to RX.
 
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import Timer, RisingEdge
+from cocotb.triggers import Timer, RisingEdge, ReadOnly
 
 import logging
 log = logging.getLogger(__name__)
@@ -36,6 +36,20 @@ async def reset_rx(dut):
 async def wait_bit_periods(dut, count):
     for _ in range(count * BIT_PERIOD_CYCLES):
         await RisingEdge(dut.clk)
+
+
+async def collect_rx(dut, out):
+    """Record o_data on every o_vld&i_rdy handshake.
+
+    With i_rdy=1 o_vld is a single-cycle pulse that fires in the middle of
+    the stop bit, i.e. while feed_serial_byte() is still driving it, so it
+    has to be watched concurrently rather than polled afterwards.
+    """
+    while True:
+        await RisingEdge(dut.clk)
+        await ReadOnly()
+        if int(dut.o_vld.value) and int(dut.i_rdy.value):
+            out.append(int(dut.o_data.value))
 
 
 async def feed_serial_byte(dut, byte_val):
@@ -76,25 +90,16 @@ async def test_uart_rx_receive_byte(dut):
     await reset_rx(dut)
     dut.i_rdy.value = 1
 
+    received = []
+    cocotb.start_soon(collect_rx(dut, received))
+
     byte_to_send = 0xC3
     await feed_serial_byte(dut, byte_to_send)
 
-    # Wait for o_vld to assert
-    o_vld_val = 0
-    for _ in range(BIT_PERIOD_CYCLES * 3):
-        await RisingEdge(dut.clk)
-        o_vld_val = int(dut.o_vld.value)
-        if o_vld_val == 1:
-            break
-
-    log.info(f"RX o_vld={o_vld_val}, o_data={int(dut.o_data.value):#x}")
-
-    if o_vld_val == 1:
-        assert int(dut.o_data.value) == byte_to_send, (
-            f"RX expected {byte_to_send:#x}, got {int(dut.o_data.value):#x}"
-        )
-    else:
-        log.warning("o_vld not asserted — sampling or FSM timing may differ")
+    log.info(f"RX received {[hex(b) for b in received]}")
+    assert received == [byte_to_send], (
+        f"RX expected [{byte_to_send:#x}], got {[hex(b) for b in received]}"
+    )
 
 
 @cocotb.test()
@@ -106,21 +111,14 @@ async def test_uart_rx_multiple_bytes(dut):
     await reset_rx(dut)
     dut.i_rdy.value = 1
 
+    received = []
+    cocotb.start_soon(collect_rx(dut, received))
+
     test_bytes = [0x55, 0xAA, 0x0F, 0xF0]
     for byte_val in test_bytes:
         await feed_serial_byte(dut, byte_val)
 
-        o_vld_val = 0
-        o_data_val = 0
-        for _ in range(BIT_PERIOD_CYCLES * 3):
-            await RisingEdge(dut.clk)
-            o_vld_val = int(dut.o_vld.value)
-            if o_vld_val == 1:
-                o_data_val = int(dut.o_data.value)
-                break
-
-        log.info(f"RX byte {byte_val:#x}: o_vld={o_vld_val}, o_data={o_data_val:#x}")
-        if o_vld_val == 1:
-            assert o_data_val == byte_val, (
-                f"RX expected {byte_val:#x}, got {o_data_val:#x}"
-            )
+    log.info(f"RX received {[hex(b) for b in received]}")
+    assert received == test_bytes, (
+        f"RX expected {[hex(b) for b in test_bytes]}, got {[hex(b) for b in received]}"
+    )

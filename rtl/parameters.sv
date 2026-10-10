@@ -1,8 +1,8 @@
 `ifndef DPC_PARAMS
    `define DPC_PARAMS
-/* verilator lint_off UNUSEDPARAM */ 
+/* verilator lint_off UNUSEDPARAM */
     parameter IP_DEKATRON_NUM = 4'd5;
-    parameter LOOP_DEKATRON_NUM = 4'd3;
+    parameter LOOP_DEKATRON_NUM = 4'd2;
     parameter AP_DEKATRON_NUM = 4'd5;
     parameter DATA_DEKATRON_NUM = 4'd3;
     parameter DEKATRON_WIDTH = 4;
