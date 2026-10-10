@@ -59,7 +59,9 @@ foreach {name value} $top_params {
 }
 hierarchy -check
 # FSM extraction and recoding happen inside synth; a separate fsm pass after
-# it is a no-op. Encoding was measured: binary/onehot give the same count.
+# it is a no-op. The encoding is set in RTL with (* fsm_encoding = "binary" *)
+# on the state register: one-hot costs about 219 tubes more on 7-tube
+# triggers (doc/tube_count_reduction.md §17.2).
 yosys synth -top $top
 yosys proc
 

@@ -173,7 +173,9 @@ module IpLine #(
         S_CLR_LOOP  = 4'd9,   // CLRL
         S_HALT      = 4'd10;
 
-    logic [3:0] state;
+    // Двоичное кодирование: Yosys иначе перекодирует автомат в one-hot,
+    // а триггер стоит 7 ламп (doc/tube_count_reduction.md §17.2)
+    (* fsm_encoding = "binary" *) logic [3:0] state;
 
     logic                  ip_counted_q;   // IP уже сдвинут под текущую инструкцию
     logic                  scanning_q;     // идёт промотка тела цикла

@@ -11,7 +11,7 @@
 //
 // Проверяется AP-счётчик, чтение ячейки (TEST) и шаг данных (+), CIN,
 // CLRD, STORE, CLRML, CLRA с выгрузкой, переход 255 <-> 0 и число
-// обращений к памяти (ленивое чтение, выгрузка только грязной ячейки).
+// обращений к памяти (ленивое чтение, выгрузка при MemLock).
 // Монитор обращений к памяти проверяет, что mem_valid не выставляется
 // без mem_ready: стробы ApLine поднимаются только при готовности всех
 // исполнителей, и рукопожатие происходит в том же такте.
@@ -317,17 +317,27 @@ initial begin
         $display("FAIL: DATA_ZERO -> %0d, expected 0", tx_data_bcd);
     end
 
-    // Ячейка 0 = 0 в счётчике, dirty. Дальше счёт обращений идёт с нуля.
+    // Ячейка 0 = 0 в счётчике, MemLock. Дальше счёт обращений идёт с нуля.
     $display("STORE test");
     do_op(OP_CIN,   1'b0, data_bcd(123));
     mem_rd_cnt = 0; mem_wr_cnt = 0;
     do_op(OP_STORE, 1'b0, 12'd0);
     check_mem("STORE", 0, 1);
-    do_op(OP_AP_STEP, 1'b0, 12'd0);        // не грязная: без выгрузки
+    if (!mem_lock) begin
+        errors++;
+        $display("FAIL: STORE released mem_lock");
+    end
+    // MemLock — единственный флаг: шаг адреса выгружает счётчик ещё раз
+    // и снимает MemLock (REQ-ML-005), обратный шаг памяти не трогает
+    do_op(OP_AP_STEP, 1'b0, 12'd0);
+    if (mem_lock) begin
+        errors++;
+        $display("FAIL: mem_lock after AP step after STORE");
+    end
     do_op(OP_AP_STEP, 1'b1, 12'd0);
-    check_mem("AP step after STORE", 0, 1);
+    check_mem("AP step after STORE", 0, 2);
     do_op(OP_LOAD, 1'b0, 12'd0);           // регистр памяти ушёл с адреса
-    check_mem("LOAD after AP step", 1, 1);
+    check_mem("LOAD after AP step", 1, 2);
     check_data("STORE/LOAD", 123);
 
     $display("Lazy read: AP steps do not touch memory");
@@ -338,7 +348,7 @@ initial begin
 
     $display("CLRML test");
     do_op(OP_LOAD,      1'b0, 12'd0);      // 123, lock не меняется
-    do_op(OP_DATA_STEP, 1'b0, 12'd0);      // 124, dirty
+    do_op(OP_DATA_STEP, 1'b0, 12'd0);      // 124, MemLock
     mem_rd_cnt = 0; mem_wr_cnt = 0;
     do_op(OP_CLRML, 1'b0, 12'd0);
     check_mem("CLRML", 0, 1);
@@ -354,10 +364,10 @@ initial begin
         errors++;
         $display("FAIL: data_zero=%b valid=%b after CLRML", data_zero, data_zero_valid);
     end
-    do_op(OP_CLRML, 1'b0, 12'd0);          // не грязная: без записи
+    do_op(OP_CLRML, 1'b0, 12'd0);          // без MemLock: без записи
     check_mem("second CLRML", 0, 1);
 
-    $display("CLRA flushes a dirty cell");
+    $display("CLRA flushes a locked cell");
     do_op(OP_AP_STEP,   1'b0, 12'd0);      // AP=1
     do_op(OP_DATA_STEP, 1'b0, 12'd0);      // чтение ячейки 1 (0), +1
     check_data("cell1 +", 1);

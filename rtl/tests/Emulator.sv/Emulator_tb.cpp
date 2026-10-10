@@ -39,7 +39,9 @@ vluint64_t sim_time = 0;
 
 uint8_t In12CathodeToPin[] = {1,0,2,3,9,8,4,7,5,6};
 
-const char* dpcStatus[] = {"NONE", "IDLE", "RUN", "RUN", "HALT", "CIN", "COUT", "CIO_ACQ"};
+// MachineCtrl state codes (rtl/DekatronPC/MachineCtrl.sv), unused codes "-"
+const char* dpcStatus[16] = {"IDLE", "FETCH", "WAIT", "-", "HALT", "-", "COUT", "RST",
+                             "-", "-", "DECODE", "EXEC", "-", "-", "RST", "CIN"};
 
 const std::unordered_map<int, uint8_t> keys = {
     { KEY_F(1), KEYBOARD_HALT_KEY },

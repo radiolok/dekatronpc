@@ -24,6 +24,8 @@ counters included, memory/reset relay/panel excluded):
 | Decode once (R3), no `insn_q` (R4) | §14 | 652 | 676 | 250 | 1578 | −94.5 * |
 | Relays for panel switches, + 5 relays (REQ-MOD-011) | §15 | 661.5 | 684 | 250 | 1595.5 | +17.5 † |
 | Prefetch P3, opcode latch back in MachineCtrl (REQ-PERF-003) | §16 | **663.8** | **684** ‡ | **318.7** | **≈ 1666.5** | +71 |
+| Binary FSM encoding in DekatronCounter, IpLine, ApLine (T1) | §17.6 | **517.5** | **599** | **334** | **1450.5** (mean of 3 seeds ≈ 1437) | −219 § |
+| One pulse sender per counter + J2 guide gates (T5), busy flag in Loop/AP (T4), MachineCtrl state codes (T6) | §17.7 | **489.5** | **568.5** | **319.5** | **1377.5** (mean of 3 seeds 1377) | −60 § |
 
 Δ is the change of the total. Each step re-ran ABC, which moves a block whose RTL
 didn't change by up to ±30 tubes, so the RTL effect alone (old and new RTL synthesized
@@ -36,6 +38,9 @@ and are not tubes: the three blocks are now **1595.5 tubes + 5 relays (2CO)**.
 ‡ ApLine wasn't resynthesized for §16 (its RTL didn't change). IpLine and MachineCtrl are
 means over 3 `&deepsyn` seeds (§16). After P3 the three blocks are about **1666.5 tubes +
 5 relays**.
+§ T1 row: default seed; Δ is the mean over 3 seeds against HEAD before T1 (≈ 1656 → ≈ 1437, §17.2).
+After T1 the three blocks are **1450.5 tubes + 5 relays** (default seed), 64 triggers. After T4–T6:
+**1377.5 tubes + 5 relays** (default seed; 3 seeds 1377.5 / 1376 / 1377.5), 62 triggers, 30 `GUIDE_EN_J2`.
 
 Overall: **2636 → 1578 (−1058, −40 %)** for the three blocks. Of the §5 ideas, R1, R2,
 R3, R4, R6 and R7 are done, R8 and R9 were rejected by the owner, R5 and R11 are open,
@@ -45,6 +50,11 @@ R10 is not recommended. The open items are worth about 10–30 tubes.
 (REQ-MOD-009, was 1500). The three blocks alone are 1578, 378 (24 %) over that,
 before memory support, the reset relay and the panel are counted. FSM cleanup is
 used up; see §6 for what's next.
+
+**Second attempt (2026-10-08, §17):** binary state encoding (measured −219, **done**, §17.6), diode codecs under REQ-AUTH-002 (≈ −150…−170) and latches for the counter
+carry flags (≈ −70…−84) would take the three blocks from ≈ 1656 to ≈ 1170–1200.
+T1 and T4–T6 are in the RTL (three blocks ≈ 1377). Owner (2026-10-08): T2 rejected (diodes
+only in rectifiers and ferrite memory, REQ-AUTH-002), T3 and T8 postponed, T7 and T9 rejected (§17.5).
 
 ## 1. Baseline
 
@@ -79,6 +89,9 @@ All four are resolved (§8).
    which has already done FSM extraction. Measured: an explicit binary pass gives the
    same 2138.5, and `synth -nofsm` gives 2165 (+27). FSM encoding is not a lever.
    The pass was removed.
+   **Correction (2026-10-08, §17):** the binary pass also ran after `synth`, so it was a
+   no-op too and the encoding was never measured. Set through the `fsm_encoding`
+   attribute *before* `synth`, binary encoding saves about 219 tubes (§17.2).
 2. **Fixed (§8).** **ABC maps for delay, not area.** `abc -liberty` with the default script is
    delay-oriented. In tubes only area matters (1 MHz is slow for a gate).
    `rtl/run/abc_area.abc` is now used.
@@ -829,3 +842,206 @@ tubes (+70.4). The 5 new flops cost 35 tubes; the rest is the load enable and de
 IpLine is unchanged (663.7 → 663.8). In exchange, helloworld runs in 4184 cycles instead
 of 5540. Details, per-seed numbers and the 8-tube cheaper of the two variants:
 `doc/prefetch_p3.md` §5.
+
+## 17. Second attempt toward 1200 (2026-10-08)
+
+The goal is still REQ-MOD-009, 1200 tubes for the whole machine. This round looked for
+levers outside FSM cleanup. All experiments ran on scratch copies of the RTL, and nothing
+in the repo was changed except this report. Flow: `synt_dpc.tcl` as committed (Yosys 0.51,
+`&deepsyn -J 50`, `equiv_opt`, `qn_absorb.py`). "Seed" means `&deepsyn -S`.
+
+### 17.1 Where the tubes are now
+
+HEAD (4f3f4ad), three seeds: **1669.5 / 1644 / 1653.5, mean ≈ 1656** for IpLine + ApLine +
+MachineCtrl (§16 had ≈ 1666.5; the `dirty_q` removal is within noise). There are 80 triggers
+(560 tubes, 34 %):
+
+| Where | Triggers | What they are |
+|---|---|---|
+| 4 counters | 41 | carry flags `nines_q`/`zeroes_q` (+ `zero_q`/`at_top_q` in Data): 24; state register, **one-hot** after Yosys FSM extraction: 4–5 per counter, 17 |
+| IpLine glue | 17 | state one-hot (9), `dir_q`, `ip_counted_q`, `insn_valid`, `scanning_q`, `loop_overflow`, `key_moved_q`, `halt_pending_q`, `insn_eot`, `mem_wr` |
+| ApLine glue | 8 | state one-hot (5), `mem_here_q`, `mem_lock`, `mem_wr` |
+| MachineCtrl | 14 | state (4, binary: it is an output port, so it isn't extracted), `op_q` (5), `ip_ahead`, `insn_loading`, `rst_soft`, `one_step`, `overflow_q` |
+
+### 17.2 Measured: binary state encoding (−219)
+
+§2.1 concluded that the encoding doesn't matter, but both passes it compared ran after
+`synth` and were no-ops. Setting the encoding through the attribute before synthesis:
+
+```systemverilog
+(* fsm_encoding = "binary" *) logic [2:0] state;   // DekatronCounter (next split off)
+(* fsm_encoding = "binary" *) logic [2:0] state;   // ApLine
+(* fsm_encoding = "binary" *) logic [3:0] state;   // IpLine
+```
+
+IpLine + ApLine (MachineCtrl isn't affected):
+
+| Variant | Seed 0 | Seed 1 | Seed 2 | Mean | Δ |
+|---|---|---|---|---|---|
+| HEAD (one-hot from Yosys) | 1335.5 | 1329 | 1327 | 1330.5 | – |
+| counters binary only | 1249 | | | | −86.5 |
+| IpLine/ApLine binary only | 1189.5 | | | | −146 |
+| all `fsm_encoding = "none"` (keep the RTL codes) | 1187 | | | | −148.5 |
+| **all binary** | **1116.5** | **1108** | **1111** | **1111.8** | **−218.7** |
+
+The three blocks: ≈ 1656 → **≈ 1437** (1450.5 / 1423 / 1437.5). Triggers 80 → 64 (counters
+41 → 33, IpLine 17 → 12, ApLine 8 → 5). The logic shrinks as well, because one-hot
+next-state logic on 7-tube triggers isn't cheaper than binary decoding in this library.
+`equiv_opt` passes. `synth_sim.sh Counter IpLine ApLine` on the binary netlists: all PASS.
+DekatronPC and the delay/SDF runs weren't repeated.
+
+MachineCtrl keeps its hand-written codes because `state` is an output port (it only goes
+to the panel display, `DPC_currentState`). 24 random code assignments (seed 0) gave
+320.5…355 tubes, and today's codes gave 334. A search would gain about −10…−15, which is
+close to the ±10 drift. The panel decode would have to follow the new codes.
+
+### 17.3 Breakdown after binary encoding (seed 1, 1423)
+
+| Part | Tubes | Note |
+|---|---|---|
+| `DekatronPulseSender`, 15 decades × 6 | 90 | AND-OR of StepF/StepR with Phase1/Phase2 |
+| `BinToBcd`, 13 decades × 9 | 117 | Loop has READ = 0 in the real machine |
+| `BcdToBinEn`, 3 decades (Data) × 20.5 | 61.5 | |
+| `DekatronPhaseGen`, 4 × 2.5 | 10 | |
+| Counter control (FSM, carry chain, 33 triggers = 231) | 407 | Loop 58, IP 116, Data 118, AP 115 |
+| IpLine glue (+ InsnLoopDetector 5.5) | 243 | 12 triggers |
+| ApLine glue | 179.5 | 5 triggers |
+| MachineCtrl | 315 | 14 triggers |
+
+The counters are still 685.5 tubes (48 %).
+
+### 17.4 Ideas, with estimates
+
+| # | Idea | Δ, tubes | Status of the estimate | Changes a rule? |
+|---|---|---|---|---|
+| T1 | Binary `fsm_encoding` in DekatronCounter, IpLine, ApLine (§17.2) | **−219** | **Done, §17.6** | no |
+| T2 | ~~**Diode codecs.**~~ **Rejected** by the owner: germanium diodes only in rectifiers and ferrite memory (REQ-AUTH-002 changed). Was: REQ-AUTH-002 already allows germanium diodes in BCD encoders/decoders. `BinToBcd` becomes a diode OR matrix on the cathode outputs (0–2 tubes per decade for buffers), and `BcdToBinEn` a diode AND matrix (true/complement inputs: `QN` is free on triggers, otherwise 4 × NOT = 2 tubes) | **−150…−170** (BinToBcd 117 → 0…26, BcdToBinEn 61.5 → ≈ 6) | cell costs only | no (REQ-AUTH-002); needs a library model: a codec cell with an explicit area, or the codec modules counted as black boxes like the relays |
+| T3 | **Postponed** until the SDF netlist works at some clock period (doc/vtube_sdf_timing.md). **Latches for the carry flags** (24 bits). A flag only has to hold during the step. A `LATCH` (3.5) transparent in the fall window, closed while Phase1/Phase2 are active (`Win12` of the counter's own `DekatronPhaseGen`), replaces a 7-tube DFF | **−70…−84** | flops removed in synthesis: −152.5 (seed 1); +24 × 3.5 for the latches gives ≈ −68.5, ideal −84 | no rule, but a timing argument: the latch must close before the discharge leaves the main cathode (GUIDE_STEP_HS); check it with `synth_sim.sh -t` |
+| T4 | **Done, §17.7.** Counter FSM: IP, Loop and AP only use IDLE / ZERO / RST. A single `busy_q`, plus a way to keep IP's hard reset from being overwritten by `set0`, saves one trigger per counter | −20…−40 | estimate | no |
+| T5 | **Done, §17.7** (owner: guide buses + En, a J2 tube on the guides). `DekatronPulseSender`: move the direction swap to the counter (PhA = dec ? Ph2 : Ph1, PhB likewise, once per counter), so each decade only ANDs its step with PhA and PhB | −15…−35 | estimate | the DekatronModule ports change (StepF/StepR → Step) |
+| T6 | **Done, §17.7.** MachineCtrl state codes chosen by search (§17.2) | −10…−15 | measured spread | the panel decode of `state` follows |
+| T7 | **Rejected**: the owner keeps the speed. P3 prefetch costs ≈ +70 (§16): the cheaper variant (−8, `doc/prefetch_p3.md` §5), or `op_q` in latches (5 × 3.5 = −17.5) | −8…−70 | measured / estimate | the owner chose speed (REQ-PERF-003) |
+| T8 | **Postponed**: the slowdown needs investigating first. **Ripple carry as in classic dekatron counters**: the next decade steps when this one's discharge arrives at 0 (forward) or 9 (backward), via a pulse from cathode 0/9. This drops the carry flags (T3) and the AND chains. A carry then costs one step time per decade, so the counter holds ready longer after a carry (IP: 1 in 10 steps) | −80…−110 (instead of T3) | estimate | yes: one step per clk (REQ-DEK), ready timing; owner decision |
+| T9 | **Rejected.** Dekatron as an FSM state register (owner's idea in §6): cathode outputs give the one-hot decode for free | not recommended | – | reading is valid only on a main cathode with no stimulus (REQ-DEK-015), so the Moore outputs would need latches during each step, and jumps need a write window (10 clk). This loses what it saves |
+
+Not counted at all yet: memory support, `RstTimeRelay`, the panel (TRS §22 item 10). They
+still have to fit in the same 1200.
+
+**Projection** (means, three blocks): 1656 → T1 1437 → T2 ≈ 1275 → T3 ≈ 1195 → T4–T6
+≈ 1130–1170. T1–T3 bring the three blocks to the budget. Room for the uncounted parts
+needs T4–T7, or T8 (owner) in place of T3.
+
+### 17.5 Questions for the owner
+
+1. ~~T1: apply binary encoding?~~ Yes (owner, 2026-10-08); done in §17.6.
+Answers (owner, 2026-10-08): T2 no (REQ-AUTH-002), T3 later (after SDF timing works),
+T4 yes (Loop counter), T5 yes (guide buses with En, a J2 tube on the guides), T6 yes,
+T7 no (speed first), T8 later (slowdown to be investigated), T9 no.
+
+2. T2: how should a diode codec be counted? Zero tubes, or a buffer per output bit
+   (cathode follower)? Can a dekatron cathode output drive the diode matrix and the
+   memory address lines directly?
+3. T3: OK to use latches with a phase-window enable in DekatronCounter? The flow also
+   needs a latch mapping step: Yosys 0.51 `dfflibmap` leaves `$dlatch` unmapped, so
+   `dpc_stat.py` counts it as 0 (that's why the measurement in T3 was corrected by hand).
+4. T8: is a ripple carry (slower after a carry, no flags) acceptable for any of the counters?
+5. T6: may the panel decode of `state` change?
+
+### 17.6 Done: T1, binary state encoding (2026-10-08)
+
+Owner's decision: apply T1. Changes:
+- `DekatronCounter.sv`, `IpLine.sv`, `ApLine.sv`: `(* fsm_encoding = "binary" *)` on the
+  state register (in DekatronCounter, `next` is now declared separately, because the
+  attribute must sit on `state` alone). Behaviour and state codes are unchanged; only the
+  encoding Yosys picks after FSM extraction changes.
+- `rtl/run/synt_dpc.tcl`: the comment that said the encoding had been measured is corrected.
+
+Verification:
+- `run_tests.sh -t`: Verilator lint of DekatronPC and Emulator clean; all Icarus tests;
+  Verilator step compare with dpcrun on helloworld, program.bfk and pi.bfk — PASS.
+- `run_tests.sh -s`: IpLine 517.5, ApLine 599, MachineCtrl 334, **total 1450.5 tubes + 5
+  relays** (was 1669.5 on the default seed); `equiv_opt` proven on all three blocks.
+- `synth_sim.sh` (all default tests, DekatronPC included): PASS. `run_tests.sh -d` and
+  `synth_sim.sh -d`: PASS.
+- `synth_sim.sh -t` (default Clk 1 µs): Dekatron, Counter, DekatronPC fail, as on HEAD
+  before T1 (checked: HEAD's Dekatron fails the same way at 1 µs; the known phase-window
+  problem of doc/vtube_sdf_timing.md). At `-c 10000` Dekatron passes, as documented.
+
+No block diagram changes (encoding is not drawn in SCHEMES.md).
+
+### 17.7 Done: T4, T5, T6 (2026-10-08)
+
+Owner's decisions: see §17.5. Changes:
+
+**T5, one pulse sender per counter** (REQ-PULSE-007).
+- `DekatronCounter` holds one `DekatronPulseSender` (EXT_PHASES = 1, its own `DekatronPhaseGen`)
+  driven by `step_f`/`step_r`; it puts the guide buses `guide_a`/`guide_b` on all decades.
+- The carry chain is one chain of enables: `en_chain[0] = 1`,
+  `en_chain[i] = en_chain[i-1] & (dec ? zeroes_q[i-1] : nines_q[i-1])`. Step and direction
+  are already in the buses, so the chain needs neither.
+- `DekatronModule`: ports `GuideA`, `GuideB`, `En` instead of `Clk`, `Rst_n`, `StepF`, `StepR`,
+  `Phase1_i`, `Phase2_i`; parameter `EXT_PHASES` removed. Each guide goes through its own
+  `GUIDE_EN_J2` (two per decade, owner: one J2 per guide signal).
+- `GUIDE_EN_J2` is a new liberty cell: one J2 tube, a pentode with two control grids (the guide
+  pulse on one, EN on the other), `Y = G·EN`. Like `RELAY_2CO`, its output has no function,
+  so ABC never uses it. (The first version modelled one cell for both guides as one tube;
+  the owner corrected it: one J2 per guide.) It has
+  a model in `vtube_cells.v`, a behavioural model in `DekatronModule.sv` under `ifndef SYNTH`,
+  150 ns arcs in `vtube_timing.json` and a subckt in `vtube_cells.sp`.
+- `Dekatron_tb` has its own `DekatronPulseSender` (EXT_PHASES = 0) and drives `En = 1`.
+  `synth_sim.sh` adds the pulse sender RTL to the Dekatron netlist run.
+- Decade 0 keeps its gate with `En` tied to 1, so all decades are alike.
+
+**T4, busy flag** (`ZERO_ONLY` in `DekatronCounter`): when `WRITE = 0`, `TOP_LIMIT_MODE = 0`
+and `HARD_RST_D_CNT = 0` (the Loop counter, and AP, which has the same configuration), there
+is no SET or TOP, and both resets lead to 0. The states ZERO and RST then merge into one
+trigger `busy_q`: set by `accept & set_zero` or a raised reset line, held while `writing`,
+`ready = ~busy_q & ~rst_active`, `wr_zero = busy_q & writing`. The transitions are those of
+the old FSM. The only difference is that the zero write line stays up in the tail of the
+window after a reset line falls; it leads to the same position. `set` with WRITE = 0 is a no-op
+(the assertion still reports it). IP (hard reset to 99900) and Data keep the full FSM.
+
+**T6, MachineCtrl state codes**: HALT 4, IDLE 0, FETCH_W 1, DECODE 10, EXEC 11, WAIT 2,
+COUT 6, CIN_WAIT 15, RST_REQ 14, RST_WAIT 7. Search: 96 random assignments (seed 0), the
+best 12 on seeds 1–2, 60 mutations of the best 3, then 6 finalists on seeds 0–4:
+
+| Codes | Seeds 0–4 | Mean |
+|---|---|---|
+| old 0,1,2,4,5,6,7,9,12,13 | 334 / 315 / 326.5 / 331.5 / 316 | 324.6 |
+| **chosen 4,0,1,10,11,2,6,15,14,7** | 314 / 318 / 319 / 317.5 / 320 | **317.7** |
+
+The panel (MS6205 `DPC_State`) doesn't decode the codes. The testbenches carry copies:
+`MachineCtrl_tb.sv`, `DekatronPC_tb.cpp`, `Emulator_tb.cpp` (its status table was stale and
+now has all 16 codes; its `== 0x04` HALT check is right again) and `rtl/run/cycle_profile.py`
+(now named constants; dumps from before 2026-10-08 used the old codes).
+
+Synthesis (`run_tests.sh -s`, `equiv_opt` proven on all three):
+
+| Block | After T1, mean of 3 seeds | After T4–T6, seeds 0 / 1 / 2 | Mean | Δ |
+|---|---|---|---|---|
+| IpLine | 514.7 | 489.5 / 491 / 487.5 | 489.3 | −25.3 |
+| ApLine | 597.2 | 568.5 / 565 / 573 | 568.8 | −28.3 |
+| MachineCtrl | 325.2 | 319.5 / 320 / 317 | 318.8 | −6.3 |
+| **Total** | **1437** | 1377.5 / 1376 / 1377.5 | **1377** | **−60** |
+
+Seed 0 was synthesized with both cell versions: two J2 per decade gives exactly +15 (IpLine
++7, ApLine +8) over one, since the cells are fixed and ABC's logic doesn't change; seeds 1–2
+are the one-cell runs + 15. Per counter (seed 0): Loop 56, IP 182, Data 222.5, AP 170.
+`DekatronModule` went from 6 (pulse sender) to 2 (J2 gates) tubes of guide logic per decade;
+a counter gains a 6-tube pulse sender. Triggers 64 → 62 (Loop and AP).
+
+Verification:
+- `run_tests.sh -t`: Verilator lint clean (DekatronPC, Emulator); Icarus Dekatron, Counter,
+  IpLine, ApLine, MachineCtrl, DekatronPC; Verilator step compare with dpcrun on helloworld,
+  program.bfk and pi.bfk — all PASS.
+- `synth_sim.sh` (all default tests, DekatronPC included), `run_tests.sh -d` (pi.bfk included),
+  `synth_sim.sh -d`: all PASS. `synth_sim.sh -t -c 10000 Dekatron` (the J2 gate has 150 ns
+  SDF arcs): PASS, 0 setup/hold violations. Counter/DekatronPC under `-t` still fail as before
+  (doc/vtube_sdf_timing.md); not rerun.
+- A false alarm on the way: `./emul IpLine` alone failed ("did not halt within 2000
+  instructions") because the earlier `-d` run had left pi.bfk in `rtl/firmware.hex`
+  (AGENTS.md §7 now says so). With looptest it passes; the waveform showed IP and Loop
+  counting correctly in both directions.
+
+Block diagrams: sheets 2 and 3 redrawn (pulse sender per counter, J2 gate, enable chain,
+`ZERO_ONLY`). No SVG renderer was available; the layout was checked by coordinates.

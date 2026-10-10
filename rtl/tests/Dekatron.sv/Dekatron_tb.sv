@@ -8,6 +8,11 @@
 //   заменена на DekatronModule (DekatronTubeV2 + DekatronPulseSender +
 //   DekatronPhaseGen + BcdToBinEn + BinToBcd).
 //
+// С T5 (doc/tube_count_reduction.md §17) формирователь импульсов стоит
+// в счётчике, а модуль получает общие шины GuideA/GuideB и разрешение En.
+// Тест ставит у себя DekatronPulseSender со своим генератором фаз
+// (EXT_PHASES = 0), как это делал модуль прежде, и держит En = 1.
+//
 // Шаг задаётся уровнем StepF/StepR на весь такт Clk; показание Out
 // достоверно по окончании такта шага. Признака Valid у модуля нет:
 // длительности известны заранее. Запись/сброс удерживаются заметно
@@ -68,21 +73,39 @@ wire             Zero;
 wire             Nine;
 wire             TopPin;
 
-DekatronModule #(
-    .READ           (1'b1),
-    .WRITE          (1'b1),
-    .TOP_LIMIT_MODE (1'b1),
-    .TOP_PIN_OUT    (4'd9),
-    .INIT_DIGIT     (4'd0),
-    .EXT_PHASES     (1'b0)
-) dek (
+wire GuideA;
+wire GuideB;
+
+// Формирователь импульсов счётчика: в DekatronCounter он один на все декады
+DekatronPulseSender #(
+    .EXT_PHASES (1'b0)
+) pulseSender (
+`ifdef DEKATRON_DELAY_MODEL
+    .hsClk   (1'b0),
+`else
     .hsClk   (hsClk),
+`endif
     .Clk     (Clk),
     .Rst_n   (Rst_n),
     .StepF   (StepF),
     .StepR   (StepR),
     .Phase1_i(1'b0),
     .Phase2_i(1'b0),
+    .GuideA  (GuideA),
+    .GuideB  (GuideB)
+);
+
+DekatronModule #(
+    .READ           (1'b1),
+    .WRITE          (1'b1),
+    .TOP_LIMIT_MODE (1'b1),
+    .TOP_PIN_OUT    (4'd9),
+    .INIT_DIGIT     (4'd0)
+) dek (
+    .hsClk   (hsClk),
+    .GuideA  (GuideA),
+    .GuideB  (GuideB),
+    .En      (1'b1),
     .In      (In),
     .SetData (SetData),
     .SetZero (SetZero),

@@ -72,6 +72,17 @@
 //    разрешила. Для шестидекадного счётчика это пять сэкономленных
 //    времязадающих цепей.
 //
+// 7. Формирователь подкатодных импульсов (DekatronPulseSender) тоже один
+//    на счётчик: он выдаёт общие шины guide_a/guide_b, уже с учётом
+//    направления, а декада пропускает их двумя ключами GUIDE_EN_J2 (по
+//    лампе J2 на подкатод) по разрешению en_chain[d] из цепочки переноса. Прежде в каждой
+//    декаде стояло И-ИЛИ на 6 ламп (doc/tube_count_reduction.md §17, T5).
+//
+// 8. Счётчик без записи, без верхнего предела и со сбросом только в нуль
+//    (вложенность, AP) обходится одним триггером занятости busy_q вместо
+//    автомата: запись в нуль и физический сброс ведут декады в одно и то
+//    же положение, поэтому их окна можно не различать (§17, T4).
+//
 //----------------------------------------------------------------------
 // ЦЕПОЧКА ПЕРЕНОСА
 //
@@ -157,7 +168,9 @@ module DekatronCounter #(
         ST_TOP  = 3'd3,   // установка всех декад в TOP_VALUE
         ST_RST  = 3'd4;   // физический сброс: ждём окончания линии и окна
 
-    logic [2:0] state, next;
+    // Упрощённый режим (п. 8 заголовка): операций set/ТОП нет, и
+    // аппаратный сброс ведёт все декады в нуль, как и программный
+    localparam bit ZERO_ONLY = !WRITE && !TOP_LIMIT_MODE && (HARD_RST_D_CNT == 0);
 
     //------------------------------------------------------------------
     // Показания декад
@@ -294,67 +307,110 @@ module DekatronCounter #(
     );
 
     //------------------------------------------------------------------
-    // Машина состояний
+    // Линии записи на декады и готовность
     //------------------------------------------------------------------
-    // Выход из сброса через ST_RST: окно записи сброшено rst_n, поэтому
-    // на первом фронте автомат уходит в ST_IDLE, а признаки *_q на этом
-    // же фронте защёлкиваются с катодов. Отдельный primed_q не нужен.
-    always_ff @(posedge clk, negedge rst_n) begin
-        if (~rst_n) state <= ST_RST;
-        else        state <= next;
-    end
+    wire wr_set;
+    wire wr_zero;
+    wire wr_top;
 
-    always_comb begin
-        // Поднятая линия сброса перебивает всё: ждём её снятия и окна
-        next = ST_RST;
-        if (!rst_active) begin
-            next = ST_IDLE;
-            case (state)
-                ST_IDLE: begin
-                    if (accept) begin
-                        // Явные операции приоритетнее автопереходов через край
-                        if      (set)          next = ST_SET;
-                        else if (set_zero)     next = ST_ZERO;
-                        else if (set_top_int)  next = ST_TOP;
-                        else if (set_zero_int) next = ST_ZERO;
-                        else                   next = ST_IDLE;  // быстрый путь
-                    end
-                end
-                ST_SET, ST_ZERO, ST_TOP: begin
-                    if (writing) next = state;   // держим до конца окна записи
-                end
-                ST_RST: begin
-                    if (writing) next = state;   // линия снята, окно ещё идёт
-                end
-                default: next = ST_IDLE;
-            endcase
+    generate
+        if (ZERO_ONLY) begin : g_busy
+            //----------------------------------------------------------
+            // Один триггер занятости вместо автомата (п. 8 заголовка).
+            //
+            // busy_q взводится приёмом операции set_zero или поднятой
+            // линией сброса и держится, пока идёт окно writeTimer.
+            // Переходы те же, что у полного автомата с состояниями
+            // IDLE/ZERO/RST, только ZERO и RST слиты: обе операции ведут
+            // декады в нуль, поэтому линия записи нуля может оставаться
+            // поднятой и в хвосте окна после снятия линии сброса.
+            // Операция set (WRITE = 0) — пустая: шаг не выдаётся, окно
+            // не держится (assertion ниже сообщает о ней как об ошибке).
+            //----------------------------------------------------------
+            logic busy_q;
+
+            always_ff @(posedge clk, negedge rst_n) begin
+                if (~rst_n) busy_q <= 1'b1;   // выход из сброса как через ST_RST
+                else        busy_q <= rst_active | (accept & set_zero) |
+                                      (busy_q & writing);
+            end
+
+            // ready не зависит от valid и от writing (см. ниже про петлю)
+            assign ready   = ~busy_q & ~rst_active;
+            assign wr_set  = 1'b0;
+            assign wr_zero = busy_q & writing;
+            assign wr_top  = 1'b0;
         end
-    end
+        else begin : g_fsm
+        //------------------------------------------------------------------
+        // Машина состояний
+        //------------------------------------------------------------------
+        // Двоичное кодирование: Yosys иначе перекодирует автомат в one-hot,
+        // а триггер стоит 7 ламп (doc/tube_count_reduction.md §17.2)
+        (* fsm_encoding = "binary" *) logic [2:0] state;
+        logic [2:0] next;
 
-    // ready не зависит от valid. В быстром пути не снимается вовсе.
-    //
-    // ВАЖНО: ready НЕ должен зависеть от writing. Окно записи запускается
-    // от accept, а accept — от ready, поэтому такая зависимость замыкает
-    // нуль-задержечную комбинационную петлю
-    //
-    //   ready -> accept -> write_req -> Impulse -> OneShot -> writing -> ready
-    //
-    // Петля возникала при любой операции записи, включая автопереходы
-    // через верхний предел, и делала set, set_zero и rollover
-    // неработоспособными: iverilog зацикливался, Verilator выдавал
-    // UNOPTFLAT, синтез был бы некорректен.
-    //
-    // Условие избыточно: автомат покидает ST_IDLE при приёме операции
-    // записи и возвращается только по окончании окна, поэтому состояние
-    // уже несёт нужную информацию.
-    assign ready = (state == ST_IDLE) & ~rst_active;
+        // Выход из сброса через ST_RST: окно записи сброшено rst_n, поэтому
+        // на первом фронте автомат уходит в ST_IDLE, а признаки *_q на этом
+        // же фронте защёлкиваются с катодов. Отдельный primed_q не нужен.
+        always_ff @(posedge clk, negedge rst_n) begin
+            if (~rst_n) state <= ST_RST;
+            else        state <= next;
+        end
 
-    //------------------------------------------------------------------
-    // Линии записи на декады
-    //------------------------------------------------------------------
-    wire wr_set  = (state == ST_SET ) & writing;
-    wire wr_zero = (state == ST_ZERO) & writing;
-    wire wr_top  = (state == ST_TOP ) & writing;
+        always_comb begin
+            // Поднятая линия сброса перебивает всё: ждём её снятия и окна
+            next = ST_RST;
+            if (!rst_active) begin
+                next = ST_IDLE;
+                case (state)
+                    ST_IDLE: begin
+                        if (accept) begin
+                            // Явные операции приоритетнее автопереходов через край
+                            if      (set)          next = ST_SET;
+                            else if (set_zero)     next = ST_ZERO;
+                            else if (set_top_int)  next = ST_TOP;
+                            else if (set_zero_int) next = ST_ZERO;
+                            else                   next = ST_IDLE;  // быстрый путь
+                        end
+                    end
+                    ST_SET, ST_ZERO, ST_TOP: begin
+                        if (writing) next = state;   // держим до конца окна записи
+                    end
+                    ST_RST: begin
+                        if (writing) next = state;   // линия снята, окно ещё идёт
+                    end
+                    default: next = ST_IDLE;
+                endcase
+            end
+        end
+
+        // ready не зависит от valid. В быстром пути не снимается вовсе.
+        //
+        // ВАЖНО: ready НЕ должен зависеть от writing. Окно записи запускается
+        // от accept, а accept — от ready, поэтому такая зависимость замыкает
+        // нуль-задержечную комбинационную петлю
+        //
+        //   ready -> accept -> write_req -> Impulse -> OneShot -> writing -> ready
+        //
+        // Петля возникала при любой операции записи, включая автопереходы
+        // через верхний предел, и делала set, set_zero и rollover
+        // неработоспособными: iverilog зацикливался, Verilator выдавал
+        // UNOPTFLAT, синтез был бы некорректен.
+        //
+        // Условие избыточно: автомат покидает ST_IDLE при приёме операции
+        // записи и возвращается только по окончании окна, поэтому состояние
+        // уже несёт нужную информацию.
+        assign ready = (state == ST_IDLE) & ~rst_active;
+
+        //------------------------------------------------------------------
+        // Линии записи на декады
+        //------------------------------------------------------------------
+        assign wr_set  = (state == ST_SET ) & writing;
+        assign wr_zero = (state == ST_ZERO) & writing;
+        assign wr_top  = (state == ST_TOP ) & writing;
+        end
+    endgenerate
 
     // Сброс: в старшие декады девятка, если сброс аппаратный
     wire rst_to_nine = rst_active &  rst_hard;
@@ -378,6 +434,33 @@ module DekatronCounter #(
     );
 
     //------------------------------------------------------------------
+    // Общий формирователь подкатодных импульсов (п. 7 заголовка)
+    //
+    // Шины guide_a/guide_b несут импульсы шага всего счётчика, уже в
+    // порядке, заданном направлением. Какие декады шагнут, решает
+    // en_chain: декада пропускает шины на свои подкатоды ключом
+    // GUIDE_EN_J2 (по лампе на подкатод) внутри DekatronModule.
+    //------------------------------------------------------------------
+    wire guide_a;
+    wire guide_b;
+
+    DekatronPulseSender #(
+        .EXT_PHASES (1'b1),
+        .PHASE1_HS  (PHASE1_HS),
+        .PHASE2_HS  (PHASE2_HS)
+    ) pulseSender (
+        .hsClk    (tclk),
+        .Clk      (clk),
+        .Rst_n    (rst_n),
+        .StepF    (step_f),
+        .StepR    (step_r),
+        .Phase1_i (phase1),
+        .Phase2_i (phase2),
+        .GuideA   (guide_a),
+        .GuideB   (guide_b)
+    );
+
+    //------------------------------------------------------------------
     // Декады
     //------------------------------------------------------------------
     //------------------------------------------------------------------
@@ -386,37 +469,32 @@ module DekatronCounter #(
     // Перенос идёт строго от младшей декады к старшей и распространяется
     // в пределах одного такта. Шаг проходит дальше, если младшая декада
     // стояла на 9 (инкремент) или на 0 (декремент) ДО текущего шага.
+    // Сам шаг и направление уже несут шины guide_a/guide_b, поэтому
+    // цепочка одна: en_chain[d] — разрешение декаде d, младшая разрешена
+    // всегда. Вне такта шага шины пусты и en_chain ни на что не влияет.
     //
-    // Рипл вынесен в локальные переменные, а векторы step_*_chain только
-    // записываются и нигде не читаются. Если писать его поразрядно как
+    // Рипл вынесен в локальные переменные, а вектор en_chain только
+    // записывается и нигде не читается. Если писать его поразрядно как
     //
-    //     assign step_f_chain[d] = step_f_chain[d-1] & nines_q[d-1];
+    //     assign en_chain[d] = en_chain[d-1] & nines_q[d-1];
     //
     // то Verilator анализирует зависимости с точностью до целого сигнала
-    // и видит зависимость вектора от самого себя: UNOPTFLAT на
-    // step_f_chain и step_r_chain. Физически петли нет, но предупреждение
-    // приходится либо подавлять, либо устранять структурно. Здесь выбрано
-    // второе: подавление скрыло бы и настоящие петли, если они появятся.
+    // и видит зависимость вектора от самого себя: UNOPTFLAT на en_chain.
+    // Физически петли нет, но предупреждение приходится либо подавлять,
+    // либо устранять структурно. Здесь выбрано второе: подавление скрыло
+    // бы и настоящие петли, если они появятся.
     //------------------------------------------------------------------
-    logic [D_NUM-1:0] step_f_chain;
-    logic [D_NUM-1:0] step_r_chain;
+    logic [D_NUM-1:0] en_chain;
 
     always_comb begin
-        logic carry_f;
-        logic carry_r;
+        logic carry;
 
-        carry_f = step_f;
-        carry_r = step_r;
-
-        step_f_chain[0] = carry_f;
-        step_r_chain[0] = carry_r;
+        carry = 1'b1;
+        en_chain[0] = carry;
 
         for (int i = 1; i < int'(D_NUM); i++) begin
-            carry_f = carry_f & nines_q [i-1];
-            carry_r = carry_r & zeroes_q[i-1];
-
-            step_f_chain[i] = carry_f;
-            step_r_chain[i] = carry_r;
+            carry = carry & (dec ? zeroes_q[i-1] : nines_q[i-1]);
+            en_chain[i] = carry;
         end
     end
 
@@ -460,16 +538,12 @@ module DekatronCounter #(
                 .RESET_MIN_HS    (RESET_MIN_HS),
                 .HS_PER_CLK      (HS_PER_CLK),
                 .PHASE1_HS       (PHASE1_HS),
-                .PHASE2_HS       (PHASE2_HS),
-                .EXT_PHASES      (1'b1)
+                .PHASE2_HS       (PHASE2_HS)
             ) dModule (
                 .hsClk    (tclk),
-                .Clk      (clk),
-                .Rst_n    (rst_n),
-                .StepF    (step_f_chain[d]),
-                .StepR    (step_r_chain[d]),
-                .Phase1_i (phase1),
-                .Phase2_i (phase2),
+                .GuideA   (guide_a),
+                .GuideB   (guide_b),
+                .En       (en_chain[d]),
                 .In       (in[(d+1)*DW-1 -: DW]),
                 .SetData  (wr_set),
                 .SetZero  (dek_set_zero),
