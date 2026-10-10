@@ -1,0 +1,30 @@
+name: Web simulator
+
+# Tests of the web simulator model (web/dpc.js): step-by-step trace compare
+# with the C++ golden model bfutils/dpcrun, assembler dialects, SOT/EOT load.
+
+on:
+  push:
+    paths: [ "web/**", "bfutils", ".github/workflows/web.yml" ]
+  pull_request:
+    branches: [ "master" ]
+    paths: [ "web/**", "bfutils", ".github/workflows/web.yml" ]
+  workflow_dispatch:
+
+jobs:
+  model:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        submodules: recursive
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 22
+    - name: Build dpcrun
+      run: g++ -O2 -DEXEC -o /tmp/dpcrun bfutils/dpcrun/dpcrun.cpp
+    - name: Test web/dpc.js against dpcrun
+      run: node web/test/test_dpc.js /tmp/dpcrun
+    - name: Build program bundle
+      run: python3 web/build_bf100.py
