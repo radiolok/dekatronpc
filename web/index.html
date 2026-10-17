@@ -416,8 +416,8 @@ footer a { color: var(--lamp-amber); }
     </section>
 
   <footer style="grid-area: foot">
-    <p data-i18n-html="foot1">The machine is the golden model <a href="https://github.com/radiolok/bfutils/tree/claude_nextGen/dpcrun">dpcrun</a> ported to JavaScript, instruction for instruction. It counts retired instructions (IRET), not clock cycles. Programs load through the bootloader ROM over SOT/EOT; data memory is cleared on power-on, on a new program load and by the HARD RST key. AP wraps at 99999, as in the current RTL (OPEN-001).</p>
-    <p data-i18n-html="foot2">STEP pauses the simulator clock after one instruction. HALT goes through the machine's halt path, like the RTL key: right after a taken bracket it skips the loop scan. Brainfuck-100 programs are from <a href="https://github.com/radiolok/bfutils/tree/claude_nextGen/programs/bf100">bfutils/programs/bf100</a>, each under its own license. Source: <a href="https://github.com/radiolok/dekatronpc">radiolok/dekatronpc</a>.</p>
+    <p data-i18n-html="foot1">The machine is the golden model <a href="https://github.com/radiolok/bfutils/tree/master/dpcrun">dpcrun</a> ported to JavaScript, instruction for instruction. It counts retired instructions (IRET), not clock cycles. Programs load through the bootloader ROM over SOT/EOT; data memory is cleared on power-on, on a new program load and by the HARD RST key. AP wraps at 99999, as in the current RTL (OPEN-001).</p>
+    <p data-i18n-html="foot2">STEP pauses the simulator clock after one instruction. HALT goes through the machine's halt path, like the RTL key: right after a taken bracket it skips the loop scan. Brainfuck-100 programs are from <a href="https://github.com/radiolok/bfutils/tree/master/programs/bf100">bfutils/programs/bf100</a>, each under its own license. Source: <a href="https://github.com/radiolok/dekatronpc">radiolok/dekatronpc</a>.</p>
   </footer>
 </div>
 
@@ -1229,8 +1229,8 @@ function applyLang() {
 const FOOT = {
   en: { foot1: document.querySelector('[data-i18n-html=foot1]').innerHTML, foot2: document.querySelector('[data-i18n-html=foot2]').innerHTML },
   ru: {
-    foot1: 'Машина — golden model <a href="https://github.com/radiolok/bfutils/tree/claude_nextGen/dpcrun">dpcrun</a>, перенесённая на JavaScript команда в команду. Счёт идёт по исполненным командам (IRET), а не по тактам. Программа загружается через ПЗУ загрузчика по SOT/EOT; память данных очищается при включении, при загрузке новой программы и клавишей «Апп. сброс». AP переходит через 99999, как в текущем RTL (OPEN-001).',
-    foot2: '«Шаг» останавливает такт симулятора после одной команды. «Останов» идёт через путь останова машины, как клавиша в RTL: сразу после сработавшей скобки он пропускает промотку цикла. Программы Brainfuck-100 взяты из <a href="https://github.com/radiolok/bfutils/tree/claude_nextGen/programs/bf100">bfutils/programs/bf100</a>, у каждой своя лицензия. Исходники: <a href="https://github.com/radiolok/dekatronpc">radiolok/dekatronpc</a>.'
+    foot1: 'Машина — golden model <a href="https://github.com/radiolok/bfutils/tree/master/dpcrun">dpcrun</a>, перенесённая на JavaScript команда в команду. Счёт идёт по исполненным командам (IRET), а не по тактам. Программа загружается через ПЗУ загрузчика по SOT/EOT; память данных очищается при включении, при загрузке новой программы и клавишей «Апп. сброс». AP переходит через 99999, как в текущем RTL (OPEN-001).',
+    foot2: '«Шаг» останавливает такт симулятора после одной команды. «Останов» идёт через путь останова машины, как клавиша в RTL: сразу после сработавшей скобки он пропускает промотку цикла. Программы Brainfuck-100 взяты из <a href="https://github.com/radiolok/bfutils/tree/master/programs/bf100">bfutils/programs/bf100</a>, у каждой своя лицензия. Исходники: <a href="https://github.com/radiolok/dekatronpc">radiolok/dekatronpc</a>.'
   }
 };
 for (const id of ['lang-en', 'lang-ru']) $(id).addEventListener('change', (e) => { lang = e.target.value; store.set('lang', lang); applyLang(); });
