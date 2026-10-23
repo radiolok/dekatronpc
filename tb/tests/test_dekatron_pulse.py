@@ -12,6 +12,9 @@ is split into thirds:
     StepF (forward):  GuideA = Phase1, GuideB = Phase2
     StepR (backward): GuideA = Phase2, GuideB = Phase1
 
+Phase2 is started by the end of Phase1, so there is no gap between the
+guide pulses; an overlap is allowed (doc/harwell_1951_review.md §2).
+
 Ports: hsClk, Clk, Rst_n, StepF, StepR, Phase1_i, Phase2_i -> GuideA, GuideB.
 """
 
@@ -73,6 +76,10 @@ def first_high(seq):
     return next((i for i, v in enumerate(seq) if v), None)
 
 
+def last_high(seq):
+    return max((i for i, v in enumerate(seq) if v), default=None)
+
+
 async def set_step(dut, f, r):
     # change the request away from the Clk edge (mid count cycle is not
     # allowed either, so we change it right after a Clk falling edge and
@@ -99,8 +106,9 @@ async def check_step(dut, forward):
         a, b = await sample_period(dut)
         seq = {"A": a, "B": b}
         assert any(a) and any(b), f"both guides must pulse: A={a} B={b}"
-        assert not any(x and y for x, y in zip(a, b)), \
-            f"guides overlap: A={a} B={b}"
+        # no gap between the lead and the lag pulse (overlap is allowed)
+        assert first_high(seq[lag]) <= last_high(seq[lead]) + 1, \
+            f"gap between Guide{lead} and Guide{lag}: A={a} B={b}"
         assert first_high(seq[lead]) < first_high(seq[lag]), \
             f"Guide{lead} must come before Guide{lag}: A={a} B={b}"
         # last third: discharge falls onto the main cathode, no pulses

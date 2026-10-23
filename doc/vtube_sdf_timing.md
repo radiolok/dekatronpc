@@ -32,12 +32,14 @@ tube, OneShot, Impulse, RstTimeRelay, Ram, IpMemory.
 
 ```
 cd rtl/run
-./synth_sim.sh -t -c 10000                 # Dekatron Counter DekatronPC, Clk 10 us
-./synth_sim.sh -n -t -c 2000 DekatronPC    # reuse the netlist, Clk 2 us
+./synth_sim.sh -t -c 5000                  # Dekatron Counter DekatronPC, Clk 5 us
+./synth_sim.sh -n -t -c 4500 DekatronPC    # reuse the netlist, Clk 4.5 us
+./synth_sim.sh -t -o 5 -c 2500 Counter     # phase delay 500 ns (default 22 = 2.2 us)
 ```
 
 A run fails if the testbench fails, if Icarus reports any SDF ERROR/WARNING,
-or if the summary line is not `VTUBE TIMING: 0 setup, 0 hold violations`.
+or if the summary line does not start with `VTUBE TIMING: 0 setup, 0 hold`
+(the masked count after it is information, §3.5).
 Under `-t`, files written by the simulation are capped at 2 GB (`ulimit -f`).
 
 ## 2. Icarus limits found on the way
@@ -58,7 +60,7 @@ Under `-t`, files written by the simulation are capped at 2 GB (`ulimit -f`).
 
 DekatronPC netlist: 1047 cells, 48 annotated scopes, 81 triggers checked.
 
-## 3. Results at Clk = 10 us
+## 3. Results at Clk = 10 us (2026-10-08, before the fixes below)
 
 | Test | Result |
 |---|---|
@@ -101,10 +103,94 @@ Phase2 = `Win12 & ~Win1` passes through two tube gates (NOT + AND). With
 trace: guide A 2.35–2.65 us, guide B 2.80–3.25 us). In that gap no guide
 holds the discharge, so it can fall back from guide A to the main cathode
 (REQ-DEK-012). The delay tube model let it pass here, but physically it is a
-missed count. The guide pulses also arrive 300 ns late (gates of
+missed count.
+
+**Resolved 2026-10-23 (TRS v0.11, REQ-PULSE-008).** The owner decided that the
+guide pulses must touch or overlap, never leave a gap (doc/harwell_1951_review.md
+§2). Phase2 is now its own OneShot started by an `Impulse` on the fall of
+Phase1 (`FALL = 1`), so neither phase passes a gate inside DekatronPhaseGen and
+the NOT + AND are gone. Both tube models accept the overlap while the discharge
+is on a guide. Finding 3.1 (the step command arrives after Phase1) is still open. The guide pulses also arrive 300 ns late (gates of
 DekatronPulseSender), which is harmless as long as both paths are equal.
 
-## 4. Fix options (owner decision; nothing changed in RTL yet)
+### 3.3 Fix of 3.1: phase start delay, and the write window (2026-10-23)
+
+The owner asked for the delay netlist to be fixed; option B below was taken
+(REQ-PULSE-009). A gives the phases only half a period, which breaks 1 MHz in
+the RTL (500 ns for 3+3+4 hsClk), and C alone doesn't help: a registered
+command still settles C→Q after the edge, after the phases have started.
+
+* `DekatronPhaseGen` got `PHASE_DELAY_HS`: one more `OneShot` from the Clk
+  edge and an `Impulse` on its fall start Phase1. In hardware it is one more
+  RC timing circuit. Its minimum is the worst path of the step command
+  (`step_f`/`step_r`, `en_chain`) from the Clk edge, and it must also outlast
+  the tail of the previous cycle's command. The RTL has zero-delay gates, so
+  the default is 0 and the RTL timing is unchanged. `DekatronCounter`
+  takes it from the macro `DEKATRON_PHASE_DELAY_HS`; `synth_sim.sh -o HS`
+  passes it to synthesis (`synt_dpc.tcl -D NAME=VALUE` is new), and `-t`
+  defaults to 22. `DekatronModule` counts it in its cycle-fit check.
+* Measured paths (150 ns gates). In Counter_tb the testbench drives `valid`
+  at the edge: `step_f` +450 ns. In DekatronPC the master is MachineCtrl:
+  `valid` +450, `step_f` +900 ns. The longest is a step right after a
+  write: the counter's `ready` returns +750 ns (C→Q + decode), ApLine raises
+  `valid` only when every executor is ready (REQ-APV2-007), +1350, and
+  `step_f` +1950 ns. Hence 22 hsClk = 2.2 µs.
+* **Write window.** With the delay in place, Counter counted but every write
+  (`set`, `set_zero`, wrap through the top) failed at Clk = 10 µs. The window
+  `writeTimer` started at accept, while the write line rises only one Clk
+  later, when the FSM enters ST_SET/ST_ZERO/ST_TOP: a whole period was eaten
+  from the window (10 % at 1 MHz, everything at 10 µs). The window now starts
+  from that state (`wr_state`, or `busy_q` in the ZERO_ONLY counters). A
+  write now takes one Clk more: program.bfk in RTL 71362 → 72578 µs (+1.7 %).
+  After `rst_n` the Loop and AP counters are busy for one window.
+
+### 3.4 Timescale of the cell models
+
+`DekatronPC_tb` has `` `timescale 100 ns / 100 ps``. The directive carries
+over to the files compiled after it, and `vtube_cells.v` had none, so in the
+DekatronPC run every 150 ns SDF delay became 15 µs (Counter_tb is at 1 ns and
+was not affected). Symptoms: X on every control line for 15 µs after
+`rst_n`, and guides held for microseconds. `vtube_cells.v` now has
+`` `timescale 1ns/1ps``.
+
+### 3.5 Triggers on asynchronous cathodes: qualified checks
+
+`DekatronCounter` latches the cathode readings every Clk without an enable
+(`zeroes_q`, `nines_q`, and `zero_q`/`at_top_q` in TOP_LIMIT_MODE; tubes
+saved, see the RTL comment). A write or a reset line ends in absolute time,
+and the reset relay raises its lines at any moment, so these triggers do see
+D change inside their setup/hold window. Only the cycle that accepts an
+operation reads them. The checker now has `QUALIFY`: a violation around edge
+E is held until edge E+1 and counted only if the consumer expression is 1
+there (`valid & ready` of that counter); otherwise it is counted as masked.
+The list lives in `vtube_timing.json` (`"masked"`: module, regex on the Q
+net, `used_when`, reason). The summary line reports
+`<n> setup, <m> hold violations, <k> masked`. A real-hardware note: a tube
+trigger that goes metastable here must settle within one period, which is
+assumed, not measured (OPEN-013).
+
+### 3.6 Results after the fixes (2026-10-23)
+
+Phase delay 2.2 µs unless noted:
+
+| Test | Clk | Result |
+|---|---|---|
+| Counter (`-o 5`) | 10 / 3 / 2.5 µs | PASS, 0 violations (3 masked at 3 µs) |
+| Counter (`-o 5`) | 2 µs | setup violation on `nines_q` with the value used: the step no longer fits |
+| Dekatron, Counter, DekatronPC hello + program | 5 µs | PASS, 0 violations, 2 masked |
+| DekatronPC hello + program | 4.5 µs | PASS, 0 violations, 2 masked |
+| DekatronPC hello + program | 4 µs | output correct, but 7–16 setup / 6 hold violations on used values: FAIL |
+
+So with 150 ns per stage the machine works at a 4.5 µs period, about
+220 kHz. The period is phase delay 2.2 + phases 0.6 + pulse sender and J2
+0.45 + fall 0.3 µs + reading decode and setup. The phase delay is
+dominated by ready → valid → step after a write, so that path is where to
+shorten it. Target (owner, 2026-10-23): 250 kHz, a 4 µs period, the speed of
+the ferrite memory, once the tube characteristics are measured (OPEN-014).
+The zero-delay netlist runs (`synth_sim.sh`, `-d`) and all Icarus RTL tests
+pass.
+
+## 4. Fix options (as they were proposed; B taken, §3.3)
 
 For 3.1, the phases must start after the step command has settled:
 

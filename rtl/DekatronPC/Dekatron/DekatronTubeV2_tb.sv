@@ -5,15 +5,14 @@
 // на кольцевую модель.
 //
 // Запуск:
-//   Verilator:
-//     verilator --binary --assert --timing -Wno-fatal \
+//   Сборка в Verilator:
+//     $ verilator --binary --assert --timing -Wno-fatal \
 //       DekatronTubeV2.sv DekatronTubeV2_assertions.sv DekatronTubeV2_tb.sv \
 //       --top-module DekatronTubeV2_tb
 //     ./obj_dir/VDekatronTubeV2_tb
 //
-//   Icarus:
-//     iverilog -g2012 -o dek_tb DekatronTubeV2.sv \
-//       DekatronTubeV2_assertions.sv DekatronTubeV2_tb.sv && vvp dek_tb
+//   Icarus не подходит: не принимает именованные аргументы задач
+//   (do_step(.inc(1))).
 //
 // ВАЖНО: часть тестов — негативные (UT-GUIDE-001, UT-WR-006/009,
 // UT-RST0-006/007, UT-RSTN-005). В них СПЕЦИАЛЬНО подаются недопустимые
@@ -398,15 +397,48 @@ module DekatronTubeV2_tb_core #(
         chk(saw_invalid, "UT-GUIDE-001 обе линии -> invalid_dbg_o == 1");
         chk_digit(3, "UT-GUIDE-001 разряд не перемещается");
 
+        // Обе линии, когда разряд уже на подкатоде, — перекрытие фаз:
+        // допустимо, разряд стоит, а после снятия обеих падает назад
         set_digit(3);
-        pulse_guide_a(GUIDE_STEP_HS);
+        @(negedge hsClk); guide_a = 1;
+        wait_hs(GUIDE_STEP_HS + 1);
         mon_reset();
-        @(negedge hsClk); guide_a = 1; guide_b = 1;
+        @(negedge hsClk); guide_b = 1;
         wait_hs(4);
         @(negedge hsClk); guide_a = 0; guide_b = 0;
         idle_all(SETTLE+10);
-        chk(saw_invalid, "UT-GUIDE-002 обе линии на подкатоде -> invalid_dbg_o == 1");
-        chk_digit(3, "UT-GUIDE-002 некорректного перехода на главный катод нет");
+        chk(!saw_invalid, "UT-GUIDE-002 обе линии на подкатоде -> invalid_dbg_o == 0");
+        chk_digit(3, "UT-GUIDE-002 одновременное снятие -> возврат на исходный катод");
+
+        // Шаг с перекрытием фаз на стыке A->B (и B->A): вторая линия
+        // поднята до снятия первой — шаг засчитывается
+        for (int ovl = 1; ovl <= 2; ovl++) begin
+            set_digit(3); mon_reset();
+            @(negedge hsClk); guide_a = 1;
+            wait_hs(GUIDE_STEP_HS + 1);
+            @(negedge hsClk); guide_b = 1;
+            wait_hs(ovl);
+            @(negedge hsClk); guide_a = 0;
+            wait_hs(GUIDE_STEP_HS + 1);
+            @(negedge hsClk); guide_b = 0;
+            idle_all(SETTLE);
+            chk(!saw_invalid, $sformatf("UT-GUIDE-003 перекрытие %0d hsClk A->B: без invalid", ovl));
+            chk_digit(INC_BY_A_THEN_B ? 4 : 2,
+                      $sformatf("UT-GUIDE-003 перекрытие %0d hsClk A->B: один шаг", ovl));
+
+            set_digit(3); mon_reset();
+            @(negedge hsClk); guide_b = 1;
+            wait_hs(GUIDE_STEP_HS + 1);
+            @(negedge hsClk); guide_a = 1;
+            wait_hs(ovl);
+            @(negedge hsClk); guide_b = 0;
+            wait_hs(GUIDE_STEP_HS + 1);
+            @(negedge hsClk); guide_a = 0;
+            idle_all(SETTLE);
+            chk(!saw_invalid, $sformatf("UT-GUIDE-004 перекрытие %0d hsClk B->A: без invalid", ovl));
+            chk_digit(INC_BY_A_THEN_B ? 2 : 4,
+                      $sformatf("UT-GUIDE-004 перекрытие %0d hsClk B->A: один шаг", ovl));
+        end
 
         set_digit(3);
         for (int i = 0; i < 6; i++) begin

@@ -30,6 +30,13 @@
 //   * только B и снятие             -> возврат на исходный катод
 //   * вторая фаза пришла слишком поздно — разряд уже свалился обратно,
 //     и новая одиночная фаза снова вернёт его на место
+//   * A и B вместе, разряд на подкатоде -> остаётся на нём; со снятием
+//     первой линии уходит на вторую. Это перекрытие фаз на стыке A->B:
+//     в железе фронты RC-цепей перекрываются, и так и должно быть
+//     (Harwell 1951, doc/harwell_1951_review.md §2). Опасен не нахлёст,
+//     а зазор: без линий разряд начинает сваливаться назад.
+//   * A и B вместе, разряд на главном катоде -> недопустимо: соседние
+//     подкатоды A и B равноудалены, направление не определено
 // Поэтому параметры PHASE_WINDOW_HS и RETURN_TIMEOUT_HS из TRS v0.1
 // БОЛЬШЕ НЕ НУЖНЫ: их роль выполняет FALL_STEP_HS.
 //
@@ -39,6 +46,14 @@
 // электродами занимает время: пока «запрос на перемещение» держится
 // стабильно, идёт отсчёт; шаг применяется только по его завершении.
 // Импульс короче GUIDE_STEP_HS не сдвигает разряд вообще.
+//
+// НАЧАЛЬНОЕ ПОЛОЖЕНИЕ
+//
+// `define DEKATRON_RANDOM_INIT: после включения питания разряд стоит на
+// случайном главном катоде ($urandom), как у настоящего прибора
+// (Harwell 1951: «the Dekatron tubes may light in any position»). Привести
+// машину в известное состояние может только сброс по катодам
+// (doc/harwell_1951_review.md §3). INIT_DIGIT тогда не действует.
 //
 // ФИЗИЧЕСКИЙ КОНТРАКТ (TRS v0.1 §2.2)
 //
@@ -207,6 +222,8 @@ module DekatronTubeV2 #(
     wire resetN_illegal_disabled = (!EN_RESETN) && resetN_i;
 
     wire guides_both = guide_a_i && guide_b_i;
+    // Перекрытие фаз допустимо, пока разряд на подкатоде (см. шапку)
+    wire guides_both_bad = guides_both && on_main;
 
     // Цель операции записи/сброса
     logic [29:0] wr_target_ring;
@@ -259,7 +276,8 @@ module DekatronTubeV2 #(
         move_time = CNT_W'(GUIDE_STEP_HS);
 
         if (wr_any_active || guides_both) begin
-            // Запись/сброс или недопустимая комбинация: разряд не движется
+            // Запись/сброс или обе линии: разряд не движется. На
+            // подкатоде это перекрытие фаз, на главном катоде — ошибка
             move_dir = MOVE_NONE;
         end
         else if (ga && !gb) begin
@@ -308,6 +326,9 @@ module DekatronTubeV2 #(
     //------------------------------------------------------------------
     initial begin
         cathodes_q       = 30'd1 << (3*INIT_DIGIT);
+`ifdef DEKATRON_RANDOM_INIT
+        cathodes_q       = 30'd1 << (3*($urandom % 10));
+`endif
         move_timer_q     = '0;
         move_dir_q       = MOVE_NONE;
         wr_timer_q       = '0;
@@ -335,7 +356,7 @@ module DekatronTubeV2 #(
         end else gb_high_q <= '0;
 
         // --- диагностика недопустимых воздействий
-        illegal_q <= wr_conflict || guides_both || resetN_illegal_disabled ||
+        illegal_q <= wr_conflict || guides_both_bad || resetN_illegal_disabled ||
                      ga_too_long || gb_too_long ||
                      (wr_any_active && (guide_a_i || guide_b_i)) ||
                      (write_en_i && !is_onehot10(write_pos_i)) ||
@@ -437,7 +458,7 @@ module DekatronTubeV2 #(
             assign in_write_reset_dbg_o = wr_any_active;
             assign settled_dbg_o        = wr_any_active && wr_settled_q;
             assign invalid_dbg_o        = illegal_q || wr_conflict ||
-                                          guides_both || resetN_illegal_disabled;
+                                          guides_both_bad || resetN_illegal_disabled;
         end
         else begin : g_dbg_off
             assign cathodes_dbg_o       = 30'b0;

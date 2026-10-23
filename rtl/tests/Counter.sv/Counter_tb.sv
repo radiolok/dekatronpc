@@ -20,6 +20,16 @@
 // 104 - HS_PER_CLK = 94 hs < RESET_MIN_HS = 100, и декатрон её игнорирует.
 // Поэтому rollover и set*/set_zero дают неверный результат (не зависание,
 // а молчаливое отсутствие операции). Тест это фиксирует: см. FAIL ниже.
+//
+// Второй счётчик ip_counter собран как IP (5 декад, без записи,
+// HARD_RST_D_CNT = 3): аппаратный сброс даёт 99900, программный — 0.
+// На нетлисте (`NETLIST_SIM, synth_sim.sh) его нет: синтезирован только
+// счётчик с параметрами основного DUT.
+//
+// `define DEKATRON_RANDOM_INIT (EMUL_DEFINES): декатроны зажигаются на
+// случайных катодах, как при включении питания. Тест начинается со
+// сброса по линиям hard_rst/soft_rst и проверяет, что он приводит оба
+// счётчика в известное состояние (doc/harwell_1951_review.md §3).
 //----------------------------------------------------------------------
 module Counter_tb #(
     parameter DEKATRON_NUM = 3
@@ -98,6 +108,39 @@ DekatronCounter  #(.D_NUM(DEKATRON_NUM),
     .at_top   (AtTop)
 );
 
+// Счётчик в конфигурации IP: только сбросы, без операций
+localparam IP_NUM   = 5;
+localparam IP_WIDTH = IP_NUM*4;
+
+wire                IpReady;
+wire [IP_WIDTH-1:0] IpOut;
+
+`ifdef NETLIST_SIM
+assign IpReady = 1'b1;
+assign IpOut   = '0;
+`else
+DekatronCounter  #(.D_NUM(IP_NUM),
+                    .WRITE(1'b0),
+                    .TOP_LIMIT_MODE(1'b0),
+                    .HARD_RST_D_CNT(IP_NUM-2)
+)ip_counter(
+    .rst_n    (Rst_n),
+    .clk      (Clk),
+    .hs_clk   (hsClk),
+    .soft_rst (soft_rst),
+    .hard_rst (hard_rst),
+    .valid    (1'b0),
+    .ready    (IpReady),
+    .dec      (1'b0),
+    .set      (1'b0),
+    .set_zero (1'b0),
+    .in       ({IP_WIDTH{1'b0}}),
+    .out      (IpOut),
+    .zero     (),
+    .at_top   ()
+);
+`endif
+
 //----------------------------------------------------------------------
 // Одна быстрая операция (инкремент/декремент).
 // valid выставляется по фронту clk и держится ровно один такт: только
@@ -138,7 +181,7 @@ task automatic do_rst(input bit hard, input bit expected_top);
     soft_rst <= 1'b0;
     hard_rst <= 1'b0;
     @(posedge Clk);
-    while (!Ready) @(posedge Clk);
+    while (!Ready || !IpReady) @(posedge Clk);
 endtask
 
 function automatic [WIDTH-1:0] exp_to_bcd(input int unsigned v);
@@ -147,6 +190,15 @@ endfunction
 
 int errors = 0;
 int exp_val;
+
+task automatic check_ip(input [IP_WIDTH-1:0] v);
+`ifndef NETLIST_SIM
+    if (IpOut !== v) begin
+        errors++;
+        $display("FAIL: IpOut=%h expected=%h at %0t", IpOut, v, $time);
+    end
+`endif
+endtask
 
 task automatic check_out(input int unsigned v);
     exp_val = v % (TOP+1);
@@ -170,8 +222,22 @@ initial begin
     #2000  Rst_n = 1;
     @(posedge Clk);
 
+`ifdef DEKATRON_RANDOM_INIT
+    // Разряды стоят где попало: известное состояние даёт только сброс
+    $display("Power-on: random positions Out=%h IpOut=%h", Out, IpOut);
+    $display("Power-on hard reset test");
+    do_rst(1'b1, 1'b0);
+    check_out(0);
+    check_ip(20'h99900);
+    $display("Power-on soft reset test");
+    do_rst(1'b0, 1'b0);
+    check_out(0);
+    check_ip(20'h00000);
+`else
     // Счётчик декатронов после включения — в нуле.
     check_out(0);
+    check_ip(20'h00000);
+`endif
 
     $display("Increment test (0..%0d)", TOP);
     for (int i=0; i <= TOP; i++) begin
@@ -210,6 +276,7 @@ initial begin
     do_op(1'b0);
     do_rst(1'b0, 1'b0);
     check_out(0);
+    check_ip(20'h00000);
     // zero/at_top — регистровые признаки, обновляются на следующий такт
     // после установления разряда
     repeat (2) @(posedge Clk);
@@ -223,6 +290,7 @@ initial begin
     do_op(1'b0);
     do_rst(1'b1, 1'b0);
     check_out(0);
+    check_ip(20'h99900);
 
     if (errors)
         $display($time/1000, "us << Simulation Complete >> errors=%0d", errors);

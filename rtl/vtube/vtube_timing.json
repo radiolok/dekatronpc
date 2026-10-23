@@ -35,5 +35,11 @@
       "setuphold": {"D": [150, 150]}},
     "GUIDE_EN_J2": {"iopath": {"EN->Y": 150, "G->Y": 150}},
     "RELAY_2CO": {"iopath": {"COIL->C1": 0, "NC1->C1": 0, "NO1->C1": 0, "COIL->C2": 0, "NC2->C2": 0, "NO2->C2": 0}}
-  }
+  },
+  "masked": [
+    {"module": "DekatronCounter",
+     "q": "^(zeroes_q|nines_q)(\\[\\d+\\])?$|^g_top_limit\\.(zero_q|at_top_q)$",
+     "used_when": "valid & ready",
+     "why": "Cathode readings latched every Clk. A write or a reset line ends at any moment, so they change asynchronously; only the cycle that accepts an operation reads them (DekatronCounter, doc/vtube_sdf_timing.md §3.5)."}
+  ]
 }

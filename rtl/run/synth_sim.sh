@@ -12,6 +12,11 @@
 #           vtube_sdf.py) and every trigger a setup/hold checker; a run
 #           with violations fails. Default tests: Dekatron Counter
 #           DekatronPC. Output in synth_sim_timing/ (doc/vtube_sdf_timing.md)
+#     -o HS phase start delay after the Clk edge, hsClk periods of 100 ns
+#           (DEKATRON_PHASE_DELAY_HS, REQ-PULSE-009): at least the worst
+#           step command path. Default 0 (RTL), 22 under -t: the longest
+#           path, ready -> valid -> step_f after a write, is about 2 us
+#           with 150 ns gates (doc/vtube_sdf_timing.md §3.3)
 #     -c NS Clk period in ns for Dekatron, Counter and DekatronPC under -d
 #           (default 1000); the other testbenches keep their own clock
 #     test  Dekatron Counter IpLine ApLine MachineCtrl DekatronPC Pi
@@ -48,17 +53,20 @@ timing=0
 clk_ns=""
 all_tests=(Dekatron Counter IpLine ApLine MachineCtrl DekatronPC)
 
-while getopts "ndtc:h" opt; do
+phase_delay=""
+while getopts "ndtc:o:h" opt; do
 	case ${opt} in
 	n) do_synth=0 ;;
 	d) delay=1 ;;
 	t) timing=1; delay=1 ;;
 	c) clk_ns=${OPTARG} ;;
-	*) sed -n '2,36p' "$0"; exit 1 ;;
+	o) phase_delay=${OPTARG} ;;
+	*) sed -n '2,39p' "$0"; exit 1 ;;
 	esac
 done
 shift $((OPTIND - 1))
 tests=("$@")
+[ ${timing} -ne 0 ] && [ -z "${phase_delay}" ] && phase_delay=22
 if [ ${#tests[@]} -eq 0 ]; then
 	tests=("${all_tests[@]}")
 	[ ${timing} -ne 0 ] && tests=(Dekatron Counter DekatronPC)
@@ -71,13 +79,15 @@ tube=DekatronTubeV2
 tube_rtl=(${root_dir}/DekatronPC/Dekatron/DekatronTubeV2.sv
           ${root_dir}/DekatronPC/Dekatron/DekatronTubeV2_assertions.sv)
 synth_defs=()
-sim_defs=""
+# NETLIST_SIM: the testbench runs on a netlist (one parameter set per
+# synthesized module, e.g. Counter_tb drops its second, IP-like counter)
+sim_defs="-DNETLIST_SIM"
 if [ ${delay} -ne 0 ]; then
 	work_dir=${script_dir}/synth_sim_delay
 	tube=DekatronTubeDelay
 	tube_rtl=(${root_dir}/DekatronPC/Dekatron/DekatronTubeDelay.sv)
 	synth_defs=(-D DEKATRON_DELAY_MODEL)
-	sim_defs=-DDEKATRON_DELAY_MODEL
+	sim_defs+=" -DDEKATRON_DELAY_MODEL"
 	[ -n "${clk_ns}" ] && sim_defs+=" -DCLK_NS=${clk_ns}"
 	if [ ${timing} -ne 0 ]; then
 		work_dir=${script_dir}/synth_sim_timing
@@ -88,6 +98,9 @@ if [ ${delay} -ne 0 ]; then
 	echo "${tube_rtl[0]}" >> "${work_dir}/DPC.files"
 	dpc_files=${work_dir}/DPC.files
 fi
+# Phase start delay: a parameter default of DekatronCounter, so a define at
+# synthesis reaches every counter of the netlist (the OneShot black box keeps it)
+[ -n "${phase_delay}" ] && synth_defs+=(-D DEKATRON_PHASE_DELAY_HS=${phase_delay})
 
 # Per-test setup: synthesized top, its parameters (must match the testbench
 # instantiation), black boxes, RTL put back in simulation, simulation runs.

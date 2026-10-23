@@ -8,6 +8,10 @@
 // Without iverilog -gspecify the blocks are ignored and nothing changes;
 // with it, $sdf_annotate puts the delays of vtube_timing.json on these
 // paths (synth_sim.sh -t, rtl/run/vtube_sdf.py, doc/vtube_sdf_timing.md).
+// Own timescale: the SDF delays are in ns, and without it the cells would
+// inherit the testbench's (DekatronPC_tb: 100 ns, every 150 ns gate became
+// 15 us, doc/vtube_sdf_timing.md §3.4).
+`timescale 1ns/1ps
 
 module BUF_N16(A, Y);
 input A;
