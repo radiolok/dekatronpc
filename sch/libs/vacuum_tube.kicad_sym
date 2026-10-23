@@ -1407,7 +1407,7 @@
 				(hide yes)
 			)
 		)
-		(property "Sim.Library" "${KIPRJMOD}\\..\\libs\\6N16B.sub"
+		(property "Sim.Library" "${KIPRJMOD}/../libs/6N16B.sub"
 			(at 0.508 -28.194 0)
 			(effects
 				(font
@@ -1431,7 +1431,7 @@
 				)
 			)
 		)
-		(property "Sim.Pins" "1=Pa 2=Ka 3=Ga 5=Pb 6=Kb; 7=Gb"
+		(property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb"
 			(at -21.59 -30.988 0)
 			(effects
 				(font
@@ -1626,7 +1626,7 @@
 					(type none)
 				)
 			)
-			(pin output line
+			(pin open_collector line
 				(at 0 10.16 270)
 				(length 2.54)
 				(name "A"
@@ -1662,7 +1662,7 @@
 					)
 				)
 			)
-			(pin bidirectional line
+			(pin passive line
 				(at -2.54 -10.16 90)
 				(length 2.54)
 				(name "K"
@@ -1816,7 +1816,7 @@
 					(type none)
 				)
 			)
-			(pin bidirectional line
+			(pin passive line
 				(at -2.54 -10.16 90)
 				(length 2.54)
 				(name "K"
@@ -1852,7 +1852,7 @@
 					)
 				)
 			)
-			(pin output line
+			(pin open_collector line
 				(at 0 10.16 270)
 				(length 2.54)
 				(name "A"
