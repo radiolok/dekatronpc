@@ -175,7 +175,7 @@ those ports just aren't connected to anything inside.
 |---|---|---|
 | `Impulse` (`rtl/Logic/Impulse.sv`) | `En & ~D_state`, `D_state <= En` on `Clk` | `D_state` is `En` through an inertial `#HS_NS` (100 ns): a pulse of one hs from the rising edge of `En`; `Clk` unused |
 | `OneShot` (`rtl/Logic/OneShot.sv`) | counts `DELAY` `Clk` cycles | window of `DELAY * HS_NS` ns from the rising edge of `En`; restarts if `En` is still high at the end, as the counter does; `Rst_n` cancels it (`disable`); `Clk` unused |
-| `DekatronPhaseGen` | `Impulse`/`OneShot` on `hsClk` | same `Impulse` + 2×`OneShot` + gates, their `Clk` tied to `1'b0`; overlap check on phase edges instead of `hsClk` |
+| `DekatronPhaseGen` | `Impulse`/`OneShot` on `hsClk` | same 2×`Impulse` + 2×`OneShot` (Phase2 starts on the fall of Phase1, no gates since 2026-10-23), their `Clk` tied to `1'b0`; gap check on the fall of Phase1 instead of `hsClk` |
 | `DekatronPulseSender` | StepF&StepR check on `hsClk` | same check on `negedge Clk` |
 | `DekatronCounter` | `writeStart`/`writeTimer`/`phaseGen`/modules on `hs_clk` | all of them get `tclk = 1'b0` |
 | `DekatronModule` | `pulseSender.hsClk = hsClk` | `1'b0` |

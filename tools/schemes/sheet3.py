@@ -16,9 +16,9 @@ def fig_counter():
            "step_f = accept·¬set_any·¬dec", "step_r = accept·¬set_any·dec"])
 
     # окно записи и автомат
-    f.wire([(360, 70), (440, 70)], label="write_req", lx=368, ly=63)
-    f.box(440, 40, 170, 60, "Окно записи", ["OneShot, WR_WINDOW_HS", "пуск: write_req | rst"])
-    f.wire([(525, 100), (525, 130)], label="writing", lx=531, ly=120)
+    f.box(440, 40, 170, 60, "Окно записи", ["OneShot, WR_WINDOW_HS", "пуск: wr_state | rst"])
+    f.wire([(490, 100), (490, 130)], label="writing", lx=444, ly=120)
+    f.wire([(575, 130), (575, 100)], label="wr_state", lx=581, ly=120)
     f.wire([(360, 152), (440, 152)], label="accept, вид", lx=368, ly=145)
     f.box(440, 130, 170, 86, "Автомат", ["IDLE·SET·ZERO·TOP·RST", "ready = IDLE · ¬rst_active",
                                           "ZERO_ONLY: один busy_q"])
@@ -41,7 +41,7 @@ def fig_counter():
           align="start", bcls="tm")
 
     # генератор фаз и формирователь импульсов
-    f.box(150, 250, 150, 60, "DekatronPhaseGen", ["один на счётчик"])
+    f.box(150, 250, 150, 60, "DekatronPhaseGen", ["один на счётчик", "пуск: PHASE_DELAY_HS"])
     f.wire([(300, 280), (350, 280)], label="Phase1·2", lx=304, ly=273)
     f.box(350, 240, 160, 70, "DekatronPulseSender", ["один на счётчик", "4 × И, 2 × ИЛИ"])
     f.wire([(345, 170), (345, 225), (430, 225), (430, 240)], "wacc", label="step_f · step_r",

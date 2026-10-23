@@ -37,6 +37,12 @@
 // выражены параметры *_HS (по умолчанию 100 нс, то есть 10 МГц, как
 // hsClk). Параметры *_HS те же, что у DekatronTubeV2, поэтому
 // DekatronModule и нетлист передают их без изменений.
+//
+// `define DEKATRON_RANDOM_INIT: после включения питания разряд стоит на
+// случайном главном катоде ($urandom), как у настоящего прибора
+// (Harwell 1951: «the Dekatron tubes may light in any position»). Привести
+// машину в известное состояние может только сброс по катодам
+// (doc/harwell_1951_review.md §3). INIT_DIGIT тогда не действует.
 //======================================================================
 
 `default_nettype none
@@ -111,7 +117,14 @@ module DekatronTubeDelay #(
     localparam logic [1:0] MOVE_BACK = 2'd2;   // индекс -1
 
 `ifndef SYNTH
-    logic [29:0] cathodes_q = 30'd1 << (3*INIT_DIGIT);
+    logic [29:0] cathodes_q;
+
+    initial begin
+        cathodes_q = 30'd1 << (3*INIT_DIGIT);
+`ifdef DEKATRON_RANDOM_INIT
+        cathodes_q = 30'd1 << (3*($urandom % 10));
+`endif
+    end
 
     function automatic logic [29:0] main_to_ring(input logic [9:0] pos10);
         main_to_ring = 30'd0;
@@ -136,6 +149,9 @@ module DekatronTubeDelay #(
                          (write_en_i && resetN_en) ||
                          (reset0_i   && resetN_en);
     wire guides_both   = guide_a_i && guide_b_i;
+    // Перекрытие фаз допустимо, пока разряд на подкатоде: он остаётся
+    // там, пока не снята первая линия (см. DekatronTubeV2)
+    wire guides_both_bad = guides_both && on_main;
 
     //------------------------------------------------------------------
     // Требуемое перемещение (та же таблица, что в DekatronTubeV2)
@@ -221,7 +237,7 @@ module DekatronTubeDelay #(
 
     // Совпадения проверяются по истечении нулевой задержки, чтобы не
     // ловить иголки дельта-циклов в нетлисте
-    wire [2:0] bad_now = {wr_conflict, guides_both,
+    wire [2:0] bad_now = {wr_conflict, guides_both_bad,
                           wr_any_active && (guide_a_i || guide_b_i)};
     wire [2:0] bad_d;
     assign #1 bad_d = bad_now;
@@ -269,7 +285,7 @@ module DekatronTubeDelay #(
             assign settled_dbg_o        = wr_any_active &&
                                           (write_req_d == write_req) &&
                                           (reset_req_d == reset_req);
-            assign invalid_dbg_o        = illegal_q || wr_conflict || guides_both;
+            assign invalid_dbg_o        = illegal_q || wr_conflict || guides_both_bad;
         end
         else begin : g_dbg_off
             assign cathodes_dbg_o       = 30'b0;

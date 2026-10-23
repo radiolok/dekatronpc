@@ -25,12 +25,15 @@ module DekatronTubeV2_assertions #(
     input wire [29:0]  cathodes_q
 );
 `ifdef ASSERTIONS
-    // §13.1. Запрет одновременных подкатодных импульсов
+    // §13.1. Одновременные подкатодные импульсы допустимы только как
+    // перекрытие фаз, когда разряд уже на подкатоде (doc/harwell_1951_review.md §2)
+    localparam logic [29:0] MASK_MAIN = 30'b001001001001001001001001001001;
+
     property p_no_simultaneous_guides;
-        @(posedge hsClk) !(guide_a_i && guide_b_i);
+        @(posedge hsClk) !(guide_a_i && guide_b_i && |(cathodes_q & MASK_MAIN));
     endproperty
     a_no_simultaneous_guides: assert property (p_no_simultaneous_guides)
-        else $error("DekatronTubeV2: simultaneous guide_a_i and guide_b_i");
+        else $error("DekatronTubeV2: guide_a_i and guide_b_i together on a main cathode");
 
     // §13.2. Запрет подкатодных импульсов во время записи
     property p_no_guide_during_write;
