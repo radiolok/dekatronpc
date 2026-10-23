@@ -25,9 +25,12 @@
 //   Готовность выводится из известных длительностей, а не из показаний
 //   декатрона: шаг гарантированно укладывается в один такт clk (это
 //   проверяет DekatronModule при компиляции), запись и сброс — в окно
-//   реле времени writeTimer. Таймер запускается в момент, когда счётчик
-//   видит операцию записи или поднятую линию сброса; ready снимается в
-//   тот же момент и возвращается по окончании окна.
+//   реле времени writeTimer. Таймер запускается, когда поднимается линия
+//   записи (автомат вошёл в состояние записи) или линия сброса; ready
+//   снят с такта приёма и возвращается по окончании окна. Окно не
+//   отсчитывается от приёма: линия записи встаёт только на следующем
+//   фронте clk, и при медленном такте окно истекало бы раньше, чем
+//   декатрон успевал записать (doc/vtube_sdf_timing.md §3.3).
 //
 //   Операнды не защёлкиваются (экономия ламп): признаки операции dec,
 //   set, set_zero нужны только до рукопожатия, а in идёт прямо в схему
@@ -95,6 +98,13 @@
 
 `default_nettype none
 
+// Задержка начала фаз от фронта Clk, такты hsClk (REQ-PULSE-009): не
+// короче худшего пути команды шага. В RTL вентили без задержки — 0;
+// нетлист с задержками ламп задаёт её через synth_sim.sh -t
+`ifndef DEKATRON_PHASE_DELAY_HS
+`define DEKATRON_PHASE_DELAY_HS 0
+`endif
+
 module DekatronCounter #(
     parameter unsigned D_NUM          = 3,
     parameter unsigned WIDTH          = D_NUM * DEKATRON_WIDTH,
@@ -122,7 +132,8 @@ module DekatronCounter #(
     // Нарезка такта счёта
     parameter unsigned HS_PER_CLK     = 10,
     parameter unsigned PHASE1_HS      = 3,
-    parameter unsigned PHASE2_HS      = 3
+    parameter unsigned PHASE2_HS      = 3,
+    parameter unsigned PHASE_DELAY_HS = `DEKATRON_PHASE_DELAY_HS
 
 )(
     input  wire             rst_n,      // сброс логики счётчика; разряд НЕ двигает
@@ -285,8 +296,11 @@ module DekatronCounter #(
     wire tclk = hs_clk;
 `endif
 
-    wire write_req = accept & set_any;
-    wire timer_req = write_req | rst_active;
+    // Окно записи запускается подъёмом линии записи (wr_state — автомат
+    // в состоянии записи), а не приёмом операции: линия встаёт на фронт
+    // clk позже приёма, и иначе этот такт съедался бы из окна
+    wire wr_state;
+    wire timer_req = wr_state | rst_active;
     wire write_start;
     wire writing;
 
@@ -337,6 +351,8 @@ module DekatronCounter #(
 
             // ready не зависит от valid и от writing (см. ниже про петлю)
             assign ready   = ~busy_q & ~rst_active;
+            // Окно и от rst_n: после сброса логики счётчик занят одно окно
+            assign wr_state = busy_q;
             assign wr_set  = 1'b0;
             assign wr_zero = busy_q & writing;
             assign wr_top  = 1'b0;
@@ -391,7 +407,8 @@ module DekatronCounter #(
         // от accept, а accept — от ready, поэтому такая зависимость замыкает
         // нуль-задержечную комбинационную петлю
         //
-        //   ready -> accept -> write_req -> Impulse -> OneShot -> writing -> ready
+        //   ready -> accept -> Impulse -> OneShot -> writing -> ready
+        //   (тогда окно запускалось от accept; теперь — от состояния)
         //
         // Петля возникала при любой операции записи, включая автопереходы
         // через верхний предел, и делала set, set_zero и rollover
@@ -402,6 +419,7 @@ module DekatronCounter #(
         // записи и возвращается только по окончании окна, поэтому состояние
         // уже несёт нужную информацию.
         assign ready = (state == ST_IDLE) & ~rst_active;
+        assign wr_state = (state == ST_SET) | (state == ST_ZERO) | (state == ST_TOP);
 
         //------------------------------------------------------------------
         // Линии записи на декады
@@ -423,8 +441,9 @@ module DekatronCounter #(
     wire phase2;
 
     DekatronPhaseGen #(
-        .PHASE1_HS (PHASE1_HS),
-        .PHASE2_HS (PHASE2_HS)
+        .PHASE1_HS      (PHASE1_HS),
+        .PHASE2_HS      (PHASE2_HS),
+        .PHASE_DELAY_HS (PHASE_DELAY_HS)
     ) phaseGen (
         .hsClk  (tclk),
         .Clk    (clk),
@@ -538,7 +557,8 @@ module DekatronCounter #(
                 .RESET_MIN_HS    (RESET_MIN_HS),
                 .HS_PER_CLK      (HS_PER_CLK),
                 .PHASE1_HS       (PHASE1_HS),
-                .PHASE2_HS       (PHASE2_HS)
+                .PHASE2_HS       (PHASE2_HS),
+                .PHASE_DELAY_HS  (PHASE_DELAY_HS)
             ) dModule (
                 .hsClk    (tclk),
                 .GuideA   (guide_a),

@@ -129,6 +129,9 @@ if [ ${sim} -ne 0 ]; then
 
 	./emul Counter
 
+	# Power-on: dekatrons light at random, only the reset lines fix that
+	EMUL_DEFINES="${EMUL_DEFINES:-} -DDEKATRON_RANDOM_INIT" ./emul Counter
+
 	./emul IpLine ${root_dir}/programs/looptest.bfk
 
 	./emul ApLine
@@ -173,6 +176,7 @@ if [ ${delay} -ne 0 ]; then
 	tests_dir=${root_dir}/tests/DekatronPC.sv
 	./emul Dekatron
 	./emul Counter
+	EMUL_DEFINES="${EMUL_DEFINES:-} -DDEKATRON_RANDOM_INIT" ./emul Counter
 	./emul IpLine ${root_dir}/programs/looptest.bfk
 	./emul ApLine
 	./emul MachineCtrl

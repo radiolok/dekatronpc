@@ -59,7 +59,7 @@ Decode on the pair {insn_mode, insn}. All 32 combinations must be covered. Undef
 ## 4. RTL rules
 
 - **Handshake**: Valid/Ready everywhere above the dekatron, and ready must not depend on valid. No APB and no single-cycle Request/Ready pulses.
-- **Dekatron physics (REQ-DEK-\*)**: the tube has no valid/ready/busy and no Valid signal. DekatronCounter derives ready from known durations, and all timing discipline lives there. A discharge can't rest on a guide cathode. Timing parameters (GUIDE_STEP_HS, FALL_STEP_HS, GUIDE_MAX_HS, WRITE_MIN_HS, RESET_MIN_HS, phase split 3/3/4) are explicit and checked at compile time. They stay estimates until calibrated on hardware (OPEN-013/014). Design notes: rtl/DekatronPC/Dekatron/DekatronCounter.md.
+- **Dekatron physics (REQ-DEK-\*)**: the tube has no valid/ready/busy and no Valid signal. DekatronCounter derives ready from known durations, and all timing discipline lives there. A discharge can't rest on a guide cathode. Guide A and guide B pulses must touch or overlap, never leave a gap (REQ-PULSE-008): Phase2 is started by the fall of Phase1, not by gates. Dekatrons light at random on power-up (sim: `define DEKATRON_RANDOM_INIT`), and only the reset lines fix that (REQ-DEK-017). Timing parameters (GUIDE_STEP_HS, FALL_STEP_HS, GUIDE_MAX_HS, WRITE_MIN_HS, RESET_MIN_HS, phase split 3/3/4) are explicit and checked at compile time. They stay estimates until calibrated on hardware (OPEN-013/014). Design notes: rtl/DekatronPC/Dekatron/DekatronCounter.md.
 - **Board boundaries**: codecs and gate cells stay separate instances so P&R can swap them for tube cells. GUIDE_EN_J2 and RELAY_2CO are liberty cells with no function, so ABC never uses them.
 - **Reset lines**: soft_rst/hard_rst are physical lines held by an external time relay, so add no stretch logic. rst_n resets logic only and never moves a discharge. MachineCtrl reacts to the panel reset lines, not only to its own HRST/SRST.
 - **MemLock** (lock_q) is ApLine's only ownership flag (doc/memlock_single_flag.md):
@@ -109,6 +109,7 @@ CI is .github/workflows/*.yml and runs inside the Docker image from ./Dockerfile
 
 Gotchas:
 - CI uses **Icarus 12**, which has no break/continue in testbenches. A local Icarus 13 won't catch this (doc/ci_sim_check.md).
+- **Netlist with tube delays** (`synth_sim.sh -t`) needs the phase start delay (REQ-PULSE-009; `-o`, default 22 = 2.2 µs) and a Clk period of at least 4.5 µs (`-c 5000`). Counter_tb drops its IP-like counter on netlists (`NETLIST_SIM`). doc/vtube_sdf_timing.md §3.3–3.6.
 - **IpLine_tb** runs whatever is in rtl/firmware.hex, and after `-d` that is pi.bfk, which produces a multi-GB VCD. Regenerate first: `python3 generate_rom.py -f ../programs/looptest.bfk -o ../firmware.hex --hex`.
 - **Testbench timing**: testbenches drive DUT inputs with non-blocking assignments after a clock edge. They sample DUT outputs on a clock edge, never with wait() on a decoded line: netlist outputs can pulse for zero time, and the netlist doesn't mask X.
 

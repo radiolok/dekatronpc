@@ -112,6 +112,7 @@ module DekatronModule #(
     parameter unsigned HS_PER_CLK      = 10,
     parameter unsigned PHASE1_HS       = 3,
     parameter unsigned PHASE2_HS       = 3,
+    parameter unsigned PHASE_DELAY_HS  = 0,
 
     // Порядок фаз, дающий инкремент
     parameter bit          INC_BY_A_THEN_B = 1'b1
@@ -296,11 +297,11 @@ module DekatronModule #(
         // по нему признаки переноса и нуля. При окне ровно FALL_STEP_HS
         // разряд падает на главный катод на том же фронте (гонка), и
         // защёлкивается состояние «на подкатоде». Так было при 3/4/3.
-        if ((HS_PER_CLK - PHASE1_HS - PHASE2_HS) <= FALL_STEP_HS)
+        if ((HS_PER_CLK - PHASE_DELAY_HS - PHASE1_HS - PHASE2_HS) <= FALL_STEP_HS)
             $error("DekatronModule: окно сваливания (%0d) <= FALL_STEP_HS (%0d): шаг не укладывается в такт Clk",
-                   HS_PER_CLK - PHASE1_HS - PHASE2_HS, FALL_STEP_HS);
+                   HS_PER_CLK - PHASE_DELAY_HS - PHASE1_HS - PHASE2_HS, FALL_STEP_HS);
 
-        if ((PHASE1_HS + PHASE2_HS) >= HS_PER_CLK)
+        if ((PHASE_DELAY_HS + PHASE1_HS + PHASE2_HS) >= HS_PER_CLK)
             $error("DekatronModule: фазы занимают весь такт, окна сваливания не остаётся");
 
         if (TOP_PIN_OUT > 9)
