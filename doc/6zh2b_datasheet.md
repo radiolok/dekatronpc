@@ -9,7 +9,7 @@ Both scans were supplied by the owner; neither has a URL. The tables are transcr
 
 On the 6Ж2Б-В sheet, the "-В" means increased reliability. Its limits differ from the handbook's in places, and **its lead numbering is different** (see [Pinout](#pinout-and-dimensions)).
 
-This repo already has a KiCad symbol `vacuum_tube:6Ж2Б` and a liberty cell `BUF_6J2B` (`rtl/vtube/vtube_cells.lib`). There is no SPICE model for this tube yet.
+This repo already has a KiCad symbol `vacuum_tube:6Ж2Б` and liberty cells `BUF_6J2B`, `NAND2_J2` (`rtl/vtube/vtube_cells.lib`). The SPICE model is `sch/libs/6Zh2B.sub`, fitted to the curves on this page by `tools/spice/fit_6zh2b.py`; the comparison is in [Model](#model).
 
 ## Description
 
@@ -170,3 +170,23 @@ Read by hand:
 Across the curves, the largest step against the expected direction is 0.055 mA, about one line width.
 
 To redraw the figures: `tools/spice/datasheet_6zh2b_plots.py [OUT_DIR]` (default `doc/img`).
+
+## Model
+
+`sch/libs/6Zh2B.sub` is a behavioural model fitted to Рис. 215 and 216 by `tools/spice/fit_6zh2b.py`, which also writes the file. Its equations and assumptions are in `doc/nand2_j2_6zh2b.md`, section Model.
+
+![sheet vs model](img/6zh2b_model.png)
+
+| Point | Sheet | Model |
+|---|---|---|
+| Ia, Ug1 = 0, Ua = 50 V | 11.19 mA | 10.85 mA (−3 %) |
+| Ig2, Ug1 = 0, Ua = 50 V | 10.96 mA | 11.12 mA (+1 %) |
+| Ia, Ug1 = −2 V, Ua = 120 V | 5.40 mA | 5.24 mA (−3 %) |
+| Ia, Ug1 = −4 V, Ua = 120 V | 1.06 mA | 0.94 mA (−12 %) |
+| Ia / Ig2, Ug1 = −1 V, Ug3 = −5 V | 2.22 / 10.73 mA | 2.30 / 11.07 mA |
+| Ia, Ug1 = −1 V, Ug3 = 0 | 9.07 mA | 8.90 mA (−2 %) |
+| Ig2, Ug1 = −1 V, Ug3 = −9.9 V | 12.12 mA | 12.67 mA (+5 %) |
+| Self-bias point, Rk = 200 Ω: Ia, Ig2 at Ug1 = −1.85 V | 6.0, 3.2 mA (table 5.5 ± 2, ≤ 6) | 5.73, 2.98 mA |
+| S at that point | 3.5 mA/V (table 3.2 ± 1.3) | 3.34 mA/V |
+
+The table is printed by `tools/spice/datasheet_6zh2b_plots.py`, which draws the figure through ngspice.
