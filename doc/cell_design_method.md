@@ -1,6 +1,6 @@
 # How to design a tube logic cell
 
-The method is distilled from the first cell, NOR2_N16 (`doc/nor2_n16_6n16b.md`). Use it for NOT_N16, BUF_N16, OR2_N16 and the rest of REQ-MOD-003. Each step lists what to do, what to check, and the traps already hit once.
+The method is distilled from the first cell, NOR2_N16 (`doc/nor2_n16_6n16b.md`), and extended with the second, NAND2_J2 on a 6Zh2B pentode (`doc/nand2_j2_6zh2b.md`). Use it for NOT_N16, BUF_N16, OR2_N16 and the rest of REQ-MOD-003. Each step lists what to do, what to check, and the traps already hit once.
 
 Requirements: REQ-MOD-012 (levels), REQ-MOD-004 (delays, fan-out, power), REQ-MOD-005 (boards), REQ-AUTH-* (no silicon).
 
@@ -119,6 +119,16 @@ A cell is accepted when all of these hold at every fanout from 2 to the target:
 - **Cathode follower output.** Fast, with fanout-independent levels, but +0.5 tube per gate. Use it only where a cell really needs a low-impedance output, and only with the owner's agreement on the tube budget (REQ-MOD-009).
 - **Ra.** Choose it so that VOL with one triode on is close to the HV "0" nominal (+50 V), then check Pa and Ik. A lower Ra is faster but raises VOL and Pa.
 - **Unused inputs.** Tie them to another input of the same cell. An open grid is undefined, and a grid tied to −50 V sits right at the limit.
+
+## 4a. Traps found on NAND2_J2 (pentode, AND-type cells)
+
+- **No model, or a sheet with one screen voltage.** Fit a behavioural model to the digitized curves (`tools/spice/fit_6zh2b.py`) and let the script write the `.sub`. Anything the sheet does not cover (the Ug2 law, grid currents, the capacitances of g3) is an assumption: list it on the cell page and sweep the cell over it.
+- **Held-high grid plus a plate swing = Miller integrator.** In an AND-type cell one input sits clamped at "1" while the other switches the plate by 95 V. A grid with real capacitance to the plate (g3 of a pentode: Cg3a ≈ 1.6 pF) is pulled out of its clamp, the 140 kΩ divider cannot pull it back, and the edge crawls at I_divider / Cg (0.5–1 µs). NOR cells never meet this, because a "1" on any input already holds the output low. Check every arc with the other input held at "1", and hold such a grid with capacitance: a fixed C in the cell and a larger divider C1 for that grid type.
+- **C1 per grid type.** When grids of different types load a net, C1 = Σ (C1 per grid of that type). Bound each type separately: too small and that input crawls, too large and the kick on the falling edge grows and the driver rises slower.
+- **The screen supply limits current, not only voltage.** A pentode whose g3 diverts the plate current to the screen dissipates it there. Size the screen resistor for Ik and Pg2 in the state where the plate is cut off by g3, and check both at the ends of the model spread (MU2 ± 20 %).
+- **Plate current in the knee.** VOL ≈ +50 V puts a pentode into the knee, where the plate takes about half of the cathode current. Ra follows from the Ik limit, not from the speed: for the 6Zh2B Ra ≥ 15k.
+- **A cathode resistor does not help** a cell whose speed is set by a held grid: the cathode rises with the current and takes that grid further below its clamp.
+- **One measurement routine for the sweep and the KiCad sheet.** Generate the `.meas` lines from the input sequence in one function and use it in both (`nand2_sweep.meas_lines`); the KiCad result then compares line by line.
 
 ## 5. Draw the cell in KiCad
 
