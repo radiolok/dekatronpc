@@ -26,19 +26,26 @@ The level families and how cells join:
 
 ## 1. The tube model
 
-1. Take the model from `sch/libs/<tube>.sub` and check it against the datasheet before trusting any result:
+1. Redraw the tube's reference sheet as a page first, the way `doc/6n16b_datasheet.md` does for the 6N16B:
+   - tables transcribed;
+   - curves digitized into `doc/data/<tube>_datasheet.json`;
+   - plots drawn by a script (`tools/spice/datasheet_6n16b_plots.py` as the template);
+   - a model comparison.
+
+   Digitizing: render the PDF at 300 dpi, calibrate the grid, separate curves from grid lines by thickness (curves ~5 px, grid 2–3 px), assign points to curves (by order along a row, or within a guided band), and always overlay the points on the scan before trusting them. Values read by eye without the overlay were off by 10 V on the first attempt.
+2. Take the model from `sch/libs/<tube>.sub` and check it against the datasheet before trusting any result:
    - at least one operating point (Ia at the datasheet Ua and Ug);
    - transconductance S around that point;
    - one point on the Ia = f(Ua) curve at Ug = 0.
 
    The model has to land inside the datasheet spread. Use a short `.dc` deck run with `tools/spice/ngrun.py`.
-2. Check the pinout three ways: datasheet drawing, KiCad symbol pin numbers, and the `Sim.Pins` map (`symbol_pin=subckt_pin`, e.g. `1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb`). Leave heater pins out of `Sim.Pins`. The old 6N16B map mixed the two triodes.
-3. Write the model for ngspice:
+3. Check the pinout three ways: datasheet drawing, KiCad symbol pin numbers, and the `Sim.Pins` map (`symbol_pin=subckt_pin`, e.g. `1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb`). Leave heater pins out of `Sim.Pins`. The old 6N16B map mixed the two triodes.
+4. Write the model for ngspice:
    - No PSpice-only functions: `PWRS` → `PWR(MAX(x,0),EX)`.
    - `LOG` is the natural log.
    - Put 1 GΩ from each plate to its cathode, so no node floats.
-4. The neon model in `sch/libs/neon.sub` uses LTspice-only `SW` parameters (`Vser`). For ngspice use a switch with hysteresis: strike voltage on, hold current off.
-5. Library files under `sch/libs` use CRLF line endings. Keep them: `open(..., newline='')`, or `sed -i 's/$/\r/'` after a rewrite.
+5. The neon model in `sch/libs/neon.sub` uses LTspice-only `SW` parameters (`Vser`). For ngspice use a switch with hysteresis: strike voltage on, hold current off.
+6. Library files under `sch/libs` use CRLF line endings. Keep them: `open(..., newline='')`, or `sed -i 's/$/\r/'` after a rewrite.
 
 ## 2. Find the circuit in plain SPICE first
 
