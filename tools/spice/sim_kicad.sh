@@ -10,7 +10,9 @@ OUT=${2:-$(mktemp -d)}
 PRJ=$(dirname "$SCH")
 NAME=$(basename "$SCH" .kicad_sch)
 mkdir -p "$OUT"
-kicad-cli sch export netlist --format spice -o "$OUT/$NAME.cir" "$SCH" 2>/dev/null
+[ -f "$PRJ/$NAME.kicad_pro" ] || { echo "no $PRJ/$NAME.kicad_pro: kicad-cli needs the project file next to the sheet" >&2; exit 1; }
+kicad-cli sch export netlist --format spice -o "$OUT/$NAME.cir" "$SCH" 2>/dev/null \
+  || { echo "kicad-cli netlist export failed for $SCH" >&2; exit 1; }
 sed -i "s|^\.include \"/\.\./|.include \"$PRJ/../|" "$OUT/$NAME.cir"
 cd "$OUT"
 python3 "$HERE/ngrun.py" "$NAME.cir" run \
