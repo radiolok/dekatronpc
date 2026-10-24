@@ -2,7 +2,7 @@
 
 Instructions for an agent that turns scanned tube reference sheets (PDF) into data files: tables as text, curves as numbers. The output is used by a tube tester project, so values must be exact where the sheet is exact, and never invented.
 
-The method was worked out on the 6N16B sheet; the result is `doc/6n16b_datasheet.md` with data in `doc/data/6n16b_datasheet.json`. Use those two files as the reference for what finished work looks like.
+The method was worked out on the 6N16B sheet; the result is `doc/6n16b_datasheet.md` with data in `doc/data/6n16b_datasheet.json`. Use those two files as the reference for what finished work looks like. The second example is the 6Zh2B (`doc/6zh2b_datasheet.md`, `doc/data/6zh2b_datasheet.json`). It is a pentode from a skewed low-resolution GIF scan, with solid and dashed families on one plot and two sheets that disagree.
 
 Tool: `tools/digitize/digitize.py`. Copy it, together with this file, into the project that does the work.
 
@@ -32,6 +32,8 @@ Work in one folder per tube, for example `work/6N16B/`.
 ```
 D render sheet.pdf --out page{n}.png        # all pages at 300 dpi
 ```
+
+If the sheet comes as images (GIF, PNG, JPEG) rather than a PDF, convert each to a greyscale PNG with Pillow, for example `Image.open("p1.gif").convert("L").save("page1.png")`. Keep a copy of the original images next to the JSON, because without a URL they are the only source.
 
 Open every page image and make a list of what is on it:
 - text blocks;
@@ -74,6 +76,16 @@ D crop page2.png --box 0.57 0.32 0.86 0.63 --out iaug.png
 ```
 
 `--box` takes x0 y0 x1 y1 as fractions of the page (or pixels). Include the axis labels but not the neighbouring plot. Open the crop and check that nothing is cut off.
+
+**Skew.** Check whether the grid lines are straight. For example, find the lines separately in the left and right thirds of the crop and compare their positions. A tilt of more than about 1 px across the plot must be removed, because the two-point calibration cannot absorb it:
+
+```
+D deskew iaug.png --out iaug_d.png      # prints the tilt of horizontal and vertical lines, then shears them straight
+```
+
+Run `deskew` before `grid`, and work on the deskewed crop from then on, overlays included.
+
+**Low resolution** (GIF or JPEG scans with about 20 px per grid step, where curves are 2 px and grid lines 1–2 px): upscale the deskewed crop 3× with bicubic resampling before `grid`, for example with Pillow `im.resize((3*W, 3*H), Image.BICUBIC)`. Then the run-length thresholds have room: grid lines become about 1–5 px and curves 5–7 px. Upscaling adds no detail, so the accuracy stays one line width of the original.
 
 ### 4.2 Find the grid
 
@@ -140,6 +152,8 @@ Choosing the band options:
 - **Solid curves:** `--minlen 5`. That rejects the grid and thin dashed lines.
 - **Dashed or dash-dot curves:** `--minlen 1 --maxlen 4`, a narrower band (`--width 14`), and guides that keep away from the other curves.
 - **Where two curves come close:** narrow the band there (10 px). If the curves still mix, add guide points.
+- **Curves lying on a grid line.** `--skip` drops every crossing near a grid line, so a curve that runs along a grid line loses all its points there. Run a second pass with `--skip 0` and `--minlen` above the thickest bare grid line, so that only the merged curve-plus-grid run is accepted. Then merge the two point sets. The merged run's centre is biased towards the grid line by at most half the offset. Where the curve lies exactly on the line, the merged run is no thicker than the curve and is lost too. In that case read the value by hand as the grid value ± half a line width (4.7).
+- **Solid and dashed families on one plot** (for example Ia solid and Ig2 dashed): run `band` once per family with its own guides. Where a solid and a dashed line become one line on the sheet, both curves keep the points of that line; write the range in the note.
 
 Scan direction (`--mode`): `cols` (the default) suits curves that run mostly left to right; `rows` suits steep curves.
 
@@ -152,6 +166,7 @@ D fit raw_S.json --basis sqrt --deg 3 --step 0.25 --lo 1 --hi 9 --out S.json
 ```
 
 - **Basis:** use `sqrt` for curves that rise fast and then flatten (currents), `log` for slow saturation (μ), `inv` for 1/x shapes (Ri), `x` otherwise.
+- **`median` (no shape):** the median of the raw points in each bin of width `--step`, for bins with at least 3 points. Use it when the band points are dense and clean and a polynomial lags at a steep start or drifts at an end. On the 6Zh2B, deg 3–4 fits missed the steep starts of the Ig2 curves by several line widths, and the medians did not. A bin that contains a crossing takes points from both curves; check crossings in the overlay.
 - **Range:** set `--lo` and `--hi` to the drawn ends of the curve, never wider.
 - **Fit quality:** the command prints the kept points and the largest residual; the residual should be about one line width. If it keeps less than 60 % of the points, the band was wrong.
 
@@ -193,6 +208,10 @@ Run these after all plots of a tube are done. Each one either passes, or is repo
 | Two families agree | Ia from Ia = f(Ua) at a (Ug, Ua) point vs Ia = f(Ug) at the same point, at 4–5 points | within ~10 % or 0.5 mA. The sheets themselves disagree this much: 6N16B up to 0.46 mA (7 %). A larger gap usually means a swapped curve or a wrong calibration |
 | Monotonic | plate current grows with Ua and with Ug | no reversals larger than the reading accuracy |
 | Ratings | the Pa max line on the sheet equals Pa max in the ratings table | same value |
+
+For a **pentode** the table usually gives no μ or Ri, so S·Ri = μ is dropped. Self-bias then uses the cathode current: Ug1 = −(Ia + Ig2)·Rk. On the 6Zh2B this gives Ug1 = −1.85 V, Ia = 6.0 mA against the table's 5.5 ± 2 mA. "Two families agree" compares the plots at the point they share, for example Ia = f(Ug3) at Ug3 = 0 against Ia = f(Ua) at the nominal Ua. If the curves run past the ratings (Pa, Pg2, Ik, Ua), say so in the checks with the numbers; that is not a failure.
+
+**Two sheets for one tube** (a handbook page and a ТУ label sheet, or a tube and its "-В" version): transcribe both and keep them apart in the JSON (for example `variant_6Zh2B_V`). List every value that differs. Pin numbering in particular can differ between the sheets. Never merge two pinouts. Put both in the report, and say which one the KiCad symbol follows.
 
 ## 6. Output format
 
@@ -254,6 +273,11 @@ Leave that plot's `"curves"` as `null` with the reason, and continue with the ne
 | Fit end effects | the first and last fitted points drift | trim `--lo`/`--hi` to the drawn ends; check the ends in the overlay |
 | Reading values without overlay | silent errors of several volts | never skip `overlay` |
 | Two curves swapped | values look plausible but belong to the neighbour | check the left-to-right order against the labels on the sheet |
+| Skewed scan | horizontal grid lines drift by several px from left to right; calibration is right at one end and wrong at the other | `deskew` before `grid` |
+| Low-resolution GIF/JPEG | curves and grid are both 1–2 px, `--minlen` cannot separate them | upscale the deskewed crop 3× before `grid` |
+| Curve along a grid line | `--skip` drops the whole stretch, and the curve ends early | second `band` pass with `--skip 0` and a high `--minlen`; hand reading where the curve lies exactly on the line |
+| Polynomial fit at a steep start | the fit lags the line by several line widths | `fit --basis median` |
+| Saving overlays with a small palette | the coloured points disappear | save as RGB PNG |
 
 ## 9. Report for each tube
 

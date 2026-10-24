@@ -4,6 +4,7 @@
 Commands (run with -h for options):
   render   PDF page -> PNG (300 dpi)                     needs pymupdf
   crop     cut one plot out of a page PNG
+  deskew   straighten a crop whose grid lines are tilted
   grid     find grid line positions in a plot PNG
   scan     list curve crossings along rows or columns, in data units
   band     collect curve points inside a band around a rough guide, per curve
@@ -110,6 +111,37 @@ def cmd_crop(a):
     print("wrote", a.out, "size", int(x1 - x0), "x", int(y1 - y0))
 
 
+def cmd_deskew(a):
+    """measure the tilt of grid lines in slabs across the plot and shear the image so they are straight"""
+    im = Image.open(a.png).convert("L"); b = np.asarray(im) < 128
+    H, W = b.shape
+
+    def peaks(p):
+        idx = np.nonzero(p > a.thr)[0]; g = []
+        for i in idx:
+            if g and i - g[-1][-1] <= 1: g[-1].append(i)
+            else: g.append([i])
+        return [float(np.average(x, weights=p[x])) for x in g]
+
+    def slope(prof, n, size):
+        """prof(start) -> line positions in the slab at start; returns median d(position)/d(slab centre)"""
+        starts = list(range(0, n - size, size // 2)); found = [(s + size / 2, peaks(prof(s))) for s in starts]
+        ref = max(found, key=lambda f: len(f[1]))
+        ks = []
+        for p0 in ref[1]:
+            t = [(c, min(ps, key=lambda q: abs(q - p0))) for c, ps in found if ps and min(abs(q - p0) for q in ps) <= 3]
+            if len(t) >= 3:
+                c, q = np.array(t).T; ks.append(np.polyfit(c, q, 1)[0])
+        return float(np.median(ks)) if ks else 0.0, len(ks)
+    sh, nh = slope(lambda s: b[:, s:s + a.slab].mean(1), W, a.slab)   # horizontal lines: dy/dx
+    sv, nv = slope(lambda s: b[s:s + a.slab, :].mean(0), H, a.slab)   # vertical lines: dx/dy
+    print(f"horizontal lines dy/dx = {sh:+.5f} ({nh} lines, {sh * W:+.2f} px across)")
+    print(f"vertical lines   dx/dy = {sv:+.5f} ({nv} lines, {sv * H:+.2f} px down)")
+    xc, yc = W / 2, H / 2
+    out = im.transform((W, H), Image.AFFINE, (1, sv, -sv * yc, sh, 1, -sh * xc), resample=Image.BICUBIC, fillcolor=255)
+    out.save(a.out); print("wrote", a.out)
+
+
 def cmd_grid(a):
     b = load_bw(a.png)
     H, W = b.shape
@@ -213,6 +245,13 @@ def cmd_fit(a):
         if len(p) < a.deg + 2:
             print(f"{name}: too few points ({len(p)}), copied as is"); out[name] = p.tolist(); continue
         x, y = p[:, 0], p[:, 1]
+        if a.basis == "median":  # no shape assumed: median of the raw points in each bin of width step
+            lo = a.lo if a.lo is not None else x.min(); hi = a.hi if a.hi is not None else x.max()
+            res = []
+            for t in np.arange(lo, hi + 1e-9, a.step):
+                m = np.abs(x - t) <= a.step / 2
+                if m.sum() >= 3: res.append([round(float(t), 5), round(float(np.median(y[m])), 5)])
+            out[name] = res; print(f"{name}: {len(res)} bins with >= 3 points"); continue
         f = {"x": lambda t: t, "sqrt": lambda t: np.sqrt(np.clip(t - x.min(), 0, None)),
              "log": np.log, "inv": lambda t: 1 / t}[a.basis]
         keep = np.ones(len(x), bool)
@@ -262,6 +301,9 @@ def main():
     c = s.add_parser("crop"); c.add_argument("png"); c.add_argument("--box", type=float, nargs=4, required=True,
                                                                      help="x0 y0 x1 y1 in px, or fractions of the page if all <= 1")
     c.add_argument("--out", required=True)
+    c = s.add_parser("deskew"); c.add_argument("png"); c.add_argument("--slab", type=int, default=60, help="slab width (px)")
+    c.add_argument("--thr", type=float, default=0.5, help="share of dark pixels in a slab that makes a grid line")
+    c.add_argument("--out", required=True)
     c = s.add_parser("grid"); c.add_argument("png"); c.add_argument("--thr", type=float, default=0.45,
                                                                      help="share of dark pixels that makes a grid line")
     for name in ("scan", "band", "order"):
@@ -278,7 +320,7 @@ def main():
             c.add_argument("--mode", choices=["rows", "cols"], default="cols"); c.add_argument("--out", required=True)
         if name == "order": c.add_argument("--curves", required=True); c.add_argument("--out", required=True)
     c = s.add_parser("fit"); c.add_argument("points"); c.add_argument("--deg", type=int, default=3)
-    c.add_argument("--basis", choices=["x", "sqrt", "log", "inv"], default="x"); c.add_argument("--step", type=float, required=True)
+    c.add_argument("--basis", choices=["x", "sqrt", "log", "inv", "median"], default="x"); c.add_argument("--step", type=float, required=True)
     c.add_argument("--lo", type=float); c.add_argument("--hi", type=float); c.add_argument("--tol", type=float, default=0.0)
     c.add_argument("--out", required=True)
     c = s.add_parser("overlay"); c.add_argument("png"); c.add_argument("--cal", required=True)
