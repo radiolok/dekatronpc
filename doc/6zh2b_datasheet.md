@@ -56,6 +56,7 @@ End-of-life criteria for the 6Ж2Б-В:
 | input | 4.9 ± 0.85 pF | 4.05–5.75 pF |
 | output | 4.1 ± 1.0 pF | 3.1–5.1 pF |
 | grid 1 – plate (transfer) | ≤ 0.03 pF | ≤ 0.03 pF |
+| grid 3 – plate | not given | not given; **1.8 pF measured** by the owner on one 6Ж2Б-В, 2026-10-24 (cold tube) |
 | cathode – heater | ≤ 7 pF | ≤ 7 pF |
 
 ## Maximum and minimum ratings

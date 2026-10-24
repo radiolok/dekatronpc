@@ -215,7 +215,7 @@ cell.text("NAND2_J2: Y = ~(A & B). One 6Zh2B (6Ж2Б), dual-control pentode: A o
           "Inputs A, B: LV level (1 = +10 V, 0 = -20 V). Output Y: HV level on the plate (1 = +150 V, 0 = +50 V).\n"
           "Ra 15k, screen Rg2 15k from +150 V (Ug2 <= 96 V while conducting, 150 V cut off),\n"
           "Cb 15 pF holds g3 against the plate fall through Cg3a (Miller kick while B is high).\n"
-          "Simulated: Y = 145 V (1), 44...56 V (0); Ik <= 12.6 mA, Pg2 0.37 W; fanout 2/10: tpHL 171/377 ns, tpLH 134/467 ns.\n"
+          "Simulated: Y = 145 V (1), 44...56 V (0); Ik <= 12.6 mA, Pg2 0.37 W; fanout 2/10: tpHL 185/396 ns, tpLH 136/466 ns (Cg3a 1.8 pF, measured).\n"
           "Each HV net that drives grids needs one divider HV -> LV: 470k || C1 from the net to the LV net, 200k to -50 V,\n"
           "C1 = 3.9 pF per g1 grid + 6.8 pF per g3 grid on that net (see NAND2_J2_tb). Inputs only from such a divider.\n"
           "Unused input: tie it to the other input. Supplies: +150 V, -50 V (dividers only), heater 6.3 V 0.2 A on H1/H2.\n"

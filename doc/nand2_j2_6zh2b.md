@@ -12,11 +12,12 @@ Cell page. REQ-MOD-005 (2И-НЕ board), REQ-MOD-012 (logic levels), REQ-MOD-004
 | Supplies | +150 V (plate through Ra, screen through Rg2); −50 V (dividers only); heater 6.3 V, 0.2 A |
 | Parts | Ra 15 kΩ, Rg2 15 kΩ, Cb 15 pF; per driven LV net a divider 470 kΩ ‖ C1 / 200 kΩ, C1 = 3.9 pF per g1 grid + 6.8 pF per g3 grid |
 | Output levels | Y = 145 V (1); 44 V (0), 38…52 V over MU2 ± 20 % |
-| Delay, fanout 2 … 10 | tpHL 149 … 377 ns, tpLH 126 … 467 ns (both inputs, see Fanout) |
-| Grid, worst transient | −26.5 V (limit −50 V) |
+| Delay, fanout 2 … 10 | tpHL 166 … 396 ns, tpLH 122 … 466 ns (both inputs, see Fanout) |
+| Grid, worst transient | −26.0 V (limit −50 V) |
+| Cg3a | 1.8 pF, measured by the owner on a 6Ж2Б-В |
 | Ik, Pa, Pg2, worst static | 12.6 mA, 0.33 W, 0.37 W (limits 14 mA, 0.9 W, 0.6 W) |
 
-The owner confirmed on 2026-10-24: A on g1, B on g3, both LV (+10 / −20 V), output HV (+150 / +50 V), one 6Zh2B, supplies +150 / −50 V, the screen fed through a dropping resistor Rg2 from +150 V (no new rail); and, after the first sweep, passive compensation of the g3 Miller effect (Cb in the cell, larger C1 for g3 grids) instead of a cathode follower.
+The owner confirmed on 2026-10-24: A on g1, B on g3, both LV (+10 / −20 V), output HV (+150 / +50 V), one 6Zh2B, supplies +150 / −50 V, the screen fed through a dropping resistor Rg2 from +150 V (no new rail); and, after the first sweep, passive compensation of the g3 Miller effect (Cb in the cell, larger C1 for g3 grids) instead of a cathode follower. The owner then measured Cg3a = 1.8 pF on a 6Ж2Б-В (2026-10-24); all figures on this page use that value.
 
 ## Logic levels
 
@@ -69,7 +70,7 @@ VOL ≈ 50 V needs Ia ≈ 100 V / Ra. With Ra = 10k that is 10 mA of plate curre
 
 This is the trap specific to an AND-type cell. In NOR2_N16, an input held at "1" means the output is already low, so no other input can make a large plate swing while a grid sits clamped at "1". In this NAND it is the normal case: B holds g3 at "1", and A switches the tube on. The plate falls by 95 V and pulls g3 down through Cg3a. The divider (140 kΩ) can supply only about 0.07 mA to restore g3, and g3 out of its clamp cuts the plate current, so the plate falls as a Miller integrator at about 0.07 mA / Cg3a ≈ 40 V/µs.
 
-Without compensation (C1 = 3.9 pF per grid on every net, no Cb) the A↑ → Y↓ arc takes 480 ns at fanout 2 with Cg3a = 1.6 pF and 890 ns with 2.5 pF, whatever the fanout. g1 has no such problem: Cg1a ≤ 0.03 pF.
+Without compensation (C1 = 3.9 pF per grid on every net, no Cb) the A↑ → Y↓ arc takes 577 ns at fanout 2 and 670 ns at fanout 10 with the measured Cg3a = 1.8 pF (890 ns with 2.5 pF): it hardly depends on the fanout. g1 has no such problem: Cg1a ≤ 0.03 pF.
 
 The fix holds g3 with capacitance:
 
@@ -80,30 +81,31 @@ Bounds at fanout 4 (`tools/spice/nand2_sweep.py`; VOL is the worst value 2 µs a
 
 | C1 per g3 grid (Cb 15 pF) | Lowest grid | VOL after 2 µs | tpHL A / B | tpLH A / B | Verdict |
 |---|---|---|---|---|---|
-| 3.9 pF | −23.5 V | 86 V | 196 / 1009 ns | 73 / 170 ns | under-compensated, B crawls |
-| 4.7 pF | −24.0 V | 71 V | 202 / 566 ns | 129 / 180 ns | under-compensated |
-| 5.6 pF | −25.0 V | 55 V | 210 / 309 ns | 183 / 191 ns | works, near the cliff above |
-| **6.8 pF** | **−26.3 V** | **54 V** | **220 / 223 ns** | **222 / 203 ns** | **chosen** |
-| 8.2 pF | −29.5 V | 54 V | 229 / 190 ns | 237 / 216 ns | slower rise |
-| 10 pF | −33.0 V | 54 V | 239 / 175 ns | 255 / 234 ns | slower rise |
-| 12 pF | −36.7 V | 54 V | 248 / 168 ns | 275 / 252 ns | slower rise, deeper kick |
+| 3.9 pF | −23.3 V | 90 V | 219 / 1087 ns | 57 / 164 ns | under-compensated, B crawls |
+| 4.7 pF | −23.7 V | 76 V | 224 / 670 ns | 116 / 173 ns | under-compensated |
+| 5.6 pF | −24.5 V | 60 V | 232 / 344 ns | 172 / 183 ns | B still slow |
+| **6.8 pF** | **−25.9 V** | **58 V** | **241 / 239 ns** | **224 / 195 ns** | **chosen**: arcs balanced |
+| 8.2 pF | −28.4 V | 58 V | 250 / 200 ns | 240 / 208 ns | slower rise |
+| 10 pF | −31.9 V | 58 V | 259 / 182 ns | 258 / 225 ns | slower rise |
+| 12 pF | −36.0 V | 57 V | 268 / 174 ns | 278 / 243 ns | slower rise, deeper kick |
 
 | Cb (C1 6.8 pF per g3 grid) | Lowest grid | VOL after 2 µs | tpHL A / B | tpLH A / B | Verdict |
 |---|---|---|---|---|---|
-| none | −59.7 V | 55 V | 431 / 92 ns | 169 / 159 ns | g3 below −50 V; slow A arc |
-| 6.8 pF | −34.5 V | 55 V | 281 / 136 ns | 199 / 184 ns | — |
-| 10 pF | −29.8 V | 55 V | 247 / 162 ns | 210 / 192 ns | — |
-| **15 pF** | **−26.3 V** | **54 V** | **220 / 223 ns** | **222 / 203 ns** | **chosen**: arcs balanced |
-| 22 pF | −24.4 V | 67 V | 202 / 432 ns | 166 / 213 ns | over-loads g3, B slow |
+| none | −57.4 V | 60 V | 513 / 98 ns | 175 / 152 ns | g3 below −50 V; slow A arc |
+| 6.8 pF | −33.7 V | 59 V | 329 / 144 ns | 204 / 177 ns | — |
+| 10 pF | −28.8 V | 59 V | 281 / 171 ns | 214 / 185 ns | — |
+| **15 pF** | **−25.9 V** | **58 V** | **241 / 239 ns** | **224 / 195 ns** | **chosen**: arcs balanced |
+| 18 pF | −25.1 V | 58 V | 228 / 307 ns | 205 / 201 ns | B slower |
+| 22 pF | −24.0 V | 71 V | 216 / 481 ns | 153 / 206 ns | over-loads g3, B slow |
 
 | C1 per g1 grid | Lowest grid | tpHL A / B | tpLH A / B |
 |---|---|---|---|
-| 2.7 pF | −21.3 V | 274 / 215 ns | 208 / 191 ns |
-| 3.3 pF | −22.3 V | 236 / 219 ns | 215 / 197 ns |
-| **3.9 pF** (as in NOR2_N16) | **−26.3 V** | **220 / 223 ns** | **222 / 203 ns** |
-| 4.7 pF | −32.5 V | 210 / 228 ns | 230 / 210 ns |
+| 2.7 pF | −21.3 V | 300 / 230 ns | 211 / 184 ns |
+| 3.3 pF | −22.3 V | 258 / 234 ns | 217 / 190 ns |
+| **3.9 pF** (as in NOR2_N16) | **−25.9 V** | **241 / 239 ns** | **224 / 195 ns** |
+| 4.7 pF | −31.7 V | 231 / 244 ns | 231 / 201 ns |
 
-The g1 grid keeps the NOR rule of 3.9 pF per grid, so a net that drives NOR and NAND g1 inputs uses one rule. A larger search over Ra (12–18k), Rg2 (10–18k), C1 and Cb (192 combinations, fanout 4 and 6, Cg3a 1.6 and 2.5 pF) found nothing more than about 15 % faster within the limits.
+The g1 grid keeps the NOR rule of 3.9 pF per grid, so a net that drives NOR and NAND g1 inputs uses one rule. A larger search over Ra (12–18k), Rg2 (10–18k), C1 and Cb (192 combinations, fanout 4 and 6, Cg3a 1.6 and 2.5 pF, before the measurement) found nothing more than about 15 % faster within the limits; with the measured 1.8 pF the chosen pair is again the best of C1 5.6–8.2 pF × Cb 10–22 pF at fanout 4 and 10.
 
 ### The HV → LV divider
 
@@ -133,22 +135,22 @@ A g3 input therefore costs 1.7 times the divider capacitance of a g1 input. For 
 | .meas | KiCad | Plain SPICE (`nand2_sweep.py --kicad`) |
 |---|---|---|
 | Y, states 00 / 10 | 145.4 / 145.4 V | 145.4 / 145.4 V |
-| Y, state 11 after B↑ (y2) | 48.0 V | 48.0 V |
-| Y, state 11 after A↑ (y5), 2 µs after the edge | 58.1 V | 58.1 V |
-| Y, state 01 after A↓ (y3) | 138.9 V | 139.1 V |
-| tphl_b (B↑, A high) | 377 ns | 377 ns |
-| tplh_a (A↓, B high) | 468 ns | 467 ns |
-| tphl_a (A↑, B high) | 425 ns | 425 ns |
-| tplh_b (B↓, A high) | 415 ns | 413 ns |
-| lowest IN_A / IN_B / OUT_LV | −26.5 / −22.0 / −21.5 V | −26.5 / −22.0 / −21.5 V |
+| Y, state 11 after B↑ (y2) | 49.5 V | 49.5 V |
+| Y, state 11 after A↑ (y5), 2 µs after the edge | 61.9 V | 61.9 V |
+| Y, state 01 after A↓ (y3) | 138.8 V | 138.9 V |
+| tphl_b (B↑, A high) | 394 ns | 394 ns |
+| tplh_a (A↓, B high) | 467 ns | 466 ns |
+| tphl_a (A↑, B high) | 456 ns | 456 ns |
+| tplh_b (B↓, A high) | 396 ns | 393 ns |
+| lowest IN_A / IN_B / OUT_LV | −26.0 / −21.4 / −20.5 V | −26.0 / −21.5 / −20.4 V |
 
-The KiCad netlist and the sweep agree to 0.5 %.
+The KiCad netlist and the sweep agree to 1 %.
 
 ![waveforms](img/nand2_j2_tran.png)
 
 What the waveforms show:
 
-- **At 10 µs (01 → 11, A rises while B is high):** IN_B dips by about 1.5 V as the plate falls (the Miller kick that Cb absorbs), and OUT falls fast to about 90 V and then slowly. It crosses 100 V after 425 ns but is still at 58 V after 2 µs. The next stage sees it as a solid "0" once it is below its VIL of 91 V.
+- **At 10 µs (01 → 11, A rises while B is high):** IN_B dips by about 1.5 V as the plate falls (the Miller kick that Cb absorbs), and OUT falls fast to about 90 V and then slowly. It crosses 100 V after 456 ns but is still at 62 V after 2 µs. The next stage sees it as a solid "0" once it is below its VIL of 91 V.
 - **At 4 µs (10 → 11, B rises):** the fall is faster; g3 is the moving grid and C1 of its divider supplies the charge.
 - **Rising edges** are RC edges of Ra and the output net: 0.47 µs to 100 V at fanout 10.
 - **Grids** stay above −27 V on every edge.
@@ -181,15 +183,15 @@ These are within 1–2 V of NOR2_N16 (VIL −7.6 V, 92 V), so the two cells can 
 
 | Grids on the output LV net | VOH | tpHL A / B | tpLH A / B | LV → LV, gate + divider (fall / rise, via A) |
 |---|---|---|---|---|
-| 2 | 145.4 V | 149 / 171 ns | 134 / 126 ns | 102 / 136 ns |
-| 4 | 145.0 V | 220 / 223 ns | 222 / 203 ns | 166 / 235 ns |
-| 6 | 143.9 V | 284 / 272 ns | 308 / 279 ns | 233 / 334 ns |
-| 8 | 141.8 V | 336 / 323 ns | 391 / 353 ns | 280 / 430 ns |
-| 10 | 139.1 V | 374 / 377 ns | 467 / 427 ns | 307 / 521 ns |
+| 2 | 145.3 V | 166 / 185 ns | 136 / 122 ns | 124 / 133 ns |
+| 4 | 145.0 V | 241 / 239 ns | 224 / 195 ns | 197 / 225 ns |
+| 6 | 143.9 V | 308 / 289 ns | 310 / 267 ns | 273 / 319 ns |
+| 8 | 141.7 V | 359 / 339 ns | 391 / 339 ns | 320 / 408 ns |
+| 10 | 138.9 V | 396 / 394 ns | 466 / 410 ns | 348 / 491 ns |
 
 Half the load grids are g3 inputs (load gates with g1 and g3 tied); a net with only g1 loads is faster, one with only g3 loads slower. VOH at fanout 8–10 is read 2 µs after the rising edge and has not quite settled.
 
-- **Clock budget:** at the nominal 1 MHz of the RTL, one gate plus divider exceeds a third of the period (333 ns) from fanout 6 up, so **max_fanout 4 grids** (6 at most) for such paths; NOR2_N16 reaches the same delay at about fanout 6. At the owner's target of 250 kHz (4 µs, OPEN-014 [v0.11]) the third of the period is 1.33 µs, and the cell meets it at fanout 10 even with Cg3a = 2.5 pF.
+- **Clock budget:** at the nominal 1 MHz of the RTL, one gate plus divider comes to 310–320 ns at fanout 6, close to a third of the period (333 ns), and exceeds it from fanout 8, so **max_fanout 4 grids** (6 at most) for such paths; NOR2_N16 reaches the same delay at about fanout 6. At the owner's target of 250 kHz (4 µs, OPEN-014 [v0.11]) the third of the period is 1.33 µs, and the cell meets it at fanout 10 even with Cg3a = 2.5 pF.
 - **Hazard 10 → 01** (A falls while B rises, in the sweep sequence): Y stays above 139.8 V at every fanout, no glitch.
 
 ### Sensitivity
@@ -198,13 +200,14 @@ Fanout 4 / 10, the chosen cell:
 
 | Model | VOL (worst after 2 µs) | tpHL A / B | tpLH A / B | Lowest grid |
 |---|---|---|---|---|
-| nominal (Cg3a 1.6 pF) | 54 / 56 V | 220 / 223, 374 / 377 ns | 222 / 203, 467 / 427 ns | −26.5 V |
-| Cg3a 1.0 pF | 45 / 48 V | 169 / 184, 316 / 331 ns | 212 / 214, 462 / 460 ns | −30.0 V |
+| **nominal (Cg3a 1.8 pF, measured)** | 58 / 60 V | 241 / 239, 396 / 394 ns | 224 / 195, 466 / 410 ns | −26.0 V |
+| Cg3a 1.6 pF | 54 / 56 V | 220 / 223, 374 / 377 ns | 222 / 203, 467 / 427 ns | −26.5 V |
+| Cg3a 2.0 pF | 62 / 63 V | 266 / 256, 420 / 411 ns | 222 / 188, 459 / 394 ns | −25.5 V |
 | Cg3a 2.5 pF | 70 / 70 V | 349 / 307, 494 / 470 ns | 200 / 169, 411 / 355 ns | −24.4 V |
-| MU2 −20 % | 49 / 50 V | 191 / 210, 318 / 339 ns | 243 / 224, 524 / 480 ns | −26.6 V |
-| MU2 +20 % | 60 / 63 V | 250 / 237, 437 / 425 ns | 196 / 181, 405 / 374 ns | −27.1 V |
+| MU2 −20 % | 53 / 54 V | 208 / 225, 336 / 355 ns | 244 / 217, 520 / 463 ns | −26.2 V |
+| MU2 +20 % | 64 / 66 V | 276 / 253, 465 / 442 ns | 198 / 173, 403 / 356 ns | −26.0 V |
 
-Cg3a matters most. At 2.5 pF the slow tail after A↑ leaves Y at 70 V after 2 µs, still 21 V below VIL.
+Cg3a matters most: each 0.1 pF adds about 10 ns to the A↑ arc. At 2.5 pF the slow tail after A↑ leaves Y at 70 V after 2 µs, still 21 V below VIL. The rows at 1.6–2.5 pF cover the spread to expect between tubes until more of them are measured.
 
 ## Datasheet limits
 
@@ -217,7 +220,7 @@ Sources: `doc/6zh2b_datasheet.md` (handbook page and 6Ж2Б-В sheet).
 | Pa | 0.9 W | 0.33 W |
 | Pg2 | 0.6 W (6Ж2Б-В: 0.7 W) | 0.37 W |
 | Ik | 14 mA | 12.6 mA (MU2 −20 %), 11.3 mA nominal |
-| Ug1 | ≥ −50 V | −26.5 V transient, −21 V static |
+| Ug1 | ≥ −50 V | −26.0 V transient, −21 V static |
 | Ug3 | not given | −24 V transient, −21 V static |
 | Grid-circuit resistance | 1 MΩ | 140 kΩ (470k ‖ 200k) |
 
@@ -236,8 +239,8 @@ Power per gate:
 | Ra 12k / Rg2 12k | static search: Ik and Pg2 at the limits at MU2 −20 % | rejected |
 | Ra 18k / Rg2 18k | VOL 38–49 V, about 30 % slower rise | rejected: slow |
 | Rg2 12k (Ra 15k) | worst arc ~50 ns faster, Ik 14.1 mA at MU2 −20 % | rejected: Ik |
-| Cathode resistor Rk 220 / 470 Ω (no compensation, fanout 4) | A↑ → Y↓ 522 → 719 → 1006 ns, VOL after 2 µs 55 → 68 → 81 V: the cathode rises with the current and takes g3 further below its clamp | rejected |
-| No compensation (C1 3.9 pF everywhere, no Cb) | A↑ → Y↓ 480–950 ns at any fanout | rejected: too slow for 1 MHz unless B is static |
+| Cathode resistor Rk 220 / 470 Ω (no compensation, fanout 4) | A↑ → Y↓ 612 → 826 → 1138 ns, VOL after 2 µs 61 → 73 → 85 V: the cathode rises with the current and takes g3 further below its clamp | rejected |
+| No compensation (C1 3.9 pF everywhere, no Cb) | A↑ → Y↓ 577–670 ns at fanout 2–10 (Cg3a 1.8 pF) | rejected: too slow for 1 MHz unless B is static |
 | Cb only, C1 unchanged | B input under-compensated: B↑ → Y↓ 0.3–3 µs | rejected |
 | Cathode follower (half 6N16B) driving g3 nets | fast, +0.5 tube per driven net | owner chose the passive fix (REQ-MOD-009) |
 
@@ -291,11 +294,11 @@ Fit residuals: rms 0.1–0.45 mA on Рис. 215 and 0.2–0.6 mA on Рис. 216.
 
 - **Ug2 dependence.** The sheets give only Ug2 = 120 V. MU2 comes from the cut-off through the power law, with no contact potential. The cell feeds the screen through Rg2, so its operating point depends on this, and the cell is checked with MU2 ± 20 %.
 - **Grid currents.** g1 and g3 conduct through a diode (IS = 1 nA) behind RG1 = 2 kΩ and RG3 = 5 kΩ, like the 6N16B model. The grid current is not taken from the space current.
-- **Capacitances.** The sheet gives Cin = 4.9 pF, Cout = 4.1 pF and Cg1a ≤ 0.03 pF. The split is assumed: Cg1k 3.0, Cg1g2 1.9, Cg1a 0.03 pF; Cak 2.5 pF; Cg2k 2.0 pF (screen node). **Cg3a = 1.6 pF** is the value the RCA handbook gives for the 6AS6, the US dual-control pentode of the same class ([RCA Tube Handbook, receiving tubes, part 2](https://worldradiohistory.com/BOOKSHELF-ARH/Technology/RCA-Books/RCA-Tube-Handbook-Receiving-Tube-Section-Part-2.pdf)); Cg3k 3.0 pF. The 6Zh2B sheets do not give any g3 capacitance. Cg3a sets the slowest arc of the cell, so the cell is checked with Cg3a = 1.0 and 2.5 pF (see Sensitivity), and **Cg3a has to be measured on a real tube** (an LCR meter between leads 1 and 2, other leads grounded).
+- **Capacitances.** The sheet gives Cin = 4.9 pF, Cout = 4.1 pF and Cg1a ≤ 0.03 pF. The split is assumed: Cg1k 3.0, Cg1g2 1.9, Cg1a 0.03 pF; Cak 2.5 pF; Cg2k 2.0 pF (screen node). **Cg3a = 1.8 pF** was measured by the owner on a 6Ж2Б-В (2026-10-24); the 6Zh2B sheets do not give any g3 capacitance. Before the measurement the model used 1.6 pF, the RCA handbook value for the 6AS6, the US dual-control pentode of the same class ([RCA Tube Handbook, receiving tubes, part 2](https://worldradiohistory.com/BOOKSHELF-ARH/Technology/RCA-Books/RCA-Tube-Handbook-Receiving-Tube-Section-Part-2.pdf)). Cg3k 3.0 pF stays assumed. Cg3a sets the slowest arc of the cell, so the cell is also checked at 1.6, 2.0 and 2.5 pF (see Sensitivity).
 
 ## Open points
 
-- **Cg3a is not known for the 6Zh2B.** The slowest arc depends on it (Sensitivity). Measure it on real tubes, then re-run `nand2_sweep.py` with `M="CG3A=…"` and re-check Cb and C1 per g3 grid.
+- **Cg3a spread.** 1.8 pF is one tube (6Ж2Б-В), measured cold. Measure a few more, plain 6Ж2Б too; if the spread goes past 2.5 pF, re-run `nand2_sweep.py` with `M="CG3A=…"` and re-check Cb and C1 per g3 grid.
 - **Screen at 150 V while cut off.** Allowed by the 6Ж2Б-В sheet (250 V cut off), not stated by the handbook (125 V). If the tubes in hand are plain 6Ж2Б, either accept it or split Rg2 into a divider (e.g. 15k to +150 V and 75k to GND, Thevenin 125 V / 12.5k: about 0.25 W more per gate). Owner's decision.
 - **Ug2 dependence of the model** is extrapolated (MU2); measure Ia, Ig2 at Ug2 = 70–100 V.
 - **g3 grid current** is modelled as a diode to the cathode; on a real suppressor it is interception of the passing current. It sets the clamp level of g3 and with it the Miller margin.

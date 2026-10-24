@@ -14,11 +14,11 @@
 * Assumptions (not on the sheets): the Ug2 dependence (only Ug2 = 120 V is
 * given; MU2 rests on the power-law fit, no contact potential); grid current
 * of g1 and g3 (diodes, RG1/RG3); the split of Cin/Cout and the g3
-* capacitances (CG3A from the 6AS6, the US dual-control pentode; CG3K, CG2K).
+* capacitances (CG3K, CG2K). CG3A = 1.8 pF measured by the owner on a 6Zh2B-V (2026-10-24).
 *--------------------------------------------------------------------------
 .SUBCKT 6Zh2B A G3 G2 K G1
 + PARAMS: K=0.000193123 MU2=20.0346 MU3=49.2772 MUA=1103.92 EX=2.63359 FM=0.806251 D=95.8435 U0=-6.35086 U1=0.0998726 W3=5.88174 VA0=12.0421 VA1=0.850484
-+ S0=0.3 S3=0.3 CG1K=3.0P CG1G2=1.9P CG1A=0.03P CG3A=1.6P CG3K=3.0P CAK=2.5P CG2K=2.0P
++ S0=0.3 S3=0.3 CG1K=3.0P CG1G2=1.9P CG1A=0.03P CG3A=1.8P CG3K=3.0P CAK=2.5P CG2K=2.0P
 + RG1=2000 RG3=5000
 BX  x  0 V={V(G1,K) + V(G2,K)/MU2 + V(G3,K)/MU3 + V(A,K)/MUA}
 RX  x  0 1G
