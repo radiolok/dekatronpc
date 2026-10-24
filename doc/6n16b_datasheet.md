@@ -108,6 +108,16 @@ Plate voltages are 80, 100, 120 and 150 V. The current falls to zero at:
 | 120 V | −5.7 V |
 | 150 V | −7.2 V |
 
+The two families on the sheet do not agree exactly. Ia = f(Ua) gives 0.04–0.46 mA (up to 7 %) more than Ia = f(Ug) at the same (Ug, Ua):
+
+| Ug, Ua | Ia from Ia = f(Ua) | Ia from Ia = f(Ug) |
+|---|---|---|
+| −2 V, 100 V | 6.48 mA | 6.02 mA |
+| −5 V, 150 V | 2.64 mA | 2.29 mA |
+| −3 V, 120 V | 4.96 mA | 4.90 mA |
+
+This is in the original drawings, not in the digitizing.
+
 At Ua = 100 V the nominal 6.3 mA flows at Ug = −1.97 V. This matches the nominal self-bias point: 6.3 mA × 325 Ω = 2.05 V.
 
 ### S, μ, Ri = f(Ia), Ua = 100 V
