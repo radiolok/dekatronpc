@@ -1,6 +1,6 @@
 # How to design a tube logic cell
 
-The method is distilled from the first cell, NOR2_N16 (`doc/nor2_n16_6n16b.md`), and extended with the second, NAND2_J2 on a 6Zh2B pentode (`doc/nand2_j2_6zh2b.md`). Use it for NOT_N16, BUF_N16, OR2_N16 and the rest of REQ-MOD-003. Each step lists what to do, what to check, and the traps already hit once.
+The method is distilled from the first cell, NOR2_N16 (`doc/nor2_n16_6n16b.md`), and extended with the second, NAND2_J2 on a 6Zh2B pentode (`doc/nand2_j2_6zh2b.md`), and the third, NOT_N16 (`doc/not_n16_6n16b.md`). Use it for BUF_N16, OR2_N16 and the rest of REQ-MOD-003. Each step lists what to do, what to check, and the traps already hit once.
 
 Requirements: REQ-MOD-012 (levels), REQ-MOD-004 (delays, fan-out, power), REQ-MOD-005 (boards), REQ-AUTH-* (no silicon).
 
@@ -65,6 +65,24 @@ Order of work:
 
    Map LV thresholds back to the HV net through the divider: Vp = (Vlv + 35.07) / 0.2985.
 
+### Miller capacitance and divider C1: work them out per grid type before any run
+
+This trap has come up on every cell so far: NOR2_N16 (kick on the falling edge), NAND2_J2 (g3 Miller integrator), RSLATCH_J2N16 (pentode g1 kicked to −43 V). Before the first transient, write down this table for every grid type the cell has as an input.
+
+| Grid type | Grid-plate C | Node C seen by the divider | C1 per grid | What goes wrong |
+|---|---|---|---|---|
+| 6N16B triode grid | Cga 1.5 pF, gain ≈ 15 | ≈ 30 pF while active (Miller), ≈ 4 pF cut off | 3.9 pF | C1 cannot match both regions: too small and the edge crawls, too large and the falling edge kicks the grid below −50 V |
+| 6Zh2B g1 | Cg1a 0.03 pF: **no Miller** | ≈ 5 pF (Cg1k 3 + Cg1g2 1.9) | 3.3 pF (2.7 with a fast driver) | 3.9 pF is over-compensated. A fast triode driver (NOT_N16) kicks g1 to −43 V on the falling edge |
+| 6Zh2B g3 | Cg3a 1.8 pF (measured) | Cg3k 3 + Cb 15 pF in the cell | 6.8 pF | Held at "1" while another grid swings the plate: Miller integrator, the plate crawls at I_divider / Cg3a |
+
+Rules:
+
+- **Compensated divider:** C1 · R1 = C_node · R2, so C1 ≈ 0.43 · C_node for 470k / 200k. If C1 is above that, the cell kicks on the falling edge; if it is below, the edge crawls.
+- **Kick estimate:** a clamped "1" grid sits near +0.5 V, not +10 V. On a falling driver edge of ΔV the grid first jumps by ΔV · C1 / (C1 + C_node), and only then recovers through the 140 kΩ divider. For a 92 V edge: 3.9 pF on a 5 pF node gives −40 V, while the same 3.9 pF on a 30 pF Miller node gives −11 V. **Compute this before simulating. A grid without Miller needs a smaller C1.**
+- **Miller depends on what the plate is doing**, not just on the grid: gain × Cga applies only while that plate swings. A grid held at "1" while another input moves the shared plate (any AND-type or wired-plate cell) sees the whole swing through Cga. Check every arc with the other inputs held at "1".
+- **The worst driver is the fastest one** (a triode with Ra 10k, i.e. NOT_N16 or NOR2_N16): it gives the largest kick. Check the lowest grid voltage with that driver even if the cell's own testbench uses a slower one.
+- **The C1 rule goes into the liberty as fanout_load**, per grid type (g3 ≈ 1.7, pentode g1 ≈ 0.85 of a triode grid), and the C1 of a net is the sum over its grids.
+
 ### The stimulus must look like a real driver
 
 | Do | Don't |
@@ -112,7 +130,7 @@ A cell is accepted when all of these hold at every fanout from 2 to the target:
   - too small: the divider is under-compensated and the grid crawls (2.7 pF per grid gave a 2 µs fall).
 
   Pick C1 in the middle (3.9 pF per grid).
-- **Miller.** The input capacitance is about Cgk + Cga·(1 + gain), roughly 30 pF in the on/active region, but only about 4 pF in cut-off. A divider cannot be compensated for both, so check both edges.
+- **Miller.** The input capacitance is about Cgk + Cga·(1 + gain), roughly 30 pF in the on/active region, but only about 4 pF in cut-off. A divider cannot be compensated for both, so check both edges. See the per-grid-type table in §2 ("Miller capacitance and divider C1").
 - **C1 scales with the fanout of the net.** A passive whose value depends on fanout belongs to the net, not to the cell sheet. KiCad keeps one value per sheet file for all instances, so put such parts in the parent sheet.
 - **Peaking inductor in the anode.** It speeds up the edges but rings: 1 mH pushed the LV net to −56 V, and 2.2 mH or more made the stage oscillate. Don't use one without damping and a separate check.
 - **Neon level shifter.** It cannot carry reverse current, so it goes out on every fast falling plate edge and waits for a re-strike at the strike voltage. Unusable for 1 MHz logic.
@@ -129,6 +147,25 @@ A cell is accepted when all of these hold at every fanout from 2 to the target:
 - **Plate current in the knee.** VOL ≈ +50 V puts a pentode into the knee, where the plate takes about half of the cathode current. Ra follows from the Ik limit, not from the speed: for the 6Zh2B Ra ≥ 15k.
 - **A cathode resistor does not help** a cell whose speed is set by a held grid: the cathode rises with the current and takes that grid further below its clamp.
 - **One measurement routine for the sweep and the KiCad sheet.** Generate the `.meas` lines from the input sequence in one function and use it in both (`nand2_sweep.meas_lines`); the KiCad result then compares line by line.
+
+## 4b. Traps found on NOT_N16 (several gates in one envelope)
+
+- **A multi-unit tube shared by independent gates goes on one sheet.** KiCad keeps one unit number per symbol in a sheet file for all its instances, so a one-triode sheet cannot place its second instance on unit B. NOT_N16 is one sheet with both inverters (A1→Y1, A2→Y2); the liberty cell stays half a tube.
+- **Coupling between the sections.** When the plates are separate gates, the plate-to-plate capacitance (6N16B: Ca1a2 0.5 pF) couples them. Put it into the model (`CPP` in `6N16B.sub`), switch one half while the other is static, and measure the quiet output in both of its states. The worst case is a rising neighbour at light fanout (fastest edge) with the capacitance at its upper tolerance.
+- **Recheck the C1 window with the new cell as the driver.** A driver with a smaller swing kicks the grid less, but a net may be driven by any cell, so C1 keeps the tightest bound.
+
+## 4c. Traps found on the latches and the flip-flop (RSLATCH_J2N16, DLATCH2_J2N16, DFF_J2N16)
+
+- **Pentode g1 needs a smaller divider C1** (2.7 pF, not 3.9): see the Miller table in §2.
+- **Keep the feedback divider inside the cell.** The cross-coupled grids then see a fixed load, and the output pins stay HV like every other cell. If the output net's divider fed the feedback too, the cell would need an LV pin and would be 3–8 % slower.
+- **A sequential cell needs timing numbers that a gate does not have:**
+  - the shortest enable pulse;
+  - setup and hold, found by bisection with pass/fail runs (`latch_timing.py`);
+  - for a flip-flop, register to register: two cells in a row, each sampled level checked against the next stage's thresholds ("1" > 118 V, "0" < 92 V), not against 100 V. A check at 100 V passed a 1 MHz case whose "0" was at 94 V.
+- **The LV clock window is shorter than half a period on the direct net.** The LV net rises slowly (the driver's plate charges through Ra) and falls fast. The latch that has to drive the external load needs the wider window, so in a master-slave flip-flop put the slave behind the inverter. That is the falling-edge flip-flop, which was 1.05 MHz at fanout 6 against 0.77 MHz for the rising-edge one.
+- **Check the race at the non-overlap edge** by adding delay to the inverter until it fails (`dff_sweep.py --cskew`). The margin was only about 90 ns, so the clock inverter stays in the cell and must not be shared.
+- **One sheet file, one value.** Two instances of a sub-sheet cannot have different C1 (§4), so signals between the instances go through their own dividers in the parent sheet.
+- **Net labels at pin stubs** (`tools/kicad/gen_latch_j2n16.py`) keep a multi-tube cell generator short. Bottom tube pins are 1.27 mm apart, so route the heater pins bent at different heights. Verify the drawing with the KiCad netlist against the plain SPICE bench (`latch_tb.py`): they must agree to 0.01 %.
 
 ## 5. Draw the cell in KiCad
 

@@ -11,10 +11,11 @@
 * Koren parameters as before (MU=25.96 EX=1.79 KG1=557.56 KP=137.33
 * KVB=391.918). Plate current (PWR(x)+PWRS(x))/2 of the PSpice original is
 * max(x,0)^EX here: ngspice has no PWRS. The second grid-current branch
-* was wired to Ga in the old file; it is on Gb now.
+* was wired to Ga in the old file; it is on Gb now. CPP (plate to plate,
+* 0.5 pF) couples the two sections when they are separate gates (NOT_N16).
 *--------------------------------------------------------------------------
 .SUBCKT 6N16B Pa Ga Ka Pb Gb Kb
-+ PARAMS: CCG=2.7P CGP=1.5P CCP=1.65P RGI=2000
++ PARAMS: CCG=2.7P CGP=1.5P CCP=1.65P CPP=0.5P RGI=2000
 + MU=25.96 EX=1.79 KG1=557.56 KP=137.33 KVB=391.918
 * triode A
 E1  7  0  VALUE={V(Pa,Ka)/KP*LOG(1+EXP(KP*(1/MU+V(Ga,Ka)/SQRT(KVB+V(Pa,Ka)*V(Pa,Ka)))))}
@@ -36,5 +37,7 @@ C5  Gb Pb {CGP}  ; grid-plate
 C6  Pb Kb {CCP}  ; cathode-plate
 R2  Gb 15 {RGI}  ; grid current
 D2  15 Kb DX
+* between the sections: plate 1 - plate 2 (datasheet Ca1a2 0.5 +- 0.15 pF)
+C7  Pa Pb {CPP}
 .MODEL DX D(IS=1N RS=1 CJO=10PF TT=1N)
 .ENDS 6N16B

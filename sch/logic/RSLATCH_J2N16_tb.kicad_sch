@@ -1,0 +1,2303 @@
+(kicad_sch (version 20260306) (generator "eeschema") (generator_version "10.0") (uuid "945f5004-e60e-4897-9cac-1b65195a313e") (paper "A1") (title_block (title "RSLATCH_J2N16 testbench") (company "DekatronPC") (comment 1 "HV +150/+50 V, LV +10/-20 V") (comment 2 "States (S,R,E) 2 us each: 011 000 100 101 100 010 011 001 101 001 011 000 (latch_sweep.SEQ)."))
+(lib_symbols
+(symbol "Device:C"
+		(pin_numbers
+			(hide yes)
+		)
+		(pin_names
+			(offset 0.254)
+		)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(duplicate_pin_numbers_are_jumpers no)
+		(property "Reference" "C"
+			(at 0.635 2.54 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "C"
+			(at 0.635 -2.54 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 0.9652 -3.81 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Unpolarized capacitor"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_keywords" "cap capacitor"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_fp_filters" "C_*"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(symbol "C_0_1"
+			(polyline
+				(pts
+					(xy -2.032 0.762) (xy 2.032 0.762)
+				)
+				(stroke
+					(width 0.508)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy -2.032 -0.762) (xy 2.032 -0.762)
+				)
+				(stroke
+					(width 0.508)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+		)
+		(symbol "C_1_1"
+			(pin passive line
+				(at 0 3.81 270)
+				(length 2.794)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 0 -3.81 90)
+				(length 2.794)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(embedded_fonts no)
+	)
+(symbol "Device:R"
+		(pin_numbers
+			(hide yes)
+		)
+		(pin_names
+			(offset 0)
+		)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(duplicate_pin_numbers_are_jumpers no)
+		(property "Reference" "R"
+			(at 2.032 0 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "R"
+			(at 0 0 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at -1.778 0 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Resistor"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_keywords" "R res resistor"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_fp_filters" "R_*"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(symbol "R_0_1"
+			(rectangle
+				(start -1.016 -2.54)
+				(end 1.016 2.54)
+				(stroke
+					(width 0.254)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+		)
+		(symbol "R_1_1"
+			(pin passive line
+				(at 0 3.81 270)
+				(length 1.27)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 0 -3.81 90)
+				(length 1.27)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(embedded_fonts no)
+	)
+(symbol "Simulation_SPICE:VDC"
+		(pin_numbers
+			(hide yes)
+		)
+		(pin_names
+			(offset 0.0254)
+		)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(duplicate_pin_numbers_are_jumpers no)
+		(property "Reference" "V"
+			(at 2.54 2.54 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "1"
+			(at 2.54 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#sec_Independent_Sources_for"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Voltage source, DC"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Pins" "1=+ 2=-"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Type" "DC"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Device" "V"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "ki_keywords" "simulation"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(symbol "VDC_0_0"
+			(polyline
+				(pts
+					(xy -1.27 0.254) (xy 1.27 0.254)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy -0.762 -0.254) (xy -1.27 -0.254)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy 0.254 -0.254) (xy -0.254 -0.254)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy 1.27 -0.254) (xy 0.762 -0.254)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(text "+"
+				(at 0 1.905 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+		)
+		(symbol "VDC_0_1"
+			(circle
+				(center 0 0)
+				(radius 2.54)
+				(stroke
+					(width 0.254)
+					(type default)
+				)
+				(fill
+					(type background)
+				)
+			)
+		)
+		(symbol "VDC_1_1"
+			(pin passive line
+				(at 0 5.08 270)
+				(length 2.54)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 0 -5.08 90)
+				(length 2.54)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(embedded_fonts no)
+	)
+(symbol "Simulation_SPICE:VPWL"
+		(pin_numbers
+			(hide yes)
+		)
+		(pin_names
+			(offset 0.0254)
+		)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(duplicate_pin_numbers_are_jumpers no)
+		(property "Reference" "V"
+			(at 2.54 2.54 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Value" "VPWL"
+			(at 2.54 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" "https://ngspice.sourceforge.io/docs/ngspice-html-manual/manual.xhtml#sec_Independent_Sources_for"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Voltage source, piece-wise linear"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Pins" "1=+ 2=-"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Device" "V"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Sim.Params" "pwl=\"0 -1 50n -1 51n 0 97n 1 171n -1 200n -1\""
+			(at 2.54 -2.54 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Sim.Type" "PWL"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_keywords" "simulation"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(symbol "VPWL_0_0"
+			(polyline
+				(pts
+					(xy -1.778 -1.016) (xy -0.762 1.016) (xy -0.254 0) (xy 0.762 0) (xy 1.27 1.27)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(text "+"
+				(at 0 1.905 0)
+				(effects
+					(font
+						(size 1.27 1.27)
+					)
+				)
+			)
+		)
+		(symbol "VPWL_0_1"
+			(circle
+				(center 0 0)
+				(radius 2.54)
+				(stroke
+					(width 0.254)
+					(type default)
+				)
+				(fill
+					(type background)
+				)
+			)
+		)
+		(symbol "VPWL_1_1"
+			(pin passive line
+				(at 0 5.08 270)
+				(length 2.54)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 0 -5.08 90)
+				(length 2.54)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(embedded_fonts no)
+	)
+(symbol "power:+150V"
+		(power global)
+		(pin_numbers
+			(hide yes)
+		)
+		(pin_names
+			(offset 0)
+			(hide yes)
+		)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(duplicate_pin_numbers_are_jumpers no)
+		(property "Reference" "#PWR"
+			(at 0 -3.81 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "+150V"
+			(at 0 3.556 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"+150V\""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_keywords" "global power"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(symbol "+150V_0_1"
+			(polyline
+				(pts
+					(xy -0.762 1.27) (xy 0 2.54)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy 0 2.54) (xy 0.762 1.27)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy 0 0) (xy 0 2.54)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+		)
+		(symbol "+150V_1_1"
+			(pin power_in line
+				(at 0 0 90)
+				(length 0)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(embedded_fonts no)
+	)
+(symbol "power:+6.3V"
+		(power global)
+		(pin_numbers
+			(hide yes)
+		)
+		(pin_names
+			(offset 0)
+			(hide yes)
+		)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(duplicate_pin_numbers_are_jumpers no)
+		(property "Reference" "#PWR"
+			(at 0 -3.81 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "+6.3V"
+			(at 0 3.556 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"+6.3V\""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_keywords" "global power"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(symbol "+6.3V_0_1"
+			(polyline
+				(pts
+					(xy -0.762 1.27) (xy 0 2.54)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy 0 2.54) (xy 0.762 1.27)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy 0 0) (xy 0 2.54)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+		)
+		(symbol "+6.3V_1_1"
+			(pin power_in line
+				(at 0 0 90)
+				(length 0)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(embedded_fonts no)
+	)
+(symbol "power:-50V"
+		(power global)
+		(pin_numbers
+			(hide yes)
+		)
+		(pin_names
+			(offset 0)
+			(hide yes)
+		)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(duplicate_pin_numbers_are_jumpers no)
+		(property "Reference" "#PWR"
+			(at 0 -3.81 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "-50V"
+			(at 0 3.556 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"-50V\""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_keywords" "global power"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(symbol "-50V_0_0"
+			(pin power_in line
+				(at 0 0 90)
+				(length 0)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(symbol "-50V_0_1"
+			(polyline
+				(pts
+					(xy 0 0) (xy 0 1.27) (xy 0.762 1.27) (xy 0 2.54) (xy -0.762 1.27) (xy 0 1.27)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type outline)
+				)
+			)
+		)
+		(embedded_fonts no)
+	)
+(symbol "power:GND"
+		(power global)
+		(pin_numbers
+			(hide yes)
+		)
+		(pin_names
+			(offset 0)
+			(hide yes)
+		)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(duplicate_pin_numbers_are_jumpers no)
+		(property "Reference" "#PWR"
+			(at 0 -6.35 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GND"
+			(at 0 -3.81 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_keywords" "global power"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(symbol "GND_0_1"
+			(polyline
+				(pts
+					(xy 0 0) (xy 0 -1.27) (xy 1.27 -1.27) (xy 0 -2.54) (xy -1.27 -1.27) (xy 0 -1.27)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+		)
+		(symbol "GND_1_1"
+			(pin power_in line
+				(at 0 0 270)
+				(length 0)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(embedded_fonts no)
+	)
+(symbol "power:PWR_FLAG"
+		(power global)
+		(pin_numbers
+			(hide yes)
+		)
+		(pin_names
+			(offset 0)
+			(hide yes)
+		)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(duplicate_pin_numbers_are_jumpers no)
+		(property "Reference" "#FLG"
+			(at 0 1.905 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "PWR_FLAG"
+			(at 0 3.81 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Special symbol for telling ERC where power comes from"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_keywords" "flag power"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(symbol "PWR_FLAG_0_0"
+			(pin power_out line
+				(at 0 0 90)
+				(length 0)
+				(name ""
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(symbol "PWR_FLAG_0_1"
+			(polyline
+				(pts
+					(xy 0 0) (xy 0 1.27) (xy -1.016 1.905) (xy 0 2.54) (xy 1.016 1.905) (xy 0 1.27)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+		)
+		(embedded_fonts no)
+	)
+(symbol "vacuum_tube:6Н16Б"
+		(pin_names
+			(offset 0) hide)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(property "Reference" "Л"
+			(at 3.302 7.874 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "6Н16Б"
+			(at 8.89 -7.62 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 6.858 -10.16 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Datasheet" ""
+			(at 0 0 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Description" "double triode"
+			(at 0 0 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Sim.Library" "${KIPRJMOD}/../libs/6N16B.sub"
+			(at 0.508 -28.194 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Name" "6N16B"
+			(at 0 0 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Device" "SUBCKT"
+			(at 0 0 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb"
+			(at -21.59 -30.988 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_locked" ""
+			(at 0 0 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_keywords" "triode valve"
+			(at 0 0 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "ki_fp_filters" "VALVE*NOVAL*P*"
+			(at 0 0 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(symbol "6Н16Б_0_1"
+			(arc
+				(start -5.08 -2.54)
+				(mid 0 -7.5978)
+				(end 5.08 -2.54)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy 5.08 2.54) (xy 5.08 -2.54)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy -5.08 2.54) (xy -5.08 -2.54) (xy -5.08 -2.54)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(arc
+				(start 5.08 2.54)
+				(mid 0 7.5978)
+				(end -5.08 2.54)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+		)
+		(symbol "6Н16Б_1_0"
+			(polyline
+				(pts
+					(xy -2.54 -5.08) (xy -2.54 -7.62)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy 0 5.08) (xy 0 7.62)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+		)
+		(symbol "6Н16Б_1_1"
+			(polyline
+				(pts
+					(xy -5.08 0) (xy -3.175 0)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy -1.905 0) (xy -3.175 0)
+				)
+				(stroke
+					(width 0.1524)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy -0.635 0) (xy 0.635 0)
+				)
+				(stroke
+					(width 0.1524)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy 1.905 0) (xy 3.175 0)
+				)
+				(stroke
+					(width 0.1524)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy -2.54 5.08) (xy 2.794 5.08) (xy 2.794 5.08)
+				)
+				(stroke
+					(width 0.254)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(arc
+				(start 1.27 -5.08)
+				(mid 0 -4.2951)
+				(end -1.27 -5.08)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(arc
+				(start 2.54 -5.08)
+				(mid 0 -3.0968)
+				(end -2.54 -5.08)
+				(stroke
+					(width 0.254)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(pin open_collector line
+				(at 0 10.16 270)
+				(length 2.54)
+				(name "A"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin power_in line
+				(at 1.27 -10.16 90)
+				(length 5.08)
+				(name "F1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "4"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at -2.54 -10.16 90)
+				(length 2.54)
+				(name "K"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "6"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin input line
+				(at -7.62 0 0)
+				(length 2.54)
+				(name "G"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "7"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin power_in line
+				(at -1.27 -10.16 90)
+				(length 5.08)
+				(name "F1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "8"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(symbol "6Н16Б_2_0"
+			(polyline
+				(pts
+					(xy -2.54 -5.08) (xy -2.54 -7.62)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy 0 5.08) (xy 0 7.62)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+		)
+		(symbol "6Н16Б_2_1"
+			(polyline
+				(pts
+					(xy -5.08 0) (xy -3.175 0)
+				)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy -1.905 0) (xy -3.175 0)
+				)
+				(stroke
+					(width 0.1524)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy -0.635 0) (xy 0.635 0)
+				)
+				(stroke
+					(width 0.1524)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy 1.905 0) (xy 3.175 0)
+				)
+				(stroke
+					(width 0.1524)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(polyline
+				(pts
+					(xy -2.54 5.08) (xy 2.794 5.08) (xy 2.794 5.08)
+				)
+				(stroke
+					(width 0.254)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(arc
+				(start 2.54 -5.08)
+				(mid 0 -3.0968)
+				(end -2.54 -5.08)
+				(stroke
+					(width 0.254)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(pin passive line
+				(at -2.54 -10.16 90)
+				(length 2.54)
+				(name "K"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin input line
+				(at -7.62 0 0)
+				(length 2.54)
+				(name "G"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "3"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin open_collector line
+				(at 0 10.16 270)
+				(length 2.54)
+				(name "A"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "5"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+	))
+(symbol (lib_id "Simulation_SPICE:VDC") (at 25.4 38.1 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "c61f088c-18df-469b-8b95-f4d31a19968c") (property "Reference" "V01" (at 29.21 36.83 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "150" (at 29.21 39.37 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 25.4 38.1 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 25.4 38.1 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "V" (at 25.4 38.1 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Type" "DC" (at 25.4 38.1 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=+ 2=-" (at 25.4 38.1 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Params" "dc=150" (at 25.4 38.1 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "8f9fad16-e822-4b73-85d9-dcfd13df9853")) (pin "2" (uuid "398b3fd6-ca8e-48a7-b09b-ce0b17db0fd8")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "V01") (unit 1)))))
+(wire (pts (xy 25.4 33.02) (xy 25.4 30.48)) (stroke (width 0) (type default)) (uuid "4b4e59a1-6911-48c8-8bc2-6b73aa545933"))
+(symbol (lib_id "power:+150V") (at 25.4 30.48 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "f256aaa8-71e2-4155-ae08-67a53adfd45a") (property "Reference" "#PWR01" (at 25.4 30.48 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+150V" (at 25.4 26.67 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 25.4 30.48 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 25.4 30.48 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "43a9a821-a233-4930-9bf3-66bce08822ab")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR01") (unit 1)))))
+(wire (pts (xy 25.4 30.48) (xy 33.02 30.48)) (stroke (width 0) (type default)) (uuid "189016af-7cb2-47ce-9989-0f17a3118cf9"))
+(symbol (lib_id "power:PWR_FLAG") (at 33.02 30.48 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "a8b62407-a0ed-4987-a611-5614ebd02efa") (property "Reference" "#FLG01" (at 33.02 28.575 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "PWR_FLAG" (at 34.29 26.67 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 33.02 30.48 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 33.02 30.48 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "e5dc5746-9a30-4971-ae4e-b5e7cb53e528")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#FLG01") (unit 1)))))
+(wire (pts (xy 25.4 43.18) (xy 25.4 45.72)) (stroke (width 0) (type default)) (uuid "6978fcfc-3ae9-4337-adfc-4d2ed7e96e52"))
+(symbol (lib_id "power:GND") (at 25.4 45.72 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "e4fc71a1-49c9-4e51-9a85-aa3424676f2f") (property "Reference" "#PWR02" (at 25.4 45.72 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 25.4 49.53 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 25.4 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 25.4 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "041f7a53-d999-4132-af8e-33f9b97e9c3e")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR02") (unit 1)))))
+(wire (pts (xy 25.4 45.72) (xy 33.02 45.72)) (stroke (width 0) (type default)) (uuid "8d47edbf-c349-4ec7-a61e-6142c5fdc2c2"))
+(symbol (lib_id "power:PWR_FLAG") (at 33.02 45.72 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "f607c5b3-84a5-4be1-af5c-3a4396200bba") (property "Reference" "#FLG02" (at 33.02 43.815 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "PWR_FLAG" (at 34.29 41.91 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 33.02 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 33.02 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "43724607-4c56-4d95-bf5a-e4c0c55a9e60")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#FLG02") (unit 1)))))
+(symbol (lib_id "Simulation_SPICE:VDC") (at 25.4 88.9 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "3bdb3e71-7e23-48df-9152-db6fb8dbc2f4") (property "Reference" "V02" (at 29.21 87.63 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "50" (at 29.21 90.17 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 25.4 88.9 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 25.4 88.9 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "V" (at 25.4 88.9 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Type" "DC" (at 25.4 88.9 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=+ 2=-" (at 25.4 88.9 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Params" "dc=50" (at 25.4 88.9 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "befc00c6-a86f-4777-90bd-5961357651f4")) (pin "2" (uuid "a3291d66-69c4-4322-a6d5-9d1a09f5cc27")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "V02") (unit 1)))))
+(wire (pts (xy 25.4 83.82) (xy 25.4 81.28)) (stroke (width 0) (type default)) (uuid "20f1dddb-f5c3-4476-b1c6-cefc5bd48eb0"))
+(symbol (lib_id "power:GND") (at 25.4 81.28 180) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "1f505c58-6a30-4017-8b8a-dc648d2fd2d2") (property "Reference" "#PWR03" (at 25.4 81.28 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 25.4 82.55 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 25.4 81.28 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 25.4 81.28 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "be560a37-1200-48ef-b0e0-527774047aca")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR03") (unit 1)))))
+(wire (pts (xy 25.4 93.98) (xy 25.4 96.52)) (stroke (width 0) (type default)) (uuid "6214dd1a-7966-4a45-8bef-47a91a5ca533"))
+(symbol (lib_id "power:-50V") (at 25.4 96.52 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "f2c24df5-7100-40d8-b653-093a57253fb8") (property "Reference" "#PWR04" (at 25.4 96.52 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "-50V" (at 25.4 100.33 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 25.4 96.52 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 25.4 96.52 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "8016a02c-7d1d-4f3d-8312-2d0d9c3588fe")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR04") (unit 1)))))
+(wire (pts (xy 25.4 96.52) (xy 33.02 96.52)) (stroke (width 0) (type default)) (uuid "9ae6cf42-3c91-45fa-8845-1445b5596f38"))
+(symbol (lib_id "power:PWR_FLAG") (at 33.02 96.52 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "03df53ff-1fd7-4f64-81c2-456533e95cc1") (property "Reference" "#FLG03" (at 33.02 94.615 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "PWR_FLAG" (at 34.29 92.71 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 33.02 96.52 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 33.02 96.52 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "1a32ea9b-50d6-429d-8554-d65323418066")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#FLG03") (unit 1)))))
+(symbol (lib_id "Simulation_SPICE:VDC") (at 25.4 139.7 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "0f574113-0ffe-4f7f-a6a6-1fe241234c5d") (property "Reference" "V03" (at 29.21 138.43 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "6.3" (at 29.21 140.97 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 25.4 139.7 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 25.4 139.7 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "V" (at 25.4 139.7 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Type" "DC" (at 25.4 139.7 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=+ 2=-" (at 25.4 139.7 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Params" "dc=6.3" (at 25.4 139.7 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "22de3431-a2e3-42d5-aa2f-4394a56935fe")) (pin "2" (uuid "ef00e180-bc6b-45e6-b48b-f95b2e3544de")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "V03") (unit 1)))))
+(wire (pts (xy 25.4 134.62) (xy 25.4 132.08)) (stroke (width 0) (type default)) (uuid "b70e8a1e-aed4-41a2-956d-dc2343c8a36e"))
+(symbol (lib_id "power:+6.3V") (at 25.4 132.08 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "738e53c6-622c-47b7-8877-645aee22c134") (property "Reference" "#PWR05" (at 25.4 132.08 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+6.3V" (at 25.4 128.27 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 25.4 132.08 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 25.4 132.08 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "741b9d1b-2d1f-48ac-a341-66a501b3eed3")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR05") (unit 1)))))
+(wire (pts (xy 25.4 132.08) (xy 33.02 132.08)) (stroke (width 0) (type default)) (uuid "b290315c-c2c3-43b6-8c8b-8e3734cf3b4c"))
+(symbol (lib_id "power:PWR_FLAG") (at 33.02 132.08 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "81ba8eca-434b-448d-ba66-60e89a567ca7") (property "Reference" "#FLG04" (at 33.02 130.175 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "PWR_FLAG" (at 34.29 128.27 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 33.02 132.08 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 33.02 132.08 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "7a591013-4698-4bda-b4d2-cacb7e0fd853")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#FLG04") (unit 1)))))
+(wire (pts (xy 25.4 144.78) (xy 25.4 147.32)) (stroke (width 0) (type default)) (uuid "7f60fd7c-f6ea-4a94-adc1-5dccd00cb9d5"))
+(symbol (lib_id "power:GND") (at 25.4 147.32 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "f74e48b2-2c02-4218-b05a-968fbe400445") (property "Reference" "#PWR06" (at 25.4 147.32 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 25.4 151.13 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 25.4 147.32 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 25.4 147.32 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "18bc3918-6972-4753-8658-90e5b708f7e4")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR06") (unit 1)))))
+(symbol (lib_id "Simulation_SPICE:VPWL") (at 76.2 40.64 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "ba11cf2a-3c66-48dd-8114-6da16e247266") (property "Reference" "V04" (at 81.28 33.02 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "VPWL" (at 81.28 48.26 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 76.2 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 76.2 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "V" (at 76.2 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Type" "PWL" (at 76.2 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=+ 2=-" (at 76.2 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Params" "pwl=\"0.0000u 150 4.0000u 150 4.0200u 50 10.0000u 50 10.0200u 150 16.0000u 150 16.0200u 50 18.0000u 50 18.0200u 150\"" (at 76.2 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "07f5d82f-c8fe-48d8-be2b-51ef68c249a9")) (pin "2" (uuid "7e09e682-f322-40fc-8d88-afa1f9405057")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "V04") (unit 1)))))
+(wire (pts (xy 76.2 35.56) (xy 76.2 33.02)) (stroke (width 0) (type default)) (uuid "d100d73a-bc95-42c0-9c65-c4b87f0d35b2"))
+(label "STIM_S" (at 76.2 33.02 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "c8534bcf-2768-4bcb-b3bf-75bd84850942"))
+(wire (pts (xy 76.2 45.72) (xy 76.2 48.26)) (stroke (width 0) (type default)) (uuid "906caad2-ae35-48d0-85d4-4aaa51b9cb73"))
+(symbol (lib_id "power:GND") (at 76.2 48.26 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "5a800268-af2f-46e2-a4f1-ec6a9e5900b5") (property "Reference" "#PWR07" (at 76.2 48.26 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 76.2 52.07 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 76.2 48.26 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 76.2 48.26 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "fcf45154-6fd8-40af-9861-8e101685452c")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR07") (unit 1)))))
+(symbol (lib_id "Device:R") (at 96.52 40.64 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "4d56d387-8347-4ab2-8fb2-b5ed59d6df6a") (property "Reference" "R01" (at 100.33 39.37 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "470k" (at 100.33 41.91 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 96.52 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 96.52 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "160a9cff-c45e-4bf1-97fe-bdf8f0b3ad18")) (pin "2" (uuid "401e684c-929c-42cc-ae7c-82d70f2ccd99")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R01") (unit 1)))))
+(wire (pts (xy 96.52 36.83) (xy 96.52 34.29)) (stroke (width 0) (type default)) (uuid "a8c20e6e-747b-40a5-bb4a-deb54de6beff"))
+(label "STIM_S" (at 96.52 34.29 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "54be77e6-48be-4a7f-8526-a2c8c3d230de"))
+(wire (pts (xy 96.52 44.45) (xy 96.52 46.99)) (stroke (width 0) (type default)) (uuid "aa00239e-3941-4c74-9910-8ae3b394a6b3"))
+(label "IS_S" (at 96.52 46.99 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "86360882-d520-412c-8bd0-ed8b812bc984"))
+(symbol (lib_id "Device:C") (at 109.22 40.64 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "66a567ee-c5ba-4617-9e06-a3ac2612d9af") (property "Reference" "C01" (at 113.03 39.37 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "3.9p" (at 113.03 41.91 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 109.22 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 109.22 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "107dae1c-d108-48d3-a34f-ce832431c527")) (pin "2" (uuid "c7e73b89-5023-46ce-bb36-4fd5baf4d321")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "C01") (unit 1)))))
+(wire (pts (xy 109.22 36.83) (xy 109.22 34.29)) (stroke (width 0) (type default)) (uuid "e03d83ea-15bc-40d1-915f-bd3f84fe2234"))
+(label "STIM_S" (at 109.22 34.29 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "dc802844-8d61-447d-8556-d4a7f14168aa"))
+(wire (pts (xy 109.22 44.45) (xy 109.22 46.99)) (stroke (width 0) (type default)) (uuid "ce155513-2256-4365-8437-8775b0c9c959"))
+(label "IS_S" (at 109.22 46.99 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "1e533984-59d8-4eb1-a40c-5cf0946286e0"))
+(symbol (lib_id "Device:R") (at 121.92 40.64 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "cf7465f0-a1c1-4b39-a1a0-54086e4ff740") (property "Reference" "R02" (at 125.73 39.37 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "200k" (at 125.73 41.91 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 121.92 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 121.92 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "a98d197f-ad8f-4f1f-96ff-275dbaef2cce")) (pin "2" (uuid "1ee731de-591e-47d5-a0c3-7108b681d7c0")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R02") (unit 1)))))
+(wire (pts (xy 121.92 36.83) (xy 121.92 34.29)) (stroke (width 0) (type default)) (uuid "2fcb6e14-77c6-4f4b-8459-d68b68a7c5a6"))
+(label "IS_S" (at 121.92 34.29 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "6258955e-ce7a-4ff4-838c-bb705a82dfc0"))
+(wire (pts (xy 121.92 44.45) (xy 121.92 46.99)) (stroke (width 0) (type default)) (uuid "c459eba0-aa05-4c63-860c-1446754cbd5d"))
+(symbol (lib_id "power:-50V") (at 121.92 46.99 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "00fe89ff-fea9-45d8-a5ee-de3620ea4fd2") (property "Reference" "#PWR08" (at 121.92 46.99 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "-50V" (at 121.92 50.8 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 121.92 46.99 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 121.92 46.99 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "77172129-5fea-409d-a9bf-75e38c8b41e4")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR08") (unit 1)))))
+(symbol (lib_id "vacuum_tube:6Н16Б") (at 190.5 45.72 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "4af57be1-61f5-4294-8e66-e3cdbecd725c") (property "Reference" "Л01" (at 195.58 38.1 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "6Н16Б" (at 195.58 53.34 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 190.5 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 190.5 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Library" "${KIPRJMOD}/../libs/6N16B.sub" (at 190.5 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Name" "6N16B" (at 190.5 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "SUBCKT" (at 190.5 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb" (at 190.5 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "0d81df17-d898-4f5e-8cef-3b731a67ffef")) (pin "7" (uuid "47c735b8-8c7c-4dd2-be87-511aae15e6f6")) (pin "6" (uuid "9b40aa2d-bf2c-4b99-86f6-f42737c4ba6e")) (pin "4" (uuid "e8cb7d7b-694a-49a5-905f-50ee1a360eaf")) (pin "8" (uuid "f5581a57-357d-4726-8b85-fdc8bc2a63bd")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "Л01") (unit 1)))))
+(wire (pts (xy 190.5 35.56) (xy 190.5 33.02)) (stroke (width 0) (type default)) (uuid "600f33d5-dbef-4397-a31b-3299340203e7"))
+(label "PD_S" (at 190.5 33.02 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "4fc3f48f-cf44-490e-a4a9-3e8589fd363f"))
+(wire (pts (xy 182.88 45.72) (xy 180.34 45.72)) (stroke (width 0) (type default)) (uuid "d86c3edc-2242-4e7c-928d-c0a9377f20e5"))
+(label "IS_S" (at 180.34 45.72 180) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "3af23cb0-f1c2-4569-85ca-87c78b227d24"))
+(wire (pts (xy 187.96 55.88) (xy 187.96 68.58)) (stroke (width 0) (type default)) (uuid "523e7e77-b85c-4870-a88c-22aa03c70494"))
+(symbol (lib_id "power:GND") (at 187.96 68.58 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "17945efe-bb7b-43b5-b71a-35fb1f73374d") (property "Reference" "#PWR09" (at 187.96 68.58 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 187.96 72.39 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 187.96 68.58 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 187.96 68.58 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "21d75419-56bc-4bd5-be54-75bd799217ef")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR09") (unit 1)))))
+(wire (pts (xy 189.23 55.88) (xy 189.23 63.5)) (stroke (width 0) (type default)) (uuid "b69084eb-e80e-4789-bafc-f943aa109c07"))
+(wire (pts (xy 189.23 63.5) (xy 201.93 63.5)) (stroke (width 0) (type default)) (uuid "d70add6b-b912-4e18-a9b4-9af2dbc0fba4"))
+(symbol (lib_id "power:+6.3V") (at 201.93 63.5 270) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "7108ddb9-2ed7-45f2-894b-421303326547") (property "Reference" "#PWR10" (at 201.93 63.5 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+6.3V" (at 203.2 60.96 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 201.93 63.5 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 201.93 63.5 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "5a00cdf9-ba13-40e7-a6fd-f7d3c6a7a32d")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR10") (unit 1)))))
+(wire (pts (xy 191.77 55.88) (xy 191.77 58.42)) (stroke (width 0) (type default)) (uuid "12424f4f-c082-404d-8ead-f6d574430804"))
+(wire (pts (xy 191.77 58.42) (xy 199.39 58.42)) (stroke (width 0) (type default)) (uuid "ee2e1e16-9197-4883-96e8-115efb701c8c"))
+(symbol (lib_id "power:GND") (at 199.39 58.42 90) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "51e21208-84dc-425d-b858-ac3b7c3acc27") (property "Reference" "#PWR11" (at 199.39 58.42 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 200.66 60.96 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 199.39 58.42 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 199.39 58.42 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "0198633d-8e13-47a2-8861-b2f8ac452011")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR11") (unit 1)))))
+(symbol (lib_id "vacuum_tube:6Н16Б") (at 223.52 45.72 0) (unit 2) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "ae2b2a71-98e1-4d24-b1dc-94ca31ad9344") (property "Reference" "Л01" (at 228.6 38.1 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "6Н16Б" (at 228.6 53.34 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 223.52 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 223.52 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Library" "${KIPRJMOD}/../libs/6N16B.sub" (at 223.52 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Name" "6N16B" (at 223.52 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "SUBCKT" (at 223.52 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb" (at 223.52 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "5" (uuid "881c3b20-7aae-4370-b624-c9ba9c357290")) (pin "3" (uuid "049fc315-4c94-452d-b59e-54f1c6141af6")) (pin "2" (uuid "b0ec097c-2bbc-407f-8a73-f5e9440917dd")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "Л01") (unit 2)))))
+(wire (pts (xy 223.52 35.56) (xy 223.52 33.02)) (stroke (width 0) (type default)) (uuid "c980f1d0-e4c0-4dc2-9e67-5060f50a3089"))
+(label "PDX_S" (at 223.52 33.02 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "7cac07ae-34fe-44df-a0fd-41b5c16935d6"))
+(wire (pts (xy 215.9 45.72) (xy 213.36 45.72)) (stroke (width 0) (type default)) (uuid "77c36276-8d25-4030-aea2-b203d8eafcd2"))
+(symbol (lib_id "power:-50V") (at 213.36 45.72 270) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "fc9a94f6-a3a6-4285-ae5f-f29b9c668579") (property "Reference" "#PWR12" (at 213.36 45.72 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "-50V" (at 212.09 48.26 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 213.36 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 213.36 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "adc2a93c-7af8-4f2e-ac86-a6c04c1915e7")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR12") (unit 1)))))
+(wire (pts (xy 220.98 55.88) (xy 220.98 58.42)) (stroke (width 0) (type default)) (uuid "e8d993d8-0f00-4e72-bfe5-6acef9bb6141"))
+(symbol (lib_id "power:GND") (at 220.98 58.42 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "e3cdeeb5-8ee6-4c2f-84a5-2a0d14ecd53a") (property "Reference" "#PWR13" (at 220.98 58.42 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 220.98 62.23 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 220.98 58.42 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 220.98 58.42 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "ca5796bd-01c8-4d02-a9d2-3175dba2712c")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR13") (unit 1)))))
+(symbol (lib_id "Device:R") (at 165.1 35.56 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "f9ec8c70-5011-4450-8f1b-e57e053036c4") (property "Reference" "R03" (at 168.91 34.29 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "10k" (at 168.91 36.83 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 165.1 35.56 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 165.1 35.56 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "4846bef6-0f8b-4ec4-b7da-0e0b28f2c6d8")) (pin "2" (uuid "65eb7f95-3f52-4359-a3aa-f2faf3a80e30")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R03") (unit 1)))))
+(wire (pts (xy 165.1 31.75) (xy 165.1 29.21)) (stroke (width 0) (type default)) (uuid "43670d51-6bc3-4b90-a42c-bf12c9329fbe"))
+(symbol (lib_id "power:+150V") (at 165.1 29.21 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "7ff3531c-ea87-4ed9-95a7-1b086a3ef781") (property "Reference" "#PWR14" (at 165.1 29.21 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+150V" (at 165.1 25.4 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 165.1 29.21 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 165.1 29.21 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "696f7380-8c7c-4dff-ba38-8837936b31b7")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR14") (unit 1)))))
+(wire (pts (xy 165.1 39.37) (xy 165.1 41.91)) (stroke (width 0) (type default)) (uuid "98e0f396-8f3d-4494-9daf-ff4c555bc978"))
+(label "PD_S" (at 165.1 41.91 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "aef08168-5ac5-40d7-b3ee-329e47e0701f"))
+(symbol (lib_id "Device:R") (at 248.92 35.56 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "49eff738-7ac7-462e-88d7-15bd976e9bda") (property "Reference" "R04" (at 252.73 34.29 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "10k" (at 252.73 36.83 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 248.92 35.56 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 248.92 35.56 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "80a67402-fe9e-44bd-a1a0-ce96c2ebda15")) (pin "2" (uuid "fbe00891-521f-41fc-bd9e-a1dd7359ec6d")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R04") (unit 1)))))
+(wire (pts (xy 248.92 31.75) (xy 248.92 29.21)) (stroke (width 0) (type default)) (uuid "7df6ba60-3e18-4454-9627-109fc4810bc6"))
+(symbol (lib_id "power:+150V") (at 248.92 29.21 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "56f64f24-eb06-4aca-a9e7-e39ed31a3140") (property "Reference" "#PWR15" (at 248.92 29.21 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+150V" (at 248.92 25.4 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 248.92 29.21 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 248.92 29.21 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "8de7c3d0-ea92-445b-bdca-584818a94e91")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR15") (unit 1)))))
+(wire (pts (xy 248.92 39.37) (xy 248.92 41.91)) (stroke (width 0) (type default)) (uuid "9e938f14-c54a-4603-888e-82a644ffa3b9"))
+(label "PDX_S" (at 248.92 41.91 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "35e75773-e727-4b6c-8da3-1cf37ecf3384"))
+(symbol (lib_id "Device:R") (at 264.16 40.64 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "9e139156-ad6c-44f3-89e0-b8584eb82bbf") (property "Reference" "R05" (at 267.97 39.37 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "470k" (at 267.97 41.91 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 264.16 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 264.16 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "1b25373c-97e3-4cda-9923-7b7e08d3fc4c")) (pin "2" (uuid "a5a3cb3e-f99a-475a-a15a-f72656df80b5")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R05") (unit 1)))))
+(wire (pts (xy 264.16 36.83) (xy 264.16 34.29)) (stroke (width 0) (type default)) (uuid "755ae8bd-66f5-451a-8f39-ef6b84835b26"))
+(label "PD_S" (at 264.16 34.29 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "fceda942-5dd6-4999-9262-f14ac177e54b"))
+(wire (pts (xy 264.16 44.45) (xy 264.16 46.99)) (stroke (width 0) (type default)) (uuid "8854f3cb-24c9-493a-88f8-5b93f919d41a"))
+(label "S" (at 264.16 46.99 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "b3c3a8c5-128e-415b-aa3b-47e5253fd40d"))
+(symbol (lib_id "Device:C") (at 276.86 40.64 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "46f9086b-2cea-4f0e-848d-c29063dd47e6") (property "Reference" "C02" (at 280.67 39.37 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "2.7p" (at 280.67 41.91 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 276.86 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 276.86 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "f7ff248b-d72b-41d4-b76e-f1453d4f8035")) (pin "2" (uuid "ed728216-e8ac-425e-b009-62a3b7404ad9")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "C02") (unit 1)))))
+(wire (pts (xy 276.86 36.83) (xy 276.86 34.29)) (stroke (width 0) (type default)) (uuid "3e7ecc4b-ddef-420a-b6c0-e8b81f886d35"))
+(label "PD_S" (at 276.86 34.29 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "82f05ff6-74ce-4b29-9b6c-1de655986c06"))
+(wire (pts (xy 276.86 44.45) (xy 276.86 46.99)) (stroke (width 0) (type default)) (uuid "c7a7207d-f41d-4b62-82bc-a08bc4987a99"))
+(label "S" (at 276.86 46.99 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "e0bcfa1f-a93d-443a-90e2-39b6ab1d0712"))
+(symbol (lib_id "Device:R") (at 289.56 40.64 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "ad82b75e-3418-4e4c-a683-c437ce8a31a7") (property "Reference" "R06" (at 293.37 39.37 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "200k" (at 293.37 41.91 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 289.56 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 289.56 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "1fabcc18-f6c8-4d95-9fad-f6e6013bc5b3")) (pin "2" (uuid "8deb3b16-04fc-4a77-8fd0-b81c3e0a3860")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R06") (unit 1)))))
+(wire (pts (xy 289.56 36.83) (xy 289.56 34.29)) (stroke (width 0) (type default)) (uuid "cbc89c80-1b7b-4e04-b3f3-8cbbe945b987"))
+(label "S" (at 289.56 34.29 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "d217b148-5ac6-453c-acf4-e629a7808656"))
+(wire (pts (xy 289.56 44.45) (xy 289.56 46.99)) (stroke (width 0) (type default)) (uuid "f21b5d44-b8eb-4422-8389-b9485e6c1d81"))
+(symbol (lib_id "power:-50V") (at 289.56 46.99 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "5d298bc3-2b1a-4407-a480-ec0f241dd635") (property "Reference" "#PWR16" (at 289.56 46.99 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "-50V" (at 289.56 50.8 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 289.56 46.99 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 289.56 46.99 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "0bb1cd95-46ec-4d1f-b08b-896ce0b74d2d")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR16") (unit 1)))))
+(symbol (lib_id "Simulation_SPICE:VPWL") (at 76.2 106.68 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "37f2d0e0-ae73-436c-a1aa-17c2893e4bd1") (property "Reference" "V05" (at 81.28 99.06 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "VPWL" (at 81.28 114.3 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 76.2 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 76.2 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "V" (at 76.2 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Type" "PWL" (at 76.2 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=+ 2=-" (at 76.2 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Params" "pwl=\"0.0000u 50 2.0000u 50 2.0200u 150 10.0000u 150 10.0200u 50 14.0000u 50 14.0200u 150 20.0000u 150 20.0200u 50 22.0000u 50 22.0200u 150\"" (at 76.2 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "f9f8ea11-7db1-48fc-9ce2-7ade1b2da05a")) (pin "2" (uuid "cae650cc-40b7-43db-9f7a-36cea9988440")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "V05") (unit 1)))))
+(wire (pts (xy 76.2 101.6) (xy 76.2 99.06)) (stroke (width 0) (type default)) (uuid "90fb1ac1-9a06-4eb5-869e-440411ac00c4"))
+(label "STIM_R" (at 76.2 99.06 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "09c53121-06d4-4efd-88c0-9b25335175d9"))
+(wire (pts (xy 76.2 111.76) (xy 76.2 114.3)) (stroke (width 0) (type default)) (uuid "040ae024-7df1-426a-b40d-fd07fde3085c"))
+(symbol (lib_id "power:GND") (at 76.2 114.3 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "cad41a94-4e02-4106-9f53-3163fd315355") (property "Reference" "#PWR17" (at 76.2 114.3 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 76.2 118.11 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 76.2 114.3 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 76.2 114.3 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "3c2802e4-2336-44f1-8b5a-1a0c3e4f3b33")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR17") (unit 1)))))
+(symbol (lib_id "Device:R") (at 96.52 106.68 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "444eb704-ca4c-48bc-b89d-e3f409a72515") (property "Reference" "R07" (at 100.33 105.41 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "470k" (at 100.33 107.95 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 96.52 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 96.52 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "a5825c3e-df9c-45a0-af70-180f9f76d6b5")) (pin "2" (uuid "9ddd99e6-bd67-49fc-a713-8eeace4dc106")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R07") (unit 1)))))
+(wire (pts (xy 96.52 102.87) (xy 96.52 100.33)) (stroke (width 0) (type default)) (uuid "f45b6cc9-d0a0-4f7d-9402-6ed2c76af4fd"))
+(label "STIM_R" (at 96.52 100.33 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "461561e1-5aa2-4652-a057-450794ec596c"))
+(wire (pts (xy 96.52 110.49) (xy 96.52 113.03)) (stroke (width 0) (type default)) (uuid "5e501795-7281-48e2-8fb1-4dc88e7bbc4f"))
+(label "IS_R" (at 96.52 113.03 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "732ca3bf-dba5-46eb-b1b4-d4966bc818b0"))
+(symbol (lib_id "Device:C") (at 109.22 106.68 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "8d066cc0-5cfc-4ddb-9fc1-f7b440a10e4e") (property "Reference" "C03" (at 113.03 105.41 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "3.9p" (at 113.03 107.95 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 109.22 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 109.22 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "26581bfc-71f0-43e7-9877-eba7ddb412fa")) (pin "2" (uuid "763a4956-7132-457e-a4fc-4e45ef54ba5e")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "C03") (unit 1)))))
+(wire (pts (xy 109.22 102.87) (xy 109.22 100.33)) (stroke (width 0) (type default)) (uuid "0461d693-0d05-4bf0-981d-51b0472c4099"))
+(label "STIM_R" (at 109.22 100.33 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "6ac0c8f7-4f1e-4dd8-9d2c-669c34a5ee6d"))
+(wire (pts (xy 109.22 110.49) (xy 109.22 113.03)) (stroke (width 0) (type default)) (uuid "ebfa63fe-e413-4394-87a6-231bd5f3e803"))
+(label "IS_R" (at 109.22 113.03 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "38211795-1eb7-44e3-b9d5-ae427db95048"))
+(symbol (lib_id "Device:R") (at 121.92 106.68 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "d9bfd92d-88e9-4cd9-b3dd-4745cba8d6ca") (property "Reference" "R08" (at 125.73 105.41 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "200k" (at 125.73 107.95 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 121.92 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 121.92 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "b526adb6-8e9d-4da2-86ae-6124ee5888cf")) (pin "2" (uuid "50f53c33-45de-4ef0-b16e-cb530543d276")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R08") (unit 1)))))
+(wire (pts (xy 121.92 102.87) (xy 121.92 100.33)) (stroke (width 0) (type default)) (uuid "9256d3f0-ef0e-4f03-a775-1c046f7ba7af"))
+(label "IS_R" (at 121.92 100.33 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "2c307ffa-ca57-4ce6-a701-26b54db10cdf"))
+(wire (pts (xy 121.92 110.49) (xy 121.92 113.03)) (stroke (width 0) (type default)) (uuid "d415ca5c-f900-4d8e-a926-2055a099b35c"))
+(symbol (lib_id "power:-50V") (at 121.92 113.03 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "4db348d0-118b-405a-b77c-2af67ee56d95") (property "Reference" "#PWR18" (at 121.92 113.03 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "-50V" (at 121.92 116.84 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 121.92 113.03 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 121.92 113.03 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "fd9f5548-dd96-4c78-a92a-93034670b00a")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR18") (unit 1)))))
+(symbol (lib_id "vacuum_tube:6Н16Б") (at 190.5 111.76 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "93d6749c-54b7-4e89-943a-49e712918fe3") (property "Reference" "Л02" (at 195.58 104.14 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "6Н16Б" (at 195.58 119.38 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 190.5 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 190.5 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Library" "${KIPRJMOD}/../libs/6N16B.sub" (at 190.5 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Name" "6N16B" (at 190.5 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "SUBCKT" (at 190.5 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb" (at 190.5 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "1131ac53-a4d2-4793-bedc-46d52044b7ec")) (pin "7" (uuid "26310daf-5d2c-4345-8346-82d3a82845e0")) (pin "6" (uuid "1f0f9170-2a1a-49f4-be00-91528e737040")) (pin "4" (uuid "15a737c8-a005-4047-a5c7-b77d912a2fbb")) (pin "8" (uuid "a87776a4-6ac4-40b7-9cbd-10f6e11709d7")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "Л02") (unit 1)))))
+(wire (pts (xy 190.5 101.6) (xy 190.5 99.06)) (stroke (width 0) (type default)) (uuid "eba1d91f-c502-4101-8e58-792083e3c206"))
+(label "PD_R" (at 190.5 99.06 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "90de4071-d91e-41f9-8e54-43c15562dfeb"))
+(wire (pts (xy 182.88 111.76) (xy 180.34 111.76)) (stroke (width 0) (type default)) (uuid "6a97a9a1-f1e5-4ffb-a47a-cbca03c83283"))
+(label "IS_R" (at 180.34 111.76 180) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "928a7e69-f856-4c33-ba42-918a658e8f32"))
+(wire (pts (xy 187.96 121.92) (xy 187.96 134.62)) (stroke (width 0) (type default)) (uuid "4d7a6d52-6bf4-4e56-8912-3c8faa393acf"))
+(symbol (lib_id "power:GND") (at 187.96 134.62 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "77cccc92-15fe-4abc-ab00-b7aa1495d657") (property "Reference" "#PWR19" (at 187.96 134.62 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 187.96 138.43 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 187.96 134.62 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 187.96 134.62 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "589eafc6-4b31-427e-8e54-3d7b74709416")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR19") (unit 1)))))
+(wire (pts (xy 189.23 121.92) (xy 189.23 129.54)) (stroke (width 0) (type default)) (uuid "affc3099-5d1c-403f-a53b-23a49e67dba9"))
+(wire (pts (xy 189.23 129.54) (xy 201.93 129.54)) (stroke (width 0) (type default)) (uuid "974c9855-a1c6-4a74-a669-0220e9489fc8"))
+(symbol (lib_id "power:+6.3V") (at 201.93 129.54 270) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "e29cd31b-fb27-49ef-9597-8472fea6c3e9") (property "Reference" "#PWR20" (at 201.93 129.54 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+6.3V" (at 203.2 127 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 201.93 129.54 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 201.93 129.54 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "49ca91a4-72b7-4758-9f15-e1c777d8bf47")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR20") (unit 1)))))
+(wire (pts (xy 191.77 121.92) (xy 191.77 124.46)) (stroke (width 0) (type default)) (uuid "8df10923-52dc-4079-a5c1-90038d7432c2"))
+(wire (pts (xy 191.77 124.46) (xy 199.39 124.46)) (stroke (width 0) (type default)) (uuid "d7ad04fc-da83-42a4-88b8-c6e81c04cf0f"))
+(symbol (lib_id "power:GND") (at 199.39 124.46 90) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "d848b396-ace9-47a0-9f7f-76f0dec450ff") (property "Reference" "#PWR21" (at 199.39 124.46 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 200.66 127 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 199.39 124.46 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 199.39 124.46 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "c12653f9-42d1-496f-872e-81cefcc7b545")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR21") (unit 1)))))
+(symbol (lib_id "vacuum_tube:6Н16Б") (at 223.52 111.76 0) (unit 2) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "a336d5b8-73af-4a3e-b703-dbf541c689f0") (property "Reference" "Л02" (at 228.6 104.14 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "6Н16Б" (at 228.6 119.38 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 223.52 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 223.52 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Library" "${KIPRJMOD}/../libs/6N16B.sub" (at 223.52 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Name" "6N16B" (at 223.52 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "SUBCKT" (at 223.52 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb" (at 223.52 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "5" (uuid "83b6b52b-8925-4b3e-810a-affe59a8983b")) (pin "3" (uuid "b1f36dce-8b2a-4814-ab47-33eb84d05222")) (pin "2" (uuid "a8ba5e51-db1a-4de0-81d9-3ba5e4f2dc9f")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "Л02") (unit 2)))))
+(wire (pts (xy 223.52 101.6) (xy 223.52 99.06)) (stroke (width 0) (type default)) (uuid "636ca7de-762a-421a-9bea-7bab7b97181c"))
+(label "PDX_R" (at 223.52 99.06 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "9ba35a6e-11af-449f-8c8d-c8a6970bf0a0"))
+(wire (pts (xy 215.9 111.76) (xy 213.36 111.76)) (stroke (width 0) (type default)) (uuid "3d893a26-ba52-44d7-ac76-3951b05f2d6c"))
+(symbol (lib_id "power:-50V") (at 213.36 111.76 270) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "955c7ed8-2b32-4fec-b983-a0d66fb18bd6") (property "Reference" "#PWR22" (at 213.36 111.76 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "-50V" (at 212.09 114.3 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 213.36 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 213.36 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "838b1a2b-60d1-473d-bb5d-84c054104b63")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR22") (unit 1)))))
+(wire (pts (xy 220.98 121.92) (xy 220.98 124.46)) (stroke (width 0) (type default)) (uuid "cc7dd90e-a916-41af-9d4e-35811db6b806"))
+(symbol (lib_id "power:GND") (at 220.98 124.46 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "dae971c0-baae-49e8-9c70-1d44d091fab1") (property "Reference" "#PWR23" (at 220.98 124.46 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 220.98 128.27 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 220.98 124.46 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 220.98 124.46 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "f1808087-0744-4b8c-ab19-c8b4db4783a4")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR23") (unit 1)))))
+(symbol (lib_id "Device:R") (at 165.1 101.6 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "c3f95238-b06b-4daa-9648-9ffb2999d662") (property "Reference" "R09" (at 168.91 100.33 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "10k" (at 168.91 102.87 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 165.1 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 165.1 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "fa8c3412-d0c0-4f4a-98f3-5ccf1b708ffd")) (pin "2" (uuid "7f40b2b8-2562-476f-87a8-1c3b841f1c75")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R09") (unit 1)))))
+(wire (pts (xy 165.1 97.79) (xy 165.1 95.25)) (stroke (width 0) (type default)) (uuid "9c43aead-4fae-4f7b-984d-a7eb989d06d4"))
+(symbol (lib_id "power:+150V") (at 165.1 95.25 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "01349bf7-2aee-4dc9-b76f-543c97ea6281") (property "Reference" "#PWR24" (at 165.1 95.25 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+150V" (at 165.1 91.44 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 165.1 95.25 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 165.1 95.25 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "f5d79e2c-4386-462f-8c7d-a7dc9b999f61")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR24") (unit 1)))))
+(wire (pts (xy 165.1 105.41) (xy 165.1 107.95)) (stroke (width 0) (type default)) (uuid "e729bf1c-96b2-4561-9e9d-5c397192d2fc"))
+(label "PD_R" (at 165.1 107.95 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "a544a262-8fa9-406b-8749-d753a89aa7a1"))
+(symbol (lib_id "Device:R") (at 248.92 101.6 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "85a2b09a-76eb-4335-bcaf-0faacaeac30b") (property "Reference" "R10" (at 252.73 100.33 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "10k" (at 252.73 102.87 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 248.92 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 248.92 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "ece21561-3550-4fda-b6ba-0408bde919ab")) (pin "2" (uuid "05e62986-fa77-472a-a91d-afd152cb4de9")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R10") (unit 1)))))
+(wire (pts (xy 248.92 97.79) (xy 248.92 95.25)) (stroke (width 0) (type default)) (uuid "c2c8e4c5-4559-4966-8cc9-76abf97dc3cb"))
+(symbol (lib_id "power:+150V") (at 248.92 95.25 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "0715c8ac-050a-401c-bd57-ee8eea178a8e") (property "Reference" "#PWR25" (at 248.92 95.25 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+150V" (at 248.92 91.44 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 248.92 95.25 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 248.92 95.25 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "7fa41613-0ce5-438c-8abb-cdf82771903b")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR25") (unit 1)))))
+(wire (pts (xy 248.92 105.41) (xy 248.92 107.95)) (stroke (width 0) (type default)) (uuid "8c7bfd1e-ae2c-43ef-9f96-01b6872513e8"))
+(label "PDX_R" (at 248.92 107.95 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "f51db7ed-f8eb-4ad3-9121-8c658a1a3d31"))
+(symbol (lib_id "Device:R") (at 264.16 106.68 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "a2630985-ad2c-456d-8ee2-cbea4f157991") (property "Reference" "R11" (at 267.97 105.41 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "470k" (at 267.97 107.95 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 264.16 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 264.16 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "a34f44de-32be-467c-a291-4c01e3ad23a2")) (pin "2" (uuid "77836e92-f72a-4d7e-8bf6-fcc9d514b059")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R11") (unit 1)))))
+(wire (pts (xy 264.16 102.87) (xy 264.16 100.33)) (stroke (width 0) (type default)) (uuid "6c1d6a62-eb82-464d-8fe6-42da18af6c44"))
+(label "PD_R" (at 264.16 100.33 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "ecc5ffae-036c-4b16-b43c-4dab9bc1e898"))
+(wire (pts (xy 264.16 110.49) (xy 264.16 113.03)) (stroke (width 0) (type default)) (uuid "620e708f-23c2-4cd2-b733-fc6a24f6902e"))
+(label "R" (at 264.16 113.03 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "48d90fc4-1873-45e2-90f8-231d25adc139"))
+(symbol (lib_id "Device:C") (at 276.86 106.68 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "2afab271-16fb-4868-bffd-cf9691716c26") (property "Reference" "C04" (at 280.67 105.41 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "2.7p" (at 280.67 107.95 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 276.86 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 276.86 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "19a08e74-c572-468d-8108-49084722491e")) (pin "2" (uuid "9142a7cb-683c-4d5c-af20-a77cfa854981")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "C04") (unit 1)))))
+(wire (pts (xy 276.86 102.87) (xy 276.86 100.33)) (stroke (width 0) (type default)) (uuid "87905d13-4d4a-47de-b596-eeadc5297f3d"))
+(label "PD_R" (at 276.86 100.33 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "11bc8fdc-3159-4d0c-a8f7-17b53ede4544"))
+(wire (pts (xy 276.86 110.49) (xy 276.86 113.03)) (stroke (width 0) (type default)) (uuid "1314d81a-2473-43fc-a337-6f73213ec811"))
+(label "R" (at 276.86 113.03 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "5dda5300-a7b1-4b24-aaa3-a7f58c932ae0"))
+(symbol (lib_id "Device:R") (at 289.56 106.68 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "70957f7a-dd58-48a1-b62a-a5cd4c7ba9bc") (property "Reference" "R12" (at 293.37 105.41 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "200k" (at 293.37 107.95 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 289.56 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 289.56 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "251eaa6d-7e41-4869-b339-935349e8ef6d")) (pin "2" (uuid "35cc2cd3-cd40-4046-a8be-93228b744166")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R12") (unit 1)))))
+(wire (pts (xy 289.56 102.87) (xy 289.56 100.33)) (stroke (width 0) (type default)) (uuid "20448040-11cb-40a3-8745-9865b8930dbf"))
+(label "R" (at 289.56 100.33 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "fa1436a4-5780-45f7-b3fe-c1fa9fa7db8e"))
+(wire (pts (xy 289.56 110.49) (xy 289.56 113.03)) (stroke (width 0) (type default)) (uuid "f4c3e406-bbab-44fc-9643-6102678c3744"))
+(symbol (lib_id "power:-50V") (at 289.56 113.03 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "6b4aef05-894f-4cee-ae08-8abc804a443a") (property "Reference" "#PWR26" (at 289.56 113.03 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "-50V" (at 289.56 116.84 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 289.56 113.03 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 289.56 113.03 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "978de552-3ab6-4ee0-9cfd-8ad771701dfd")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR26") (unit 1)))))
+(symbol (lib_id "Simulation_SPICE:VPWL") (at 76.2 172.72 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "be743d15-30d0-4716-bc94-f62efb332865") (property "Reference" "V06" (at 81.28 165.1 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "VPWL" (at 81.28 180.34 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 76.2 172.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 76.2 172.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "V" (at 76.2 172.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Type" "PWL" (at 76.2 172.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=+ 2=-" (at 76.2 172.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Params" "pwl=\"0.0000u 50 2.0000u 50 2.0200u 150 6.0000u 150 6.0200u 50 8.0000u 50 8.0200u 150 12.0000u 150 12.0200u 50 22.0000u 50 22.0200u 150\"" (at 76.2 172.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "847ce76b-6f69-430f-9874-6a0aa2f65dd5")) (pin "2" (uuid "550085a4-42a9-402f-b504-9d7d617daa04")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "V06") (unit 1)))))
+(wire (pts (xy 76.2 167.64) (xy 76.2 165.1)) (stroke (width 0) (type default)) (uuid "3e0c4061-b865-4182-ba11-97635973c80d"))
+(label "STIM_E" (at 76.2 165.1 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "7222a86d-2809-4c9e-8e8a-85ebc7756a1f"))
+(wire (pts (xy 76.2 177.8) (xy 76.2 180.34)) (stroke (width 0) (type default)) (uuid "0af788ff-003b-4c13-84bd-46a7f5378486"))
+(symbol (lib_id "power:GND") (at 76.2 180.34 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "625cddd0-d3d0-4bbc-88d9-4371cc87579b") (property "Reference" "#PWR27" (at 76.2 180.34 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 76.2 184.15 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 76.2 180.34 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 76.2 180.34 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "c26b83c6-3b2e-4515-9d30-d7dad00a9e92")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR27") (unit 1)))))
+(symbol (lib_id "Device:R") (at 96.52 172.72 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "b717373a-c1fb-4cd5-a0e6-8b0cadbe2af3") (property "Reference" "R13" (at 100.33 171.45 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "470k" (at 100.33 173.99 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 96.52 172.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 96.52 172.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "3011669e-0d73-48ee-a695-40d080fd5aec")) (pin "2" (uuid "b6b1695f-f181-4681-8a85-17784d1facea")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R13") (unit 1)))))
+(wire (pts (xy 96.52 168.91) (xy 96.52 166.37)) (stroke (width 0) (type default)) (uuid "3a30d666-8f19-4b57-9ef7-f933c60f09d1"))
+(label "STIM_E" (at 96.52 166.37 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "443ac808-8406-4f0b-be27-657247adc650"))
+(wire (pts (xy 96.52 176.53) (xy 96.52 179.07)) (stroke (width 0) (type default)) (uuid "04625990-5492-4a8b-970d-4782638b5599"))
+(label "IS_E" (at 96.52 179.07 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "c74c90c9-e6aa-41ee-b9a5-e0afd1d4ff29"))
+(symbol (lib_id "Device:C") (at 109.22 172.72 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "8126b250-31ef-46ec-aa6a-dd3f142e066e") (property "Reference" "C05" (at 113.03 171.45 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "3.9p" (at 113.03 173.99 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 109.22 172.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 109.22 172.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "491edff2-ae7a-4b94-8a7b-a5655f4a4eaa")) (pin "2" (uuid "46c087b1-4c38-41f5-936d-2844e0cb4e7d")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "C05") (unit 1)))))
+(wire (pts (xy 109.22 168.91) (xy 109.22 166.37)) (stroke (width 0) (type default)) (uuid "08a8f7ec-a0a2-41e3-bed7-6d36813ed6a6"))
+(label "STIM_E" (at 109.22 166.37 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "b9a7ced2-d830-493d-a335-597bb936358b"))
+(wire (pts (xy 109.22 176.53) (xy 109.22 179.07)) (stroke (width 0) (type default)) (uuid "499888c7-bfd9-469a-b79d-3e77e9a543c7"))
+(label "IS_E" (at 109.22 179.07 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "687b4644-2291-4c92-b7b3-cd561c833f0c"))
+(symbol (lib_id "Device:R") (at 121.92 172.72 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "066f60f5-8f46-49ad-8a9f-756599e88b1e") (property "Reference" "R14" (at 125.73 171.45 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "200k" (at 125.73 173.99 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 121.92 172.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 121.92 172.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "59cec3fe-a9a1-48e0-9b5d-05a16b638363")) (pin "2" (uuid "2f8423a1-0c36-44a8-8b07-fc1901c6aae0")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R14") (unit 1)))))
+(wire (pts (xy 121.92 168.91) (xy 121.92 166.37)) (stroke (width 0) (type default)) (uuid "b4087f37-43a2-4524-92c5-2174fbe43e1f"))
+(label "IS_E" (at 121.92 166.37 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "63d1f08d-8ff7-479b-b2a8-5f5220d928b6"))
+(wire (pts (xy 121.92 176.53) (xy 121.92 179.07)) (stroke (width 0) (type default)) (uuid "2568cdb0-c302-48df-87a5-a5a3686e39c0"))
+(symbol (lib_id "power:-50V") (at 121.92 179.07 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "d11b599f-4917-4c94-bf5e-fa3932cec9e8") (property "Reference" "#PWR28" (at 121.92 179.07 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "-50V" (at 121.92 182.88 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 121.92 179.07 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 121.92 179.07 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "a4024f17-c696-46b4-8bff-29826e7db981")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR28") (unit 1)))))
+(symbol (lib_id "vacuum_tube:6Н16Б") (at 190.5 177.8 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "7ccd6689-53b0-4dd3-9a39-ab00d280ec3e") (property "Reference" "Л03" (at 195.58 170.18 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "6Н16Б" (at 195.58 185.42 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 190.5 177.8 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 190.5 177.8 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Library" "${KIPRJMOD}/../libs/6N16B.sub" (at 190.5 177.8 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Name" "6N16B" (at 190.5 177.8 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "SUBCKT" (at 190.5 177.8 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb" (at 190.5 177.8 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "d84fd61d-59e7-432d-8a9d-fe7dfc5fd730")) (pin "7" (uuid "1f7420d6-32a5-4e50-8d61-b46e1742ae9e")) (pin "6" (uuid "eb6b2b49-34e5-4c90-9e55-17d37c341a96")) (pin "4" (uuid "d56b0c3c-dc3e-4431-846a-822dad6bd6d5")) (pin "8" (uuid "578cc176-023a-4425-a086-dd217b9612e3")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "Л03") (unit 1)))))
+(wire (pts (xy 190.5 167.64) (xy 190.5 165.1)) (stroke (width 0) (type default)) (uuid "b4825aae-7b5f-4a67-8dad-8ed824d2e239"))
+(label "PD_E" (at 190.5 165.1 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "e3b70649-6a60-4a92-a5a8-21a01cfb4a1c"))
+(wire (pts (xy 182.88 177.8) (xy 180.34 177.8)) (stroke (width 0) (type default)) (uuid "b1887ce4-3e4d-40db-98c5-e490884dd1ae"))
+(label "IS_E" (at 180.34 177.8 180) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "1c2381f9-1a35-46ac-9070-3ec5ac235b46"))
+(wire (pts (xy 187.96 187.96) (xy 187.96 200.66)) (stroke (width 0) (type default)) (uuid "4fc295f1-0fc4-4bf1-adc7-6f2f271f0df1"))
+(symbol (lib_id "power:GND") (at 187.96 200.66 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "bcb07f0f-26e3-4a2d-97a7-de5ac3183803") (property "Reference" "#PWR29" (at 187.96 200.66 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 187.96 204.47 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 187.96 200.66 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 187.96 200.66 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "aeaa0db8-6454-48ef-9d25-0a30e58ad354")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR29") (unit 1)))))
+(wire (pts (xy 189.23 187.96) (xy 189.23 195.58)) (stroke (width 0) (type default)) (uuid "af7185eb-1df5-438d-8c5e-c82c3632b092"))
+(wire (pts (xy 189.23 195.58) (xy 201.93 195.58)) (stroke (width 0) (type default)) (uuid "cd4dadaa-458d-48bf-8b19-9de77e48a341"))
+(symbol (lib_id "power:+6.3V") (at 201.93 195.58 270) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "eefc9f50-fafc-4cc5-a844-e53923b30f7f") (property "Reference" "#PWR30" (at 201.93 195.58 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+6.3V" (at 203.2 193.04 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 201.93 195.58 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 201.93 195.58 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "b912ab13-1b7d-4b7c-85b2-c9daebd81a7b")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR30") (unit 1)))))
+(wire (pts (xy 191.77 187.96) (xy 191.77 190.5)) (stroke (width 0) (type default)) (uuid "7e915e13-26f6-4f3b-bcc7-c9aa00ae9885"))
+(wire (pts (xy 191.77 190.5) (xy 199.39 190.5)) (stroke (width 0) (type default)) (uuid "81bc727b-dd0e-43d0-84f0-76bd8e5c3808"))
+(symbol (lib_id "power:GND") (at 199.39 190.5 90) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "c400d049-615d-4e84-bd58-61d9d7e51de2") (property "Reference" "#PWR31" (at 199.39 190.5 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 200.66 193.04 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 199.39 190.5 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 199.39 190.5 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "387ca4a2-2007-4b84-b5dc-c71b2a8c77a6")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR31") (unit 1)))))
+(symbol (lib_id "vacuum_tube:6Н16Б") (at 223.52 177.8 0) (unit 2) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "90ec1715-011d-43cb-b31c-b8379108b012") (property "Reference" "Л03" (at 228.6 170.18 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "6Н16Б" (at 228.6 185.42 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 223.52 177.8 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 223.52 177.8 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Library" "${KIPRJMOD}/../libs/6N16B.sub" (at 223.52 177.8 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Name" "6N16B" (at 223.52 177.8 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "SUBCKT" (at 223.52 177.8 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb" (at 223.52 177.8 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "5" (uuid "6437f2ca-c9e8-4667-8363-038dfc15b57f")) (pin "3" (uuid "89c7011a-0155-49f5-8f42-60f85e39a0ea")) (pin "2" (uuid "87a675c5-0622-484e-8a45-e0013ea4a066")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "Л03") (unit 2)))))
+(wire (pts (xy 223.52 167.64) (xy 223.52 165.1)) (stroke (width 0) (type default)) (uuid "05147b40-5cdb-43ab-b09b-712dc046c77b"))
+(label "PDX_E" (at 223.52 165.1 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "c60fc338-ad2f-42e2-8425-577e8b481002"))
+(wire (pts (xy 215.9 177.8) (xy 213.36 177.8)) (stroke (width 0) (type default)) (uuid "c1545c43-5d95-4584-bb6f-248966a1df6c"))
+(symbol (lib_id "power:-50V") (at 213.36 177.8 270) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "303f3183-c15f-4934-b946-23e5db726ffe") (property "Reference" "#PWR32" (at 213.36 177.8 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "-50V" (at 212.09 180.34 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 213.36 177.8 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 213.36 177.8 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "c581499b-792e-4dcf-b6cd-772fb30896a3")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR32") (unit 1)))))
+(wire (pts (xy 220.98 187.96) (xy 220.98 190.5)) (stroke (width 0) (type default)) (uuid "2041d58b-5ac0-4ca5-be63-6e9aa7ae7621"))
+(symbol (lib_id "power:GND") (at 220.98 190.5 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "b1c393c4-91f1-4eee-9ca1-61546e38b0fc") (property "Reference" "#PWR33" (at 220.98 190.5 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 220.98 194.31 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 220.98 190.5 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 220.98 190.5 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "914ab78c-370c-475a-89f0-4a552eab599d")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR33") (unit 1)))))
+(symbol (lib_id "Device:R") (at 165.1 167.64 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "00238969-3f95-483f-89c8-89c3481e6e9b") (property "Reference" "R15" (at 168.91 166.37 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "10k" (at 168.91 168.91 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 165.1 167.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 165.1 167.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "590329ab-9485-4dab-a783-0595ad285ef7")) (pin "2" (uuid "b60d8064-4cca-42a1-ba2a-1b8abb08a8bf")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R15") (unit 1)))))
+(wire (pts (xy 165.1 163.83) (xy 165.1 161.29)) (stroke (width 0) (type default)) (uuid "84d1206f-160d-48ce-8ce2-635c25ffa94b"))
+(symbol (lib_id "power:+150V") (at 165.1 161.29 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "ecbabe1e-24c0-444a-b65f-387e1ea00c46") (property "Reference" "#PWR34" (at 165.1 161.29 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+150V" (at 165.1 157.48 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 165.1 161.29 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 165.1 161.29 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "b3d16c84-da3a-47d4-9502-151ff55b9824")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR34") (unit 1)))))
+(wire (pts (xy 165.1 171.45) (xy 165.1 173.99)) (stroke (width 0) (type default)) (uuid "cee896a6-16d1-4902-86e9-1452a8d5517f"))
+(label "PD_E" (at 165.1 173.99 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "9b04102b-66b9-40eb-a24f-31265eed6b20"))
+(symbol (lib_id "Device:R") (at 248.92 167.64 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "17a4f154-a741-413c-b977-547eaa8d9700") (property "Reference" "R16" (at 252.73 166.37 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "10k" (at 252.73 168.91 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 248.92 167.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 248.92 167.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "66afc971-9b46-418e-910c-b44267a54622")) (pin "2" (uuid "28795983-f2e4-4d8a-a27c-b9f5f7e0966d")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R16") (unit 1)))))
+(wire (pts (xy 248.92 163.83) (xy 248.92 161.29)) (stroke (width 0) (type default)) (uuid "3a732dad-ffe4-4922-ad15-0991122e79ed"))
+(symbol (lib_id "power:+150V") (at 248.92 161.29 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "84db6c84-4c99-40e2-9852-ee4af0ff7bbb") (property "Reference" "#PWR35" (at 248.92 161.29 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+150V" (at 248.92 157.48 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 248.92 161.29 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 248.92 161.29 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "3c84ec1a-38bd-4ede-89a8-52ed8bec6103")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR35") (unit 1)))))
+(wire (pts (xy 248.92 171.45) (xy 248.92 173.99)) (stroke (width 0) (type default)) (uuid "f6495202-104e-4a9d-8333-fd5cf2db9c70"))
+(label "PDX_E" (at 248.92 173.99 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "67c1a491-5e03-45de-8d83-c2f15c49fd48"))
+(symbol (lib_id "Device:R") (at 264.16 172.72 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "3aa2e173-46bd-44aa-a4de-13df81b68e66") (property "Reference" "R17" (at 267.97 171.45 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "470k" (at 267.97 173.99 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 264.16 172.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 264.16 172.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "d860fe80-e526-4842-b88d-707a13c299ac")) (pin "2" (uuid "4059d984-f312-40d5-b092-aa78c4c13d6b")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R17") (unit 1)))))
+(wire (pts (xy 264.16 168.91) (xy 264.16 166.37)) (stroke (width 0) (type default)) (uuid "52a63d39-2c74-4ea0-b9dd-96fd7dc510b9"))
+(label "PD_E" (at 264.16 166.37 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "df3819f5-e509-421c-a6e8-5bf762d430e6"))
+(wire (pts (xy 264.16 176.53) (xy 264.16 179.07)) (stroke (width 0) (type default)) (uuid "ef01237f-93f6-4e5e-887f-37819b48e292"))
+(label "E" (at 264.16 179.07 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "fc466a25-94c9-4dc3-8726-c0efb822eef8"))
+(symbol (lib_id "Device:C") (at 276.86 172.72 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "3750cc84-b4dc-406d-82d2-4ae6008b8c63") (property "Reference" "C06" (at 280.67 171.45 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "13.6p" (at 280.67 173.99 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 276.86 172.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 276.86 172.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "97f850de-24d5-44f4-b2ca-830d5dbc778a")) (pin "2" (uuid "da820fe1-8c1b-438a-a639-a639ea4c7dd8")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "C06") (unit 1)))))
+(wire (pts (xy 276.86 168.91) (xy 276.86 166.37)) (stroke (width 0) (type default)) (uuid "ee335ed6-67b1-45f2-a89e-2bfc5cceffe2"))
+(label "PD_E" (at 276.86 166.37 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "f2cfd659-7fbe-4835-988b-c20a00081e04"))
+(wire (pts (xy 276.86 176.53) (xy 276.86 179.07)) (stroke (width 0) (type default)) (uuid "2ec9d412-1f2e-4020-a733-bb96c16f4060"))
+(label "E" (at 276.86 179.07 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "68402660-a0be-446b-85e2-0a5d1437bbef"))
+(symbol (lib_id "Device:R") (at 289.56 172.72 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "35fe6415-9a5f-4c65-a7f6-56ac5430ed52") (property "Reference" "R18" (at 293.37 171.45 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "200k" (at 293.37 173.99 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 289.56 172.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 289.56 172.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "f89b807a-5057-40af-b0ba-0c315929d172")) (pin "2" (uuid "37709da8-66ce-4627-b8af-7226e936194a")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R18") (unit 1)))))
+(wire (pts (xy 289.56 168.91) (xy 289.56 166.37)) (stroke (width 0) (type default)) (uuid "6e7ea348-95ca-4f56-bc76-40d8106fc96b"))
+(label "E" (at 289.56 166.37 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "2a3a8a98-ecf1-4dae-9d92-4366c5469731"))
+(wire (pts (xy 289.56 176.53) (xy 289.56 179.07)) (stroke (width 0) (type default)) (uuid "c366250b-3a98-40e5-9139-4d7a5ba710b6"))
+(symbol (lib_id "power:-50V") (at 289.56 179.07 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "8726a2e8-6872-4230-b8bc-57c0881482ab") (property "Reference" "#PWR36" (at 289.56 179.07 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "-50V" (at 289.56 182.88 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 289.56 179.07 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 289.56 179.07 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "5c9df892-9b9b-4181-8873-dc9722bea143")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR36") (unit 1)))))
+(wire (pts (xy 381 55.88) (xy 375.92 55.88)) (stroke (width 0) (type default)) (uuid "8371963b-fdd9-4d6a-a67b-b7d359d83168"))
+(label "S" (at 375.92 55.88 180) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "50ad1ce3-0606-4827-8e92-f6c41b80de22"))
+(wire (pts (xy 381 60.96) (xy 375.92 60.96)) (stroke (width 0) (type default)) (uuid "1250c366-4f19-46ad-be80-e47b4c65b732"))
+(label "R" (at 375.92 60.96 180) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "c1012fd1-ee5a-42b7-96a5-5469fd1b1b91"))
+(wire (pts (xy 381 66.04) (xy 375.92 66.04)) (stroke (width 0) (type default)) (uuid "14d8b814-46e7-4529-b91e-d7470f948422"))
+(label "E" (at 375.92 66.04 180) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "cddf968f-f408-4420-8ad0-60b583ee4e5e"))
+(wire (pts (xy 381 73.66) (xy 375.92 73.66)) (stroke (width 0) (type default)) (uuid "e81b64e5-6836-4b72-ae67-9912b74d7875"))
+(symbol (lib_id "power:+6.3V") (at 375.92 73.66 90) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "fbc9a6f6-d30d-4e4e-8eb7-231e8b897f84") (property "Reference" "#PWR37" (at 375.92 73.66 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+6.3V" (at 374.65 71.12 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 375.92 73.66 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 375.92 73.66 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "12b3b6b5-54a0-4883-a5f5-48c2fe788292")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR37") (unit 1)))))
+(wire (pts (xy 381 76.2) (xy 375.92 76.2)) (stroke (width 0) (type default)) (uuid "7c9bb754-33a7-4006-bee8-5249eade4aca"))
+(symbol (lib_id "power:GND") (at 375.92 76.2 270) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "747d98a1-803a-4f0c-97de-623edfbca6f2") (property "Reference" "#PWR38" (at 375.92 76.2 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 374.65 78.74 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 375.92 76.2 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 375.92 76.2 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "7b511606-1a00-4a3a-a134-8dc45a1047cf")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR38") (unit 1)))))
+(wire (pts (xy 416.56 55.88) (xy 421.64 55.88)) (stroke (width 0) (type default)) (uuid "19f354d2-a70f-4d87-b0a4-e985333d3d77"))
+(label "Q" (at 421.64 55.88 0) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "6641c05c-cd88-4eac-876b-bfedbaa73649"))
+(wire (pts (xy 416.56 60.96) (xy 421.64 60.96)) (stroke (width 0) (type default)) (uuid "44715ec4-cfcb-47a8-8de8-88be4d568492"))
+(label "QN" (at 421.64 60.96 0) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "f46f45f6-ca7f-4d70-9ad2-55c46afcd5ae"))
+(sheet (at 381 50.8) (size 35.56 27.94) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (fields_autoplaced yes) (stroke (width 0.1524) (type solid)) (fill (color 0 0 0 0.0000)) (uuid "7ec13f43-2836-4ebc-8447-9127d658abc2") (property "Sheetname" "DUT" (at 381 50.1 0) (effects (font (size 1.27 1.27)) (justify left bottom))) (property "Sheetfile" "RSLATCH_J2N16.kicad_sch" (at 381 79.34 0) (effects (font (size 1.27 1.27)) (justify left top))) (pin "S" input (at 381 55.88 180) (uuid "6c7c38a7-087c-43c8-b1fe-14b7b3e6660b") (effects (font (size 1.27 1.27)) (justify left))) (pin "R" input (at 381 60.96 180) (uuid "4145c445-5174-4d94-a960-8d647fc81758") (effects (font (size 1.27 1.27)) (justify left))) (pin "E" input (at 381 66.04 180) (uuid "84c132d0-0297-4f96-9cd7-fce7b170ef81") (effects (font (size 1.27 1.27)) (justify left))) (pin "H1" passive (at 381 73.66 180) (uuid "fa7a1089-0889-487f-9f0c-6c5af371a339") (effects (font (size 1.27 1.27)) (justify left))) (pin "H2" passive (at 381 76.2 180) (uuid "38877851-9824-4fd6-9df1-2ec2689df8ff") (effects (font (size 1.27 1.27)) (justify left))) (pin "Q" output (at 416.56 55.88 0) (uuid "b43aa8e0-5a1d-4383-b991-4b09ff2987ef") (effects (font (size 1.27 1.27)) (justify right))) (pin "QN" output (at 416.56 60.96 0) (uuid "43681c31-da01-4bf9-bea9-bd6da205b4c9") (effects (font (size 1.27 1.27)) (justify right))) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (page "2")))))
+(symbol (lib_id "Device:R") (at 469.9 40.64 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "74c7585d-a42c-433c-af24-c25956758cbd") (property "Reference" "R19" (at 473.71 39.37 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "470k" (at 473.71 41.91 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 469.9 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 469.9 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "b59b4958-d6d0-407f-b15d-d60e91d124df")) (pin "2" (uuid "7c4d456c-27e1-43be-8207-7e5156999112")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R19") (unit 1)))))
+(wire (pts (xy 469.9 36.83) (xy 469.9 34.29)) (stroke (width 0) (type default)) (uuid "76b96925-79c5-4dc8-8963-43269be1301f"))
+(label "Q" (at 469.9 34.29 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "d37784f2-95b9-4779-a6e0-45516dd12013"))
+(wire (pts (xy 469.9 44.45) (xy 469.9 46.99)) (stroke (width 0) (type default)) (uuid "a6492d81-e192-416a-8f21-d188f80eb156"))
+(label "Q_LV" (at 469.9 46.99 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "14ce669d-979e-49de-a3b6-5b66b238ee15"))
+(symbol (lib_id "Device:C") (at 482.6 40.64 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "6f407d03-e3a7-463f-bebf-fcbcf6e80300") (property "Reference" "C07" (at 486.41 39.37 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "23.4p" (at 486.41 41.91 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 482.6 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 482.6 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "7fb84383-9b08-471a-b683-ce5d8a23d6a8")) (pin "2" (uuid "c914937b-e76e-4b5b-b7f5-f02e3e98a4d1")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "C07") (unit 1)))))
+(wire (pts (xy 482.6 36.83) (xy 482.6 34.29)) (stroke (width 0) (type default)) (uuid "24decfdd-5506-4bba-8a3b-fed0cf7f6ca9"))
+(label "Q" (at 482.6 34.29 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "50fab779-8c2c-4e04-816a-e1551e19b674"))
+(wire (pts (xy 482.6 44.45) (xy 482.6 46.99)) (stroke (width 0) (type default)) (uuid "940df6cb-ec8f-4a61-a9dd-c4afb425bcc9"))
+(label "Q_LV" (at 482.6 46.99 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "b05ccc5e-cbb6-43c6-8e28-209d9f2b3670"))
+(symbol (lib_id "Device:R") (at 495.3 40.64 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "73178dca-60f4-4203-bffd-77df78e85210") (property "Reference" "R20" (at 499.11 39.37 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "200k" (at 499.11 41.91 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 495.3 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 495.3 40.64 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "bdcf0d31-88a8-494a-bd1e-ebaf8182c857")) (pin "2" (uuid "97960348-e4aa-4bca-8da0-050c87c486cf")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R20") (unit 1)))))
+(wire (pts (xy 495.3 36.83) (xy 495.3 34.29)) (stroke (width 0) (type default)) (uuid "e53a483c-5eac-4d01-9554-06f6c2d6594b"))
+(label "Q_LV" (at 495.3 34.29 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "c4792fb8-3511-421a-aa96-2ebf0ddfa25f"))
+(wire (pts (xy 495.3 44.45) (xy 495.3 46.99)) (stroke (width 0) (type default)) (uuid "7d1b0610-3d26-4618-ab03-3c258803154c"))
+(symbol (lib_id "power:-50V") (at 495.3 46.99 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "6f456918-cce8-4bcd-9e3e-725ac85b15d7") (property "Reference" "#PWR39" (at 495.3 46.99 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "-50V" (at 495.3 50.8 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 495.3 46.99 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 495.3 46.99 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "b6f36845-516a-41ef-93d4-a77932a72cdb")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR39") (unit 1)))))
+(symbol (lib_id "vacuum_tube:6Н16Б") (at 558.8 45.72 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "e8c5157c-ff0c-4214-aa5c-47ad26686f4b") (property "Reference" "Л04" (at 563.88 38.1 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "6Н16Б" (at 563.88 53.34 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 558.8 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 558.8 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Library" "${KIPRJMOD}/../libs/6N16B.sub" (at 558.8 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Name" "6N16B" (at 558.8 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "SUBCKT" (at 558.8 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb" (at 558.8 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "9955da60-1e55-456b-86bd-ef49c965be83")) (pin "7" (uuid "1c2eaa09-6039-4fa9-8daf-b1905321966b")) (pin "6" (uuid "07c04f5b-1319-4249-b205-dc866f0cad3c")) (pin "4" (uuid "4479aa1f-db9e-4099-983c-5a51f988e22b")) (pin "8" (uuid "0a5a0dfb-d761-4685-a640-707002f8973d")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "Л04") (unit 1)))))
+(wire (pts (xy 558.8 35.56) (xy 558.8 33.02)) (stroke (width 0) (type default)) (uuid "d138a4e7-2c8b-41eb-92a3-80878b304adb"))
+(label "PL_Q0a" (at 558.8 33.02 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "9d21b7cd-241d-442a-9572-0c3d597ee8a3"))
+(wire (pts (xy 551.18 45.72) (xy 548.64 45.72)) (stroke (width 0) (type default)) (uuid "10aea237-8354-44c6-9e16-cf0ad32ed65e"))
+(label "Q_LV" (at 548.64 45.72 180) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "e9d6cbee-4752-4145-8fe7-926bd49a6a53"))
+(wire (pts (xy 556.26 55.88) (xy 556.26 68.58)) (stroke (width 0) (type default)) (uuid "50c60c17-ba5e-4ee4-95c8-318a6bfcfb05"))
+(symbol (lib_id "power:GND") (at 556.26 68.58 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "c4f896e9-239b-4ad9-9aa3-2b537875b3f9") (property "Reference" "#PWR40" (at 556.26 68.58 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 556.26 72.39 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 556.26 68.58 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 556.26 68.58 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "6e3d0fbf-1fcb-423c-b2f6-b04ac5816ec9")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR40") (unit 1)))))
+(wire (pts (xy 557.53 55.88) (xy 557.53 63.5)) (stroke (width 0) (type default)) (uuid "4a25088e-4766-4750-ae6c-61d1d038e9b7"))
+(wire (pts (xy 557.53 63.5) (xy 570.23 63.5)) (stroke (width 0) (type default)) (uuid "ffc2a9c7-6718-451e-9a6b-ef8996e3f0aa"))
+(symbol (lib_id "power:+6.3V") (at 570.23 63.5 270) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "fbec6ab3-be99-4722-84ae-a64fab36e07d") (property "Reference" "#PWR41" (at 570.23 63.5 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+6.3V" (at 571.5 60.96 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 570.23 63.5 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 570.23 63.5 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "e7641b58-bb00-4fe6-8d4f-c2299d516fc1")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR41") (unit 1)))))
+(wire (pts (xy 560.07 55.88) (xy 560.07 58.42)) (stroke (width 0) (type default)) (uuid "4904805f-8cc7-41cf-b1a5-a6e3f49454f8"))
+(wire (pts (xy 560.07 58.42) (xy 567.69 58.42)) (stroke (width 0) (type default)) (uuid "a9b21ea6-1571-43b9-9d25-f7af79889173"))
+(symbol (lib_id "power:GND") (at 567.69 58.42 90) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "2881b1b7-7722-4516-82df-8b7819dd57ed") (property "Reference" "#PWR42" (at 567.69 58.42 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 568.96 60.96 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 567.69 58.42 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 567.69 58.42 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "263130f0-85fb-4f54-9ca4-0536f7fcce32")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR42") (unit 1)))))
+(symbol (lib_id "vacuum_tube:6Н16Б") (at 589.28 45.72 0) (unit 2) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "fd850249-1478-4b93-a545-a60e3a5ee256") (property "Reference" "Л04" (at 594.36 38.1 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "6Н16Б" (at 594.36 53.34 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 589.28 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 589.28 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Library" "${KIPRJMOD}/../libs/6N16B.sub" (at 589.28 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Name" "6N16B" (at 589.28 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "SUBCKT" (at 589.28 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb" (at 589.28 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "5" (uuid "d4a23e1d-63bf-409c-9579-dbcc45dbfd3e")) (pin "3" (uuid "602facd5-e8dd-45a0-956f-f740b6037e2d")) (pin "2" (uuid "b6d0c14f-4b62-499e-bb03-0633f353df2a")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "Л04") (unit 2)))))
+(wire (pts (xy 589.28 35.56) (xy 589.28 33.02)) (stroke (width 0) (type default)) (uuid "cd6f65f7-f691-4571-9e96-91819d9bdeb5"))
+(label "PL_Q0b" (at 589.28 33.02 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "f02ef42f-6dca-4d54-a949-93e88c386caa"))
+(wire (pts (xy 581.66 45.72) (xy 579.12 45.72)) (stroke (width 0) (type default)) (uuid "de547644-d91b-445e-b4c5-015e9da4382f"))
+(label "Q_LV" (at 579.12 45.72 180) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "aa513935-3843-4d0e-9565-91fd41b737dc"))
+(wire (pts (xy 586.74 55.88) (xy 586.74 58.42)) (stroke (width 0) (type default)) (uuid "d25d9a4a-5709-49eb-9a67-5cbe7a91f879"))
+(symbol (lib_id "power:GND") (at 586.74 58.42 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "c0bfacf3-0b7c-49f0-8f25-459980104e0a") (property "Reference" "#PWR43" (at 586.74 58.42 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 586.74 62.23 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 586.74 58.42 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 586.74 58.42 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "310eca92-e10d-436b-8c55-c6d42737620b")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR43") (unit 1)))))
+(symbol (lib_id "Device:R") (at 546.1 25.4 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "df96c911-8341-4bc7-bc80-28bbd4faf075") (property "Reference" "R21" (at 549.91 24.13 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "10k" (at 549.91 26.67 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 546.1 25.4 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 546.1 25.4 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "99436899-8176-4614-ba59-27ad362ada4e")) (pin "2" (uuid "45532611-7748-41a9-b720-01212d7a9975")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R21") (unit 1)))))
+(wire (pts (xy 546.1 21.59) (xy 546.1 19.05)) (stroke (width 0) (type default)) (uuid "98da576d-0cff-4a58-a7f8-56370c758c25"))
+(symbol (lib_id "power:+150V") (at 546.1 19.05 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "a8c6ea15-4764-46fe-be6d-a61d2d39a317") (property "Reference" "#PWR44" (at 546.1 19.05 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+150V" (at 546.1 15.24 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 546.1 19.05 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 546.1 19.05 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "6db64092-5830-41e8-b638-f75123720094")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR44") (unit 1)))))
+(wire (pts (xy 546.1 29.21) (xy 546.1 31.75)) (stroke (width 0) (type default)) (uuid "125ae498-e928-405b-9373-a79b640697cc"))
+(label "PL_Q0a" (at 546.1 31.75 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "ba24089b-b47d-4a2b-8447-543e85bdc93e"))
+(symbol (lib_id "Device:R") (at 604.52 25.4 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "bc0eae85-f59a-40ad-851f-0686be0fdeee") (property "Reference" "R22" (at 608.33 24.13 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "10k" (at 608.33 26.67 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 604.52 25.4 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 604.52 25.4 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "0ee5b6e2-769d-4bc6-a37d-e8f5ac4d8207")) (pin "2" (uuid "e78aa27f-b428-4c91-8c42-57ffa4237993")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R22") (unit 1)))))
+(wire (pts (xy 604.52 21.59) (xy 604.52 19.05)) (stroke (width 0) (type default)) (uuid "72b79c6e-f429-476a-9c97-781d87798bff"))
+(symbol (lib_id "power:+150V") (at 604.52 19.05 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "82c97065-d67e-45a6-8bc2-6f633809c920") (property "Reference" "#PWR45" (at 604.52 19.05 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+150V" (at 604.52 15.24 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 604.52 19.05 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 604.52 19.05 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "ceae75dd-ac73-4dc1-bee6-21236e14f0c4")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR45") (unit 1)))))
+(wire (pts (xy 604.52 29.21) (xy 604.52 31.75)) (stroke (width 0) (type default)) (uuid "375e866a-083a-45d6-a6aa-8d023f5d7e2c"))
+(label "PL_Q0b" (at 604.52 31.75 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "be9a4bbc-4ba2-4250-984d-dd1469574e5d"))
+(symbol (lib_id "vacuum_tube:6Н16Б") (at 624.84 45.72 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "aa4681c6-3d97-4f77-bd3b-b9613bcf360e") (property "Reference" "Л05" (at 629.92 38.1 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "6Н16Б" (at 629.92 53.34 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 624.84 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 624.84 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Library" "${KIPRJMOD}/../libs/6N16B.sub" (at 624.84 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Name" "6N16B" (at 624.84 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "SUBCKT" (at 624.84 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb" (at 624.84 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "24b584eb-25a2-4af8-aa99-d3a3af5b3e80")) (pin "7" (uuid "45cb325f-6f99-48d1-947c-94e06fea99fd")) (pin "6" (uuid "6a63d687-e12a-4a66-b985-9b0ff395ef7b")) (pin "4" (uuid "23713680-c313-41f8-ada0-e99491c8ea99")) (pin "8" (uuid "8df74179-9141-4f5d-8eeb-470dbc3c1c23")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "Л05") (unit 1)))))
+(wire (pts (xy 624.84 35.56) (xy 624.84 33.02)) (stroke (width 0) (type default)) (uuid "b3adc99f-9d68-4ff3-8e1b-067a0093a685"))
+(label "PL_Q1a" (at 624.84 33.02 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "357f802e-a6eb-4f96-92a8-9e67b6c74968"))
+(wire (pts (xy 617.22 45.72) (xy 614.68 45.72)) (stroke (width 0) (type default)) (uuid "0e1f75d8-b459-4919-99bd-4523ef2a3abc"))
+(label "Q_LV" (at 614.68 45.72 180) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "9a940340-7cdc-4561-838b-265d77eed6f5"))
+(wire (pts (xy 622.3 55.88) (xy 622.3 68.58)) (stroke (width 0) (type default)) (uuid "430b420b-1767-4f6d-aea3-a178b66026f1"))
+(symbol (lib_id "power:GND") (at 622.3 68.58 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "c5377a95-9537-4eb3-825c-e8eda6c3f428") (property "Reference" "#PWR46" (at 622.3 68.58 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 622.3 72.39 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 622.3 68.58 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 622.3 68.58 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "cfaebd98-5caf-48f7-8090-fbe0aa30b8c0")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR46") (unit 1)))))
+(wire (pts (xy 623.57 55.88) (xy 623.57 63.5)) (stroke (width 0) (type default)) (uuid "0c5e6026-adec-454b-a57a-d0440ebf7c2f"))
+(wire (pts (xy 623.57 63.5) (xy 636.27 63.5)) (stroke (width 0) (type default)) (uuid "d36563ab-9896-4387-bcae-c11cd0b6ba37"))
+(symbol (lib_id "power:+6.3V") (at 636.27 63.5 270) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "7d9ae6b8-9393-458e-9784-a8bbe72e7053") (property "Reference" "#PWR47" (at 636.27 63.5 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+6.3V" (at 637.54 60.96 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 636.27 63.5 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 636.27 63.5 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "b726747d-b427-4b80-b2a0-3ca10cd38ad1")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR47") (unit 1)))))
+(wire (pts (xy 626.11 55.88) (xy 626.11 58.42)) (stroke (width 0) (type default)) (uuid "556bff4a-28e9-4461-863f-279c7bcabc54"))
+(wire (pts (xy 626.11 58.42) (xy 633.73 58.42)) (stroke (width 0) (type default)) (uuid "03ea9c64-ac8e-425f-907b-be14f578f05d"))
+(symbol (lib_id "power:GND") (at 633.73 58.42 90) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "15bf7c2c-e0a4-4d7f-bb47-99c8dd1d6a60") (property "Reference" "#PWR48" (at 633.73 58.42 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 635 60.96 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 633.73 58.42 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 633.73 58.42 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "a8a0ad61-472b-4dae-8c7c-8853c659f1a1")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR48") (unit 1)))))
+(symbol (lib_id "vacuum_tube:6Н16Б") (at 655.32 45.72 0) (unit 2) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "adcb9cbc-4f9b-4b3c-84dd-d354a8662e86") (property "Reference" "Л05" (at 660.4 38.1 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "6Н16Б" (at 660.4 53.34 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 655.32 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 655.32 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Library" "${KIPRJMOD}/../libs/6N16B.sub" (at 655.32 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Name" "6N16B" (at 655.32 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "SUBCKT" (at 655.32 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb" (at 655.32 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "5" (uuid "f5fc54e9-ea7d-4859-b03a-1f3c9c970e7e")) (pin "3" (uuid "f7a5c39c-1bfa-4eb2-a431-f0962df37bd1")) (pin "2" (uuid "5fe4c3ba-1d17-4d59-9bf7-f5edd364014d")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "Л05") (unit 2)))))
+(wire (pts (xy 655.32 35.56) (xy 655.32 33.02)) (stroke (width 0) (type default)) (uuid "3db5f83b-a875-4eae-bd18-e569f35a414b"))
+(label "PL_Q1b" (at 655.32 33.02 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "e989d397-ca9c-49d1-a58f-c1004de18eea"))
+(wire (pts (xy 647.7 45.72) (xy 645.16 45.72)) (stroke (width 0) (type default)) (uuid "d3998a2f-21ee-469a-93ba-3ad996de38ac"))
+(label "Q_LV" (at 645.16 45.72 180) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "d9cb5ae5-d8b5-423a-9db2-9338fd2d115b"))
+(wire (pts (xy 652.78 55.88) (xy 652.78 58.42)) (stroke (width 0) (type default)) (uuid "c189a7bd-5ed3-4289-ba49-69654e55a03c"))
+(symbol (lib_id "power:GND") (at 652.78 58.42 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "e85356f0-4074-4c3f-a293-525a68d54c4c") (property "Reference" "#PWR49" (at 652.78 58.42 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 652.78 62.23 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 652.78 58.42 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 652.78 58.42 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "e49c1c3b-ca6e-4cee-a945-da642197383d")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR49") (unit 1)))))
+(symbol (lib_id "Device:R") (at 612.14 25.4 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "f92c408d-935f-42d8-9178-203481c8a3d5") (property "Reference" "R23" (at 615.95 24.13 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "10k" (at 615.95 26.67 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 612.14 25.4 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 612.14 25.4 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "674d653c-0889-4af1-a837-ada0197bcc50")) (pin "2" (uuid "e242ec89-f195-4f10-a5b5-4b3f3e37a872")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R23") (unit 1)))))
+(wire (pts (xy 612.14 21.59) (xy 612.14 19.05)) (stroke (width 0) (type default)) (uuid "88b6d434-09a1-4657-acbb-6d11bae951bf"))
+(symbol (lib_id "power:+150V") (at 612.14 19.05 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "50fdc8e8-be04-41b5-961b-71f8886c78d1") (property "Reference" "#PWR50" (at 612.14 19.05 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+150V" (at 612.14 15.24 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 612.14 19.05 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 612.14 19.05 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "37b003ae-2257-4ca7-b93d-dcadd972c2df")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR50") (unit 1)))))
+(wire (pts (xy 612.14 29.21) (xy 612.14 31.75)) (stroke (width 0) (type default)) (uuid "dd18d5fb-810e-42a2-aec3-bb6c5156f14a"))
+(label "PL_Q1a" (at 612.14 31.75 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "2f152e02-e595-424d-813b-1b3f091e6d4f"))
+(symbol (lib_id "Device:R") (at 670.56 25.4 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "6e573f45-99fd-4d30-b3ae-e6ff43e74764") (property "Reference" "R24" (at 674.37 24.13 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "10k" (at 674.37 26.67 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 670.56 25.4 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 670.56 25.4 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "e1757329-b069-4bbf-bda0-76bdc0e25371")) (pin "2" (uuid "34258e77-c9c0-4fc4-a455-b39168e80ef2")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R24") (unit 1)))))
+(wire (pts (xy 670.56 21.59) (xy 670.56 19.05)) (stroke (width 0) (type default)) (uuid "8fb215d0-489d-42a2-b747-0888b4a95515"))
+(symbol (lib_id "power:+150V") (at 670.56 19.05 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "4c559f5d-3e97-40f8-a41a-2a10d9d7af88") (property "Reference" "#PWR51" (at 670.56 19.05 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+150V" (at 670.56 15.24 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 670.56 19.05 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 670.56 19.05 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "6c840001-b2c2-4522-bdb0-be00c5f8b49e")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR51") (unit 1)))))
+(wire (pts (xy 670.56 29.21) (xy 670.56 31.75)) (stroke (width 0) (type default)) (uuid "123a6ad7-9d35-49a6-b69d-fecd783a4b4d"))
+(label "PL_Q1b" (at 670.56 31.75 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "6ed6a121-4561-4b51-a692-62bd5323de8c"))
+(symbol (lib_id "vacuum_tube:6Н16Б") (at 690.88 45.72 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "7a2252b4-56c7-4243-a1ba-029d1ed9c67b") (property "Reference" "Л06" (at 695.96 38.1 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "6Н16Б" (at 695.96 53.34 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 690.88 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 690.88 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Library" "${KIPRJMOD}/../libs/6N16B.sub" (at 690.88 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Name" "6N16B" (at 690.88 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "SUBCKT" (at 690.88 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb" (at 690.88 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "e04fd5cb-bb4c-420b-9550-a91f4a41b6da")) (pin "7" (uuid "84c43c2b-19d5-4596-a279-f256c9a7c328")) (pin "6" (uuid "591bf807-18e3-4f0b-9867-0237dd50f632")) (pin "4" (uuid "8ff1e2a3-dd72-4c0b-bb33-70c1d2d9dbf2")) (pin "8" (uuid "091f705e-ad4b-414e-852e-fc4a873bba4f")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "Л06") (unit 1)))))
+(wire (pts (xy 690.88 35.56) (xy 690.88 33.02)) (stroke (width 0) (type default)) (uuid "77c379b7-b88b-4e2a-9c26-0e80bf9d1ea0"))
+(label "PL_Q2a" (at 690.88 33.02 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "64397d25-4d64-4985-a581-20c3d9d7bc4d"))
+(wire (pts (xy 683.26 45.72) (xy 680.72 45.72)) (stroke (width 0) (type default)) (uuid "737ac7f3-4f64-434b-b027-9b24a8bb866e"))
+(label "Q_LV" (at 680.72 45.72 180) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "2440ff53-6c92-4647-94be-4902dba1ce47"))
+(wire (pts (xy 688.34 55.88) (xy 688.34 68.58)) (stroke (width 0) (type default)) (uuid "db174de8-dc93-4dc4-a49f-e1dc6bedf5de"))
+(symbol (lib_id "power:GND") (at 688.34 68.58 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "6c215a12-fba5-48ff-88fe-042413b0a427") (property "Reference" "#PWR52" (at 688.34 68.58 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 688.34 72.39 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 688.34 68.58 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 688.34 68.58 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "ce61d15a-dbe3-4d9a-bafc-dc7b2f7531c1")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR52") (unit 1)))))
+(wire (pts (xy 689.61 55.88) (xy 689.61 63.5)) (stroke (width 0) (type default)) (uuid "e590092c-b5cc-4a7c-890b-156cb0b0dcb7"))
+(wire (pts (xy 689.61 63.5) (xy 702.31 63.5)) (stroke (width 0) (type default)) (uuid "228034f3-89dd-4892-812c-3e60b65a5c46"))
+(symbol (lib_id "power:+6.3V") (at 702.31 63.5 270) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "a042e09b-ef23-4956-bb36-75a17f7a523d") (property "Reference" "#PWR53" (at 702.31 63.5 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+6.3V" (at 703.58 60.96 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 702.31 63.5 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 702.31 63.5 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "29c14f05-4182-4e66-abb1-f7a8ee151d29")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR53") (unit 1)))))
+(wire (pts (xy 692.15 55.88) (xy 692.15 58.42)) (stroke (width 0) (type default)) (uuid "85e03f39-f28c-479b-a858-acb972e44a71"))
+(wire (pts (xy 692.15 58.42) (xy 699.77 58.42)) (stroke (width 0) (type default)) (uuid "3c257e10-456b-46a0-bc59-48ea57107802"))
+(symbol (lib_id "power:GND") (at 699.77 58.42 90) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "f25d403a-9292-4af7-884a-9d6832f749cc") (property "Reference" "#PWR54" (at 699.77 58.42 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 701.04 60.96 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 699.77 58.42 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 699.77 58.42 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "e19199f3-a25f-4dcb-a93c-6458a0bb7891")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR54") (unit 1)))))
+(symbol (lib_id "vacuum_tube:6Н16Б") (at 721.36 45.72 0) (unit 2) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "80cf3882-bd63-433f-86e6-1a6988ff40ca") (property "Reference" "Л06" (at 726.44 38.1 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "6Н16Б" (at 726.44 53.34 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 721.36 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 721.36 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Library" "${KIPRJMOD}/../libs/6N16B.sub" (at 721.36 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Name" "6N16B" (at 721.36 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "SUBCKT" (at 721.36 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb" (at 721.36 45.72 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "5" (uuid "32ba8988-38fa-4266-a332-430b8fc16224")) (pin "3" (uuid "d5617a44-2aa0-4c3f-a2fe-8ba7b96ab4a5")) (pin "2" (uuid "72a84473-53dc-426f-bd7d-6374d7b79989")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "Л06") (unit 2)))))
+(wire (pts (xy 721.36 35.56) (xy 721.36 33.02)) (stroke (width 0) (type default)) (uuid "f15c665f-8f63-4194-842c-c1d970fc8135"))
+(label "PL_Q2b" (at 721.36 33.02 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "a98bef1d-04db-416f-b70d-8bc0f1e5c1fc"))
+(wire (pts (xy 713.74 45.72) (xy 711.2 45.72)) (stroke (width 0) (type default)) (uuid "afaa59aa-7c14-4ecf-a1b8-6ddcb757d882"))
+(label "Q_LV" (at 711.2 45.72 180) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "a4a5bf36-fda0-41ab-b0ab-27aa4147aaee"))
+(wire (pts (xy 718.82 55.88) (xy 718.82 58.42)) (stroke (width 0) (type default)) (uuid "7d41e4c8-841b-46ed-9e22-51ddf752eb60"))
+(symbol (lib_id "power:GND") (at 718.82 58.42 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "7cb066a3-898d-4dd2-ba36-adf8af97fb62") (property "Reference" "#PWR55" (at 718.82 58.42 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 718.82 62.23 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 718.82 58.42 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 718.82 58.42 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "6a655469-b566-46fd-8231-c95ef481b1f8")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR55") (unit 1)))))
+(symbol (lib_id "Device:R") (at 678.18 25.4 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "c1f3fd2b-3eee-4dc8-bdd4-9123f3ccf4c2") (property "Reference" "R25" (at 681.99 24.13 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "10k" (at 681.99 26.67 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 678.18 25.4 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 678.18 25.4 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "4e9aec55-ca72-475e-9fb1-ea9123fd1da8")) (pin "2" (uuid "05acb627-b52e-4ca8-8cab-0770d30131fb")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R25") (unit 1)))))
+(wire (pts (xy 678.18 21.59) (xy 678.18 19.05)) (stroke (width 0) (type default)) (uuid "128502b1-3213-4d1c-af16-3f8c527228eb"))
+(symbol (lib_id "power:+150V") (at 678.18 19.05 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "f1ea0b01-6966-4687-8ba8-9696433bac23") (property "Reference" "#PWR56" (at 678.18 19.05 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+150V" (at 678.18 15.24 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 678.18 19.05 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 678.18 19.05 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "05f2fdbc-33b1-4f37-9fbc-1fed9c723c2d")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR56") (unit 1)))))
+(wire (pts (xy 678.18 29.21) (xy 678.18 31.75)) (stroke (width 0) (type default)) (uuid "80bf9934-45f0-4712-bbbe-bf430d7f062d"))
+(label "PL_Q2a" (at 678.18 31.75 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "400b8042-5100-4719-9b62-410d327ec26f"))
+(symbol (lib_id "Device:R") (at 736.6 25.4 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "11709612-db08-47f0-9151-d7667c8d7bee") (property "Reference" "R26" (at 740.41 24.13 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "10k" (at 740.41 26.67 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 736.6 25.4 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 736.6 25.4 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "edddf9ea-3aad-4704-b92d-686ad404cac3")) (pin "2" (uuid "c2cfefef-4775-4dc6-bbf6-e9cb081473d2")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R26") (unit 1)))))
+(wire (pts (xy 736.6 21.59) (xy 736.6 19.05)) (stroke (width 0) (type default)) (uuid "ae613e00-151c-4e1f-9590-674caa8ffd17"))
+(symbol (lib_id "power:+150V") (at 736.6 19.05 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "6996326e-a85a-42b1-95a3-71c542ceeaba") (property "Reference" "#PWR57" (at 736.6 19.05 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+150V" (at 736.6 15.24 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 736.6 19.05 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 736.6 19.05 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "d2a76ea8-10f7-4230-9510-fe3eea0858a7")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR57") (unit 1)))))
+(wire (pts (xy 736.6 29.21) (xy 736.6 31.75)) (stroke (width 0) (type default)) (uuid "8b5a7fe2-0a3d-499b-9bfd-4e9f032dafd4"))
+(label "PL_Q2b" (at 736.6 31.75 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "2c212e6e-c3c8-40ba-ab00-a35d91565306"))
+(symbol (lib_id "Device:R") (at 469.9 106.68 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "35beaf53-1d1b-4629-af5a-7e8bf34db36f") (property "Reference" "R27" (at 473.71 105.41 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "470k" (at 473.71 107.95 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 469.9 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 469.9 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "215a04ec-b304-4947-94df-3b28e13551c2")) (pin "2" (uuid "92b438c1-bd43-4b5e-99f9-d775cf83b49f")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R27") (unit 1)))))
+(wire (pts (xy 469.9 102.87) (xy 469.9 100.33)) (stroke (width 0) (type default)) (uuid "47112e4c-f827-4e80-8fd0-e133769c4513"))
+(label "QN" (at 469.9 100.33 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "cfb6bdbc-6971-40a5-9d34-261a421ba2a7"))
+(wire (pts (xy 469.9 110.49) (xy 469.9 113.03)) (stroke (width 0) (type default)) (uuid "5e218b14-dc4e-488f-b193-4d737a3d2598"))
+(label "QN_LV" (at 469.9 113.03 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "34c8557d-55a0-4745-bae0-e9372b78532c"))
+(symbol (lib_id "Device:C") (at 482.6 106.68 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "2da3e5d1-55b2-409f-b0eb-fc5026a63bb3") (property "Reference" "C08" (at 486.41 105.41 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "23.4p" (at 486.41 107.95 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 482.6 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 482.6 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "c1dc0478-3c6c-4b1b-ac9e-14557ac38cf4")) (pin "2" (uuid "cc9315d8-f4e1-447c-ba08-007dd7e46484")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "C08") (unit 1)))))
+(wire (pts (xy 482.6 102.87) (xy 482.6 100.33)) (stroke (width 0) (type default)) (uuid "dd3de2c2-16a4-4242-adce-5cc44d21cee0"))
+(label "QN" (at 482.6 100.33 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "c20d195e-99ea-46d1-94e9-4aa532399a56"))
+(wire (pts (xy 482.6 110.49) (xy 482.6 113.03)) (stroke (width 0) (type default)) (uuid "900072ad-9068-45e2-bfd0-3283da9f069f"))
+(label "QN_LV" (at 482.6 113.03 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "0f43876a-f6ba-423d-a9f3-55570a0a7759"))
+(symbol (lib_id "Device:R") (at 495.3 106.68 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "2e577746-6e2c-4e03-b80a-8115ae71f6d2") (property "Reference" "R28" (at 499.11 105.41 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "200k" (at 499.11 107.95 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 495.3 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 495.3 106.68 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "0924b399-60f8-49d0-b80c-60a898fc3229")) (pin "2" (uuid "a6c62cc7-5392-4d76-ae2a-5483e8b3bbed")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R28") (unit 1)))))
+(wire (pts (xy 495.3 102.87) (xy 495.3 100.33)) (stroke (width 0) (type default)) (uuid "592d55a5-5538-44d9-8e57-e75ba7899d47"))
+(label "QN_LV" (at 495.3 100.33 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "7c33a26c-d5ac-4dc4-9f3b-20ba1f8c5cbb"))
+(wire (pts (xy 495.3 110.49) (xy 495.3 113.03)) (stroke (width 0) (type default)) (uuid "d379c883-dbb6-475f-ac8c-05c70874df13"))
+(symbol (lib_id "power:-50V") (at 495.3 113.03 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "68754d22-8c12-4864-b6da-af33e6fc1ad3") (property "Reference" "#PWR58" (at 495.3 113.03 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "-50V" (at 495.3 116.84 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 495.3 113.03 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 495.3 113.03 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "742c4305-794c-408c-b3dd-b6998e7c91b6")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR58") (unit 1)))))
+(symbol (lib_id "vacuum_tube:6Н16Б") (at 558.8 111.76 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "3446b0e6-fca0-4a7d-a0e2-a15ebc24a81a") (property "Reference" "Л07" (at 563.88 104.14 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "6Н16Б" (at 563.88 119.38 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 558.8 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 558.8 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Library" "${KIPRJMOD}/../libs/6N16B.sub" (at 558.8 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Name" "6N16B" (at 558.8 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "SUBCKT" (at 558.8 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb" (at 558.8 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "836f8fe9-0b92-46db-83b0-68bfd58317a8")) (pin "7" (uuid "9ed85c7d-aa3a-4315-ad19-63d649f00ef8")) (pin "6" (uuid "eaf08178-c6cb-4749-b90a-fa938f2675ec")) (pin "4" (uuid "7590a40c-22df-4de0-af98-67a0c58bd10f")) (pin "8" (uuid "80a8f78d-bc6b-4a28-9d49-2f57cef65d64")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "Л07") (unit 1)))))
+(wire (pts (xy 558.8 101.6) (xy 558.8 99.06)) (stroke (width 0) (type default)) (uuid "b451bb76-9e44-49e4-9153-dcb76071ee24"))
+(label "PL_QN0a" (at 558.8 99.06 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "06604740-e1a4-4faa-ac27-f843e2e84bec"))
+(wire (pts (xy 551.18 111.76) (xy 548.64 111.76)) (stroke (width 0) (type default)) (uuid "6c8cc5a6-15ea-46b2-823d-150087a53593"))
+(label "QN_LV" (at 548.64 111.76 180) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "5b1c0f9a-61d7-44d3-bad1-c2d31b086a7b"))
+(wire (pts (xy 556.26 121.92) (xy 556.26 134.62)) (stroke (width 0) (type default)) (uuid "63ecd03b-3586-46bc-9650-cd1bc14f7625"))
+(symbol (lib_id "power:GND") (at 556.26 134.62 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "41142714-393c-49dd-b2a6-6448edd2d2ef") (property "Reference" "#PWR59" (at 556.26 134.62 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 556.26 138.43 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 556.26 134.62 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 556.26 134.62 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "4a38bcef-57ff-463c-832b-f31603a03f94")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR59") (unit 1)))))
+(wire (pts (xy 557.53 121.92) (xy 557.53 129.54)) (stroke (width 0) (type default)) (uuid "6ab35835-2654-42a5-898b-74a14f822fbf"))
+(wire (pts (xy 557.53 129.54) (xy 570.23 129.54)) (stroke (width 0) (type default)) (uuid "b1febaef-387b-4e19-81ae-23bd853d7100"))
+(symbol (lib_id "power:+6.3V") (at 570.23 129.54 270) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "3d1b6552-25b1-4316-be45-66dc7bcab40c") (property "Reference" "#PWR60" (at 570.23 129.54 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+6.3V" (at 571.5 127 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 570.23 129.54 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 570.23 129.54 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "85d24c33-d927-43b8-a51d-909c9f4a388f")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR60") (unit 1)))))
+(wire (pts (xy 560.07 121.92) (xy 560.07 124.46)) (stroke (width 0) (type default)) (uuid "1904e547-9f2e-43ee-83b8-6fc547c1e884"))
+(wire (pts (xy 560.07 124.46) (xy 567.69 124.46)) (stroke (width 0) (type default)) (uuid "20918fdf-67b7-47bc-afe2-d52b9b2c1ced"))
+(symbol (lib_id "power:GND") (at 567.69 124.46 90) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "b9307343-83c4-4b41-a2d3-77c1726037b5") (property "Reference" "#PWR61" (at 567.69 124.46 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 568.96 127 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 567.69 124.46 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 567.69 124.46 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "399c2d96-3d82-43bb-856b-d95cf716b935")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR61") (unit 1)))))
+(symbol (lib_id "vacuum_tube:6Н16Б") (at 589.28 111.76 0) (unit 2) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "6c7b88b9-ee89-4f34-92ae-e86865d5d14a") (property "Reference" "Л07" (at 594.36 104.14 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "6Н16Б" (at 594.36 119.38 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 589.28 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 589.28 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Library" "${KIPRJMOD}/../libs/6N16B.sub" (at 589.28 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Name" "6N16B" (at 589.28 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "SUBCKT" (at 589.28 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb" (at 589.28 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "5" (uuid "d2b34a68-de69-4792-884b-f0eb875cd173")) (pin "3" (uuid "c93780da-eb19-4121-8b92-f80199c74d15")) (pin "2" (uuid "bc354100-906d-4375-a1d9-9cb37ab369b9")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "Л07") (unit 2)))))
+(wire (pts (xy 589.28 101.6) (xy 589.28 99.06)) (stroke (width 0) (type default)) (uuid "a1dc6697-f48a-4119-91ba-47e9d8a526a6"))
+(label "PL_QN0b" (at 589.28 99.06 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "ae4bd273-0aea-4578-8c3b-aa0689860d86"))
+(wire (pts (xy 581.66 111.76) (xy 579.12 111.76)) (stroke (width 0) (type default)) (uuid "357141f7-16d7-45fd-b049-e3fb41d5b95c"))
+(label "QN_LV" (at 579.12 111.76 180) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "79dda2f9-9bf5-44f9-a1e8-db270ca14c7c"))
+(wire (pts (xy 586.74 121.92) (xy 586.74 124.46)) (stroke (width 0) (type default)) (uuid "8c366a10-8f34-4255-9905-78f3bf7540db"))
+(symbol (lib_id "power:GND") (at 586.74 124.46 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "494ef777-818e-40be-bcea-2f8c023d541e") (property "Reference" "#PWR62" (at 586.74 124.46 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 586.74 128.27 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 586.74 124.46 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 586.74 124.46 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "521f4a08-7199-4bdb-b1e5-e3a98e778f11")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR62") (unit 1)))))
+(symbol (lib_id "Device:R") (at 546.1 91.44 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "64492ced-fac4-48f9-b5f0-8cb61fc1a04b") (property "Reference" "R29" (at 549.91 90.17 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "10k" (at 549.91 92.71 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 546.1 91.44 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 546.1 91.44 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "15a2d20a-1d61-4e10-a946-d63482f62d51")) (pin "2" (uuid "92c3af99-6470-4586-96f2-00b278c883fa")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R29") (unit 1)))))
+(wire (pts (xy 546.1 87.63) (xy 546.1 85.09)) (stroke (width 0) (type default)) (uuid "2a696208-7e11-4c0f-8d62-28f094368b42"))
+(symbol (lib_id "power:+150V") (at 546.1 85.09 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "c5627a5e-c546-468d-81b6-147cd99d6a9e") (property "Reference" "#PWR63" (at 546.1 85.09 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+150V" (at 546.1 81.28 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 546.1 85.09 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 546.1 85.09 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "32e42e32-0f2b-4635-a32a-b0ac5e235601")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR63") (unit 1)))))
+(wire (pts (xy 546.1 95.25) (xy 546.1 97.79)) (stroke (width 0) (type default)) (uuid "6de864ba-5dfe-4b92-89aa-7b0203f29e83"))
+(label "PL_QN0a" (at 546.1 97.79 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "bf5de1ae-be14-4e91-a94b-af53e8c86d54"))
+(symbol (lib_id "Device:R") (at 604.52 91.44 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "d91b1df8-b5cb-4630-8666-ba3b6a908627") (property "Reference" "R30" (at 608.33 90.17 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "10k" (at 608.33 92.71 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 604.52 91.44 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 604.52 91.44 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "6950dc79-8f0b-4688-8659-126a902f6e51")) (pin "2" (uuid "7aaa29b9-4fda-46c7-b696-ac1628313a65")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R30") (unit 1)))))
+(wire (pts (xy 604.52 87.63) (xy 604.52 85.09)) (stroke (width 0) (type default)) (uuid "240b85ec-a1d4-49de-bc32-5a257b51fc9e"))
+(symbol (lib_id "power:+150V") (at 604.52 85.09 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "81be1586-07ab-4ea1-b686-193a377c5ceb") (property "Reference" "#PWR64" (at 604.52 85.09 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+150V" (at 604.52 81.28 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 604.52 85.09 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 604.52 85.09 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "629ba198-5ca9-4058-afd9-dbe35ac6a29f")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR64") (unit 1)))))
+(wire (pts (xy 604.52 95.25) (xy 604.52 97.79)) (stroke (width 0) (type default)) (uuid "315381e3-3bc1-44a3-b976-e34c8841f3cb"))
+(label "PL_QN0b" (at 604.52 97.79 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "2823e425-4670-472d-a4c3-6bf88e38a30f"))
+(symbol (lib_id "vacuum_tube:6Н16Б") (at 624.84 111.76 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "bfadcd3b-b9a4-40c0-ab46-98843798cfa5") (property "Reference" "Л08" (at 629.92 104.14 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "6Н16Б" (at 629.92 119.38 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 624.84 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 624.84 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Library" "${KIPRJMOD}/../libs/6N16B.sub" (at 624.84 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Name" "6N16B" (at 624.84 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "SUBCKT" (at 624.84 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb" (at 624.84 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "c683039c-78cb-4694-8397-60d71b9fef54")) (pin "7" (uuid "e5e271ff-460c-423a-9acd-6906971ad586")) (pin "6" (uuid "375e1654-db8e-483f-9a3b-753013f72c43")) (pin "4" (uuid "cef2caaa-5d29-4251-b133-d0ec75b9d57e")) (pin "8" (uuid "5fb0d989-a571-41cc-b4b4-afec95d7756c")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "Л08") (unit 1)))))
+(wire (pts (xy 624.84 101.6) (xy 624.84 99.06)) (stroke (width 0) (type default)) (uuid "5503bdbc-6022-407d-9b9c-68afbed6c70c"))
+(label "PL_QN1a" (at 624.84 99.06 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "ef4a6165-5c95-49da-9bbb-21f2a59bab0c"))
+(wire (pts (xy 617.22 111.76) (xy 614.68 111.76)) (stroke (width 0) (type default)) (uuid "951e325c-779a-4b7e-b40d-aa65b4c1a850"))
+(label "QN_LV" (at 614.68 111.76 180) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "d2348477-9799-4756-a7ce-9498f2c92502"))
+(wire (pts (xy 622.3 121.92) (xy 622.3 134.62)) (stroke (width 0) (type default)) (uuid "765767c7-55bc-4ed3-9b62-416bd792e17b"))
+(symbol (lib_id "power:GND") (at 622.3 134.62 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "5a1aad7a-d112-467c-ba28-48252ed9d4b4") (property "Reference" "#PWR65" (at 622.3 134.62 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 622.3 138.43 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 622.3 134.62 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 622.3 134.62 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "f53bc1e4-adb1-4120-9289-fdec5867251f")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR65") (unit 1)))))
+(wire (pts (xy 623.57 121.92) (xy 623.57 129.54)) (stroke (width 0) (type default)) (uuid "e3f4cd99-48f6-4c5d-90b9-50ff83964424"))
+(wire (pts (xy 623.57 129.54) (xy 636.27 129.54)) (stroke (width 0) (type default)) (uuid "aca1569f-ff92-4f69-9063-5f8e179b9607"))
+(symbol (lib_id "power:+6.3V") (at 636.27 129.54 270) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "7fbd110c-1868-4906-8d2a-c38910fafdcb") (property "Reference" "#PWR66" (at 636.27 129.54 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+6.3V" (at 637.54 127 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 636.27 129.54 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 636.27 129.54 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "7b380c00-4dd7-4e3d-a87e-be9dc08af30f")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR66") (unit 1)))))
+(wire (pts (xy 626.11 121.92) (xy 626.11 124.46)) (stroke (width 0) (type default)) (uuid "e1fd135a-a94c-4d38-9587-d7dcfe293147"))
+(wire (pts (xy 626.11 124.46) (xy 633.73 124.46)) (stroke (width 0) (type default)) (uuid "4d13fb8b-4800-4ce7-87ad-2b831f92b63f"))
+(symbol (lib_id "power:GND") (at 633.73 124.46 90) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "c25f0934-f5e5-4fd4-aa22-dc62f202a636") (property "Reference" "#PWR67" (at 633.73 124.46 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 635 127 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 633.73 124.46 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 633.73 124.46 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "5386e88a-36f2-4484-923d-fafcdc0267a3")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR67") (unit 1)))))
+(symbol (lib_id "vacuum_tube:6Н16Б") (at 655.32 111.76 0) (unit 2) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "9113b7a4-6a07-4703-8db1-f8a22e00d758") (property "Reference" "Л08" (at 660.4 104.14 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "6Н16Б" (at 660.4 119.38 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 655.32 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 655.32 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Library" "${KIPRJMOD}/../libs/6N16B.sub" (at 655.32 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Name" "6N16B" (at 655.32 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "SUBCKT" (at 655.32 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb" (at 655.32 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "5" (uuid "83388c76-34d4-42e9-b108-217a8a97a182")) (pin "3" (uuid "804e0608-e25c-463e-8d30-719f6f2b5d78")) (pin "2" (uuid "c12583b2-4b54-4d51-8feb-e99ac1bba975")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "Л08") (unit 2)))))
+(wire (pts (xy 655.32 101.6) (xy 655.32 99.06)) (stroke (width 0) (type default)) (uuid "c03cbf4c-5dae-4ab6-afb3-b3ef8d58873e"))
+(label "PL_QN1b" (at 655.32 99.06 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "054f901b-b1b0-4fb2-b76d-7f29e0e18243"))
+(wire (pts (xy 647.7 111.76) (xy 645.16 111.76)) (stroke (width 0) (type default)) (uuid "17ed8847-2593-4eaf-b807-e2e991af1922"))
+(label "QN_LV" (at 645.16 111.76 180) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "44fc1f0d-fd01-47d9-b8ef-ac7347b67cf0"))
+(wire (pts (xy 652.78 121.92) (xy 652.78 124.46)) (stroke (width 0) (type default)) (uuid "9930987d-72a4-4827-8e6b-007c384fd40c"))
+(symbol (lib_id "power:GND") (at 652.78 124.46 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "50c39f2b-8c22-4785-9677-0714e4b0cab0") (property "Reference" "#PWR68" (at 652.78 124.46 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 652.78 128.27 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 652.78 124.46 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 652.78 124.46 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "2fe3f36f-d1c3-48ad-9199-50f8f7124d54")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR68") (unit 1)))))
+(symbol (lib_id "Device:R") (at 612.14 91.44 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "779a456f-1b90-4ed1-8bd3-d72241da6677") (property "Reference" "R31" (at 615.95 90.17 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "10k" (at 615.95 92.71 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 612.14 91.44 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 612.14 91.44 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "0350b8a1-e79a-49fb-bed3-b22cbb946d24")) (pin "2" (uuid "6147b309-f9fc-48c4-8487-7f4f121c3e92")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R31") (unit 1)))))
+(wire (pts (xy 612.14 87.63) (xy 612.14 85.09)) (stroke (width 0) (type default)) (uuid "95d4a852-bc73-4956-b8d4-3a4d96d4bf6f"))
+(symbol (lib_id "power:+150V") (at 612.14 85.09 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "a2bfe96f-ee6b-4863-a339-7391b4051c8e") (property "Reference" "#PWR69" (at 612.14 85.09 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+150V" (at 612.14 81.28 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 612.14 85.09 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 612.14 85.09 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "72f65456-8ed3-4758-88bb-a9e400e6094f")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR69") (unit 1)))))
+(wire (pts (xy 612.14 95.25) (xy 612.14 97.79)) (stroke (width 0) (type default)) (uuid "9d5a9054-c4aa-41f5-b319-edabf7901b2d"))
+(label "PL_QN1a" (at 612.14 97.79 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "05439213-5cdc-4d0c-96ca-f6b259e82df9"))
+(symbol (lib_id "Device:R") (at 670.56 91.44 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "bf8e7a05-862c-46f6-9357-74c429280f45") (property "Reference" "R32" (at 674.37 90.17 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "10k" (at 674.37 92.71 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 670.56 91.44 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 670.56 91.44 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "dba327b1-381b-430b-8be2-5f3f51bd75d5")) (pin "2" (uuid "c2deb06c-f5a2-46c5-949e-aa34c558307d")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R32") (unit 1)))))
+(wire (pts (xy 670.56 87.63) (xy 670.56 85.09)) (stroke (width 0) (type default)) (uuid "2ca4a24b-5b15-4f18-91ff-eeb334de0f5b"))
+(symbol (lib_id "power:+150V") (at 670.56 85.09 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "f0a4dc47-fcf3-4bc9-8006-bf499d2f867e") (property "Reference" "#PWR70" (at 670.56 85.09 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+150V" (at 670.56 81.28 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 670.56 85.09 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 670.56 85.09 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "b181394d-9ff3-4329-93c2-76b1db8a019f")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR70") (unit 1)))))
+(wire (pts (xy 670.56 95.25) (xy 670.56 97.79)) (stroke (width 0) (type default)) (uuid "bfbf8026-0a57-4a87-a16b-c61260174a88"))
+(label "PL_QN1b" (at 670.56 97.79 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "c1e26fdf-3f4b-40dc-b2c5-dbdd5fb31705"))
+(symbol (lib_id "vacuum_tube:6Н16Б") (at 690.88 111.76 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "c566ef51-f05d-4cf0-9b34-b8a0094bdd70") (property "Reference" "Л09" (at 695.96 104.14 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "6Н16Б" (at 695.96 119.38 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 690.88 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 690.88 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Library" "${KIPRJMOD}/../libs/6N16B.sub" (at 690.88 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Name" "6N16B" (at 690.88 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "SUBCKT" (at 690.88 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb" (at 690.88 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "3c8b189e-4cb6-4cc9-be21-1f9ff3ef2de4")) (pin "7" (uuid "4e1f58b1-777d-4d5c-950f-608c7106ecf5")) (pin "6" (uuid "d34e0cb0-a1d7-4031-aeac-ba2d960fa8cb")) (pin "4" (uuid "53400f78-5938-41bf-815e-f5209012e9a1")) (pin "8" (uuid "762167a2-5b22-40eb-bca8-04cf1fc4b200")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "Л09") (unit 1)))))
+(wire (pts (xy 690.88 101.6) (xy 690.88 99.06)) (stroke (width 0) (type default)) (uuid "ccc549fe-6684-443f-a49f-cfd4d144dff9"))
+(label "PL_QN2a" (at 690.88 99.06 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "21368bc7-4090-4add-b3b2-e284190823db"))
+(wire (pts (xy 683.26 111.76) (xy 680.72 111.76)) (stroke (width 0) (type default)) (uuid "9ca0e1d0-39c5-4241-99e5-30c690320b6f"))
+(label "QN_LV" (at 680.72 111.76 180) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "7a11627c-b0ab-4b80-b434-6909eee68e6e"))
+(wire (pts (xy 688.34 121.92) (xy 688.34 134.62)) (stroke (width 0) (type default)) (uuid "57a7b843-ec70-4807-a173-8aab46e68e2c"))
+(symbol (lib_id "power:GND") (at 688.34 134.62 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "4ce4aeab-3ed5-4c3f-8d68-ef85caae7224") (property "Reference" "#PWR71" (at 688.34 134.62 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 688.34 138.43 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 688.34 134.62 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 688.34 134.62 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "e95992c6-aca5-4816-b60d-394e5833097c")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR71") (unit 1)))))
+(wire (pts (xy 689.61 121.92) (xy 689.61 129.54)) (stroke (width 0) (type default)) (uuid "f3223d4d-5a12-455d-8b40-8f1b5cc9eda7"))
+(wire (pts (xy 689.61 129.54) (xy 702.31 129.54)) (stroke (width 0) (type default)) (uuid "82b9f789-5184-4db7-9562-dfc0c2ef08ad"))
+(symbol (lib_id "power:+6.3V") (at 702.31 129.54 270) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "05e29ccd-66db-419c-86fd-11c5d2ce29ac") (property "Reference" "#PWR72" (at 702.31 129.54 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+6.3V" (at 703.58 127 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 702.31 129.54 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 702.31 129.54 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "16bca1c1-5c7c-4bd1-bd72-108968886aac")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR72") (unit 1)))))
+(wire (pts (xy 692.15 121.92) (xy 692.15 124.46)) (stroke (width 0) (type default)) (uuid "234ed30b-0b31-44cd-b46e-a007042a538b"))
+(wire (pts (xy 692.15 124.46) (xy 699.77 124.46)) (stroke (width 0) (type default)) (uuid "943eaf7c-ae28-4e50-92cc-36185135cf2b"))
+(symbol (lib_id "power:GND") (at 699.77 124.46 90) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "0008d85a-3f62-49e7-862d-e97234c4191c") (property "Reference" "#PWR73" (at 699.77 124.46 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 701.04 127 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 699.77 124.46 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 699.77 124.46 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "f473a469-3705-43a5-b74b-ac710379d46c")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR73") (unit 1)))))
+(symbol (lib_id "vacuum_tube:6Н16Б") (at 721.36 111.76 0) (unit 2) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "7343bd76-ed6f-4be1-b07a-51b7d0195a68") (property "Reference" "Л09" (at 726.44 104.14 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "6Н16Б" (at 726.44 119.38 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 721.36 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 721.36 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Library" "${KIPRJMOD}/../libs/6N16B.sub" (at 721.36 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Name" "6N16B" (at 721.36 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "SUBCKT" (at 721.36 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb" (at 721.36 111.76 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "5" (uuid "1064432c-7da5-4bd8-8ff2-7ee45ca12e2b")) (pin "3" (uuid "3c701499-f963-4e9b-9726-e2fa4e1efaec")) (pin "2" (uuid "cc6420df-fed1-40cc-be8d-8245238af704")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "Л09") (unit 2)))))
+(wire (pts (xy 721.36 101.6) (xy 721.36 99.06)) (stroke (width 0) (type default)) (uuid "a809565c-f177-4a09-b0d6-c4ba9150694c"))
+(label "PL_QN2b" (at 721.36 99.06 90) (effects (font (size 1.27 1.27)) (justify left bottom)) (uuid "6dd3daf0-4fd7-4f08-acf7-65705d81c397"))
+(wire (pts (xy 713.74 111.76) (xy 711.2 111.76)) (stroke (width 0) (type default)) (uuid "eed5531e-bd7e-481a-83b3-1a56dbee58ea"))
+(label "QN_LV" (at 711.2 111.76 180) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "ba2d0ff1-eff6-40c6-9746-4a6a030e2fff"))
+(wire (pts (xy 718.82 121.92) (xy 718.82 124.46)) (stroke (width 0) (type default)) (uuid "dda921af-0e97-40e7-ac81-74ea7aee8a90"))
+(symbol (lib_id "power:GND") (at 718.82 124.46 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "991a5606-8668-4bf9-a554-1aed22d99618") (property "Reference" "#PWR74" (at 718.82 124.46 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 718.82 128.27 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 718.82 124.46 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 718.82 124.46 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "d81dbead-7f05-4818-ae31-ef3762529ccc")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR74") (unit 1)))))
+(symbol (lib_id "Device:R") (at 678.18 91.44 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "564e6732-d843-45e4-a36c-f21d9c1dbef2") (property "Reference" "R33" (at 681.99 90.17 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "10k" (at 681.99 92.71 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 678.18 91.44 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 678.18 91.44 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "a21a6a8e-0329-44d8-802e-4945c0448492")) (pin "2" (uuid "755496a1-3922-46ab-8491-9bdd95460d2f")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R33") (unit 1)))))
+(wire (pts (xy 678.18 87.63) (xy 678.18 85.09)) (stroke (width 0) (type default)) (uuid "97ba9b50-b854-4693-8fa4-a979d4428be2"))
+(symbol (lib_id "power:+150V") (at 678.18 85.09 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "1d369477-113c-4182-94fe-314a1462a355") (property "Reference" "#PWR75" (at 678.18 85.09 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+150V" (at 678.18 81.28 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 678.18 85.09 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 678.18 85.09 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "68966ec0-b314-49ea-9e36-9e055fdc5f47")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR75") (unit 1)))))
+(wire (pts (xy 678.18 95.25) (xy 678.18 97.79)) (stroke (width 0) (type default)) (uuid "037f050b-e070-42f4-b0ec-7a96873d4eda"))
+(label "PL_QN2a" (at 678.18 97.79 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "ea0e19ff-c379-43e9-9e01-44fd9132a4af"))
+(symbol (lib_id "Device:R") (at 736.6 91.44 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "084650ad-aa27-407c-8515-c1e6b9bee7d1") (property "Reference" "R34" (at 740.41 90.17 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "10k" (at 740.41 92.71 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 736.6 91.44 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 736.6 91.44 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "39e3cf82-3b19-42ea-9f43-39c5f026af4a")) (pin "2" (uuid "75f1a797-4752-4cd3-a275-8df092bd91d6")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "R34") (unit 1)))))
+(wire (pts (xy 736.6 87.63) (xy 736.6 85.09)) (stroke (width 0) (type default)) (uuid "61fb787d-9246-41e9-b8f2-40bc0453f801"))
+(symbol (lib_id "power:+150V") (at 736.6 85.09 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "ace314dd-5023-484e-b922-18401c280b23") (property "Reference" "#PWR76" (at 736.6 85.09 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+150V" (at 736.6 81.28 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 736.6 85.09 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 736.6 85.09 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "5568a63c-eafe-4fa2-bf4e-66027d271cce")) (instances (project "RSLATCH_J2N16_tb" (path "/945f5004-e60e-4897-9cac-1b65195a313e" (reference "#PWR76") (unit 1)))))
+(wire (pts (xy 736.6 95.25) (xy 736.6 97.79)) (stroke (width 0) (type default)) (uuid "136df6c0-4560-4ea5-b8ab-4b246776617f"))
+(label "PL_QN2b" (at 736.6 97.79 270) (effects (font (size 1.27 1.27)) (justify right bottom)) (uuid "a5de2da6-8372-4044-b6a9-a624b32d7a90"))
+(text ".tran 5n 24u" (exclude_from_sim no) (at 50.8 238.76 0) (effects (font (size 1.5 1.5)) (justify left top)) (uuid "54da504d-b22a-4f0b-8e42-d78cb71eb0f7"))
+(text "RSLATCH_J2N16 testbench (tools/kicad/gen_latch_j2n16.py, stimulus and .meas from tools/spice/latch_tb.py).\nSTIM_x (HV PWL, ideal) -> divider -> driver triode (Ra 10k) -> divider -> x (LV DUT input): real edges and levels.\nEach output -> one divider (C1 3.9 pF per grid) -> x_LV -> load tubes, both grids on the net.\nStates (S,R,E) 2 us each: 011 000 100 101 100 010 011 001 101 001 011 000 (latch_sweep.SEQ).\nThe plain-SPICE run of the same bench: python3 tools/spice/latch_tb.py" (exclude_from_sim no) (at 50.8 246.38 0) (effects (font (size 1.27 1.27)) (justify left top)) (uuid "48beb601-4181-4efe-8f88-dba3860de7ea"))
+(text ".meas tran q0 find v(/Q) at=1.95u\n.meas tran q1 find v(/Q) at=3.95u\n.meas tran q2 find v(/Q) at=5.95u\n.meas tran q3 find v(/Q) at=7.95u\n.meas tran q4 find v(/Q) at=9.95u\n.meas tran q5 find v(/Q) at=11.95u\n.meas tran q6 find v(/Q) at=13.95u\n.meas tran q7 find v(/Q) at=15.95u\n.meas tran q8 find v(/Q) at=17.95u\n.meas tran q9 find v(/Q) at=19.95u\n.meas tran q10 find v(/Q) at=21.95u\n.meas tran q11 find v(/Q) at=23.95u\n.meas tran n0 find v(/QN) at=1.95u\n.meas tran n1 find v(/QN) at=3.95u\n.meas tran n2 find v(/QN) at=5.95u\n.meas tran n3 find v(/QN) at=7.95u\n.meas tran n4 find v(/QN) at=9.95u\n.meas tran n5 find v(/QN) at=11.95u\n.meas tran n6 find v(/QN) at=13.95u\n.meas tran n7 find v(/QN) at=15.95u\n.meas tran n8 find v(/QN) at=17.95u\n.meas tran n9 find v(/QN) at=19.95u\n.meas tran n10 find v(/QN) at=21.95u\n.meas tran n11 find v(/QN) at=23.95u\n.meas tran smin min v(/S) from=0.5u to=24.0u\n.meas tran rmin min v(/R) from=0.5u to=24.0u\n.meas tran emin min v(/E) from=0.5u to=24.0u\n.meas tran lqmin min v(/DUT/FQ) from=0.5u to=24.0u\n.meas tran lqnmin min v(/DUT/FQN) from=0.5u to=24.0u\n.meas tran yqmin min v(/Q_LV) from=0.5u to=24.0u\n.meas tran lqmax max v(/DUT/FQ) from=0.5u to=24.0u\n.meas tran lqnmax max v(/DUT/FQN) from=0.5u to=24.0u\n.meas tran lqlv find v(/DUT/FQ) at=1.95u\n.meas tran lqnlv find v(/DUT/FQN) at=1.95u\n.meas tran yqlv find v(/Q_LV) at=1.95u\n.meas tran er_qr trig v(/E) val=-5 rise=1 td=5.9u targ v(/Q) val=100 rise=1 td=5.9u\n.meas tran er_qrn trig v(/E) val=-5 rise=1 td=5.9u targ v(/QN) val=100 fall=1 td=5.9u\n.meas tran er_qf trig v(/E) val=-5 rise=1 td=11.9u targ v(/Q) val=100 fall=1 td=11.9u\n.meas tran er_qfn trig v(/E) val=-5 rise=1 td=11.9u targ v(/QN) val=100 rise=1 td=11.9u\n.meas tran sr_qr trig v(/S) val=-5 rise=1 td=15.9u targ v(/Q) val=100 rise=1 td=15.9u\n.meas tran sr_qrn trig v(/S) val=-5 rise=1 td=15.9u targ v(/QN) val=100 fall=1 td=15.9u\n.meas tran rr_qf trig v(/R) val=-5 rise=1 td=19.9u targ v(/Q) val=100 fall=1 td=19.9u\n.meas tran rr_qfn trig v(/R) val=-5 rise=1 td=19.9u targ v(/QN) val=100 rise=1 td=19.9u\n.meas tran gq1 max v(/Q) from=2.05u to=4.00u\n.meas tran gn1 min v(/QN) from=2.05u to=4.00u\n.meas tran gq2 max v(/Q) from=4.05u to=6.00u\n.meas tran gn2 min v(/QN) from=4.05u to=6.00u\n.meas tran gq4 min v(/Q) from=8.05u to=10.00u\n.meas tran gn4 max v(/QN) from=8.05u to=10.00u\n.meas tran gq5 min v(/Q) from=10.05u to=12.00u\n.meas tran gn5 max v(/QN) from=10.05u to=12.00u\n.meas tran gq7 max v(/Q) from=14.05u to=16.00u\n.meas tran gn7 min v(/QN) from=14.05u to=16.00u\n.meas tran gq9 min v(/Q) from=18.05u to=20.00u\n.meas tran gn9 max v(/QN) from=18.05u to=20.00u\n.meas tran gq11 max v(/Q) from=22.05u to=24.00u\n.meas tran gn11 min v(/QN) from=22.05u to=24.00u" (exclude_from_sim no) (at 50.8 269.24 0) (effects (font (size 1.0 1.0)) (justify left top)) (uuid "2791c71c-6bd0-4c59-bf5e-426b39fd05ef"))
+(sheet_instances (path "/" (page "1")))
+(embedded_fonts no))
