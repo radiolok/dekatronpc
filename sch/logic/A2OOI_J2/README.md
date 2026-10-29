@@ -73,7 +73,7 @@ As in A1OOI_N16J2 and NAND2_J2, a g1 arc with its g3 held high reaches 100 V fas
 | 6 | 318–326 | **454–465** | 792–798 | 249–270 |
 | 10 | 394–403 | **542–551** | 866–874 | 347–375 |
 
-`vtube_timing.json` keeps the 100 V values, as for the other cells; budget with the 92 V numbers. Put the late signal on B or D.
+`vtube_timing.json` now uses the thresholds (92 V falling, 118 V rising). Put the late signal on B or D.
 
 ![A2OOI_J2 delay against fanout](img/aoi22_fanout.png)
 
@@ -129,7 +129,7 @@ Worst arc at fanout 2 / 10:
 - `vtube_grid` / `vtube_c1`: A, C pentode_g1 2.7 pF; B, D pentode_g3 6.8 pF;
 - `fanout_load` 1.0 on all pins, as for NAND2_J2.
 
-`vtube_timing.json`, fanout 6, [Y rise, Y fall]: A→Y [290, 326], B→Y [258, 222], C→Y [293, 318], D→Y [296, 217] ns.
+`vtube_timing.json`, fanout 6, to the next stage's thresholds (falling output to 92 V, rising to 118 V; owner, 2026-10-29; `tools/spice/threshold_delays.py`), [Y rise, Y fall]: A→Y [506, 465], B→Y [473, 270], C→Y [511, 454], D→Y [512, 264] ns.
 
 Synthesis (`run_tests.sh -s`, 2026-10-29): 10 cells, 20 tubes. With the old, impossible function ABC used 31.
 
@@ -152,6 +152,5 @@ To embed the cell: the inputs come from HV nets through the usual divider, with 
 
 ## Open points
 
-- **The g3 tail** (A↑ / C↑ to 92 V up to 551 ns at fanout 10): see A1OOI_N16J2, Open points.
 - **Measure on hardware** (REQ-MOD-004), Cg3a of more tubes first.
 - The screens at 150 V while cut off, as in NAND2_J2 (TRS §22 item 13).

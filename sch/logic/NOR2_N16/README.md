@@ -221,6 +221,10 @@ The model sits inside the datasheet spread. The full comparison against the digi
   - The model path is `${KIPRJMOD}/../../libs/6N16B.sub`, so the project must sit two directories below `sch/` (`sch/logic/<CELL>/`).
   - The power symbols `+150V`, `-50V` and `+6.3V` are embedded in the sheets; KiCad's stock `power` library does not have them, so the GUI warns about a missing library symbol.
 
+## Timing in the liberty
+
+`vtube_timing.json` (2026-10-29), fanout 6, to the next stage's thresholds (falling output to 92 V, rising to 118 V; owner, 2026-10-29; `tools/spice/threshold_delays.py`), [Y rise, Y fall]: A→Y, B→Y [327, 99] ns.
+
 ## Open points
 
 - **Delays and the clock.** One gate plus its divider takes 60–250 ns, depending on fanout. At 1 MHz that leaves room for 3–4 levels with light fanout and 2 levels at fanout 10. The liberty has `max_fanout: 10` and no timing; this table is the first input for `vtube_timing.json` until hardware is measured (REQ-MOD-004, OPEN-014).

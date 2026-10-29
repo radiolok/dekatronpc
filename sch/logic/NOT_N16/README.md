@@ -197,6 +197,10 @@ The model does not have the grid-to-other-plate capacitance; the datasheet does 
 - **Command line:** `tools/spice/sim_kicad.sh sch/logic/NOT_N16/NOT_N16_tb.kicad_sch`.
 - **Embedding in a module:** add a sheet with file `NOT_N16.kicad_sch`, connect A1, Y1, A2, Y2, H1, H2. Draw one divider per HV net that drives grids, C1 = 3.9 pF per grid. Tie the input of an unused half to an LV net. The project must sit two directories below `sch/` (`sch/logic/<CELL>/`).
 
+## Timing in the liberty
+
+`vtube_timing.json` (2026-10-29), fanout 6, to the next stage's thresholds (falling output to 92 V, rising to 118 V; owner, 2026-10-29; `tools/spice/threshold_delays.py`), [Y rise, Y fall]: A→Y [253, 88] ns.
+
 ## Open points
 
 - **Liberty.** `NOT_N16` is already listed as half a tube with `max_fanout: 10`. The delays above are the first input for `vtube_timing.json` (REQ-MOD-004, OPEN-014); the owner decides when they go in.

@@ -296,6 +296,10 @@ Fit residuals: rms 0.1–0.45 mA on Рис. 215 and 0.2–0.6 mA on Рис. 216.
 - **Grid currents.** g1 and g3 conduct through a diode (IS = 1 nA) behind RG1 = 2 kΩ and RG3 = 5 kΩ, like the 6N16B model. The grid current is not taken from the space current.
 - **Capacitances.** The sheet gives Cin = 4.9 pF, Cout = 4.1 pF and Cg1a ≤ 0.03 pF. The split is assumed: Cg1k 3.0, Cg1g2 1.9, Cg1a 0.03 pF; Cak 2.5 pF; Cg2k 2.0 pF (screen node). **Cg3a = 1.8 pF** was measured by the owner on a 6Ж2Б-В (2026-10-24); the 6Zh2B sheets do not give any g3 capacitance. Before the measurement the model used 1.6 pF, the RCA handbook value for the 6AS6, the US dual-control pentode of the same class ([RCA Tube Handbook, receiving tubes, part 2](https://worldradiohistory.com/BOOKSHELF-ARH/Technology/RCA-Books/RCA-Tube-Handbook-Receiving-Tube-Section-Part-2.pdf)). Cg3k 3.0 pF stays assumed. Cg3a sets the slowest arc of the cell, so the cell is also checked at 1.6, 2.0 and 2.5 pF (see Sensitivity).
 
+## Timing in the liberty
+
+`vtube_timing.json` (2026-10-29), fanout 6, to the next stage's thresholds (falling output to 92 V, rising to 118 V; owner, 2026-10-29; `tools/spice/threshold_delays.py`), [Y rise, Y fall]: A→Y [545, 444], B→Y [503, 345] ns.
+
 ## Open points
 
 - **Cg3a spread.** 1.8 pF is one tube (6Ж2Б-В), measured cold. Measure a few more, plain 6Ж2Б too; if the spread goes past 2.5 pF, re-run `nand2_sweep.py` with `M="CG3A=…"` and re-check Cb and C1 per g3 grid.

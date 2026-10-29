@@ -51,7 +51,7 @@ Delays and timing limits against fanout: the RSLATCH table ([RSLATCH_J2N16](../R
 | C | pentode_g3 (two) | 13.6 pF | 3.5 |
 | Q, QN | HV out, max_fanout 6 | | |
 
-`vtube_timing.json` (SPICE, fanout 6): D→Q 290 ns, C↑→Q 290 ns. `vtube_cells.v` has the model `LATCH_J2N16`. The setup of 0.31 µs before C falls is not checked in netlist simulation (no checker for latches). `div_insert.py` counts a pin as one grid, so a D or C pin with two or three grids under-counts the net fanout.
+`vtube_timing.json` (SPICE, fanout 6, to the next stage's thresholds (falling output to 92 V, rising to 118 V; owner, 2026-10-29; `tools/spice/threshold_delays.py`)), [Q rise, Q fall]: D→Q 480 / 374 ns, C↑→Q 442 / 353 ns, measured with D toggling while C is high. `vtube_cells.v` has the model `LATCH_J2N16`. The setup of 0.31 µs before C falls is not checked in netlist simulation (no checker for latches). `div_insert.py` counts a pin as one grid, so a D or C pin with two or three grids under-counts the net fanout.
 
 ## Files and how to run
 

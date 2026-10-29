@@ -81,7 +81,7 @@ The table above runs to Y = 100 V, the convention of all cell pages. On the A↑
 | 6 | 312 | **447** | 786 | 264 | 72–87 |
 | 10 | 390 | **537** | 862 | 369 | 79–98 |
 
-So the A↑ arc costs about half of a 1 MHz clock at fanout 6. `vtube_timing.json` keeps the 100 V values, as for the other cells; the 92 V numbers are the ones to budget with. Where timing matters, put the late signal on B or C.
+So the A↑ arc costs about half of a 1 MHz clock at fanout 6. `vtube_timing.json` now uses the thresholds (owner, 2026-10-29): 92 V for a falling Y and 118 V for a rising one. Where timing matters, put the late signal on B or C.
 
 ![A1OOI_N16J2 delay against fanout](img/aoi21_fanout.png)
 
@@ -148,7 +148,7 @@ Cg3a is the largest effect, as in NAND2_J2 (measured 1.8 pF on one tube; more tu
 
 Before the fix the liberty had N16B 1 and `J2: 1` (the tube name was wrong, so its 6Zh2B was missing from the per-type total).
 
-`vtube_timing.json`, fanout 6, [Y rise, Y fall]: A→Y [281, 312], B→Y [250, 217], C→Y [290, 73] ns.
+`vtube_timing.json`, fanout 6, to the next stage's thresholds (falling output to 92 V, rising to 118 V; owner, 2026-10-29; `tools/spice/threshold_delays.py`), [Y rise, Y fall]: A→Y [492, 447], B→Y [460, 264], C→Y [500, 87] ns. To 100 V they were [281, 312], [250, 217], [290, 73].
 
 Synthesis (`run_tests.sh -s`, 2026-10-29): 63 cells, 94.5 tubes.
 
@@ -177,6 +177,5 @@ To embed the cell: the inputs come from HV nets through the usual divider, with 
 
 ## Open points
 
-- **The g3 tail** (A↑ to 92 V up to 537 ns at fanout 10): the liberty delays use 100 V for every cell; a threshold-based value for all AND-type arcs is the owner's call (REQ-MOD-004, OPEN-014).
 - **Measure on hardware** (REQ-MOD-004), Cg3a of more tubes first.
 - The screen sits at 150 V while the pentode is cut off, as in NAND2_J2 (allowed for 6Ж2Б-В, to be decided for 6Ж2Б, TRS §22 item 13).

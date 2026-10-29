@@ -1,6 +1,6 @@
 ---
-title: DekatronPC — Требования v0.20
-version: "0.20"
+title: DekatronPC — Требования v0.21
+version: "0.21"
 date: 2026-10-29
 status: draft
 supersedes: rtl/DekatronPC/DekatronPC_TRS_v0_7.md (с черновиком v0.8 golden model) и DekatronPC_TRS_v0_8.md
@@ -12,7 +12,7 @@ tags:
   - checklist
 ---
 
-# DekatronPC — Требования v0.20
+# DekatronPC — Требования v0.21
 
 ## 0. Назначение документа
 
@@ -37,6 +37,10 @@ tags:
 ---
 
 ## 1. История изменений
+
+### v0.21 — задержки до порогов; триггеры со сбросом; NOR4_N16, OR4_N16X7
+
+Владелец, 2026-10-29: задержки в liberty считать до порога следующего каскада (92 В), а не до 100 В; делать `DFFSR_n`, затем `NOR4_N16`, затем `OR4_N16X7`. Сделано: `vtube_timing.json` для `NOT_N16`, `NOR2_N16`, `NAND2_J2`, `A1OOI_N16J2`, `A2OOI_J2`, `LATCH_J2N16`, `DFF_J2N16` — SPICE при fanout 6, спад выхода до 92 В, фронт — до 118 В (парный порог «1», как на странице DFF; при 100 В фронт был бы на 100–200 нс короче), `tools/spice/threshold_delays.py`. Примеры [фронт, спад]: NOR2 [327, 99] нс, NAND2 A [545, 444], A1OOI A [492, 447], DFF C↓→Q [665, 592]. Для временной симуляции нетлиста это значит: при 1 МГц между триггерами помещается не больше одного вентиля с пентодом (REQ-MOD-004, OPEN-014).
 
 ### v0.20 — `LATCH_J2N16` и `DFF_J2N16` в liberty
 
