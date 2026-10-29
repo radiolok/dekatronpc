@@ -92,6 +92,23 @@ def hazards(c):
             if sum(a != b for a, b in zip(seq[i], seq[i - 1])) == 2 and y[i] == y[i - 1] == 0]
 
 
+def meas_lines(c, nodes, y, yl):
+    """.meas lines (without the leading dot), shared with the KiCad testbench (aoi_tb.py): Y at the end of each
+    state, the lowest input and output-net grids, the hazard maxima and one delay per arc.
+    nodes: pin -> node of the DUT input."""
+    seq = c['seq']; stop = T * len(seq)
+    m = [f"meas tran y{i} find v({y}) at={(i + 1) * T - 0.05:.3f}u" for i in range(len(seq))]
+    for pin in c['pins']:
+        m.append(f"meas tran {pin.lower()}min min v({nodes[pin]}) from=0.5u to={stop}u")
+    m.append(f"meas tran ylmin min v({yl}) from=0.5u to={stop}u")
+    for i in hazards(c):
+        m.append(f"meas tran haz{i} max v({y}) from={i * T}u to={(i + 1) * T}u")
+    for key, pin, di, do, t in arcs(c):
+        m.append(f"meas tran {key} trig v({nodes[pin]}) val=-5 {di}=1 td={t - 0.1:.2f}u "
+                 f"targ v({y}) val=100 {do}=1 td={t - 0.1:.2f}u")
+    return m
+
+
 def deck(c, p, ngrid):
     seq = c['seq']; stop = T * len(seq)
     s = f"* {c['name']} sweep\n.include {LIBS}/6Zh2B.sub\n.include {LIBS}/6N16B.sub\n"
@@ -103,15 +120,7 @@ def deck(c, p, ngrid):
         s += L.driver(pin.lower(), [st[k] for st in seq], node, p, c1_of(p, c['grid'][pin]))
     s += cell_net(c, ins, "y", p)
     s += L.div("y", "y", "yl", p, p['C1g'] * ngrid) + L.loads("yl", p, ngrid, "y")
-    m = [f"meas tran y{i} find v(y) at={(i + 1) * T - 0.05:.3f}u" for i in range(len(seq))]
-    for pin in c['pins']:
-        m.append(f"meas tran {pin.lower()}min min v({pin.lower()}) from=0.5u to={stop}u")
-    m.append(f"meas tran ylmin min v(yl) from=0.5u to={stop}u")
-    for i in hazards(c):
-        m.append(f"meas tran haz{i} max v(y) from={i * T}u to={(i + 1) * T}u")
-    for key, pin, di, do, t in arcs(c):
-        m.append(f"meas tran {key} trig v({pin.lower()}) val=-5 {di}=1 td={t - 0.1:.2f}u "
-                 f"targ v(y) val=100 {do}=1 td={t - 0.1:.2f}u")
+    m = meas_lines(c, {pin: pin.lower() for pin in c['pins']}, "y", "yl")
     # cathode and screen currents of the 6Zh2B, worst over the run
     for t in (["1"] if c['name'] == "A1OOI_N16J2" else ["1", "2"]):
         m.append(f"meas tran ipmax{t} max i(VP{t}) from=0.5u to={stop}u")

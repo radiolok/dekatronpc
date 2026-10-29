@@ -2,7 +2,7 @@
 
 Cell page. REQ-MOD-003 (AOI21_J2N16 in the library), REQ-MOD-005 (boards), REQ-MOD-012 (logic levels), REQ-MOD-004 (delays, fan-out, power; simulated, not measured). Method: `doc/cell_design_method.md`.
 
-**Status (2026-10-29): designed and checked in plain SPICE; liberty updated. The KiCad sheet, its testbench and the figures are not drawn yet** (see Open points).
+**Status (2026-10-29): designed in plain SPICE, drawn in KiCad (sheet with two cells, testbench), the KiCad netlist agrees with plain SPICE; liberty updated.** Not measured on tubes.
 
 | | A1OOI_N16J2 |
 |---|---|
@@ -13,7 +13,7 @@ Cell page. REQ-MOD-003 (AOI21_J2N16 in the library), REQ-MOD-005 (boards), REQ-M
 | Supplies | +150 V (plate; screen through Rg2 15k), −50 V (Cb, dividers), heater 6.3 V: 0.2 A + 0.2 A (half of a 6N16B) |
 | Divider C1 per grid on the driving nets | A 2.7 pF, B 6.8 pF, C 3.9 pF |
 | Output levels (static) | "1" 141–145 V; "0" 45.4 V (pentode alone), 45.7 V (triode alone), 25.8 V (both) |
-| Delay, fanout 2 / 6 / 10, worst arc | 194 / 312 / 420 ns (C↑ alone: 53 / 61 / 66 ns) |
+| Delay, fanout 2 / 6 / 10, worst arc | to Y = 100 V: 194 / 312 / 420 ns; **A↑ to the next stage's 92 V: 318 / 447 / 537 ns** (C↑ alone: 53 / 61 / 66 ns) |
 | Lowest grid | −35.1 V nominal, −42.3 V with all C1 +10 % (limit −50 V) |
 | Worst static | 6Zh2B Ik 12.7 mA, Pa 0.35 W, Pg2 0.37 W; triode Ik 7.0 mA, Pa 0.32 W |
 
@@ -37,6 +37,22 @@ The values follow NAND2_J2 and the latch, with one difference against the latch:
 - **Rg2 15k and Cb 15 pF**, as in NAND2_J2: the screen regulates itself in the state A = 1, B = 0, where g3 sends the whole current to the screen (Pg2 0.37 W). Cb holds g3 against the plate swing (the g3 Miller integrator, method §4a).
 - **C1 per grid type** (method §2): 2.7 pF on g1 (no Miller, fast driver), 6.8 pF on g3, 3.9 pF on the triode grid.
 
+## Schematic
+
+`A1OOI_N16J2.kicad_sch` holds two cells, because KiCad keeps one symbol unit per sheet file (method §4b): cell 1 is Л101 (6Zh2B) with triode A of Л103, cell 2 is Л102 with triode B of Л103.
+
+![A1OOI_N16J2 sheet](img/aoi21_cell.png)
+
+| Pin | Level | Connection |
+|---|---|---|
+| A1, A2 | LV in | g1 (lead 7) of 6Zh2B Л101 / Л102 |
+| B1, B2 | LV in | g3 (lead 2), Cb 15 pF to −50 V |
+| C1, C2 | LV in | grid of triode A (lead 7) / B (lead 3) of 6N16B Л103 |
+| Y1, Y2 | HV out | plates, Ra 15k each to +150 V |
+| H1, H2 | heater | all three tubes in parallel |
+
+Parts per cell: Ra 15k, Rg2 15k (screen from +150 V), Cb 15 pF. An unused cell: tie its inputs to an LV "0" and leave its output open.
+
 ## Results (plain SPICE)
 
 `tools/spice/aoi_sweep.py a1`: each input from an ideal HV pulse → divider → 6N16B triode driver with Ra 10k (the fastest driver, so the worst kick) → the divider of its grid type → the DUT. Y → one divider (C1 = 3.9 pF × grids) → triode loads. 17 states of 2 µs: every arc of every input with the other inputs at the levels that make it count, including B held high while A or C swing the plate, and one hazard.
@@ -55,9 +71,41 @@ Input crossing −5 V to Y crossing 100 V. Arc names: input, edge, then the leve
 - C↑ alone is a triode turning on: 53–82 ns.
 - VOL 2 µs after A↑ with B held high is 57 V (45 V static). This is the g3 Miller recovery of NAND2_J2; it stays well below the next stage's 92 V.
 
+### The g3 tail: delay to the next stage's threshold
+
+The table above runs to Y = 100 V, the convention of all cell pages. On the A↑ arc with B held high the plate drops fast to about 95 V and then crawls: B (g3) has been pulled out of its clamp through Cg3a and recovers through the 140 kΩ divider, the integrator of NAND2_J2. The next stage sees a "0" only below 92 V:
+
+| Grids on Y | A↑ to 100 V | **A↑ to 92 V** | A↑ to 80 V | B↑ to 92 V | C↑ to 92 V |
+|---|---|---|---|---|---|
+| 2 | 194 | **318** | 682 | 173 | 64–75 |
+| 6 | 312 | **447** | 786 | 264 | 72–87 |
+| 10 | 390 | **537** | 862 | 369 | 79–98 |
+
+So the A↑ arc costs about half of a 1 MHz clock at fanout 6. `vtube_timing.json` keeps the 100 V values, as for the other cells; the 92 V numbers are the ones to budget with. Where timing matters, put the late signal on B or C.
+
+![A1OOI_N16J2 delay against fanout](img/aoi21_fanout.png)
+
 ### Hazard
 
 B falls while C rises (A = 1): Y should stay "0". It rises to 72 / 68 / 65 V at fanout 2 / 6 / 10 (76 V at MU2 +20 %), under the 92 V threshold of the next stage. Harmless in synchronous logic; do not use such a net as a clock or an enable.
+
+### KiCad testbench
+
+![A1OOI_N16J2 testbench](img/aoi21_tb.png)
+
+`A1OOI_N16J2_tb.kicad_sch` drives cell 1 with the 17-state sequence of the sweep at fanout 6; cell 2 has its inputs on LV0 (−20 V from a source in the bench) and Y2 open. Stimulus, loads and `.meas` lines come from `tools/spice/aoi_tb.py` (`aoi_sweep.meas_lines`). The KiCad netlist and the plain-SPICE run of the same bench agree on all 30 values: delays and levels to the digit, grid minima to 0.16 %.
+
+![A1OOI_N16J2 waveforms](img/aoi21_tran.png)
+
+### Static transfer
+
+![A1OOI_N16J2 transfer](img/aoi21_vtc.png)
+
+Y against the HV net feeding one input through its divider, the other inputs at the levels that make it count, fanout 6. Y crosses 100 V at 106.5 V (A), 105.5 V (B), 108.5 V (C) on the input net: 51–53 V above a driver's "0" (55 V), 38–41 V below its "1" (146.9 V). That is within 2 V of NAND2_J2.
+
+### Crosstalk between the two cells
+
+Cell 1 static, C2 toggling (Y2 swinging 145 ↔ 45 V), plain SPICE: Y1 moves by −1.8 / +1.3 V when high and by ≤ 1.4 V when low (fanout 2), less at fanout 10. The plate-to-plate capacitance of the 6N16B is 0.5 pF; the coupling is negligible against the margins.
 
 ### Static operating points
 
@@ -108,20 +156,27 @@ Synthesis (`run_tests.sh -s`, 2026-10-29): 63 cells, 94.5 tubes.
 
 | File | What |
 |---|---|
-| `tools/spice/aoi_sweep.py` | transient sweep of both AOI cells (`a1`, `a22`), fanout and model cases |
+| `A1OOI_N16J2.kicad_sch` | the sheet, two cells; embed it as a hierarchical sheet |
+| `A1OOI_N16J2_tb.kicad_pro/.kicad_sch` | testbench project |
+| `tools/kicad/gen_aoi.py` | generated the sheets of both AOI cells (the first time only; edit the drawn sheets in KiCad). Shared parts in `tools/kicad/kicad_sheet.py` |
+| `tools/spice/aoi_sweep.py` | transient sweep of both AOI cells (`a1`, `a22`), fanout and model cases; `meas_lines` is shared with the testbench |
 | `tools/spice/aoi_static.py` | operating point of every input state, MU2 ± 20 % |
+| `tools/spice/aoi_tb.py` | the testbench definitions, and the same bench in plain SPICE |
+| `tools/spice/aoi_plots.py` | every figure of both AOI pages, into their `img/` |
 
 ```
-python3 tools/spice/aoi_sweep.py a1                      # fanout 2..10
+python3 tools/spice/aoi_sweep.py a1                        # fanout 2..10
 python3 tools/spice/aoi_sweep.py a1 --grids 2,10 cases.py  # CASES = [(name, {param: value}), ...]
 python3 tools/spice/aoi_static.py a1
+tools/spice/sim_kicad.sh sch/logic/A1OOI_N16J2/A1OOI_N16J2_tb.kicad_sch
+python3 tools/spice/aoi_tb.py a1                           # the same bench in plain SPICE
+python3 tools/spice/aoi_plots.py
 ```
 
-To embed the cell: the inputs come from HV nets through the usual divider, with C1 = 2.7 pF per g1 (A), 6.8 pF per g3 (B) and 3.9 pF per triode grid (C).
+To embed the cell: the inputs come from HV nets through the usual divider, with C1 = 2.7 pF per g1 (A), 6.8 pF per g3 (B) and 3.9 pF per triode grid (C). The project must sit two directories below `sch/`.
 
 ## Open points
 
-- **KiCad sheet** `A1OOI_N16J2.kicad_sch` with two cells on one 6N16B (method §4b: one sheet holds both halves of the tube), testbench `A1OOI_N16J2_tb`, the `.meas` lines shared with `aoi_sweep.py`, and the figures (`tools/spice/aoi_plots.py`).
-- **Crosstalk** between the two cells of one 6N16B (plate-to-plate 0.5 pF), as measured on NOT_N16: not yet simulated.
+- **The g3 tail** (A↑ to 92 V up to 537 ns at fanout 10): the liberty delays use 100 V for every cell; a threshold-based value for all AND-type arcs is the owner's call (REQ-MOD-004, OPEN-014).
 - **Measure on hardware** (REQ-MOD-004), Cg3a of more tubes first.
 - The screen sits at 150 V while the pentode is cut off, as in NAND2_J2 (allowed for 6Ж2Б-В, to be decided for 6Ж2Б, TRS §22 item 13).

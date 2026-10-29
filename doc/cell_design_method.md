@@ -149,6 +149,7 @@ A cell is accepted when all of these hold at every fanout from 2 to the target:
 - **The screen supply limits current, not only voltage.** A pentode whose g3 diverts the plate current to the screen dissipates it there. Size the screen resistor for Ik and Pg2 in the state where the plate is cut off by g3, and check both at the ends of the model spread (MU2 ± 20 %).
 - **Plate current in the knee.** VOL ≈ +50 V puts a pentode into the knee, where the plate takes about half of the cathode current. Ra follows from the Ik limit, not from the speed: for the 6Zh2B Ra ≥ 15k.
 - **A cathode resistor does not help** a cell whose speed is set by a held grid: the cathode rises with the current and takes that grid further below its clamp.
+- **The g3 tail hides behind the 100 V delay** (found on A1OOI_N16J2 / A2OOI_J2, 2026-10-29). On a g1 arc with its g3 held high the plate reaches 100 V quickly and then crawls while g3 recovers through the divider. The next stage sees a "0" only below 92 V, and that takes +120…150 ns more (A1OOI: 447 ns against 312 ns at fanout 6; 80 V only after ~800 ns). Measure the falling arcs of AND-type cells to 92 V too, and give the slow input to the early signal.
 - **One measurement routine for the sweep and the KiCad sheet.** Generate the `.meas` lines from the input sequence in one function and use it in both (`nand2_sweep.meas_lines`); the KiCad result then compares line by line.
 
 ## 4b. Traps found on NOT_N16 (several gates in one envelope)

@@ -2,7 +2,7 @@
 
 Cell page. REQ-MOD-003 (AOI22_J2 in the library), REQ-MOD-005 (boards), REQ-MOD-012 (logic levels), REQ-MOD-004 (delays, fan-out, power; simulated, not measured). Method: `doc/cell_design_method.md`.
 
-**Status (2026-10-29): designed and checked in plain SPICE; liberty updated. The KiCad sheet, its testbench and the figures are not drawn yet** (see Open points).
+**Status (2026-10-29): designed in plain SPICE, drawn in KiCad (sheet, testbench), the KiCad netlist agrees with plain SPICE; liberty updated.** Not measured on tubes.
 
 | | A2OOI_J2 |
 |---|---|
@@ -13,7 +13,7 @@ Cell page. REQ-MOD-003 (AOI22_J2 in the library), REQ-MOD-005 (boards), REQ-MOD-
 | Supplies | +150 V (plate; each screen through its own Rg2 15k), −50 V (Cb, dividers), heater 6.3 V 2 × 0.2 A |
 | Divider C1 per grid on the driving nets | A, C 2.7 pF; B, D 6.8 pF |
 | Output levels (static) | "1" 141–145 V; "0" 45.4 V (one pentode), 19.4 V (both) |
-| Delay, fanout 2 / 6 / 10, worst arc | 209 / 326 / 418 ns |
+| Delay, fanout 2 / 6 / 10, worst arc | to Y = 100 V: 209 / 326 / 418 ns; **A↑ or C↑ to the next stage's 92 V: 338 / 465 / 551 ns** |
 | Lowest grid | −34.6 V nominal, −42.2 V with all C1 +10 % (limit −50 V) |
 | Worst static | Ik 12.7 mA, Pa 0.35 W, Pg2 0.37 W per 6Zh2B |
 
@@ -34,6 +34,19 @@ The owner confirmed (2026-10-29) that this is AOI22. The old liberty function ((
 - **Rg2 15k per screen and Cb 15 pF per g3**, as in NAND2_J2.
 - **C1 per grid type** (method §2): 2.7 pF per g1, 6.8 pF per g3.
 
+## Schematic
+
+![A2OOI_J2 sheet](img/aoi22_cell.png)
+
+| Pin | Level | Connection |
+|---|---|---|
+| A, C | LV in | g1 (lead 7) of 6Zh2B Л101 / Л102 |
+| B, D | LV in | g3 (lead 2) of Л101 / Л102, Cb 15 pF to −50 V each |
+| Y | HV out | both plates, Ra 15k to +150 V |
+| H1, H2 | heater | both tubes in parallel |
+
+Parts: Ra 15k, Rg2 15k per screen, Cb 15 pF per g3.
+
 ## Results (plain SPICE)
 
 `tools/spice/aoi_sweep.py a22`, drivers and loads as on the A1OOI_N16J2 page. 23 states of 2 µs: every arc of every input with the other three at the levels that make it count, B held high on the idle pentode while D swings the plate, and one hazard.
@@ -50,9 +63,37 @@ Input crossing −5 V to Y crossing 100 V. Arc names: input, edge, then the leve
 
 The g1 arcs (A, C rising) and every rising Y are the slow ones, as in NAND2_J2. VOL 2 µs after a g1 edge with its g3 held high is 57 V (45 V static): the g3 Miller recovery.
 
+### The g3 tail: delay to the next stage's threshold
+
+As in A1OOI_N16J2 and NAND2_J2, a g1 arc with its g3 held high reaches 100 V fast and then crawls. The next stage sees a "0" only below 92 V:
+
+| Grids on Y | A↑ / C↑ to 100 V | **A↑ / C↑ to 92 V** | to 80 V | B↑ / D↑ to 92 V |
+|---|---|---|---|---|
+| 2 | 202–209 | **326–338** | 689–697 | 162–178 |
+| 6 | 318–326 | **454–465** | 792–798 | 249–270 |
+| 10 | 394–403 | **542–551** | 866–874 | 347–375 |
+
+`vtube_timing.json` keeps the 100 V values, as for the other cells; budget with the 92 V numbers. Put the late signal on B or D.
+
+![A2OOI_J2 delay against fanout](img/aoi22_fanout.png)
+
 ### Hazard
 
 B falls while D rises (A = C = 1): Y should stay "0". It rises to 77 / 67 / 62 V at fanout 2 / 6 / 10, and to 83 V at MU2 +20 % with fanout 2. The margin to the next stage's 92 V is only 9 V there. Harmless in synchronous logic; do not use such a net as a clock or an enable.
+
+### KiCad testbench
+
+![A2OOI_J2 testbench](img/aoi22_tb.png)
+
+`A2OOI_J2_tb.kicad_sch` runs the 23-state sequence of the sweep at fanout 6, stimulus, loads and `.meas` from `tools/spice/aoi_tb.py`. KiCad and plain SPICE agree on all 42 values (grid minima to 0.04 %).
+
+![A2OOI_J2 waveforms](img/aoi22_tran.png)
+
+### Static transfer
+
+![A2OOI_J2 transfer](img/aoi22_vtc.png)
+
+Y crosses 100 V at 106.5 V (A, C) and 105.5 V (B, D) on the input net, as in A1OOI_N16J2 and NAND2_J2.
 
 ### Static operating points
 
@@ -94,12 +135,23 @@ Synthesis (`run_tests.sh -s`, 2026-10-29): 10 cells, 20 tubes. With the old, imp
 
 ## Files and how to run
 
-As A1OOI_N16J2: `tools/spice/aoi_sweep.py a22`, `tools/spice/aoi_static.py a22`.
+| File | What |
+|---|---|
+| `A2OOI_J2.kicad_sch` | the cell; embed it as a hierarchical sheet |
+| `A2OOI_J2_tb.kicad_pro/.kicad_sch` | testbench project |
+| `tools/kicad/gen_aoi.py`, `tools/spice/aoi_sweep.py`, `aoi_static.py`, `aoi_tb.py`, `aoi_plots.py` | shared with A1OOI_N16J2 (see its page) |
 
-To embed the cell: the inputs come from HV nets through the usual divider, with C1 = 2.7 pF per g1 (A, C) and 6.8 pF per g3 (B, D).
+```
+python3 tools/spice/aoi_sweep.py a22
+python3 tools/spice/aoi_static.py a22
+tools/spice/sim_kicad.sh sch/logic/A2OOI_J2/A2OOI_J2_tb.kicad_sch
+python3 tools/spice/aoi_tb.py a22
+```
+
+To embed the cell: the inputs come from HV nets through the usual divider, with C1 = 2.7 pF per g1 (A, C) and 6.8 pF per g3 (B, D). The project must sit two directories below `sch/`.
 
 ## Open points
 
-- **KiCad sheet** `A2OOI_J2.kicad_sch`, testbench `A2OOI_J2_tb` with the `.meas` lines shared with `aoi_sweep.py`, and the figures.
+- **The g3 tail** (A↑ / C↑ to 92 V up to 551 ns at fanout 10): see A1OOI_N16J2, Open points.
 - **Measure on hardware** (REQ-MOD-004), Cg3a of more tubes first.
 - The screens at 150 V while cut off, as in NAND2_J2 (TRS §22 item 13).
