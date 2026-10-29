@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Build every figure of the A1OOI_N16J2 and A2OOI_J2 cell pages from the sources in the repo.
+"""Build every figure of the A1OOI_N16J2, A2OOI_J2 and NOR4_N16 cell pages from the sources in the repo.
 
 usage: tools/spice/aoi_plots.py [OUT_DIR]          (default: each figure into sch/logic/<CELL>/img)
 
-Writes, per cell (prefix aoi21_ for A1OOI_N16J2, aoi22_ for A2OOI_J2):
+Writes, per cell (prefix aoi21_ for A1OOI_N16J2, aoi22_ for A2OOI_J2, nor4_ for NOR4_N16):
   <p>cell.png, <p>tb.png   the cell sheet and the testbench root sheet, exported from KiCad
   <p>tran.png              KiCad testbench waveforms (ngspice)
   <p>vtc.png               static transfer: Y against the HV net of each input, the others enabling
@@ -20,7 +20,7 @@ import aoi_sweep as A      # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 
 REPO = LP.REPO
-CELL = {"a1": ("A1OOI_N16J2", "aoi21_"), "a22": ("A2OOI_J2", "aoi22_")}
+CELL = {"a1": ("A1OOI_N16J2", "aoi21_"), "a22": ("A2OOI_J2", "aoi22_"), "n4": ("NOR4_N16", "nor4_")}
 GRIDS = (2, 4, 6, 8, 10)
 HV = {0: 55.0, 1: 146.9}
 
@@ -64,10 +64,11 @@ def LP_TMP(tmp):
 def transfer(out, tmp):
     """Y against the HV net of one input (swept 30..160 V), the other inputs at levels that make it count"""
     sens = {"a1": {"A": (None, 1, 0), "B": (1, None, 0), "C": (0, 0, None)},
-            "a22": {"A": (None, 1, 0, 0), "B": (1, None, 0, 0), "C": (0, 0, None, 1), "D": (0, 0, 1, None)}}
+            "a22": {"A": (None, 1, 0, 0), "B": (1, None, 0, 0), "C": (0, 0, None, 1), "D": (0, 0, 1, None)},
+            "n4": {"A": (None, 0, 0, 0), "B": (0, None, 0, 0), "C": (0, 0, None, 0), "D": (0, 0, 0, None)}}
     th = {}
     for key, (name, _) in CELL.items():
-        c = A.CELLS[key]; p = dict(A.DEFAULT)
+        c = A.CELLS[key]; p = A.params(key)
         fig, ax = plt.subplots(figsize=(7, 4.2), constrained_layout=True)
         th[key] = {}
         for k, (pin, st) in enumerate(sens[key].items()):
@@ -95,7 +96,7 @@ def transfer(out, tmp):
 
 
 def fanout(out):
-    jobs = [(k, dict(A.DEFAULT), n) for k in CELL for n in GRIDS]
+    jobs = [(k, A.params(k), n) for k in CELL for n in GRIDS]
     with Pool(8) as pool:
         res = pool.map(A.run, jobs)
     for key, (name, _) in CELL.items():

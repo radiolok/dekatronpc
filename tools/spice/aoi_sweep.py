@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AND-OR-INVERT cells A1OOI_N16J2 and A2OOI_J2 (AOI22): transient sweep over fanout.
+"""AND-OR-INVERT cells A1OOI_N16J2 and A2OOI_J2 (AOI22), and NOR4_N16: transient sweep over fanout.
 
 A1OOI_N16J2  Y = ~((A & B) | C)   6Zh2B: A on g1, B on g3; one 6N16B triode: C on the grid; one plate Y.
                                    This is one half of RSLATCH_J2N16 without the feedback.
@@ -13,7 +13,9 @@ In A1OOI the second triode of the 6N16B is the other AOI of the sheet: here its 
 and its plate on its own Ra (it only couples through CPP).
 Delays: input crossing -5 V to Y crossing 100 V. States 2 us each, see SEQ.
 
-usage: aoi_sweep.py [a1|a22 ...] [--grids 2,6,10] [cases.py]
+NOR4_N16     Y = ~(A | B | C | D)  two 6N16B, all four triodes on one plate, Ra 10k (as NOR2_N16).
+
+usage: aoi_sweep.py [a1|a22|n4 ...] [--grids 2,6,10] [cases.py]
 """
 import os, re, subprocess, sys, tempfile
 from multiprocessing import Pool
@@ -45,7 +47,20 @@ CELLS = {
                      (0, 1, 0, 1), (1, 1, 0, 1), (1, 1, 1, 1), (1, 1, 1, 0),
                      (1, 0, 1, 1),                      # hazard: B falls, D rises together (Y stays 0)
                      (1, 1, 1, 0), (0, 0, 0, 0)]),
+    # NOR4_N16: two 6N16B, all four triodes on one plate, Ra as NOR2_N16
+    "n4": dict(name="NOR4_N16", pins="ABCD", f=lambda a, b, c, d: 1 - (a | b | c | d),
+               grid=dict(A="tri", B="tri", C="tri", D="tri"), p=dict(Ra="10k"),
+               seq=[(0, 0, 0, 0), (1, 0, 0, 0), (0, 0, 0, 0), (0, 1, 0, 0), (0, 0, 0, 0), (0, 0, 1, 0),
+                    (0, 0, 0, 0), (0, 0, 0, 1), (0, 0, 0, 0), (1, 1, 1, 1), (0, 1, 1, 1),   # all high: lowest VOL
+                    (0, 0, 0, 0), (1, 0, 0, 0),
+                    (0, 1, 0, 0),                          # hazard: A falls, B rises together (Y stays 0)
+                    (0, 0, 0, 0)]),
 }
+
+
+def params(key):
+    """the cell's part values: DEFAULT plus the cell's own (NOR4_N16: Ra 10k)"""
+    return {**DEFAULT, **CELLS[key].get('p', {})}
 
 
 def triode_half(t, plate, grid, p):
@@ -62,8 +77,11 @@ def cell_net(c, ins, y, p):
     n = f"RA vcc {y} {p['Ra']}\n"
     if c['name'] == "A1OOI_N16J2":
         n += L.penta("1", y, ins['A'], ins['B'], p) + triode_half("1", y, ins['C'], p)
-    else:
+    elif c['name'] == "A2OOI_J2":
         n += L.penta("1", y, ins['A'], ins['B'], p) + L.penta("2", y, ins['C'], ins['D'], p)
+    else:   # NOR4_N16: two 6N16B, every plate on Y; VT<i> measure the triode currents
+        n += (f"XT1 pt1 {ins['A']} 0 pt2 {ins['B']} 0 6N16B {p.get('MN', '')}\nVT1 {y} pt1 0\nVT2 {y} pt2 0\n"
+              f"XT2 pt3 {ins['C']} 0 pt4 {ins['D']} 0 6N16B {p.get('MN', '')}\nVT3 {y} pt3 0\nVT4 {y} pt4 0\n")
     return n
 
 
@@ -122,8 +140,9 @@ def deck(c, p, ngrid):
     s += L.div("y", "y", "yl", p, p['C1g'] * ngrid) + L.loads("yl", p, ngrid, "y")
     m = meas_lines(c, {pin: pin.lower() for pin in c['pins']}, "y", "yl")
     # cathode and screen currents of the 6Zh2B, worst over the run
-    for t in (["1"] if c['name'] == "A1OOI_N16J2" else ["1", "2"]):
-        m.append(f"meas tran ipmax{t} max i(VP{t}) from=0.5u to={stop}u")
+    if c['name'] != "NOR4_N16":
+        for t in (["1"] if c['name'] == "A1OOI_N16J2" else ["1", "2"]):
+            m.append(f"meas tran ipmax{t} max i(VP{t}) from=0.5u to={stop}u")
     s += f".tran 5n {stop}u\n.control\nrun\n" + "\n".join(m) + "\n.endc\n.end\n"
     return s
 
@@ -168,7 +187,7 @@ if __name__ == "__main__":
     files = [a for a in args if a not in CELLS]
     CASES = [("nominal", {})]
     for f in files: exec(open(f).read())
-    jobs = [(k, dict(DEFAULT, **ov, _name=nm), n) for k in keys for nm, ov in CASES for n in grids]
+    jobs = [(k, {**params(k), **ov, '_name': nm}, n) for k in keys for nm, ov in CASES for n in grids]
     with Pool(8) as pool:
         for r in pool.map(run, jobs):
             print(fmt(*r)); print(detail(*r))

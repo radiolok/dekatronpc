@@ -42,9 +42,9 @@ def gates(cell):
     if cell == "NOT_N16":
         p = dict(R1="470k", R2="200k", C1g=3.9, Ra="10k")
         return NT.deck(p, FANOUT), {"tphl_a": ("A", "fall"), "tplh_a": ("A", "rise")}
-    key = {"A1OOI_N16J2": "a1", "A2OOI_J2": "a22"}[cell]
+    key = {"A1OOI_N16J2": "a1", "A2OOI_J2": "a22", "NOR4_N16": "n4"}[cell]
     c = A.CELLS[key]
-    return A.deck(c, dict(A.DEFAULT), FANOUT), {k: (pin, do) for k, pin, di, do, t in A.arcs(c)}
+    return A.deck(c, A.params(key), FANOUT), {k: (pin, do) for k, pin, di, do, t in A.arcs(c)}
 
 
 # D latch (LATCH_J2N16): (D, E) per 2 us state; D toggles while E is high, E opens on both D levels
@@ -96,7 +96,7 @@ def dff_job():
     return "DFF_J2N16", {"C": [out["rise"], out["fall"]]}, out
 
 
-CELLS = ["NOR2_N16", "NOT_N16", "NAND2_J2", "A1OOI_N16J2", "A2OOI_J2", "LATCH_J2N16", "DFF_J2N16"]
+CELLS = ["NOR2_N16", "NOR4_N16", "NOT_N16", "NAND2_J2", "A1OOI_N16J2", "A2OOI_J2", "LATCH_J2N16", "DFF_J2N16"]
 
 
 def job(cell):

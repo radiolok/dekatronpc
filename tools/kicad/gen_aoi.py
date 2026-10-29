@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Generate the A1OOI_N16J2 and A2OOI_J2 cell sheets and their testbenches (doc/cell_design_method.md,
+"""Generate the A1OOI_N16J2, A2OOI_J2 and NOR4_N16 cell sheets and their testbenches (doc/cell_design_method.md,
 sch/logic/A1OOI_N16J2/README.md, sch/logic/A2OOI_J2/README.md).
 
 usage: gen_aoi.py OUT_DIR
   OUT_DIR/A1OOI_N16J2/A1OOI_N16J2.kicad_sch   two AOI21 cells: 2 x 6Zh2B + one 6N16B (one triode per cell)
   OUT_DIR/A2OOI_J2/A2OOI_J2.kicad_sch         one AOI22 cell: 2 x 6Zh2B on one plate
+  OUT_DIR/NOR4_N16/NOR4_N16.kicad_sch         four-input NOR: 2 x 6N16B, all plates on Y
   OUT_DIR/<cell>/<cell>_tb.kicad_sch/.kicad_pro   testbenches; stimulus, loads and .meas from tools/spice/aoi_tb.py
 
 Parts are connected by net labels at short pin stubs (kicad_sheet.py, as gen_latch_j2n16.py).
@@ -13,7 +14,7 @@ Every run makes new UUIDs: regenerate to start over, edit drawn sheets in KiCad.
 import sys, os
 
 OUT = sys.argv[1]
-for _c in ("A1OOI_N16J2", "A2OOI_J2"): os.makedirs(os.path.join(OUT, _c), exist_ok=True)
+for _c in ("A1OOI_N16J2", "A2OOI_J2", "NOR4_N16"): os.makedirs(os.path.join(OUT, _c), exist_ok=True)
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from kicad_sheet import *  # noqa: E402,F401,F403
@@ -24,9 +25,9 @@ import latch_tb as LTB  # noqa: E402
 P = TB.P
 RA, RG2, CB = P['Ra'], P['Rg2'], "%dp" % P['Cb']
 
-R = {k: U() for k in ("a1", "a22")}           # testbench root sheets
-S = {k: U() for k in ("a1", "a22")}           # the DUT sheet instance in each
-PROJ = {"a1": "A1OOI_N16J2_tb", "a22": "A2OOI_J2_tb"}
+R = {k: U() for k in ("a1", "a22", "n4")}           # testbench root sheets
+S = {k: U() for k in ("a1", "a22", "n4")}           # the DUT sheet instance in each
+PROJ = {"a1": "A1OOI_N16J2_tb", "a22": "A2OOI_J2_tb", "n4": "NOR4_N16_tb"}
 
 
 def pentode(sh, x, y, g1, g3, plate, screen, hier):
@@ -79,6 +80,22 @@ a2.dump(os.path.join(OUT, "A2OOI_J2", "A2OOI_J2.kicad_sch"), "A2OOI_J2 - AOI22",
 A2_PINS = [("A", "input", "L", 1), ("B", "input", "L", 3), ("C", "input", "L", 5), ("D", "input", "L", 7),
            ("H1", "passive", "L", 10), ("H2", "passive", "L", 11), ("Y", "output", "R", 3)]
 A2_SIZE = (14*G, 13*G)
+
+
+# ---------------------------------------------------------------- NOR4_N16: two 6N16B, four triodes on one plate
+n4 = Sheet([(PROJ["n4"], f"/{R['n4']}/{S['n4']}", 1)])
+H4 = {"A": "input", "B": "input", "C": "input", "D": "input", "Y": "output", "H1": "passive", "H2": "passive"}
+for k, (ga, gb) in enumerate((("A", "B"), ("C", "D"))):
+    t = n4.ref("Л"); yy = y0 + 30*G * k
+    n4.part(N16, (x0, yy), None, "6Н16Б", {"1": "Y", "7": ga, **n16_bottom()}, unit=1, props=SIM[N16], hier=H4, refs=t)
+    n4.part(N16, (x0 + 25*G, yy), None, "6Н16Б", {"5": "Y", "3": gb, "2": "GND"}, unit=2, props=SIM[N16], hier=H4, refs=t)
+n4.part("Device:R", (x0 + 40*G, y0 - 6*G), "R", TB.A.params("n4")['Ra'], {"1": "+150V", "2": "Y"}, hier=H4)
+n4.text("NOR4_N16: four-input NOR, Y = ~(A | B | C | D). Two 6N16B, all four triode plates on Y, Ra 10k to +150 V (as NOR2_N16).\n"
+        "A, B, C, D: LV (1 = +10 V, 0 = -20 V), each on a triode grid (divider C1 3.9 pF per grid). Y: HV; one divider per net.\n"
+        "Simulated, fanout 2/6/10: Y falls 58-90 ns, rises 120/193/268 ns; VOL 55 V (one input) ... 27 V (all four).\n"
+        "Heater 6.3 V: 2 x 0.4 A on H1/H2. Page: sch/logic/NOR4_N16/README.md", (20*G, 85*G))
+n4.dump(os.path.join(OUT, "NOR4_N16", "NOR4_N16.kicad_sch"), "NOR4_N16 - 4NOR on 2 x 6N16B",
+        comments=["Y = ~(A|B|C|D); A-D: LV; Y: HV", "2 x 6N16B; Ra 10k"], paper="A3")
 
 
 # ================================================================ testbenches (as gen_latch_j2n16.testbench)
@@ -145,4 +162,5 @@ def testbench(key, tb, cell_file, cell_pins, size):
 
 testbench("a1", TB.tb_of("a1"), "A1OOI_N16J2.kicad_sch", A1_PINS, A1_SIZE)
 testbench("a22", TB.tb_of("a22"), "A2OOI_J2.kicad_sch", A2_PINS, A2_SIZE)
+testbench("n4", TB.tb_of("n4"), "NOR4_N16.kicad_sch", A2_PINS, A2_SIZE)
 print("ok")

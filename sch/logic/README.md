@@ -7,6 +7,7 @@ This folder holds the logic cells of the tube machine (REQ-MOD-003/004/005), eac
 | Cell | Function | Tubes | In → out | Delay, fanout 2 … 10 | Liberty | Page |
 |---|---|---|---|---|---|---|
 | [NOR2_N16](NOR2_N16/README.md) | Y = ~(A \| B) | one 6N16B | LV → HV | tpHL 73 … 90 ns, tpLH 105 … 290 ns | `NOR2_N16` | NOR gate; the HV/LV levels and the divider rule were set here |
+| [NOR4_N16](NOR4_N16/README.md) | Y = ~(A \| B \| C \| D) | two 6N16B | LV → HV | Y falls 58 … 90 ns, rises 120 … 268 ns | `NOR4_N16` | |
 | [NAND2_J2](NAND2_J2/README.md) | Y = ~(A · B) | one 6Zh2B (A on g1, B on g3) | LV → HV | tpHL 166 … 396 ns, tpLH 122 … 466 ns | `NAND2_J2` | NAND gate, the 6Zh2B model |
 | [NOT_N16](NOT_N16/README.md) | Y1 = ~A1, Y2 = ~A2 | one 6N16B (½ per inverter) | LV → HV | tpHL 61 … 83 ns, tpLH 64 … 211 ns | `NOT_N16` | two inverters |
 | [BUF_N16](BUF_N16/README.md) | Y1 = A1, Y2 = A2 | one 6N16B (½ per buffer) | LV → **LV** | Y up 24 … 69 ns, Y down 32 … 224 ns (to the load plate) | `BUF_N16` | cathode followers, the base of the follower family |
@@ -21,7 +22,7 @@ This folder holds the logic cells of the tube machine (REQ-MOD-003/004/005), eac
 
 "Liberty" names the cell in `vtube_cells.lib`. "Proposed" means that the page proposes the entry and the owner has not reviewed it yet.
 
-The library also has cells that are not designed yet: `BUF_6J2B`, `NOT_J2`, the `*_N16X7` gates, `NOR4_N16`, `OR10_X7`, `GUIDE_EN_J2`, and the non-tube `RELAY_2CO`, `DIV_HL`, `TIEHI`, `TIELO`.
+The library also has cells that are not designed yet: `BUF_6J2B`, `NOT_J2`, the `*_N16X7` gates, `OR10_X7`, `GUIDE_EN_J2`, and the non-tube `RELAY_2CO`, `DIV_HL`, `TIEHI`, `TIELO`.
 
 ## Common rules
 

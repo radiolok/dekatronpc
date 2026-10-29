@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Testbench definitions shared by the KiCad testbenches (tools/kicad/gen_aoi.py) and the plain-SPICE reference
-runs, for A1OOI_N16J2 and A2OOI_J2 (sch/logic/A1OOI_N16J2/README.md, sch/logic/A2OOI_J2/README.md).
+runs, for A1OOI_N16J2, A2OOI_J2 and NOR4_N16 (sch/logic/A1OOI_N16J2/README.md, A2OOI_J2, NOR4_N16).
 
 As latch_tb.py: ideal HV sources (PWL) -> divider -> driver (6N16B triode, Ra 10k; second triode cut off) ->
 divider (C1 of the grid type) -> DUT input; the output -> one divider -> load tubes (6N16B, both grids on the net).
@@ -9,7 +9,7 @@ A1OOI_N16J2: the sheet holds two cells on one 6N16B. The bench drives cell 1; ce
 (-20 V, an LV "0") and Y2 open, so its triode only couples through the tube.
 Node names are the KiCad ones (/A1, /Y1, /Y1_LV ...).
 
-usage: aoi_tb.py [a1|a22 ...]     runs the plain-SPICE reference and prints the .meas values
+usage: aoi_tb.py [a1|a22|n4 ...]     runs the plain-SPICE reference and prints the .meas values
 """
 import os, re, subprocess, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -28,16 +28,17 @@ def tb_of(key):
     pin = {p: (p + "1" if one else p) for p in c['pins']}           # cell pin -> sheet pin
     src = {pin[p]: slots([s[i] for s in c['seq']], A.T) for i, p in enumerate(c['pins'])}
     y = "Y1" if one else "Y"
-    meas = A.meas_lines(c, {p: "/" + pin[p] for p in c['pins']}, "/" + y, f"/{y}_LV")
-    inputs = {pin[p]: A.c1_of(P, c['grid'][p]) for p in c['pins']}
+    meas = A.meas_lines(c, {q: "/" + pin[q] for q in c['pins']}, "/" + y, f"/{y}_LV")
+    p = A.params(key)
+    inputs = {pin[q]: A.c1_of(p, c['grid'][q]) for q in c['pins']}
     fixed = {"A2": "LV0", "B2": "LV0", "C2": "LV0", "Y2": "NC"} if one else {}
     states = " ".join("".join(map(str, s)) for s in c['seq'])
-    return dict(key=key, name=c['name'], src=src, inputs=inputs, outputs={y: FANOUT}, fixed=fixed,
+    return dict(key=key, name=c['name'], p=p, src=src, inputs=inputs, outputs={y: FANOUT}, fixed=fixed,
                 stop=A.T * len(c['seq']), meas=meas, cell=c,
                 note=f"States ({''.join(c['pins'])}) 2 us each: {states} (aoi_sweep.CELLS['{key}']).")
 
 
-TBS = {"a1": lambda: tb_of("a1"), "a22": lambda: tb_of("a22")}
+TBS = {k: (lambda k=k: tb_of(k)) for k in ("a1", "a22", "n4")}
 
 
 def cell_net(tb, p):
@@ -47,13 +48,15 @@ def cell_net(tb, p):
         for i in ("1", "2"):
             s += f"RA{i} vcc /Y{i} {p['Ra']}\n" + L.penta(i, f"/Y{i}", f"/A{i}", f"/B{i}", p)
         s += f"XT pt1 /C1 0 pt2 /C2 0 6N16B\nVT1 /Y1 pt1 0\nVT2 /Y2 pt2 0\n"
-    else:
+    elif tb['key'] == "a22":
         s += f"RA vcc /Y {p['Ra']}\n" + L.penta("1", "/Y", "/A", "/B", p) + L.penta("2", "/Y", "/C", "/D", p)
+    else:
+        s += A.cell_net(tb['cell'], {q: "/" + q for q in tb['cell']['pins']}, "/Y", p)
     return s
 
 
 def deck(tb):
-    p = P
+    p = tb['p']
     s = f"* {tb['name']} testbench, plain SPICE\n.include {L.LIBS}/6Zh2B.sub\n.include {L.LIBS}/6N16B.sub\n"
     s += "VCC vcc 0 150\nVNB nb 0 -50\nVLV0 /LV0 0 -20\n"
     for k, (times, bits) in tb['src'].items():
