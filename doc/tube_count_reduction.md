@@ -1153,3 +1153,20 @@ per-type total; fixed, with grid attributes and SPICE delays (fanout 6).
 The cheaper AOI21 pulls ABC towards it: 63 `A1OOI_N16J2` (94.5 tubes, from 29), 10
 `A2OOI_J2` (20), `NAND2_J2` 109 (from 158). Not designed now: `DFFSR_n` 266, `NOR4_N16` 94,
 `OR4_N16X7` 80, `GUIDE_EN_J2` 30, `AND2_N16X7` 24, `NAND4_N16X7` 7.5.
+
+### Diode-reset flip-flops replace `DFFSR` / `DFFSR_n` (2026-10-29)
+
+`DFFRN_J2N16X7` (clear on RN = 0) and `DFFSN_J2N16X7` (preset on SN = 0) are designed (their pages in
+`sch/logic/`): DFF_J2N16 + one 6Kh7B, 8 tubes, the active-low pin on `rst_n` with no inverter. The
+undesigned `DFFSR` / `DFFSR_n` (7 tubes, the diode not counted) are gone from the liberty.
+
+| Block | AOI21 at 1.5 tubes | **Diode reset** |
+|---|---|---|
+| IpLine | 484.5 | **501** |
+| ApLine | 554 | **566** |
+| MachineCtrl | 316.5 | **333.5** |
+| **Total** | 1355 | **1400.5** + 5 relays |
+
++38 tubes are the 6Kh7B, one per reset flop (34 DFFRN + 4 DFFSN); the rest is ABC drift. The 4 `NOT(rst_n)` gates
+in front of the old preset flops are gone. Not designed now: `NOR4_N16` 90, `OR4_N16X7` 72.5, `AND2_N16X7` 36,
+`GUIDE_EN_J2` 30, `NAND4_N16X7` 10.

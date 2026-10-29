@@ -3,7 +3,7 @@
 *
 * Logic convention: low = 0 V, high = 1 V, switching threshold = 0.5 V.
 * Combinational cells are modeled as ideal behavioral voltage sources
-* (ngspice E devices). Storage cells (LATCH_J2N16, DFF_J2N16, DFFSR, DFFSR_n) use the
+* (ngspice E devices). Storage cells (LATCH_J2N16, DFF_J2N16, DFFRN_J2N16X7, DFFSN_J2N16X7) use the
 * XSPICE d_latch / d_dff code models and therefore require ngspice built
 * with XSPICE support. ngspice auto-inserts analog/digital bridges at the
 * mixed-signal boundaries between these two domains.
@@ -95,17 +95,22 @@ Ainv C nC dffinv1
 Adff D nC null null Q nQ dff1
 .ENDS DFF_J2N16
 
-.SUBCKT DFFSR C D Q S R
-.model dffsr1 d_dff
-Adffsr D C S R Q nQ dffsr1
-.ENDS DFFSR
+* asynchronous clear / preset, active low, falling edge (the clock through an inverter)
+.SUBCKT DFFRN_J2N16X7 C D RN Q
+.model dffrninv d_inverter
+Ainv C nC dffrninv
+Ainr RN nRN dffrninv
+.model dffrn1 d_dff
+Adff D nC null nRN Q nQ dffrn1
+.ENDS DFFRN_J2N16X7
 
-.SUBCKT DFFSR_n C D Q S R
-.model inv1 d_inverter
-Ainv R nR inv1
-.model dffsrn1 d_dff
-Adffsrn D C S nR Q nQ dffsrn1
-.ENDS DFFSR_n
+.SUBCKT DFFSN_J2N16X7 C D SN Q
+.model dffsninv d_inverter
+Ainv C nC dffsninv
+Ains SN nSN dffsninv
+.model dffsn1 d_dff
+Adff D nC nSN null Q nQ dffsn1
+.ENDS DFFSN_J2N16X7
 
 * Guide gate of a dekatron decade, one per guide: J2 pentode, two control grids (guide G and EN): Y = G & EN
 .SUBCKT GUIDE_EN_J2 EN G Y

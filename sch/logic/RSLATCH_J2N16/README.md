@@ -55,6 +55,7 @@ Each half of the latch is an AND-OR-INVERT gate on one plate:
 | E | LV in | g3 (lead 2) of both 6Zh2B, Cb 15 pF to −50 V on each |
 | Q, QN | HV out | plates; Ra 10k each to +150 V |
 | H1, H2 | heater | all three tubes in parallel |
+| FQ, FQN | passive | the cross-coupled triode grids; open in DLATCH2 / DFF, the reset diodes of DFFRN / DFFSN sit here |
 
 Parts: Ra 10k ×2, Rg2 15k ×2 (screens from +150 V, as in NAND2_J2), Cb 15 pF ×2, and two feedback dividers (470k, 3.9 pF, 200k).
 

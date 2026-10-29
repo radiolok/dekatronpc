@@ -14,6 +14,7 @@ is HV, an input is a triode grid with C1 3.9 pF). For each net of each module:
                module through a port is a warning (LV over a connector).
   constant  -> grids tied to a constant are listed (they need a bias network, not a divider).
 Relay contacts (vtube_level PASS) carry the level of what drives them.
+Reset pins (vtube_level RESET, the 6Kh7B diodes of DFFRN/DFFSN) get no divider and must be driven by a port.
 
 usage: div_insert.py -l vtube_cells.lib -i in.json -o out.json [--top-inputs HV|LV] [--strict]
 The input is a Yosys JSON netlist after mapping (synt_dpc.tcl -div runs it after qn_absorb.py).
@@ -204,6 +205,12 @@ class Netlist:
                         p = self.lib[t].get(pin, {})
                         if p.get('level') == 'GRID':
                             groups['follower' if p['grid'] == 'follower' else 'gate'].append((cn, pin, i, p['c1']))
+                        elif p.get('level') == 'RESET':
+                            # the reset line (DFFRN/DFFSN diodes): no divider, and only a port may drive it
+                            d = self.drv[mn].get(b)
+                            if d and d[0] == 'cell':
+                                rep['errors'].append(f"{mn}: reset pin {cn}.{pin} on net {self.netname(mn, b)} "
+                                                     f"is driven by {cells[d[1]]['type']}, not by the reset line")
                 if not groups['gate'] and not groups['follower'] and not ports_out:
                     continue
                 lv = self.level(mn, b)

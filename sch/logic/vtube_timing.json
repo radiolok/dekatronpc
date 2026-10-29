@@ -7,6 +7,7 @@
            "NOT_N16, NOR2_N16, NAND2_J2, A1OOI_N16J2, A2OOI_J2, LATCH_J2N16, DFF_J2N16: SPICE at fanout 6, not measured,",
            "to the next stage's thresholds: a falling output to 92 V, a rising one to 118 V (owner, 2026-10-29;",
            "tools/spice/threshold_delays.py). QN arcs are the Q arcs with rise and fall swapped.",
+           "DFFRN/DFFSN: RN/SN -> forced output 80 ns, the other output 450 ns (tools/spice/dffr_sweep.py async).",
            "To be replaced by simulated (SPICE) and measured values, OPEN-013/014."],
   "timescale": "1ns",
   "cells": {
@@ -32,10 +33,10 @@
     "LATCH_J2N16": {"iopath": {"D->Q": [480, 374], "D->QN": [374, 480], "posedge C->Q": [442, 353], "posedge C->QN": [353, 442]}},
     "DFF_J2N16": {"iopath": {"negedge C->Q": [665, 592], "negedge C->QN": [592, 665]},
       "setuphold": {"D": [310, 0]}},
-    "DFFSR": {"iopath": {"posedge C->Q": 150, "posedge C->QN": 150, "S->Q": 150, "S->QN": 150, "R->Q": 150, "R->QN": 150},
-      "setuphold": {"D": [150, 150]}},
-    "DFFSR_n": {"iopath": {"posedge C->Q": 150, "posedge C->QN": 150, "S->Q": 150, "S->QN": 150, "R->Q": 150, "R->QN": 150},
-      "setuphold": {"D": [150, 150]}},
+    "DFFRN_J2N16X7": {"iopath": {"negedge C->Q": [665, 592], "negedge C->QN": [592, 665], "RN->Q": 80, "RN->QN": 450},
+      "setuphold": {"D": [310, 0]}},
+    "DFFSN_J2N16X7": {"iopath": {"negedge C->Q": [665, 592], "negedge C->QN": [592, 665], "SN->Q": 450, "SN->QN": 80},
+      "setuphold": {"D": [310, 0]}},
     "GUIDE_EN_J2": {"iopath": {"EN->Y": 150, "G->Y": 150}},
     "RELAY_2CO": {"iopath": {"COIL->C1": 0, "NC1->C1": 0, "NO1->C1": 0, "COIL->C2": 0, "NC2->C2": 0, "NO2->C2": 0}},
     "DIV_HL": {"iopath": {"HV->LV": 0}}

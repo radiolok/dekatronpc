@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Testbench definitions shared by the KiCad testbenches (tools/kicad/gen_latch_j2n16.py) and the plain-SPICE
-reference runs, for RSLATCH_J2N16, DLATCH2_J2N16 and DFF_J2N16 (sch/logic/RSLATCH_J2N16/README.md).
+reference runs, for RSLATCH_J2N16, DLATCH2_J2N16, DFF_J2N16 and DFFRN_J2N16X7 / DFFSN_J2N16X7 (sch/logic/RSLATCH_J2N16/README.md).
 
 Each testbench: ideal HV sources (PWL) -> divider -> driver (6N16B triode, Ra 10k; second triode cut off) ->
 divider -> DUT input; each DUT output -> one divider -> load tubes (6N16B, both grids on the net).
 Node names are the KiCad ones (/S, /Q, /DUT/FQ ...), so the .meas lines are the same in both runs.
 
-usage: latch_tb.py [rslatch|dlatch2|dff ...]     runs the plain-SPICE reference and prints the .meas values
+usage: latch_tb.py [rslatch|dlatch2|dff|dffrn|dffsn ...]     runs the plain-SPICE reference and prints the .meas values
 """
 import os, re, subprocess, sys, tempfile
 import latch_sweep as L
@@ -71,7 +71,34 @@ def dff_tb():
                 note=f"C: {per} us period (1 MHz); Q takes D at the falling edge of C; D changes {per/4} us after it.")
 
 
-TBS = dict(rslatch=rslatch_tb, dlatch2=dlatch2_tb, dff=dff_tb)
+RST = (8.2, 11.7)     # the reset line at GND from 8.2 to 11.7 us: asserted while C is low, released 0.3 us before C falls
+
+
+def dffr_tb(mode):
+    """DFFRN_J2N16X7 (mode 'clr') / DFFSN_J2N16X7 ('pre'): the DFF bench, with the reset line asserted once"""
+    per = 1.0
+    ct, cb, dt, db, samp, ref, stop = D.stimulus("dff", per, 0.25, "neg")
+    hold = 0 if mode == "clr" else 1
+    ref = [hold if (k + 1) * per + per > RST[0] + 0.1 and (k + 1) * per < RST[1] else r for k, r in enumerate(ref)]
+    pin = "RN" if mode == "clr" else "SN"
+    idle = -20
+    line = [(0.0, idle), (RST[0], idle), (RST[0] + 0.02, 0), (RST[1], 0), (RST[1] + 0.02, idle)]
+    meas = [f"meas tran q{k} find v(/Q) at={t:.4f}u" for k, t in enumerate(samp)]
+    meas += [f"meas tran n{k} find v(/QN) at={t:.4f}u" for k, t in enumerate(samp)]
+    meas += [f"meas tran {n}min min v({x}) from=0.5u to={stop}u" for n, x in (("c", "/C"), ("d", "/D"), ("y", "/Q_LV"))]
+    lv, d = (92, "fall") if mode == "clr" else (118, "rise")
+    meas += [f"meas tran t_rst trig v(/{pin}) val={idle / 2} rise=1 targ v(/Q) val={lv} {d}=1 td={RST[0] - 0.1:.2f}u",
+             f"meas tran qhold_{'max' if mode == 'clr' else 'min'} {'max' if mode == 'clr' else 'min'} v(/Q) "
+             f"from={RST[0] + 0.8:.2f}u to={RST[1]:.2f}u",
+             f"meas tran irst min i(VS{pin}) from={RST[0] + 0.1:.2f}u to={RST[1]:.2f}u"]
+    name = "DFFRN_J2N16X7" if mode == "clr" else "DFFSN_J2N16X7"
+    return dict(name=name, src={"C": (ct, cb), "D": (dt, db)}, lines={pin: line}, mode=mode,
+                inputs={"C": 2 * C1['g3'] + C1['g'], "D": C1['p'] + C1['g']},
+                outputs={"Q": 6, "QN": 6}, stop=stop, meas=meas, ref=ref,
+                note=f"As DFF_J2N16_tb; {pin} (the reset line, idle {idle} V) at GND from {RST[0]} to {RST[1]} us.")
+
+
+TBS = dict(rslatch=rslatch_tb, dlatch2=dlatch2_tb, dff=dff_tb, dffrn=lambda: dffr_tb("clr"), dffsn=lambda: dffr_tb("pre"))
 
 
 # ------------------------------------------------------------- plain SPICE, same node names as KiCad
@@ -100,9 +127,17 @@ def deck(tb):
         for i in (1, 2):
             s += L.div(f"x{i}", f"/DUT/DN{i}", f"/DUT/R{i}", p, p['C1p'])
             s += L.rslatch(f"x{i}", f"/D{i}", f"/DUT/R{i}", "/E", f"/Q{i}", f"/QN{i}", p)[0]
-    else:
+    elif n == "DFF_J2N16":
         s += _rename(D.dff("x", "/D", "/C", "/Q", "/QN", p),
                      {"rmx": "/DUT/RM", "ecx": "/DUT/ES", "ssx": "/DUT/SS", "rsx": "/DUT/RS"})
+    else:
+        import dffr_sweep as R
+        R.OPT['comp'] = 2.7
+        s = s.replace(".include", f".include {os.path.join(L.LIBS, '6Kh7B.sub')}\n.include", 1)
+        pin = list(tb['lines'])[0]
+        pts = " ".join(f"{t:.4f}u {v}" for t, v in tb['lines'][pin])
+        s += f"VS{pin} /{pin} 0 PWL({pts})\n"
+        s += R.dffr("x", "/D", "/C", "/Q", "/QN", p, tb['mode'], f"/{pin}")
     for o, ng in tb['outputs'].items():
         s += L.div(f"y{o}", f"/{o}", f"/{o}_LV", p, p['C1g'] * ng) + L.loads(f"/{o}_LV", p, ng, o)
     s += f".tran 5n {tb['stop']:.3f}u\n.control\nrun\n" + "\n".join(tb['meas']) + "\n.endc\n.end\n"

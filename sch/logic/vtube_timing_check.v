@@ -3,7 +3,7 @@
 //
 // Icarus parses $setuphold and the SDF TIMINGCHECK entries but never
 // checks them, so rtl/run/vtube_sdf.py puts one of these next to every
-// DFF_J2N16/DFFSR/DFFSR_n instance of the netlist, connected by hierarchical
+// DFF_J2N16/DFFRN_J2N16X7/DFFSN_J2N16X7 instance of the netlist, connected by hierarchical
 // references to the cell's pins. D must not change in the window
 // [edge - SETUP, edge + HOLD) around the capturing edge of C (falling with NEGEDGE): a change exactly SETUP before or
 // HOLD after the edge is still allowed. A trigger is two latches in a row:
@@ -11,8 +11,8 @@
 // is closed off by the slave.
 //
 // Checks are off while the asynchronous set/clear holds the trigger
-// (ASYNC: 0 DFF_J2N16, 1 DFFSR with S/R active high, 2 DFFSR_n with R active
-// low) and before the first capturing edge of C. Recovery/removal of S/R
+// (ASYNC: 0 DFF_J2N16, 1 S/R active high, 2 S high / R low, 3 DFFRN_J2N16X7 clear while
+// R = 0, 4 DFFSN_J2N16X7 preset while S = 0; an absent pin is tied to 1) and before the first capturing edge of C. Recovery/removal of S/R
 // against C is not checked.
 //
 // QUALIFY = 1: a trigger whose value matters only when the next cycle
@@ -49,7 +49,9 @@ module vtube_setuphold #(
 
 	wire ck = NEGEDGE ? ~C : C;
 	wire held = (ASYNC == 1) ? (S | R) :
-	            (ASYNC == 2) ? (S | ~R) : 1'b0;
+	            (ASYNC == 2) ? (S | ~R) :
+	            (ASYNC == 3) ? ~R :
+	            (ASYNC == 4) ? ~S : 1'b0;
 
 	task automatic report(input string msg);
 		if (setup_cnt + hold_cnt <= MAX_REPORTS)

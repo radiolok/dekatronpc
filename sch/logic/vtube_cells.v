@@ -260,49 +260,41 @@ specify
 endspecify
 endmodule
 
-// clear: R, preset: S, both active high; preset wins as in Yosys $_DFFSR_
-module DFFSR(C, D, Q, QN, S, R);
-input C, D, S, R;
+// DFFRN_J2N16X7: falling edge of C, asynchronous clear while RN = 0
+module DFFRN_J2N16X7(C, D, RN, Q, QN);
+input C, D, RN;
 output reg Q;
 output QN;
 assign QN = ~Q;
-always @(posedge C, posedge S, posedge R)
-	if (S)
-		Q <= 1'b1;
-	else if (R)
+always @(negedge C, negedge RN)
+	if (!RN)
 		Q <= 1'b0;
 	else
 		Q <= D;
 specify
-	(posedge C => (Q +: D)) = 0;
-	(posedge C => (QN -: D)) = 0;
-	(S => Q) = 0;
-	(S => QN) = 0;
-	(R => Q) = 0;
-	(R => QN) = 0;
+	(negedge C => (Q +: D)) = 0;
+	(negedge C => (QN -: D)) = 0;
+	(RN => Q) = 0;
+	(RN => QN) = 0;
 endspecify
 endmodule
 
-// clear: R' (active low), preset: S (active high)
-module DFFSR_n(C, D, Q, QN, S, R);
-input C, D, S, R;
+// DFFSN_J2N16X7: falling edge of C, asynchronous preset while SN = 0
+module DFFSN_J2N16X7(C, D, SN, Q, QN);
+input C, D, SN;
 output reg Q;
 output QN;
 assign QN = ~Q;
-always @(posedge C, posedge S, negedge R)
-	if (S)
+always @(negedge C, negedge SN)
+	if (!SN)
 		Q <= 1'b1;
-	else if (!R)
-		Q <= 1'b0;
 	else
 		Q <= D;
 specify
-	(posedge C => (Q +: D)) = 0;
-	(posedge C => (QN -: D)) = 0;
-	(S => Q) = 0;
-	(S => QN) = 0;
-	(R => Q) = 0;
-	(R => QN) = 0;
+	(negedge C => (Q +: D)) = 0;
+	(negedge C => (QN -: D)) = 0;
+	(SN => Q) = 0;
+	(SN => QN) = 0;
 endspecify
 endmodule
 

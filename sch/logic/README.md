@@ -15,11 +15,13 @@ This folder holds the logic cells of the tube machine (REQ-MOD-003/004/005), eac
 | [A2OOI_J2](A2OOI_J2/README.md) | Y = ~((A · B) + (C · D)), AOI22 | 2 × 6Zh2B | LV → HV | worst arc 209 … 418 ns (A↑ / C↑ to 92 V: 338 … 551 ns) | `A2OOI_J2` | |
 | [RSLATCH_J2N16](RSLATCH_J2N16/README.md) | gated RS latch | 2 × 6Zh2B + 1 × 6N16B | LV → HV | E→Q 172 … 380 ns, S→Q 138 … 392 ns | proposed | the base of the latch family |
 | [DLATCH2_J2N16](DLATCH2_J2N16/README.md) | two D latches | 7 (2 × RSLATCH + 1 × 6N16B) | LV → HV | as RSLATCH, D falling + inverter | `LATCH_J2N16` (one latch) | |
+| [DFFRN_J2N16X7](DFFRN_J2N16X7/README.md) | DFF_J2N16 + asynchronous clear (RN = 0) | 8 (+ 1 × 6Kh7B) | LV + reset line → HV | RN → Q 54 … 100 ns; recovery ≥ 100 ns | `DFFRN_J2N16X7` | RN is the reset line (idle −20 V, GND = reset) |
+| [DFFSN_J2N16X7](DFFSN_J2N16X7/README.md) | DFF_J2N16 + asynchronous preset (SN = 0) | 8 (+ 1 × 6Kh7B) | LV + reset line → HV | SN → Q 273 … 611 ns | `DFFSN_J2N16X7` | |
 | [DFF_J2N16](DFF_J2N16/README.md) | D flip-flop, **falling** edge of C | 7 (2 × RSLATCH + 1 × 6N16B) | LV → HV | C↓→Q 340 … 539 ns; 1.11 … 0.93 MHz register to register | `DFF_J2N16` | synthesis adds one clock inverter per clock net |
 
 "Liberty" names the cell in `vtube_cells.lib`. "Proposed" means that the page proposes the entry and the owner has not reviewed it yet.
 
-The library also has cells that are not designed yet: `BUF_6J2B`, `NOT_J2`, the `*_N16X7` gates, `NOR4_N16`, `OR10_X7`, `DFFSR`, `DFFSR_n`, `GUIDE_EN_J2`, and the non-tube `RELAY_2CO`, `DIV_HL`, `TIEHI`, `TIELO`.
+The library also has cells that are not designed yet: `BUF_6J2B`, `NOT_J2`, the `*_N16X7` gates, `NOR4_N16`, `OR10_X7`, `GUIDE_EN_J2`, and the non-tube `RELAY_2CO`, `DIV_HL`, `TIEHI`, `TIELO`.
 
 ## Common rules
 
@@ -40,7 +42,7 @@ Each cell folder `<CELL>/` holds:
 | `img/` | figures of the page, rebuilt by `tools/spice/*_plots.py` |
 
 - The sheets take the tube models from `sch/libs/` as `${KIPRJMOD}/../../libs/<tube>.sub`, so a cell project sits two levels below `sch/`.
-- DLATCH2_J2N16 and DFF_J2N16 use `../RSLATCH_J2N16/RSLATCH_J2N16.kicad_sch` as their sub-sheet. A change to the RS latch changes all three cells.
+- DLATCH2_J2N16, DFF_J2N16, DFFRN_J2N16X7 and DFFSN_J2N16X7 use `../RSLATCH_J2N16/RSLATCH_J2N16.kicad_sch` as their sub-sheet. A change to the RS latch changes all of them.
 - The scripts stay in `tools/`. `tools/kicad/gen_*.py OUT_DIR` writes the sheets to `OUT_DIR/<CELL>/` (run with `sch/logic`, and only to start over: the drawn sheets are edited in KiCad). `tools/spice/*_sweep.py`, `*_static.py` and `*_plots.py` run the simulations and draw the figures; with no argument, the plots go into `<CELL>/img/`.
 
 ## Cell library

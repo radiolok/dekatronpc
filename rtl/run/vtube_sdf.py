@@ -35,7 +35,8 @@ ID = r"(?:\\\S+|[A-Za-z_][\w$]*)"
 KEYWORDS = {"module", "input", "output", "inout", "wire", "reg", "assign",
             "parameter", "localparam", "initial", "always", "endmodule",
             "if", "begin", "end"}
-ASYNC = {"DFF_J2N16": 0, "DFFSR": 1, "DFFSR_n": 2}
+# trigger cell -> (vtube_setuphold ASYNC mode, set pin, reset pin); 3: clear while RN = 0, 4: preset while SN = 0
+ASYNC = {"DFF_J2N16": (0, None, None), "DFFRN_J2N16X7": (3, None, "RN"), "DFFSN_J2N16X7": (4, "SN", None)}
 
 
 def vname(name):
@@ -191,13 +192,14 @@ def main():
                     annotate.append(f'\t$sdf_annotate("{cell_sdf[t]}", {ref});')
                 sh = timing["cells"][t].get("setuphold", {}).get("D")
                 if sh and t in ASYNC:
-                    s = f"{ref}.S" if ASYNC[t] else "1'b0"
-                    r = f"{ref}.R" if ASYNC[t] else "1'b0"
+                    mode, sp, rp = ASYNC[t]
+                    s = f"{ref}.{sp}" if sp else "1'b1"
+                    r = f"{ref}.{rp}" if rp else "1'b1"
                     rule = masked_rule(rules, mod, qnets.get((mod, inst), ""))
                     q, en = (1, scoped(rule["used_when"], scope)) if rule else (0, "1'b1")
                     n_masked += q
                     checks.append(
-                        f"vtube_setuphold #(.SETUP({sh[0]}), .HOLD({sh[1]}), .ASYNC({ASYNC[t]}),"
+                        f"vtube_setuphold #(.SETUP({sh[0]}), .HOLD({sh[1]}), .ASYNC({mode}),"
                         f" .NEGEDGE({int(clock_edge(paths[t]) == 'negedge')}),"
                         f" .QUALIFY({q})) c{len(checks)} (.C({ref}.C), .D({ref}.D),"
                         f" .S({s}), .R({r}), .EN({en}));")

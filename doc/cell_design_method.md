@@ -171,6 +171,8 @@ A cell is accepted when all of these hold at every fanout from 2 to the target:
 - **One sheet file, one value.** Two instances of a sub-sheet cannot have different C1 (§4), so signals between the instances go through their own dividers in the parent sheet.
 - **Net labels at pin stubs** (`tools/kicad/gen_latch_j2n16.py`) keep a multi-tube cell generator short. Bottom tube pins are 1.27 mm apart, so route the heater pins bent at different heights. Verify the drawing with the KiCad netlist against the plain SPICE bench (`latch_tb.py`): they must agree to 0.01 %.
 
+- **A part hung on a feedback node from a static net is a capacitor to ground for that divider** (DFFRN / DFFSN, 2026-10-29). The 6Kh7B's A–K capacitance (≤ 5.8 pF) on FQN under-compensated the 3.9 pF feedback divider, and the flip-flop failed at 1 MHz. Add Cc ≈ C_added · R2 / R1 in parallel with C1 (2.7 pF here) and check it over the part's whole capacitance range.
+
 ## 4d. Traps found on BUF_N16 and OR2_N16 (cathode followers, LV output)
 
 - **A follower's cathode sits above its grid** by about Ua/μ near cut-off (≈ 5 V at Ua 160 V). With the cathode resistor alone, a "0" input of −18.7 V gives only −13.4 V out (5.8 V of LV margin). Split the cathode resistor (Rs from the cathode to Y, Rk from Y to −50 V) and take Y from the tap: the drop on Rs puts Y back near −19 V.

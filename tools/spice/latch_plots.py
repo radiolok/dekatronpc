@@ -31,7 +31,9 @@ P = dict(L.BASE, **L.CHOSEN, edge="neg")
 GRIDS = (2, 4, 6, 8, 10)
 IMG_CELL = {"latch_rs_cell.png": "RSLATCH_J2N16", "latch_rs_tran.png": "RSLATCH_J2N16", "latch_fanout.png": "RSLATCH_J2N16",
             "latch_d2_cell.png": "DLATCH2_J2N16",
-            "latch_dff_cell.png": "DFF_J2N16", "latch_dff_tb.png": "DFF_J2N16", "latch_dff_tran.png": "DFF_J2N16"}
+            "latch_dff_cell.png": "DFF_J2N16", "latch_dff_tb.png": "DFF_J2N16", "latch_dff_tran.png": "DFF_J2N16",
+            "dffrn_cell.png": "DFFRN_J2N16X7", "dffrn_tb.png": "DFFRN_J2N16X7", "dffrn_tran.png": "DFFRN_J2N16X7",
+            "dffsn_cell.png": "DFFSN_J2N16X7", "dffsn_tb.png": "DFFSN_J2N16X7", "dffsn_tran.png": "DFFSN_J2N16X7"}
 
 def dest(out, png):
     """Where a figure goes: OUT_DIR if given, else the img/ folder of the cell page that shows it."""
@@ -78,7 +80,9 @@ def crop_png(svg, png, width=3000, m=30):
 def schematics(out, tmp):
     for tb, pages in (("RSLATCH_J2N16_tb", {"RSLATCH_J2N16_tb-DUT.svg": "latch_rs_cell.png"}),
                       ("DLATCH2_J2N16_tb", {"DLATCH2_J2N16_tb-DUT.svg": "latch_d2_cell.png"}),
-                      ("DFF_J2N16_tb", {"DFF_J2N16_tb-DUT.svg": "latch_dff_cell.png", "DFF_J2N16_tb.svg": "latch_dff_tb.png"})):
+                      ("DFF_J2N16_tb", {"DFF_J2N16_tb-DUT.svg": "latch_dff_cell.png", "DFF_J2N16_tb.svg": "latch_dff_tb.png"}),
+                      ("DFFRN_J2N16X7_tb", {"DFFRN_J2N16X7_tb-DUT.svg": "dffrn_cell.png", "DFFRN_J2N16X7_tb.svg": "dffrn_tb.png"}),
+                      ("DFFSN_J2N16X7_tb", {"DFFSN_J2N16X7_tb-DUT.svg": "dffsn_cell.png", "DFFSN_J2N16X7_tb.svg": "dffsn_tb.png"})):
         svg = os.path.join(tmp, tb)
         os.makedirs(svg, exist_ok=True)
         subprocess.run(["kicad-cli", "sch", "export", "svg", "-e", "-o", svg, os.path.join(SCH, tb[:-len("_tb")], tb + ".kicad_sch")],
@@ -132,7 +136,18 @@ def waveforms(out, tmp):
             ("ES (LV, slave enable = ~C)", v[3], "lv"), ("Q (HV)", v[4], "hv"), ("QN (HV)", v[5], "hv")]
     wave_fig(dest(out, "latch_dff_tran.png"), "DFF_J2N16: KiCad testbench in ngspice, 1 MHz, fanout 6",
              t, rows)
+    reset_waveforms(out, tmp)
     return rs, df
+
+
+def reset_waveforms(out, tmp):
+    for cell, pin, node, png in (("DFFRN_J2N16X7", "RN", "FQNM", "dffrn_tran.png"), ("DFFSN_J2N16X7", "SN", "FQM", "dffsn_tran.png")):
+        _, t, v = kicad_waves(cell + "_tb", ["/C", "/D", f"/{pin}", f"/DUT/{node}", "/Q", "/QN"], tmp)
+        rows = [("C (LV, clock 1 MHz)", v[0], "lv"), ("D (LV)", v[1], "lv"),
+                (f"{pin} (the reset line: idle -20 V, GND = asserted)", v[2], "lv"),
+                (f"{node} (LV, master feedback grid, the diode's cathode)", v[3], "lv"),
+                ("Q (HV)", v[4], "hv"), ("QN (HV)", v[5], "hv")]
+        wave_fig(dest(out, png), f"{cell}: KiCad testbench in ngspice, 1 MHz, fanout 6, {pin} asserted 8.2 to 11.7 us", t, rows)
 
 
 THRESH_DECK = """* input thresholds by a slow ramp: LV inputs as Thevenin sources of the divider (V, 140k)

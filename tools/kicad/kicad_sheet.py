@@ -40,11 +40,13 @@ def fix_tube_pins(b):
     b = re.sub(r'\(pin bidirectional (line\s*\(at [^)]*\)\s*\(length [^)]*\)\s*\(name "K")', r'(pin passive \1', b)
     return b
 
-J2, N16 = "vacuum_tube:6Ж2Б", "vacuum_tube:6Н16Б"
+J2, N16, X7 = "vacuum_tube:6Ж2Б", "vacuum_tube:6Н16Б", "vacuum_tube:6Х7Б"
 SIM = {J2: {"Sim.Library": "${KIPRJMOD}/../../libs/6Zh2B.sub", "Sim.Name": "6Zh2B", "Sim.Device": "SUBCKT",
             "Sim.Pins": "1=A 2=G3 3=G2 6=K 7=G1"},
        N16: {"Sim.Library": "${KIPRJMOD}/../../libs/6N16B.sub", "Sim.Name": "6N16B", "Sim.Device": "SUBCKT",
-             "Sim.Pins": "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb"}}
+             "Sim.Pins": "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb"},
+       X7: {"Sim.Library": "${KIPRJMOD}/../../libs/6Kh7B.sub", "Sim.Name": "6Kh7B2", "Sim.Device": "SUBCKT",
+            "Sim.Pins": "1=A1 3=K1 7=A2 5=K2"}}
 
 def tube_lib(name, key):
     b = embed(f"{REPO}/sch/libs/vacuum_tube.kicad_sym", name, "vacuum_tube")
@@ -64,6 +66,8 @@ LIBS = {
     "Simulation_SPICE:VPWL": embed(f"{SYSLIB}/Simulation_SPICE.kicad_sym", "VPWL", "Simulation_SPICE"),
     J2: tube_lib("6Ж2Б", J2),
     N16: tube_lib("6Н16Б", N16),
+    # a diode anode shares the reset line with many others: every 6Kh7B pin but the heater is passive
+    X7: re.sub(r'\(pin (output|bidirectional) ', '(pin passive ', embed(f"{REPO}/sch/libs/vacuum_tube.kicad_sym", "6Х7Б", "vacuum_tube")),
 }
 
 PINS = {  # lib-space pin coordinates (y up)
@@ -75,6 +79,8 @@ PINS = {  # lib-space pin coordinates (y up)
          "6": (-2.54, -10.16), "7": (-7.62, -1.27)},
     N16: {1: {"1": (0, 10.16), "7": (-7.62, 0), "6": (-2.54, -10.16), "4": (1.27, -10.16), "8": (-1.27, -10.16)},
           2: {"5": (0, 10.16), "3": (-7.62, 0), "2": (-2.54, -10.16)}},
+    X7: {1: {"1": (0, 5.08), "3": (-2.54, -10.16), "2": (-1.27, -10.16), "6": (1.27, -10.16)},
+         2: {"7": (0, 5.08), "5": (-2.54, -10.16)}},
 }
 # bottom pins of a tube are 1.27 mm apart: cathode straight down, heaters bent to the right at different heights
 def heat(h1, h2, k="GND"):
@@ -83,6 +89,9 @@ def j2_bottom(h1="H1", h2="H2"):
     b = heat(h1, h2); return {"6": b["k"], "4": b["h1"], "5": b["h2"]}
 def n16_bottom(h1="H1", h2="H2"):
     b = heat(h1, h2); return {"6": b["k"], "8": b["h1"], "4": b["h2"]}
+def x7_bottom(k, h1="H1", h2="H2"):
+    """unit A of a 6Kh7B: cathode (lead 3) straight down to its net, heater 2 / 6 bent to the right"""
+    b = heat(h1, h2, k); return {"3": b["k"], "2": b["h1"], "6": b["h2"]}
 POWER = {"+150V": "power:+150V", "-50V": "power:-50V", "GND": "power:GND", "+6.3V": "power:+6.3V"}
 
 def pins_of(lib, unit):

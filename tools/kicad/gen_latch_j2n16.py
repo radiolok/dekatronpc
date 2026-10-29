@@ -6,6 +6,7 @@ usage: gen_latch_j2n16.py OUT_DIR
   OUT_DIR/RSLATCH_J2N16/RSLATCH_J2N16.kicad_sch   cell: gated RS latch, 2 x 6Zh2B + 1 x 6N16B (sub-sheet of the two below)
   OUT_DIR/DLATCH2_J2N16/DLATCH2_J2N16.kicad_sch   two D latches: 2 x RSLATCH + one 6N16B for both D inverters (7 tubes)
   OUT_DIR/DFF_J2N16/DFF_J2N16.kicad_sch       master-slave D flip-flop, falling edge: 2 x RSLATCH + one 6N16B (D and C) (7 tubes)
+  OUT_DIR/DFFRN_J2N16X7/, OUT_DIR/DFFSN_J2N16X7/  DFF_J2N16 + one 6Kh7B: asynchronous clear / preset (8 tubes)
   OUT_DIR/<cell>/<cell>_tb.kicad_sch/.kicad_pro   testbenches; stimulus, loads and .meas from tools/spice/latch_tb.py
 
 Unlike gen_nand2_j2.py the parts are connected by net labels at short pin stubs, not by drawn wires: the cells have
@@ -16,7 +17,7 @@ the instances of all three testbench projects.
 import sys, os
 
 OUT = sys.argv[1]
-for _c in ("RSLATCH_J2N16", "DLATCH2_J2N16", "DFF_J2N16"): os.makedirs(os.path.join(OUT, _c), exist_ok=True)
+for _c in ("RSLATCH_J2N16", "DLATCH2_J2N16", "DFF_J2N16", "DFFRN_J2N16X7", "DFFSN_J2N16X7"): os.makedirs(os.path.join(OUT, _c), exist_ok=True)
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from kicad_sheet import *  # noqa: E402,F401,F403
@@ -30,16 +31,22 @@ RA, RG2, CB = "10k", "15k", "%dp" % P['Cb']
 C1F, C1P, C1G3 = pf(P['C1f']), pf(P['C1p']), P['C1g3']
 
 # sheet uuids of the testbench roots and of every sheet instance, fixed before any file is written
-R = {k: U() for k in ("rs", "dl", "df")}
-S = {k: U() for k in ("rs_dut", "dl_dut", "df_dut", "dl_l1", "dl_l2", "df_m", "df_s")}
-PROJ = {"rs": "RSLATCH_J2N16_tb", "dl": "DLATCH2_J2N16_tb", "df": "DFF_J2N16_tb"}
+R = {k: U() for k in ("rs", "dl", "df", "rn", "sn")}
+S = {k: U() for k in ("rs_dut", "dl_dut", "df_dut", "dl_l1", "dl_l2", "df_m", "df_s",
+                      "rn_dut", "rn_m", "rn_s", "sn_dut", "sn_m", "sn_s")}
+PROJ = {"rs": "RSLATCH_J2N16_tb", "dl": "DLATCH2_J2N16_tb", "df": "DFF_J2N16_tb", "rn": "DFFRN_J2N16X7_tb",
+        "sn": "DFFSN_J2N16X7_tb"}
 
 # ---------------------------------------------------------------- RSLATCH_J2N16
 rs_insts = [(PROJ["rs"], f"/{R['rs']}/{S['rs_dut']}", 1),
             (PROJ["dl"], f"/{R['dl']}/{S['dl_dut']}/{S['dl_l1']}", 1), (PROJ["dl"], f"/{R['dl']}/{S['dl_dut']}/{S['dl_l2']}", 2),
-            (PROJ["df"], f"/{R['df']}/{S['df_dut']}/{S['df_m']}", 1), (PROJ["df"], f"/{R['df']}/{S['df_dut']}/{S['df_s']}", 2)]
+            (PROJ["df"], f"/{R['df']}/{S['df_dut']}/{S['df_m']}", 1), (PROJ["df"], f"/{R['df']}/{S['df_dut']}/{S['df_s']}", 2),
+            (PROJ["rn"], f"/{R['rn']}/{S['rn_dut']}/{S['rn_m']}", 1), (PROJ["rn"], f"/{R['rn']}/{S['rn_dut']}/{S['rn_s']}", 2),
+            (PROJ["sn"], f"/{R['sn']}/{S['sn_dut']}/{S['sn_m']}", 1), (PROJ["sn"], f"/{R['sn']}/{S['sn_dut']}/{S['sn_s']}", 2)]
 rs = Sheet(rs_insts)
-H = {"S": "input", "R": "input", "E": "input", "Q": "output", "QN": "output", "H1": "passive", "H2": "passive"}
+# FQ, FQN (the cross-coupled grids) are pins too: DFFRN / DFFSN put the reset diodes on them
+H = {"S": "input", "R": "input", "E": "input", "Q": "output", "QN": "output", "H1": "passive", "H2": "passive",
+     "FQ": "passive", "FQN": "passive"}
 x0, y0 = 30*G, 30*G
 # QN half: pentode (S on g1, E on g3) and triode A (grid from Q) on the plate QN; Q half mirrored
 rs.part(J2, (x0, y0), "Л", "6Ж2Б", {"1": "QN", "2": "E", "3": "SG1", "7": "S", **j2_bottom()}, props=SIM[J2], hier=H)
@@ -69,7 +76,8 @@ rs.dump(os.path.join(OUT, "RSLATCH_J2N16", "RSLATCH_J2N16.kicad_sch"), "RSLATCH_
         comments=["QN = ~((S&E)|Q), Q = ~((R&E)|QN); S, R, E: LV; Q, QN: HV", "2 x 6Zh2B + 6N16B; Ra 10k, Rg2 15k, Cb 15p"], paper="A3")
 
 RS_PINS = [("S", "input", "L", 1), ("R", "input", "L", 3), ("E", "input", "L", 5), ("H1", "passive", "L", 8),
-           ("H2", "passive", "L", 9), ("Q", "output", "R", 1), ("QN", "output", "R", 3)]
+           ("H2", "passive", "L", 9), ("Q", "output", "R", 1), ("QN", "output", "R", 3), ("FQ", "passive", "R", 6),
+           ("FQN", "passive", "R", 8)]
 RS_SIZE = (14*G, 11*G)
 
 
@@ -90,7 +98,7 @@ inverter_tube(dl, ("D1", "DN1"), ("D2", "DN2"), HD, 25*G, 25*G)
 divider(dl, 45*G, 27*G, "DN1", "R1", C1P, hier=HD)
 divider(dl, 45*G, 52*G, "DN2", "R2", C1P, hier=HD)
 for i, (uid, yy) in enumerate(((S['dl_l1'], 20*G), (S['dl_l2'], 45*G)), 1):
-    nets = {"S": f"D{i}", "R": f"R{i}", "E": "E", "Q": f"Q{i}", "QN": f"QN{i}", "H1": "H1", "H2": "H2"}
+    nets = {"S": f"D{i}", "R": f"R{i}", "E": "E", "Q": f"Q{i}", "QN": f"QN{i}", "H1": "H1", "H2": "H2", "FQ": "NC", "FQN": "NC"}
     dl.subsheet(f"L{i}", "../RSLATCH_J2N16/RSLATCH_J2N16.kicad_sch", (90*G, yy), RS_SIZE, RS_PINS, nets,
                 [(PROJ["dl"], f"/{R['dl']}/{S['dl_dut']}", str(2 + i))], uid, hier=HD)
 dl.text("DLATCH2_J2N16: two D latches, Qi = Di while E = 1, held while E = 0. 7 tubes: 2 x RSLATCH_J2N16 + one 6N16B.\n"
@@ -100,29 +108,61 @@ dl.text("DLATCH2_J2N16: two D latches, Qi = Di while E = 1, held while E = 0. 7 
 dl.dump(os.path.join(OUT, "DLATCH2_J2N16", "DLATCH2_J2N16.kicad_sch"), "DLATCH2_J2N16 - two D latches",
         comments=["Qi = Di while E = 1; D, E: LV; Q, QN: HV", "2 x RSLATCH_J2N16 + 6N16B (D inverters)"], paper="A3")
 
-# ---------------------------------------------------------------- DFF_J2N16
-df = Sheet([(PROJ["df"], f"/{R['df']}/{S['df_dut']}", 9)])
-HF = {"D": "input", "C": "input", "Q": "output", "QN": "output", "H1": "passive", "H2": "passive"}
-inverter_tube(df, ("D", "DN"), ("C", "CN"), HF, 25*G, 25*G)
-divider(df, 45*G, 27*G, "DN", "RM", C1P, hier=HF)
-divider(df, 45*G, 52*G, "CN", "ES", pf(2 * C1G3), hier=HF)
-divider(df, 125*G, 22*G, "QM", "SS", C1P, hier=HF)
-divider(df, 125*G, 32*G, "QNM", "RS", C1P, hier=HF)
-df.subsheet("M", "../RSLATCH_J2N16/RSLATCH_J2N16.kicad_sch", (90*G, 20*G), RS_SIZE,
-            RS_PINS, {"S": "D", "R": "RM", "E": "C", "Q": "QM", "QN": "QNM", "H1": "H1", "H2": "H2"},
-            [(PROJ["df"], f"/{R['df']}/{S['df_dut']}", "3")], S['df_m'], hier=HF)
-df.subsheet("S", "../RSLATCH_J2N16/RSLATCH_J2N16.kicad_sch", (90*G, 50*G), RS_SIZE,
-            RS_PINS, {"S": "SS", "R": "RS", "E": "ES", "Q": "Q", "QN": "QN", "H1": "H1", "H2": "H2"},
-            [(PROJ["df"], f"/{R['df']}/{S['df_dut']}", "4")], S['df_s'], hier=HF)
+# ---------------------------------------------------------------- DFF_J2N16, DFFRN_J2N16X7, DFFSN_J2N16X7
+def make_dff(key, mode=None):
+    """mode None: DFF_J2N16; 'clr' / 'pre': plus one 6Kh7B (reset line -> FQN or FQ of both latches) and Cc 2.7 pF
+    across each feedback divider (QN -> FQN or Q -> FQ), as tools/spice/dffr_sweep.py"""
+    df = Sheet([(PROJ[key], f"/{R[key]}/{S[key + '_dut']}", 9)])
+    pin = {"clr": "RN", "pre": "SN"}.get(mode)
+    HF = {"D": "input", "C": "input", "Q": "output", "QN": "output", "H1": "passive", "H2": "passive"}
+    if pin: HF[pin] = "input"
+    inverter_tube(df, ("D", "DN"), ("C", "CN"), HF, 25*G, 25*G)
+    divider(df, 45*G, 27*G, "DN", "RM", C1P, hier=HF)
+    divider(df, 45*G, 52*G, "CN", "ES", pf(2 * C1G3), hier=HF)
+    divider(df, 125*G, 22*G, "QM", "SS", C1P, hier=HF)
+    divider(df, 125*G, 32*G, "QNM", "RS", C1P, hier=HF)
+    fb = {"M": ("FQM", "FQNM"), "S": ("FQS", "FQNS")}
+    for name, sid, yy, nets in (("M", S[key + '_m'], 20*G, {"S": "D", "R": "RM", "E": "C", "Q": "QM", "QN": "QNM"}),
+                                ("S", S[key + '_s'], 50*G, {"S": "SS", "R": "RS", "E": "ES", "Q": "Q", "QN": "QN"})):
+        nets.update(H1="H1", H2="H2", FQ=fb[name][0] if mode == "pre" else "NC", FQN=fb[name][1] if mode == "clr" else "NC")
+        df.subsheet(name, "../RSLATCH_J2N16/RSLATCH_J2N16.kicad_sch", (90*G, yy), RS_SIZE, RS_PINS, nets,
+                    [(PROJ[key], f"/{R[key]}/{S[key + '_dut']}", "3" if name == "M" else "4")], sid, hier=HF)
+    if mode:
+        km, ks = (fb["M"][1], fb["S"][1]) if mode == "clr" else (fb["M"][0], fb["S"][0])
+        pm, ps = ("QNM", "QN") if mode == "clr" else ("QM", "Q")
+        t = df.ref("Л")
+        df.part(X7, (150*G, 25*G), None, "6Х7Б", {"1": pin, **x7_bottom(km)}, unit=1, props=SIM[X7], hier=HF, refs=t)
+        df.part(X7, (150*G, 55*G), None, "6Х7Б", {"7": pin, "5": ks}, unit=2, props=SIM[X7], hier=HF, refs=t)
+        df.part("Device:C", (165*G, 25*G), "C", "2.7p", {"1": pm, "2": km}, hier=HF)
+        df.part("Device:C", (165*G, 55*G), "C", "2.7p", {"1": ps, "2": ks}, hier=HF)
+    return df, HF
+
+
+df, _ = make_dff("df")
 df.text("DFF_J2N16: master-slave D flip-flop, Q takes D at the FALLING edge of C (owner's drawing, 2026-10-27).\n"
         "Master M = RSLATCH (S = D, R = ~D, E = C): transparent while C = 1. Slave S = RSLATCH (S = QM, R = QNM, E = ~C).\n"
         "One 6N16B: D -> DN (divider 2.7 pF -> RM), C -> CN (divider 2 x 6.8 pF -> ES). QM, QNM -> SS, RS through 2.7 pF dividers.\n"
         "The C inverter must stay in the cell: the master opens before the slave closes by its delay, race margin ~90 ns.\n"
         "Simulated: register to register 1.11 / 1.05 / 0.93 MHz at fanout 2 / 6 / 10; C -> Q 340/539 ns (fanout 2/10); hold <= 0.\n"
         "D: one pentode g1 + one triode grid (C1 2.7 + 3.9 pF). C: two g3 + one triode grid (2 x 6.8 + 3.9 pF). 7 tubes, heater 2.0 A.\n"
-        "Page: sch/logic/RSLATCH_J2N16/README.md", (20*G, 80*G))
+        "Page: sch/logic/DFF_J2N16/README.md", (20*G, 80*G))
 df.dump(os.path.join(OUT, "DFF_J2N16", "DFF_J2N16.kicad_sch"), "DFF_J2N16 - D flip-flop, falling edge",
         comments=["Q <= D at the falling edge of C; D, C: LV; Q, QN: HV", "2 x RSLATCH_J2N16 + 6N16B (D and C inverters)"], paper="A3")
+
+for key, mode, name, what, node in (("rn", "clr", "DFFRN_J2N16X7", "clear (Q = 0) while RN = 0", "FQN"),
+                                     ("sn", "pre", "DFFSN_J2N16X7", "preset (Q = 1) while SN = 0", "FQ")):
+    d2, _ = make_dff(key, mode)
+    pin = "RN" if mode == "clr" else "SN"
+    d2.text(f"{name}: DFF_J2N16 (falling edge of C) with an asynchronous {what}. 8 tubes: DFF_J2N16 + one 6Kh7B.\n"
+            f"{pin} is the reset line, not an LV net: it idles at -20 V ({pin} = 1) and is pulled to GND ({pin} = 0) by a relay contact.\n"
+            f"Each diode of the 6Kh7B goes from {pin} (anode) into {node} of one latch, the grid of the cross-coupled triode on plate\n"
+            f"{'Q' if mode == 'clr' else 'QN'}: the line at GND turns that triode on whatever C and D do (both latches, so every release is clean).\n"
+            f"Cc 2.7 pF across each feedback divider compensates the diode's A-K capacitance (<= 5.8 pF) on {node}.\n"
+            f"Simulated: 1 MHz register to register up to fanout 6; {pin} -> {'Q falls' if mode == 'clr' else 'Q rises'} "
+            f"{'54-103' if mode == 'clr' else '273-611'} ns (fanout 2-10); release >= 100 ns before C falls.\n"
+            f"Heater 6.3 V: 2.0 A + 0.3 A. Page: sch/logic/{name}/README.md", (20*G, 80*G))
+    d2.dump(os.path.join(OUT, name, f"{name}.kicad_sch"), f"{name} - D flip-flop, falling edge, async {mode}",
+            comments=[f"Q <= D at the falling edge of C; {what}", "2 x RSLATCH_J2N16 + 6N16B + 6Kh7B"], paper="A3")
 
 
 # ================================================================ testbenches
@@ -157,8 +197,16 @@ def testbench(key, tb, cell_file, cell_pins, size):
         sh.part("Device:R", (98*G, y + 2*G), "R", "10k", {"1": "+150V", "2": f"PDX_{k}"})
         divider(sh, 104*G, y + 4*G, f"PD_{k}", k, pf(tb['inputs'][k]))
         y += 26*G
+    # reset lines: a PWL source straight on the net (a relay contact in the machine)
+    for k, pts in tb.get('lines', {}).items():
+        props = {"Sim.Device": "V", "Sim.Type": "PWL", "Sim.Pins": "1=+ 2=-",
+                 "Sim.Params": 'pwl="%s"' % " ".join(f"{t:.4f}u {v}" for t, v in pts)}
+        sh.part("Simulation_SPICE:VPWL", (130*G, y + 4*G), "V", "VPWL", {"1": k, "2": "GND"}, props=props)
+        y += 16*G
     # DUT
     nets = {n: n for n, *_ in cell_pins}; nets.update(H1="+6.3V", H2="GND")
+    for k in ("FQ", "FQN"):
+        if k in nets: nets[k] = "NC"
     sh.subsheet("DUT", cell_file, (150*G, 20*G), size, cell_pins, nets, [(proj, f"/{R[key]}", "2")], S[key + "_dut"])
     # outputs: one divider each -> load tubes (both grids on the LV net, plates through 10k)
     y = 12*G
@@ -189,6 +237,10 @@ testbench("dl", TB.dlatch2_tb(), "DLATCH2_J2N16.kicad_sch",
           [("D1", "input", "L", 1), ("D2", "input", "L", 3), ("E", "input", "L", 5), ("H1", "passive", "L", 8),
            ("H2", "passive", "L", 9), ("Q1", "output", "R", 1), ("QN1", "output", "R", 3), ("Q2", "output", "R", 5),
            ("QN2", "output", "R", 7)], (14*G, 11*G))
+for k, nm, pn in (("rn", "DFFRN_J2N16X7", "RN"), ("sn", "DFFSN_J2N16X7", "SN")):
+    testbench(k, TB.TBS["dffrn" if k == "rn" else "dffsn"](), f"{nm}.kicad_sch",
+              [("D", "input", "L", 1), ("C", "input", "L", 3), (pn, "input", "L", 5), ("H1", "passive", "L", 8),
+               ("H2", "passive", "L", 9), ("Q", "output", "R", 1), ("QN", "output", "R", 3)], (14*G, 11*G))
 testbench("df", TB.dff_tb(), "DFF_J2N16.kicad_sch",
           [("D", "input", "L", 1), ("C", "input", "L", 3), ("H1", "passive", "L", 8), ("H2", "passive", "L", 9),
            ("Q", "output", "R", 1), ("QN", "output", "R", 3)], (14*G, 11*G))

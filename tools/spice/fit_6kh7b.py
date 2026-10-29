@@ -63,7 +63,12 @@ def sub_text(vc, case):
         "BA A K I={P*PWR(S*LN(1 + EXP(MIN(V(A,K) + VC, 30*S)/S)) + MAX(V(A,K) + VC - 30*S, 0), 1.5)}",
         "RAK A K 100MEG",
         "CAK A K {CAK}",
-        ".ENDS 6Kh7B", ""])
+        ".ENDS 6Kh7B",
+        "* Both diodes of one tube, for the two-unit KiCad symbol: Sim.Pins \"1=A1 3=K1 7=A2 5=K2\"",
+        ".SUBCKT 6Kh7B2 A1 K1 A2 K2",
+        "X1 A1 K1 6Kh7B",
+        "X2 A2 K2 6Kh7B",
+        ".ENDS 6Kh7B2", ""])
 
 
 def check(path):
