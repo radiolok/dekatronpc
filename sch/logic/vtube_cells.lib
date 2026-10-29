@@ -124,35 +124,39 @@ library(vtube_cells_lib) {
             driver_type : pull_up;
              function: "(A*B*C*D)'"; }
   }
+  // AOI21 (sch/logic/A1OOI_N16J2): 6Zh2B with A on g1, B on g3, and one triode of
+  // a 6N16B with C on the grid, all on one plate (Ra 15k). The sheet holds two
+  // cells on one 6N16B, so one cell is half of it.
   cell(A1OOI_N16J2){
-    area: 2;
+    area: 1.5;
     current_unit : "1mA";
-    heat_current: 550;
+    heat_current: 400;
     tubes(names) {
-      J2: 1;
-      N16B: 1;
+      J2B: 1;
+      N16B: 0.5;
     }
-    pin(A) { direction: input; fanout_load: 1.0; }
-    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(A) { vtube_grid : "pentode_g1"; vtube_c1 : 2.7; direction: input; fanout_load: 1.0; }
+    pin(B) { vtube_grid : "pentode_g3"; vtube_c1 : 6.8; direction: input; fanout_load: 1.0; }
     pin(C) { direction: input; fanout_load: 1.0; }
-    pin(Y) { direction: output;
+    pin(Y) { vtube_level : "HV"; direction: output;
             driver_type : pull_up;
                max_fanout : 10;
              function: "((A*B)+C)'"; }
   }
-  // AOI22: two 6Zh2B on one plate, A/C on g1, B/D on g3 (each pentode is an AND)
+  // AOI22 (sch/logic/A2OOI_J2): two 6Zh2B on one plate (Ra 15k), A and C on g1,
+  // B and D on g3; each pentode is an AND.
   cell(A2OOI_J2){
     area: 2;
     current_unit : "1mA";
     heat_current: 400;
     tubes(names) {
-      J2: 2;
+      J2B: 2;
     }
-    pin(A) { direction: input; fanout_load: 1.0; }
-    pin(B) { direction: input; fanout_load: 1.0; }
-    pin(C) { direction: input; fanout_load: 1.0; }
-    pin(D) { direction: input; fanout_load: 1.0; }
-    pin(Y) { direction: output;
+    pin(A) { vtube_grid : "pentode_g1"; vtube_c1 : 2.7; direction: input; fanout_load: 1.0; }
+    pin(B) { vtube_grid : "pentode_g3"; vtube_c1 : 6.8; direction: input; fanout_load: 1.0; }
+    pin(C) { vtube_grid : "pentode_g1"; vtube_c1 : 2.7; direction: input; fanout_load: 1.0; }
+    pin(D) { vtube_grid : "pentode_g3"; vtube_c1 : 6.8; direction: input; fanout_load: 1.0; }
+    pin(Y) { vtube_level : "HV"; direction: output;
             driver_type : pull_up;
                max_fanout : 10;
              function: "((A*B)+(C*D))'"; }
