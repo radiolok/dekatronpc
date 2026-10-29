@@ -1,6 +1,6 @@
 # RSLATCH_J2N16: gated RS latch on 6Zh2B + 6N16B
 
-Cell page of the gated RS latch. It is the base of two more cells, which use it as a sub-sheet: [DLATCH2_J2N16](../DLATCH2_J2N16/README.md) (two D latches) and [DFF_J2N16](../DFF_J2N16/README.md) (the master-slave D flip-flop). The design of the latch itself (structure, part values, limits, sensitivity) is on this page; the other two pages hold only what they add. All three are to become base cells of the liberty file (owner, 2026-10-27). The liberty entries are only proposed below, not yet applied.
+Cell page of the gated RS latch. It is the base of two more cells, which use it as a sub-sheet: [DLATCH2_J2N16](../DLATCH2_J2N16/README.md) (two D latches) and [DFF_J2N16](../DFF_J2N16/README.md) (the master-slave D flip-flop). The design of the latch itself (structure, part values, limits, sensitivity) is on this page; the other two pages hold only what they add. All three are to become base cells of the liberty file (owner, 2026-10-27). `LATCH_J2N16` (one latch of DLATCH2) and `DFF_J2N16` are in the liberty since 2026-10-29; the `RSLATCH_J2N16` entry below is still only proposed.
 
 - Requirements: REQ-MOD-005 (D flip-flop board), REQ-MOD-012 (logic levels), REQ-MOD-004 (delays, fan-out, power; simulated, not measured), REQ-MOD-008 (`RsLatch`/`DFF` → tube cells).
 - Method: `doc/cell_design_method.md`.
@@ -218,7 +218,7 @@ cell(RSLATCH_J2N16) {          /* gated RS latch, S = R = 1 with E = 1 forbidden
 }
 ```
 
-The `LATCH` and `DFF` proposals are on the [DLATCH2_J2N16](../DLATCH2_J2N16/README.md) and [DFF_J2N16](../DFF_J2N16/README.md) pages.
+The applied `LATCH_J2N16` and `DFF_J2N16` entries are on the [DLATCH2_J2N16](../DLATCH2_J2N16/README.md) and [DFF_J2N16](../DFF_J2N16/README.md) pages.
 
 ## Files and how to run
 

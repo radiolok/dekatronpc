@@ -5,7 +5,7 @@ latch_sweep.py and one 6N16B (NOT_N16) for the inverters.
 DLATCH: the RS latch with S = D and R = ~D; the inverter is half a 6N16B (Ra 10k) and its divider in the cell
 (C1 = C1p, one pentode g1). The D pin loads one pentode g1 and one triode grid, E two g3 grids.
 DFF (master-slave): master = DLATCH, slave = RS latch with S = Qm, R = QNm; one 6N16B inverts D and C.
-  edge = "pos": master enable ~C, slave enable C: Q takes D at the rising edge of C (liberty DFF, clocked_on C).
+  edge = "pos": master enable ~C, slave enable C: Q takes D at the rising edge of C (the old liberty DFF, clocked_on C).
   edge = "neg": master enable C, slave enable ~C (the owner's drawing): Q takes D at the falling edge.
 Both latches are the same RSLATCH cell; the master outputs reach the slave S/R through their own dividers (C1p).
 

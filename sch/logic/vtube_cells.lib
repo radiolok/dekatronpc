@@ -140,6 +140,7 @@ library(vtube_cells_lib) {
                max_fanout : 10;
              function: "((A*B)+C)'"; }
   }
+  // AOI22: two 6Zh2B on one plate, A/C on g1, B/D on g3 (each pentode is an AND)
   cell(A2OOI_J2){
     area: 2;
     current_unit : "1mA";
@@ -154,7 +155,7 @@ library(vtube_cells_lib) {
     pin(Y) { direction: output;
             driver_type : pull_up;
                max_fanout : 10;
-             function: "((A*B)+C+D)'"; }
+             function: "((A*B)+(C*D))'"; }
   }
   cell(OR2_N16) {
     area: 1;
@@ -308,7 +309,11 @@ library(vtube_cells_lib) {
             driver_type : pull_up;
              function: "(A+B+C+D+E+F+G+H+K+L)'"; }
   }
-  cell(LATCH) {
+  // D latch, half of DLATCH2_J2N16 (sch/logic/DLATCH2_J2N16): an RSLATCH_J2N16
+  // (2 x 6Zh2B + 1 x 6N16B) plus half of the 6N16B with the two D inverters.
+  // Transparent while C (the E of the RS latch) is high. D is a pentode g1 plus
+  // the inverter's triode grid, C two pentode g3. fanout_load in triode grids.
+  cell(LATCH_J2N16) {
     area: 3.5;
     current_unit : "1mA";
     heat_current: 1000;
@@ -318,19 +323,24 @@ library(vtube_cells_lib) {
     }
     latch(IQ, IQN) { enable: C;
                   data_in: D; }
-    pin(C) { direction: input; fanout_load: 1.0;
+    pin(C) { vtube_grid : "pentode_g3"; vtube_c1 : 13.6; direction: input; fanout_load: 3.5;
                  clock: true; }
-    pin(D) { direction: input; fanout_load: 1.0; }
-    pin(Q) { direction: output;
-               max_fanout : 10;
+    pin(D) { vtube_grid : "pentode_g1"; vtube_c1 : 6.6; direction: input; fanout_load: 1.7; }
+    pin(Q) { vtube_level : "HV"; direction: output;
+               max_fanout : 6;
             driver_type : pull_up;
               function: "IQ"; }
-    pin(QN) { direction: output;
-               max_fanout : 10;
+    pin(QN) { vtube_level : "HV"; direction: output;
+               max_fanout : 6;
             driver_type : pull_up;
               function: "IQN"; }
   }
-  cell(DFF) {
+  // Master-slave D flip-flop, FALLING edge of C (sch/logic/DFF_J2N16): two
+  // RSLATCH_J2N16 plus one 6N16B for the D and C inverters. The RTL clocks on
+  // the rising edge; dfflibmap puts one inverter on each clock net (in the
+  // machine the clock is inverted once at the generator). C is two pentode g3
+  // plus the inverter's triode grid, D a pentode g1 plus a triode grid.
+  cell(DFF_J2N16) {
     area: 7;
     current_unit : "1mA";
     heat_current: 2000;
@@ -338,17 +348,17 @@ library(vtube_cells_lib) {
       N16B: 3;
       J2B: 4;
     }
-    ff(IQ, IQN) { clocked_on: C;
+    ff(IQ, IQN) { clocked_on: "C'";
                   next_state: D; }
-    pin(C) { direction: input; fanout_load: 1.0;
+    pin(C) { vtube_grid : "pentode_g3"; vtube_c1 : 17.5; direction: input; fanout_load: 4.5;
                  clock: true; }
-    pin(D) { direction: input; fanout_load: 1.0; }
-    pin(Q) { direction: output;
-               max_fanout : 10;
+    pin(D) { vtube_grid : "pentode_g1"; vtube_c1 : 6.6; direction: input; fanout_load: 1.7; }
+    pin(Q) { vtube_level : "HV"; direction: output;
+               max_fanout : 6;
             driver_type : pull_up;
               function: "IQ"; }
-    pin(QN) { direction: output;
-               max_fanout : 10;
+    pin(QN) { vtube_level : "HV"; direction: output;
+               max_fanout : 6;
             driver_type : pull_up;
               function: "IQN"; }
   }

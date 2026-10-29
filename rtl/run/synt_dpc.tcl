@@ -75,6 +75,11 @@ yosys synth -top $top
 yosys proc
 
 yosys dfflibmap -liberty $cell_lib
+# DFF_J2N16 takes the falling edge: dfflibmap puts a $_NOT_ before every such
+# trigger. Merge them into one inverter per clock net, or ABC keeps one output
+# per trigger and drives each through a BUF_N16. In the machine the clock is
+# inverted once at the generator (sch/logic/DFF_J2N16/README.md).
+yosys opt_merge
 
 # Simulation models of the library cells, for the equivalence check below
 yosys design -save mapped

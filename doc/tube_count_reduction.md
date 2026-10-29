@@ -1045,3 +1045,92 @@ Verification:
 
 Block diagrams: sheets 2 and 3 redrawn (pulse sender per counter, J2 gate, enable chain,
 `ZERO_ONLY`). No SVG renderer was available; the layout was checked by coordinates.
+
+## 18. Designed triggers in the liberty, and which cells to design next (2026-10-29)
+
+The generic `LATCH` and `DFF` became the designed cells `LATCH_J2N16` (one latch of
+`sch/logic/DLATCH2_J2N16`) and `DFF_J2N16` (`sch/logic/DFF_J2N16`, **falling** edge,
+`clocked_on: "C'"`), with the grid attributes and SPICE delays from their pages (TRS v0.20,
+REQ-MOD-008). The tube counts per cell did not change (3.5 and 7).
+
+The RTL clocks on the rising edge. `dfflibmap` maps it onto the falling-edge cell with a
+`$_NOT_` before every trigger. Nothing merged them before ABC, so ABC kept one output per
+trigger and drove each through a `BUF_N16`: 21 followers instead of 1, +10 tubes. `synt_dpc.tcl`
+now runs `opt_merge` after `dfflibmap`: one `NOT_N16` per clock net and module, 4 in all (the
+four counter modules), 2 tubes. In the machine the clock is inverted once at the generator.
+
+Synthesis (`run_tests.sh -s`, seed as in the script, `equiv_opt` proven on all three):
+
+| Block | §17 (mean of 3 seeds) | First run (no merge) | **With `opt_merge`** |
+|---|---|---|---|
+| IpLine | 489.3 | 492 | **488** |
+| ApLine | 568.8 | 561.5 | **555.5** |
+| MachineCtrl | 318.8 | 319.5 | **319.5** |
+| **Total** | 1377 | 1373 | **1363** + 5 relays |
+
+The −14 against §17 is within ABC drift (±10) plus the library changes since then (follower
+cells); the trigger rename itself is tube-neutral.
+
+### Cells in the netlist, by tubes
+
+| Cell | Count | Tubes | Designed |
+|---|---|---|---|
+| `DFFSR_n` | 38 | **266** | no |
+| `NOR2_N16` | 200 | 200 | yes |
+| `OR2_N16` | 175 | 175 | yes |
+| `DFF_J2N16` | 24 | 168 | yes |
+| `NAND2_J2` | 143 | 143 | yes |
+| `NOR4_N16` | 43 | **86** | no |
+| `OR4_N16X7` | 30 | **75** | no |
+| `A1OOI_N16J2` | 34 | **68** | no |
+| `A2OOI_J2` | 31 | **62** | no |
+| `NOT_N16` | 103 | 51.5 | yes |
+| `GUIDE_EN_J2` | 30 | 30 | no (RTL instance, not logic) |
+| `AND2_N16X7` | 15 | 22.5 | no |
+| `NAND4_N16X7` | 3 | 7.5 | no |
+| `BUF_N16` | 1 | 0.5 | yes |
+
+Not designed: 617 of the 1355 tubes in these cells (587 without `GUIDE_EN_J2`); the total of 1363 also holds 8 tubes outside the cell list. The largest is `DFFSR_n` (the triggers with `rst_n`), a
+fifth of the three blocks.
+
+### Choice: the two AOI cells
+
+`A1OOI_N16J2` and `A2OOI_J2` together: 65 cells, 130 tubes, the largest undesigned
+combinational group.
+
+- `A1OOI_N16J2` = ((A·B) + C)' is one half of `RSLATCH_J2N16` without the feedback: a 6Zh2B
+  with A on g1 and B on g3 (AND), a 6N16B triode with C on its grid (OR), both on one plate.
+  That half is already simulated inside the latch (Ra 10k, C1 2.7 pF on g1, 6.8 pF on g3, Cb
+  15 pF). It needs half a 6N16B, not the whole tube the liberty counts: two cells share one
+  6N16B, or the cell holds two AOIs. That is −17 tubes at today's 34 instances.
+- `A2OOI_J2` has the function ((A·B) + C + D)' on 2 × 6Zh2B. Two pentodes on one plate give
+  (A·B) + (C·D), the **AOI22_J2** of REQ-MOD-003; C + D alone would need a third device (a
+  triode, or each pentode with g3 tied high). The liberty function and the TRS list disagree;
+  the owner decides which cell is meant before it is designed.
+
+Next after them: `DFFSR_n` (needs the owner's agreement on the extra tubes for set/clear, or a
+synchronous reset in the RTL), then `NOR4_N16` and the 6Kh7B diode cells (`OR4_N16X7`).
+
+### Rerun with `A2OOI_J2` = AOI22 (owner, 2026-10-29)
+
+The owner confirmed that the liberty function was a mistake: `A2OOI_J2` is AOI22,
+Y = ~((A·B) + (C·D)), two 6Zh2B on one plate (A, C on g1; B, D on g3). Liberty and
+`vtube_cells.v` corrected; the cell name stays.
+
+| Block | Before (wrong A2OOI) | **AOI22** |
+|---|---|---|
+| IpLine | 488 | **494** |
+| ApLine | 555.5 | **558.5** |
+| MachineCtrl | 319.5 | **323.5** |
+| **Total** | 1363 | **1376** + 5 relays |
+
+The old function was cheaper than the tubes can do (C and D each alone pulled the plate), so
+ABC leaned on it: 31 cells. With the real function it takes 13 (26 tubes); `A1OOI_N16J2` 29
+(58), `NOR4_N16` 46 (92), `NAND2_J2` 158, `NOR2_N16` 225. The +13 is the price of the
+corrected cell, not a regression. `DFFSR_n` is unchanged at 38 (266 tubes): 34 clear on
+`rst_n`, 4 preset from `NOT(rst_n)`; no flop uses both.
+
+The AOI pair is still the next to design (84 tubes, and `A1OOI_N16J2` is half of the latch
+already simulated). The asynchronous clear/preset through a 6Kh7B diode, the owner's idea for
+`DFFSR_n`, is analysed in `sch/logic/DFF_J2N16/README.md` (Open points); 6Kh7B data in
+`sch/tubes/6Kh7B/README.md`.

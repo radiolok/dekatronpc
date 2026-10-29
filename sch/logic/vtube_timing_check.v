@@ -3,16 +3,16 @@
 //
 // Icarus parses $setuphold and the SDF TIMINGCHECK entries but never
 // checks them, so rtl/run/vtube_sdf.py puts one of these next to every
-// DFF/DFFSR/DFFSR_n instance of the netlist, connected by hierarchical
+// DFF_J2N16/DFFSR/DFFSR_n instance of the netlist, connected by hierarchical
 // references to the cell's pins. D must not change in the window
-// [posedge C - SETUP, posedge C + HOLD): a change exactly SETUP before or
+// [edge - SETUP, edge + HOLD) around the capturing edge of C (falling with NEGEDGE): a change exactly SETUP before or
 // HOLD after the edge is still allowed. A trigger is two latches in a row:
 // SETUP is the master's time to take D, HOLD the time until the master
 // is closed off by the slave.
 //
 // Checks are off while the asynchronous set/clear holds the trigger
-// (ASYNC: 0 DFF, 1 DFFSR with S/R active high, 2 DFFSR_n with R active
-// low) and before the first rising edge of C. Recovery/removal of S/R
+// (ASYNC: 0 DFF_J2N16, 1 DFFSR with S/R active high, 2 DFFSR_n with R active
+// low) and before the first capturing edge of C. Recovery/removal of S/R
 // against C is not checked.
 //
 // QUALIFY = 1: a trigger whose value matters only when the next cycle
@@ -27,7 +27,8 @@ module vtube_setuphold #(
 	parameter real HOLD = 0.0,	// ns
 	parameter ASYNC = 0,
 	parameter MAX_REPORTS = 5,	// messages per instance, then only counted
-	parameter QUALIFY = 0		// 1: count only when EN at the next edge
+	parameter QUALIFY = 0,		// 1: count only when EN at the next edge
+	parameter NEGEDGE = 0		// 1: the trigger captures on the falling edge of C
 )(
 	input C, D, S, R,
 	input EN
@@ -46,6 +47,7 @@ module vtube_setuphold #(
 	realtime t_d = -1.0e12;
 	reg seen_c = 1'b0;
 
+	wire ck = NEGEDGE ? ~C : C;
 	wire held = (ASYNC == 1) ? (S | R) :
 	            (ASYNC == 2) ? (S | ~R) : 1'b0;
 
@@ -54,7 +56,7 @@ module vtube_setuphold #(
 			$display("%s", msg);
 	endtask
 
-	always @(posedge C) begin
+	always @(posedge ck) begin
 		// Violations of the previous edge: count them if the value is used
 		if (pend_setup + pend_hold > 0) begin
 			if (EN === 1'b1) begin

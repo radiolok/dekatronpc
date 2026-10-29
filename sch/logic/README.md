@@ -12,10 +12,10 @@ This folder holds the logic cells of the tube machine (REQ-MOD-003/004/005), eac
 | [BUF_N16](BUF_N16/README.md) | Y1 = A1, Y2 = A2 | one 6N16B (½ per buffer) | LV → **LV** | Y up 24 … 69 ns, Y down 32 … 224 ns (to the load plate) | `BUF_N16` | cathode followers, the base of the follower family |
 | [OR2_N16](OR2_N16/README.md) | Y = A \| B | one 6N16B | LV → **LV** | Y up 26 … 85 ns, Y down 41 … 241 ns (to the load plate) | `OR2_N16` | cathode followers on one cathode load; hazard |
 | [RSLATCH_J2N16](RSLATCH_J2N16/README.md) | gated RS latch | 2 × 6Zh2B + 1 × 6N16B | LV → HV | E→Q 172 … 380 ns, S→Q 138 … 392 ns | proposed | the base of the latch family |
-| [DLATCH2_J2N16](DLATCH2_J2N16/README.md) | two D latches | 7 (2 × RSLATCH + 1 × 6N16B) | LV → HV | as RSLATCH, D falling + inverter | proposed (`LATCH`) | |
-| [DFF_J2N16](DFF_J2N16/README.md) | D flip-flop, **falling** edge of C | 7 (2 × RSLATCH + 1 × 6N16B) | LV → HV | C↓→Q 340 … 539 ns; 1.11 … 0.93 MHz register to register | proposed (`DFF`) | |
+| [DLATCH2_J2N16](DLATCH2_J2N16/README.md) | two D latches | 7 (2 × RSLATCH + 1 × 6N16B) | LV → HV | as RSLATCH, D falling + inverter | `LATCH_J2N16` (one latch) | |
+| [DFF_J2N16](DFF_J2N16/README.md) | D flip-flop, **falling** edge of C | 7 (2 × RSLATCH + 1 × 6N16B) | LV → HV | C↓→Q 340 … 539 ns; 1.11 … 0.93 MHz register to register | `DFF_J2N16` | synthesis adds one clock inverter per clock net |
 
-"Liberty" names the cell in `vtube_cells.lib`. "Proposed" means that the page proposes the entry and the owner has not reviewed it yet; the library still has the old generic `LATCH`/`DFF`.
+"Liberty" names the cell in `vtube_cells.lib`. "Proposed" means that the page proposes the entry and the owner has not reviewed it yet.
 
 The library also has cells that are not designed yet: `BUF_6J2B`, `NOT_J2`, the `*_N16X7` gates, `A1OOI_N16J2`, `A2OOI_J2`, `NOR4_N16`, `OR10_X7`, `DFFSR`, `DFFSR_n`, `GUIDE_EN_J2`, and the non-tube `RELAY_2CO`, `DIV_HL`, `TIEHI`, `TIELO`.
 

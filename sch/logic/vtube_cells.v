@@ -102,10 +102,11 @@ specify
 endspecify
 endmodule
 
+// AOI22: Y = ~((A & B) | (C & D))
 module A2OOI_J2(A, B, C, D, Y);
 input A, B, C, D;
 output Y;
-assign Y = ~((A & B) | C | D);
+assign Y = ~((A & B) | (C & D));
 specify
 	(A => Y) = 0;
 	(B => Y) = 0;
@@ -228,7 +229,8 @@ endmodule
 
 // Triggers: Q and QN are both anodes of the tube trigger (qn_absorb.py
 // moves inverters on Q to QN), so every trigger has both outputs.
-module LATCH(C, D, Q, QN);
+// LATCH_J2N16: transparent while C is high
+module LATCH_J2N16(C, D, Q, QN);
 input C, D;
 output reg Q;
 output QN;
@@ -244,16 +246,17 @@ specify
 endspecify
 endmodule
 
-module DFF(C, D, Q, QN);
+// DFF_J2N16: falling edge of C (master on C, slave on ~C)
+module DFF_J2N16(C, D, Q, QN);
 input C, D;
 output reg Q;
 output QN;
 assign QN = ~Q;
-always @(posedge C)
+always @(negedge C)
 	Q <= D;
 specify
-	(posedge C => (Q +: D)) = 0;
-	(posedge C => (QN -: D)) = 0;
+	(negedge C => (Q +: D)) = 0;
+	(negedge C => (QN -: D)) = 0;
 endspecify
 endmodule
 

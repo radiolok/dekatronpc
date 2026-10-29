@@ -35,7 +35,7 @@ ID = r"(?:\\\S+|[A-Za-z_][\w$]*)"
 KEYWORDS = {"module", "input", "output", "inout", "wire", "reg", "assign",
             "parameter", "localparam", "initial", "always", "endmodule",
             "if", "begin", "end"}
-ASYNC = {"DFF": 0, "DFFSR": 1, "DFFSR_n": 2}
+ASYNC = {"DFF_J2N16": 0, "DFFSR": 1, "DFFSR_n": 2}
 
 
 def vname(name):
@@ -55,7 +55,7 @@ def cell_paths(cells_path):
         spec = re.search(r"specify(.*?)endspecify", body, re.S)
         paths[name] = [] if not spec else [
             (m.group(1) or "", m.group(2), m.group(3)) for m in re.finditer(
-                r"\((posedge\s+)?(\w+)\s*=>\s*\(?\s*(\w+)", spec.group(1))]
+                r"\(((?:pos|neg)edge\s+)?(\w+)\s*=>\s*\(?\s*(\w+)", spec.group(1))]
     return paths
 
 
@@ -109,6 +109,11 @@ def bad_name(inst):
     return re.search(r"[.\[\]]", inst) is not None
 
 
+def clock_edge(cpaths):
+    """posedge, or negedge for a falling-edge trigger (DFF_J2N16)."""
+    return "negedge" if any(e.strip() == "negedge" for e, _, _ in cpaths) else "posedge"
+
+
 def cell_entry(ctype, inst, paths, timing):
     t = timing["cells"][ctype]
     io = []
@@ -116,12 +121,12 @@ def cell_entry(ctype, inst, paths, timing):
         key = f"{edge}{a}->{y}"
         if key not in t["iopath"]:
             sys.exit(f"vtube_timing.json: {ctype} has no value for {key}")
-        src = f"(posedge {a})" if edge else a
+        src = f"({edge.strip()} {a})" if edge else a
         io.append(f"(IOPATH {src} {y} {delay(t['iopath'][key])})")
     ent = (f' (CELL (CELLTYPE "{ctype}") (INSTANCE {inst})\n'
            f'  (DELAY (ABSOLUTE {" ".join(io)}))')
     for d, (su, ho) in t.get("setuphold", {}).items():
-        ent += f"\n  (TIMINGCHECK (SETUPHOLD {d} (posedge C) ({su}) ({ho})))"
+        ent += f"\n  (TIMINGCHECK (SETUPHOLD {d} ({clock_edge(paths[ctype])} C) ({su}) ({ho})))"
     return ent + ")"
 
 
@@ -193,6 +198,7 @@ def main():
                     n_masked += q
                     checks.append(
                         f"vtube_setuphold #(.SETUP({sh[0]}), .HOLD({sh[1]}), .ASYNC({ASYNC[t]}),"
+                        f" .NEGEDGE({int(clock_edge(paths[t]) == 'negedge')}),"
                         f" .QUALIFY({q})) c{len(checks)} (.C({ref}.C), .D({ref}.D),"
                         f" .S({s}), .R({r}), .EN({en}));")
 

@@ -36,6 +36,8 @@ run/*.json
 !img/schemes/*.svg
 !doc/img/*.png
 !sch/logic/*/img/*.png
+!sch/tubes/*/scan/*.png
+!sch/tubes/*/img/*.png
 tools/schemes/out/
 __pycache__/
 

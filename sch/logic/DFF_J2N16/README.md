@@ -1,6 +1,6 @@
 # DFF_J2N16: master-slave D flip-flop on 6Zh2B + 6N16B
 
-Cell page. The falling-edge D flip-flop built from two [RSLATCH_J2N16](../RSLATCH_J2N16/README.md) sub-sheets (master and slave) plus one 6N16B for the D and clock inverters. The latch design (structure, part values, levels, limits, sensitivity) is on the RSLATCH page; this page holds only what the flip-flop adds. To become a base cell of the liberty file (owner, 2026-10-27); the liberty entry below is only proposed.
+Cell page. The falling-edge D flip-flop built from two [RSLATCH_J2N16](../RSLATCH_J2N16/README.md) sub-sheets (master and slave) plus one 6N16B for the D and clock inverters. The latch design (structure, part values, levels, limits, sensitivity) is on the RSLATCH page; this page holds only what the flip-flop adds. It is the liberty cell `DFF_J2N16` (applied 2026-10-29, TRS v0.20).
 
 - Requirements: REQ-MOD-005 (D flip-flop board), REQ-MOD-012 (logic levels), REQ-MOD-004 (delays, fan-out, power; simulated, not measured), REQ-MOD-008 (`DFF` → tube cell).
 - Method: `doc/cell_design_method.md`.
@@ -61,7 +61,7 @@ The waveforms show:
 
 ## The flip-flop: which edge
 
-The owner's drawing puts the master on C and the slave on the inverted C, so Q changes at the falling edge of C. The liberty `DFF` cell says `clocked_on: C` (rising edge). Both variants were simulated (`dff_sweep.py --edge neg|pos`). They use the same parts; only the clock wires to the two latches swap.
+The owner's drawing puts the master on C and the slave on the inverted C, so Q changes at the falling edge of C. The old liberty `DFF` cell said `clocked_on: C` (rising edge). Both variants were simulated (`dff_sweep.py --edge neg|pos`). They use the same parts; only the clock wires to the two latches swap.
 
 | | Falling edge (drawing) | Rising edge (master on ~C) |
 |---|---|---|
@@ -98,18 +98,20 @@ The margin is about 90 ns. An extra 200 pF on the inverter plate (`dff_sweep.py 
 
 On iverilog: the failure that decided the flip-flop design is analog. The clock window shrinks on a slow LV rise, and the race margin depends on how far a grid sits below its clamp. A logic simulator with delays does not see either, while a plain-SPICE run of the whole flip-flop takes a few seconds. iverilog becomes useful once the cells are in the liberty file: the cell models in `sch/logic/vtube_cells.v` and the SDF delays from `vtube_timing.json` can then check setup, hold and the 1 MHz budget on synthesized netlists (`synth_sim.sh -t`).
 
-## Proposed liberty entry (not applied)
+## Liberty entry
 
-Waiting for the owner's review (owner, 2026-10-27: proposal only). "fanout_load" is in units of a triode grid (C1 3.9 pF).
+`DFF_J2N16` in `sch/logic/vtube_cells.lib` (applied 2026-10-29, was the generic rising-edge `DFF`): `ff(IQ, IQN) { clocked_on: "C'"; next_state: D; }`, area 7, J2B 4 + N16B 3, heat 2000 mA. "fanout_load" is in units of a triode grid (C1 3.9 pF):
 
-```
-cell(DFF)    -> rename DFF_J2N16: ff clocked_on: "C'" (falling edge), area 7, J2B 4 + N16B 3, heat 2000;
-                D fanout_load 1.7, C fanout_load 4.5 (two g3 + triode grid), max_fanout 6.
-```
+| Pin | vtube_grid | vtube_c1 | fanout_load |
+|---|---|---|---|
+| D | pentode_g1 (plus a triode grid) | 6.6 pF | 1.7 |
+| C | pentode_g3 (two, plus the inverter's triode grid) | 17.5 pF | 4.5 |
+| Q, QN | HV out, max_fanout 6 | | |
 
-Proposed `vtube_timing.json` values (fanout 6, simulated): DFF C↓→Q 0.44 µs, setup 0.31 µs (the master's setup before C falls), hold 0. With `max_fanout` 6 the flip-flop meets 1 MHz register to register without logic between the flops. Any logic between them needs a slower clock, or it has to be counted against the 1 µs period.
-
-Changing DFF to the falling edge in the liberty also needs one clock inverter in the RTL flow (at the generator), and `sch/logic/vtube_cells.v` must change to match (AGENTS §6).
+- **Timing** (`vtube_timing.json`, SPICE at fanout 6): C↓→Q 440 ns, setup 310 ns before C falls, hold 0. `vtube_cells.v` models `DFF_J2N16` on `negedge C`; `rtl/run/vtube_sdf.py` writes `negedge` IOPATHs and SETUPHOLD for it, and `vtube_setuphold` checks it with `NEGEDGE = 1`.
+- **Clock inverter.** The RTL clocks on the rising edge. `dfflibmap` puts a `$_NOT_` in front of every falling-edge trigger, and `synt_dpc.tcl` merges them (`opt_merge`) into one `NOT_N16` per clock net and module. Without the merge, ABC kept one output per trigger and drove each through a `BUF_N16` (20 extra followers, 10 tubes, in the first run). In the machine the clock is inverted once at the generator, so these inverters stand for the generator's inverted line; they cost 0.5 tube each in the count (one per counter module: 4 in IpLine + ApLine, 2 tubes).
+- With `max_fanout` 6 the flip-flop meets 1 MHz register to register without logic between the flops. Any logic between them needs a slower clock, or it has to be counted against the 1 µs period.
+- `div_insert.py` counts a pin as one grid, so a D or C pin with two or three grids under-counts the net fanout.
 
 ## Files and how to run
 
@@ -133,7 +135,20 @@ To embed the cell: the inputs come from HV nets through the usual divider. The D
 
 ## Open points
 
-- **Liberty update** after the owner's review (above): the falling-edge DFF with one clock inverter at the generator.
 - **Measure on hardware**: C↓→Q and the race margin at C↑ (REQ-MOD-004). The margin depends on the inverter and the 6Zh2B g3 cut-off, neither of which is calibrated.
 - **Dual-rail data**: a DFF variant taking D and ~D (6 tubes) where the source is another flip-flop. This needs a synthesis-side rule; it is not in the liberty yet.
-- **Reset/preset** (liberty `DFFSR`): not designed. A third input on each NOR (another triode on the plate) would set or clear the slave and the master; ask before adding tubes.
+- **Asynchronous clear / preset through a 6Kh7B diode** (owner's idea, 2026-10-29; not simulated). Liberty `DFFSR_n` today counts 7 tubes, the same as the bare flip-flop. The synthesis of 2026-10-29 has 38 of them (266 tubes). 34 clear on `rst_n` with S tied to 0, and 4 preset from `NOT(rst_n)` with R tied to 1. No flop uses both, and all of them use the one reset signal. Analysis:
+  - **Not through the R input.** R and S of RSLATCH are pentode g1, gated by E on g3. A reset there acts only while that latch is enabled (the master while C is high, the slave while C is low), so it is not asynchronous.
+  - **Into the cross-coupled triode grid.** A diode from the reset line (anode) to FQN (cathode), the grid of the triode on plate Q, which normally comes from QN through 470k ‖ 3.9 pF / 200k. Reset high pulls FQN up, that triode conducts, and Q goes low whatever E, S and R are doing. QN then rises, unless its own pentode is on at that moment (S·E = 1, then both outputs are low while the reset holds). For preset, the diode goes into FQ instead.
+  - **Both latches.** If only the slave is cleared, releasing the reset while C is low lets the slave copy the master, which still holds the D of the last falling edge. With the master cleared too, every release is correct: C low gives master 0 to the slave, C high means the master follows D and the next falling edge captures it. Two diodes per flop is exactly one 6Kh7B: `DFF_J2N16` + 1 × 6Kh7B = 8 tubes for a clear-only or preset-only flop, +38 tubes against today's count.
+  - **Polarity.** A diode OR acts on a high level, so the cell clears on an active-high RST. `rst_n` is inverted once at its source, as the clock is at the generator. Liberty: two cells (`DFFR_J2N16X7` clear, `DFFS_J2N16X7` preset, names to be agreed) in place of `DFFSR_n`, with `clear: "R"` / `preset: "S"`. Synthesis then adds a `NOT(rst_n)` per module, which stands for the line driver, as with the clock.
+  - **Levels** (DC check in ngspice with the 6Kh7B model, `sch/tubes/6Kh7B/README.md`, Result). A vacuum diode still conducts at 0 V: the initial current is up to 20 µA.
+    - **Idle at −20 V works** (the owner's wish). A FQN at "0" moves by 51 mV. Where QN is 36 V and FQN would sit at −24.4 V, the diode clamps it at −19.3 V and takes 36 µA, and the node is still 17 V under the triode's switching point.
+    - Idle at −50 V leaves the nodes untouched and is an existing rail. −20 V needs its own rail that can sink about 36 µA per diode.
+    - **Reset level 0 V (GND), not +10 V.** FQN goes to −0.3 … +0.4 V and plate Q to 55–68 V, a valid "0". At +10 V the triode grid draws milliamps.
+    - While reset is held the line carries 0.13–0.23 mA per diode: 10–18 mA for 38 flops. A relay contact switching the line between the idle rail and GND is enough (REQ-MOD-011; rst_n is static).
+  - **What to check in SPICE before drawing it.**
+    - The diode's A–K capacitance (5.8 pF on the scan, to be confirmed) hangs on FQN from a static line. It adds to the node and under-compensates the 3.9 pF feedback divider, so the latch gets slower; the feedback C1 may need to grow.
+    - The release must not race with C.
+    - The −50 V idle level against the cathode–heater limit (200 V): no problem.
+    - A model of the 6Kh7B is needed first.

@@ -1,6 +1,6 @@
 # DLATCH2_J2N16: two D latches on 6Zh2B + 6N16B
 
-Cell page. Two D latches built from two [RSLATCH_J2N16](../RSLATCH_J2N16/README.md) sub-sheets plus one 6N16B for both D inverters. The latch design (structure, part values, levels, limits, sensitivity) is on the RSLATCH page; this page holds only what the D latch adds. To become a base cell of the liberty file (owner, 2026-10-27); the liberty entry below is only proposed.
+Cell page. Two D latches built from two [RSLATCH_J2N16](../RSLATCH_J2N16/README.md) sub-sheets plus one 6N16B for both D inverters. The latch design (structure, part values, levels, limits, sensitivity) is on the RSLATCH page; this page holds only what the D latch adds. One latch of it is the liberty cell `LATCH_J2N16` (applied 2026-10-29, TRS v0.20).
 
 - Requirements: REQ-MOD-005 (D flip-flop board), REQ-MOD-012 (logic levels), REQ-MOD-004 (delays, fan-out, power; simulated, not measured), REQ-MOD-008 (`LATCH` → tube cell).
 - Method: `doc/cell_design_method.md`.
@@ -41,16 +41,17 @@ Delays and timing limits against fanout: the RSLATCH table ([RSLATCH_J2N16](../R
 | D latch without the D inverter: R input from QN | with E high and D low both halves only see ~each other: the latch holds instead of resetting | does not work |
 | D latch from four NAND2_J2 (no inverter) | 4 tubes against 3.5, and every arc is a slow NAND (166…396 ns per gate) | rejected |
 
-## Proposed liberty entry (not applied)
+## Liberty entry
 
-Waiting for the owner's review (owner, 2026-10-27: proposal only). "fanout_load" is in units of a triode grid (C1 3.9 pF).
+`LATCH_J2N16` in `sch/logic/vtube_cells.lib` (applied 2026-10-29, was the generic `LATCH`): one latch of this cell, transparent while C (the E of the RS latch) is high. Area 3.5, J2B 2 + N16B 1.5 (half of the inverter tube), heat 1000 mA. "fanout_load" is in units of a triode grid (C1 3.9 pF):
 
-```
-cell(LATCH)  -> rename LATCH_J2N16: area 3.5, J2B 2 + N16B 1.5 (half of the DLATCH2 inverter tube), heat 1000;
-                D fanout_load 1.7 (g1 + triode grid), C fanout_load 3.5, max_fanout 6.
-```
+| Pin | vtube_grid | vtube_c1 | fanout_load |
+|---|---|---|---|
+| D | pentode_g1 (plus the inverter's triode grid) | 6.6 pF | 1.7 |
+| C | pentode_g3 (two) | 13.6 pF | 3.5 |
+| Q, QN | HV out, max_fanout 6 | | |
 
-Proposed `vtube_timing.json` values (fanout 6, simulated): LATCH D→Q 0.29 µs, E→Q 0.29 µs, setup 0.31 µs, hold 0.
+`vtube_timing.json` (SPICE, fanout 6): D→Q 290 ns, C↑→Q 290 ns. `vtube_cells.v` has the model `LATCH_J2N16`. The setup of 0.31 µs before C falls is not checked in netlist simulation (no checker for latches). `div_insert.py` counts a pin as one grid, so a D or C pin with two or three grids under-counts the net fanout.
 
 ## Files and how to run
 
@@ -72,5 +73,4 @@ To embed the cell: the inputs come from HV nets through the usual divider. The D
 
 ## Open points
 
-- **Liberty update** after the owner's review (above).
 - **Measure on hardware** (REQ-MOD-004), as RSLATCH.
