@@ -40,3 +40,5 @@ Common chain: each input from a NOT driver (6N16B, Ra 10k) fed by an ideal HV pu
 | Parts | 4 dividers on the inputs | 1 divider, 4 diodes, Rd |
 
 Recommendation: **A, as a new cell OR4_N16** (2 × 6N16B), designed like OR2_N16, with `OR4_N16X7` dropped from the liberty. It saves 14.5 tubes at today's 29 cells and is faster. The diode OR on the plates is workable, but only in a narrow window of Rd and with the 6Kh7B's capacitance doing the falling edge. The same limit applies to the other `*_N16X7` diode cells (`AND2_N16X7`, `NAND4_N16X7`, `NOR*_N16X7`): a diode gate needs stiff drivers. **Owner's call.**
+
+**Decision (owner, 2026-10-29): A.** Designed as `sch/logic/OR4_N16`; `OR4_N16X7` is gone from the liberty.

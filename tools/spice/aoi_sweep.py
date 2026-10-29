@@ -15,7 +15,9 @@ Delays: input crossing -5 V to Y crossing 100 V. States 2 us each, see SEQ.
 
 NOR4_N16     Y = ~(A | B | C | D)  two 6N16B, all four triodes on one plate, Ra 10k (as NOR2_N16).
 
-usage: aoi_sweep.py [a1|a22|n4 ...] [--grids 2,6,10] [cases.py]
+OR4_N16      Y = A | B | C | D     two 6N16B, cathode followers with the cathodes tied (OR2_N16 widened), LV output.
+
+usage: aoi_sweep.py [a1|a22|n4|o4 ...] [--grids 2,6,10] [cases.py]
 """
 import os, re, subprocess, sys, tempfile
 from multiprocessing import Pool
@@ -26,7 +28,7 @@ NGRUN = os.path.join(HERE, "ngrun.py")
 LIBS = L.LIBS
 T = L.T
 
-DEFAULT = dict(R1="470k", R2="200k", Ra="15k", Rg2="15k", Cb=15, C1g=3.9, C1p=2.7, C1g3=6.8)
+DEFAULT = dict(R1="470k", R2="200k", Ra="15k", Rg2="15k", Cb=15, C1g=3.9, C1p=2.7, C1g3=6.8, C1fol=2.7)
 
 CELLS = {
     "a1": dict(name="A1OOI_N16J2", pins="ABC", f=lambda a, b, c: 1 - ((a & b) | c),
@@ -55,7 +57,17 @@ CELLS = {
                     (0, 0, 0, 0), (1, 0, 0, 0),
                     (0, 1, 0, 0),                          # hazard: A falls, B rises together (Y stays 0)
                     (0, 0, 0, 0)]),
+    # OR4_N16: two 6N16B as cathode followers, the four cathodes tied, one Rs || Cs and Rk (OR2_N16 widened).
+    # LV output straight onto the load grids; each input on its own divider (follower grid, C1 2.7 pF).
+    "o4": dict(name="OR4_N16", pins="ABCD", f=lambda a, b, c, d: a | b | c | d, out="LV",
+               grid=dict(A="fol", B="fol", C="fol", D="fol"), p=dict(Rs="2.2k", Cs="100p", Rk="12k"),
+               seq=[(0, 0, 0, 0), (1, 0, 0, 0), (0, 0, 0, 0), (0, 1, 0, 0), (0, 0, 0, 0), (0, 0, 1, 0),
+                    (0, 0, 0, 0), (0, 0, 0, 1), (0, 0, 0, 0), (1, 1, 1, 1), (0, 0, 0, 0), (1, 0, 0, 0),
+                    (0, 1, 0, 0),                          # hazard: A falls, B rises together (Y stays 1)
+                    (1, 1, 0, 0), (0, 1, 0, 0),             # B holds Y while A falls
+                    (0, 0, 0, 0)]),
 }
+PLATE = "ply0a"     # the plate of the first load tube (latch_sweep.loads naming), what an LV Y means on the next HV net
 
 
 def params(key):
@@ -70,7 +82,7 @@ def triode_half(t, plate, grid, p):
 
 
 def c1_of(p, kind):
-    return {"g1": p['C1p'], "g3": p['C1g3'], "tri": p['C1g']}[kind]
+    return {"g1": p['C1p'], "g3": p['C1g3'], "tri": p['C1g'], "fol": p['C1fol']}[kind]
 
 
 def cell_net(c, ins, y, p):
@@ -79,6 +91,11 @@ def cell_net(c, ins, y, p):
         n += L.penta("1", y, ins['A'], ins['B'], p) + triode_half("1", y, ins['C'], p)
     elif c['name'] == "A2OOI_J2":
         n += L.penta("1", y, ins['A'], ins['B'], p) + L.penta("2", y, ins['C'], ins['D'], p)
+    elif c['name'] == "OR4_N16":
+        # plates on +150 V, cathodes tied on k (VK measures the cathode current), Rs || Cs -> Y -> Rk -> -50 V
+        n = (f"XF1 vcc {ins['A']} kk vcc {ins['B']} kk 6N16B {p.get('MN', '')}\n"
+             f"XF2 vcc {ins['C']} kk vcc {ins['D']} kk 6N16B {p.get('MN', '')}\n"
+             f"VK kk k1 0\nRS k1 {y} {p['Rs']}\nCS k1 {y} {p['Cs']}\nRK {y} nb {p['Rk']}\n")
     else:   # NOR4_N16: two 6N16B, every plate on Y; VT<i> measure the triode currents
         n += (f"XT1 pt1 {ins['A']} 0 pt2 {ins['B']} 0 6N16B {p.get('MN', '')}\nVT1 {y} pt1 0\nVT2 {y} pt2 0\n"
               f"XT2 pt3 {ins['C']} 0 pt4 {ins['D']} 0 6N16B {p.get('MN', '')}\nVT3 {y} pt3 0\nVT4 {y} pt4 0\n")
@@ -105,16 +122,34 @@ def arcs(c):
 
 
 def hazards(c):
+    """two inputs change together and Y should stay: 0 for the HV-output cells, 1 for OR4_N16 (LV output)"""
     seq, y = c['seq'], expect(c)
+    keep = 1 if c.get('out') == "LV" else 0
     return [i for i in range(1, len(seq))
-            if sum(a != b for a, b in zip(seq[i], seq[i - 1])) == 2 and y[i] == y[i - 1] == 0]
+            if sum(a != b for a, b in zip(seq[i], seq[i - 1])) == 2 and y[i] == y[i - 1] == keep]
 
 
-def meas_lines(c, nodes, y, yl):
+def meas_lines(c, nodes, y, yl, pl=None):
     """.meas lines (without the leading dot), shared with the KiCad testbench (aoi_tb.py): Y at the end of each
     state, the lowest input and output-net grids, the hazard maxima and one delay per arc.
-    nodes: pin -> node of the DUT input."""
+    nodes: pin -> node of the DUT input. LV-output cells (OR4_N16): yl is not used; the delays run to Y = -5 V
+    (input grid -5 V -> Y -5 V, the key) and to the load plate pl = 100 V (key + "p"); the hazard is the dip of Y
+    and the peak of the load plate."""
     seq = c['seq']; stop = T * len(seq)
+    if c.get('out') == "LV":
+        m = [f"meas tran y{i} find v({y}) at={(i + 1) * T - 0.05:.3f}u" for i in range(len(seq))]
+        m += [f"meas tran lp{i} find v({pl}) at={(i + 1) * T - 0.05:.3f}u" for i in range(len(seq))]
+        for pin in c['pins']:
+            m.append(f"meas tran {pin.lower()}min min v({nodes[pin]}) from=0.5u to={stop}u")
+        m.append(f"meas tran ylmin min v({y}) from=0.5u to={stop}u")
+        for i in hazards(c):
+            m += [f"meas tran haz{i} min v({y}) from={i * T}u to={(i + 1) * T}u",
+                  f"meas tran hzp{i} max v({pl}) from={i * T}u to={(i + 1) * T}u"]
+        for key, pin, di, do, t in arcs(c):
+            nd = "fall" if do == "rise" else "rise"
+            m += [f"meas tran {key} trig v({nodes[pin]}) val=-5 {di}=1 td={t - 0.1:.2f}u targ v({y}) val=-5 {do}=1 td={t - 0.1:.2f}u",
+                  f"meas tran {key}p trig v({nodes[pin]}) val=-5 {di}=1 td={t - 0.1:.2f}u targ v({pl}) val=100 {nd}=1 td={t - 0.1:.2f}u"]
+        return m
     m = [f"meas tran y{i} find v({y}) at={(i + 1) * T - 0.05:.3f}u" for i in range(len(seq))]
     for pin in c['pins']:
         m.append(f"meas tran {pin.lower()}min min v({nodes[pin]}) from=0.5u to={stop}u")
@@ -137,10 +172,15 @@ def deck(c, p, ngrid):
         ins[pin] = node
         s += L.driver(pin.lower(), [st[k] for st in seq], node, p, c1_of(p, c['grid'][pin]))
     s += cell_net(c, ins, "y", p)
-    s += L.div("y", "y", "yl", p, p['C1g'] * ngrid) + L.loads("yl", p, ngrid, "y")
-    m = meas_lines(c, {pin: pin.lower() for pin in c['pins']}, "y", "yl")
+    if c.get('out') == "LV":
+        s += L.loads("y", p, ngrid, "y")
+        m = meas_lines(c, {pin: pin.lower() for pin in c['pins']}, "y", None, PLATE)
+        m.append(f"meas tran ikmax max i(VK) from=0.5u to={stop}u")
+    else:
+        s += L.div("y", "y", "yl", p, p['C1g'] * ngrid) + L.loads("yl", p, ngrid, "y")
+        m = meas_lines(c, {pin: pin.lower() for pin in c['pins']}, "y", "yl")
     # cathode and screen currents of the 6Zh2B, worst over the run
-    if c['name'] != "NOR4_N16":
+    if c['name'] not in ("NOR4_N16", "OR4_N16"):
         for t in (["1"] if c['name'] == "A1OOI_N16J2" else ["1", "2"]):
             m.append(f"meas tran ipmax{t} max i(VP{t}) from=0.5u to={stop}u")
     s += f".tran 5n {stop}u\n.control\nrun\n" + "\n".join(m) + "\n.endc\n.end\n"
@@ -156,7 +196,25 @@ def run(arg):
     return key, p.get('_name', ''), n, {k: float(v) for k, v in re.findall(r"^(\w+)\s+=\s+([-\d.e+]+)", o, re.M)}
 
 
+def fmt_lv(key, name, n, m):
+    c = CELLS[key]; y = expect(c)
+    g = lambda k, s=1: m.get(k, float('nan')) * s
+    hi = [g(f"y{i}") for i, e in enumerate(y) if e]; lo = [g(f"y{i}") for i, e in enumerate(y) if not e]
+    lph = max(g(f"lp{i}") for i, e in enumerate(y) if e); lpl = min(g(f"lp{i}") for i, e in enumerate(y) if not e)
+    ar = arcs(c)
+    up = [g(k, 1e9) for k, *_, do, _ in ar if do == "rise"]; dn = [g(k, 1e9) for k, *_, do, _ in ar if do == "fall"]
+    upp = [g(k + "p", 1e9) for k, *_, do, _ in ar if do == "rise"]; dnp = [g(k + "p", 1e9) for k, *_, do, _ in ar if do == "fall"]
+    hz = hazards(c)
+    grids = " ".join(f"{p}{g(p.lower() + 'min'):5.1f}" for p in c['pins'])
+    return (f"{c['name']:12s} {name:14s} N={n:2d} | Y 1 {min(hi):5.2f}..{max(hi):5.2f} 0 {min(lo):6.1f}..{max(lo):6.1f}"
+            f" | load plate on 1 <= {lph:5.1f} on 0 >= {lpl:5.1f} | hazard Y {min(g(f'haz{i}') for i in hz):5.2f}"
+            f" plate {max(g(f'hzp{i}') for i in hz):5.1f} | min {grids} | Ik {g('ikmax', 1e3):4.1f} mA"
+            f" | LV->LV up {min(up):3.0f}..{max(up):3.0f} down {min(dn):3.0f}..{max(dn):3.0f}"
+            f" | ->load plate up {min(upp):3.0f}..{max(upp):3.0f} down {min(dnp):3.0f}..{max(dnp):3.0f} ns")
+
+
 def fmt(key, name, n, m):
+    if CELLS[key].get('out') == "LV": return fmt_lv(key, name, n, m)
     c = CELLS[key]; y = expect(c)
     g = lambda k, s=1: m.get(k, float('nan')) * s
     ys = [g(f"y{i}") for i in range(len(y))]

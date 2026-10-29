@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""Generate the A1OOI_N16J2, A2OOI_J2 and NOR4_N16 cell sheets and their testbenches (doc/cell_design_method.md,
+"""Generate the A1OOI_N16J2, A2OOI_J2, NOR4_N16 and OR4_N16 cell sheets and their testbenches (doc/cell_design_method.md,
 sch/logic/A1OOI_N16J2/README.md, sch/logic/A2OOI_J2/README.md).
 
 usage: gen_aoi.py OUT_DIR
   OUT_DIR/A1OOI_N16J2/A1OOI_N16J2.kicad_sch   two AOI21 cells: 2 x 6Zh2B + one 6N16B (one triode per cell)
   OUT_DIR/A2OOI_J2/A2OOI_J2.kicad_sch         one AOI22 cell: 2 x 6Zh2B on one plate
   OUT_DIR/NOR4_N16/NOR4_N16.kicad_sch         four-input NOR: 2 x 6N16B, all plates on Y
+  OUT_DIR/OR4_N16/OR4_N16.kicad_sch           four-input OR: 2 x 6N16B cathode followers, LV output
   OUT_DIR/<cell>/<cell>_tb.kicad_sch/.kicad_pro   testbenches; stimulus, loads and .meas from tools/spice/aoi_tb.py
 
 Parts are connected by net labels at short pin stubs (kicad_sheet.py, as gen_latch_j2n16.py).
@@ -14,7 +15,7 @@ Every run makes new UUIDs: regenerate to start over, edit drawn sheets in KiCad.
 import sys, os
 
 OUT = sys.argv[1]
-for _c in ("A1OOI_N16J2", "A2OOI_J2", "NOR4_N16"): os.makedirs(os.path.join(OUT, _c), exist_ok=True)
+for _c in ("A1OOI_N16J2", "A2OOI_J2", "NOR4_N16", "OR4_N16"): os.makedirs(os.path.join(OUT, _c), exist_ok=True)
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from kicad_sheet import *  # noqa: E402,F401,F403
@@ -25,9 +26,9 @@ import latch_tb as LTB  # noqa: E402
 P = TB.P
 RA, RG2, CB = P['Ra'], P['Rg2'], "%dp" % P['Cb']
 
-R = {k: U() for k in ("a1", "a22", "n4")}           # testbench root sheets
-S = {k: U() for k in ("a1", "a22", "n4")}           # the DUT sheet instance in each
-PROJ = {"a1": "A1OOI_N16J2_tb", "a22": "A2OOI_J2_tb", "n4": "NOR4_N16_tb"}
+R = {k: U() for k in ("a1", "a22", "n4", "o4")}           # testbench root sheets
+S = {k: U() for k in ("a1", "a22", "n4", "o4")}           # the DUT sheet instance in each
+PROJ = {"a1": "A1OOI_N16J2_tb", "a22": "A2OOI_J2_tb", "n4": "NOR4_N16_tb", "o4": "OR4_N16_tb"}
 
 
 def pentode(sh, x, y, g1, g3, plate, screen, hier):
@@ -98,6 +99,26 @@ n4.dump(os.path.join(OUT, "NOR4_N16", "NOR4_N16.kicad_sch"), "NOR4_N16 - 4NOR on
         comments=["Y = ~(A|B|C|D); A-D: LV; Y: HV", "2 x 6N16B; Ra 10k"], paper="A3")
 
 
+# ---------------------------------------------------------------- OR4_N16: two 6N16B, cathode followers, cathodes tied
+o4 = Sheet([(PROJ["o4"], f"/{R['o4']}/{S['o4']}", 1)])
+PO = TB.A.params("o4")
+for k, (ga, gb) in enumerate((("A", "B"), ("C", "D"))):
+    t = o4.ref("Л"); yy = y0 + 30*G * k
+    o4.part(N16, (x0, yy), None, "6Н16Б", {"1": "+150V", "7": ga, **n16_bottom(k="K")}, unit=1, props=SIM[N16], hier=H4, refs=t)
+    o4.part(N16, (x0 + 25*G, yy), None, "6Н16Б", {"5": "+150V", "3": gb, "2": "K"}, unit=2, props=SIM[N16], hier=H4, refs=t)
+o4.part("Device:R", (x0 + 45*G, y0 + 12*G), "R", PO['Rs'], {"1": "K", "2": "Y"}, hier=H4)
+o4.part("Device:C", (x0 + 50*G, y0 + 12*G), "C", PO['Cs'], {"1": "K", "2": "Y"}, hier=H4)
+o4.part("Device:R", (x0 + 55*G, y0 + 12*G), "R", PO['Rk'], {"1": "Y", "2": "-50V"}, hier=H4)
+o4.text("OR4_N16: four-input OR, Y = A | B | C | D. Two 6N16B as cathode followers, all four cathodes tied (OR2_N16 widened;\n"
+        "owner, 2026-10-29, in place of the diode OR4_N16X7). Plates to +150 V; K -> Rs 2.2k || Cs 100p -> Y -> Rk 12k -> -50 V.\n"
+        "Inputs: LV, each from its OWN divider on the driving HV net (470k || 2.7 pF / 200k), never shared with gate grids.\n"
+        "Output Y: LV, straight onto gate grids (no divider), never onto another follower or an HV input; fanout 10.\n"
+        "Simulated, fanout 2/6/10 (input grid -5 V -> load plate 100 V): Y up 26/49/75-90 ns, Y down 54/162/262 ns.\n"
+        "Heater 6.3 V: 2 x 0.4 A on H1/H2. Page: sch/logic/OR4_N16/README.md", (20*G, 85*G))
+o4.dump(os.path.join(OUT, "OR4_N16", "OR4_N16.kicad_sch"), "OR4_N16 - OR4 (cathode followers) on 2 x 6N16B",
+        comments=["Y = A|B|C|D; A-D: LV via own dividers (2.7p); Y: LV to gate grids", "2 x 6N16B; Rs 2.2k || 100p, Rk 12k"], paper="A3", passive_plates=True)
+
+
 # ================================================================ testbenches (as gen_latch_j2n16.testbench)
 def testbench(key, tb, cell_file, cell_pins, size):
     proj = PROJ[key]
@@ -138,12 +159,14 @@ def testbench(key, tb, cell_file, cell_pins, size):
     sh.subsheet("DUT", cell_file, (150*G, 20*G), size, cell_pins, nets, [(proj, f"/{R[key]}", "2")], S[key])
     y = 12*G
     for o, ng in tb['outputs'].items():
-        divider(sh, 185*G, y + 4*G, o, f"{o}_LV", pf(P['C1g'] * ng))
+        net = o if tb.get('lv') else f"{o}_LV"     # an LV output (OR4_N16) goes straight onto the loads
+        if not tb.get('lv'):
+            divider(sh, 185*G, y + 4*G, o, net, pf(P['C1g'] * ng))
         for i in range(ng // 2):
             t = sh.ref("Л"); xx = 220*G + i * 26*G
-            sh.part(N16, (xx, y + 6*G), None, "6Н16Б", {"1": f"PL_{o}{i}a", "7": f"{o}_LV", **n16_bottom("+6.3V", "GND")},
+            sh.part(N16, (xx, y + 6*G), None, "6Н16Б", {"1": f"PL_{o}{i}a", "7": net, **n16_bottom("+6.3V", "GND")},
                     unit=1, props=SIM[N16], refs=t)
-            sh.part(N16, (xx + 12*G, y + 6*G), None, "6Н16Б", {"5": f"PL_{o}{i}b", "3": f"{o}_LV", "2": "GND"}, unit=2, props=SIM[N16], refs=t)
+            sh.part(N16, (xx + 12*G, y + 6*G), None, "6Н16Б", {"5": f"PL_{o}{i}b", "3": net, "2": "GND"}, unit=2, props=SIM[N16], refs=t)
             sh.part("Device:R", (xx - 5*G, y - 2*G), "R", "10k", {"1": "+150V", "2": f"PL_{o}{i}a"})
             sh.part("Device:R", (xx + 18*G, y - 2*G), "R", "10k", {"1": "+150V", "2": f"PL_{o}{i}b"})
         y += 26*G
@@ -163,4 +186,5 @@ def testbench(key, tb, cell_file, cell_pins, size):
 testbench("a1", TB.tb_of("a1"), "A1OOI_N16J2.kicad_sch", A1_PINS, A1_SIZE)
 testbench("a22", TB.tb_of("a22"), "A2OOI_J2.kicad_sch", A2_PINS, A2_SIZE)
 testbench("n4", TB.tb_of("n4"), "NOR4_N16.kicad_sch", A2_PINS, A2_SIZE)
+testbench("o4", TB.tb_of("o4"), "OR4_N16.kicad_sch", A2_PINS, A2_SIZE)
 print("ok")

@@ -14,6 +14,7 @@ This folder holds the logic cells of the tube machine (REQ-MOD-003/004/005), eac
 | [OR2_N16](OR2_N16/README.md) | Y = A \| B | one 6N16B | LV → **LV** | Y up 26 … 85 ns, Y down 41 … 241 ns (to the load plate) | `OR2_N16` | cathode followers on one cathode load; hazard |
 | [A1OOI_N16J2](A1OOI_N16J2/README.md) | Y = ~((A · B) + C), AOI21 | 6Zh2B + ½ 6N16B | LV → HV | worst arc 194 … 420 ns (A↑ to 92 V: 318 … 537 ns); C↑ 53 … 82 ns | `A1OOI_N16J2` | two cells per sheet |
 | [A2OOI_J2](A2OOI_J2/README.md) | Y = ~((A · B) + (C · D)), AOI22 | 2 × 6Zh2B | LV → HV | worst arc 209 … 418 ns (A↑ / C↑ to 92 V: 338 … 551 ns) | `A2OOI_J2` | |
+| [OR4_N16](OR4_N16/README.md) | Y = A \| B \| C \| D | two 6N16B | LV → **LV** | Y up 26 … 90 ns, Y down 54 … 262 ns (to the load plate) | `OR4_N16` | cathode followers, four cathodes tied |
 | [RSLATCH_J2N16](RSLATCH_J2N16/README.md) | gated RS latch | 2 × 6Zh2B + 1 × 6N16B | LV → HV | E→Q 172 … 380 ns, S→Q 138 … 392 ns | proposed | the base of the latch family |
 | [DLATCH2_J2N16](DLATCH2_J2N16/README.md) | two D latches | 7 (2 × RSLATCH + 1 × 6N16B) | LV → HV | as RSLATCH, D falling + inverter | `LATCH_J2N16` (one latch) | |
 | [DFFRN_J2N16X7](DFFRN_J2N16X7/README.md) | DFF_J2N16 + asynchronous clear (RN = 0) | 8 (+ 1 × 6Kh7B) | LV + reset line → HV | RN → Q 54 … 100 ns; recovery ≥ 100 ns | `DFFRN_J2N16X7` | RN is the reset line (idle −20 V, GND = reset) |

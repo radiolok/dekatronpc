@@ -87,8 +87,8 @@ def heat(h1, h2, k="GND"):
     return {"k": (k, [(0, 5)]), "h1": (h1, [(0, 3), (5, 0)]), "h2": (h2, [(0, 1), (3, 0)])}
 def j2_bottom(h1="H1", h2="H2"):
     b = heat(h1, h2); return {"6": b["k"], "4": b["h1"], "5": b["h2"]}
-def n16_bottom(h1="H1", h2="H2"):
-    b = heat(h1, h2); return {"6": b["k"], "8": b["h1"], "4": b["h2"]}
+def n16_bottom(h1="H1", h2="H2", k="GND"):
+    b = heat(h1, h2, k); return {"6": b["k"], "8": b["h1"], "4": b["h2"]}
 def x7_bottom(k, h1="H1", h2="H2"):
     """unit A of a 6Kh7B: cathode (lead 3) straight down to its net, heater 2 / 6 bent to the right"""
     b = heat(h1, h2, k); return {"3": b["k"], "2": b["h1"], "6": b["h2"]}
@@ -202,8 +202,10 @@ class Sheet:
                           '(property "Sheetfile" %s (at %s %s 0) (effects (font (size 1.27 1.27)) (justify left top))) %s (instances %s))'
                           % (f(x), f(y), f(w), f(h), uid, q(name), f(x), f(y - 0.7), q(file), f(x), f(y + h + 0.6), ' '.join(ps), inst))
         return uid
-    def dump(self, path, title, root=False, comments=(), paper="A4"):
+    def dump(self, path, title, root=False, comments=(), paper="A4", passive_plates=False):
         libs = '\n'.join(LIBS[k] for k in sorted(self.used))
+        if passive_plates:      # a follower plate sits on +150 V: passive, not open collector, so ERC accepts it
+            libs = libs.replace('(pin open_collector', '(pin passive')
         tb = '(title_block (title %s) (company "DekatronPC") %s)' % (q(title), ' '.join('(comment %d %s)' % (i+1, q(c)) for i, c in enumerate(comments)))
         si = '(sheet_instances (path "/" (page "1")))' if root else ''
         open(path, "w").write('(kicad_sch (version 20260306) (generator "eeschema") (generator_version "10.0") (uuid "%s") (paper "%s") %s\n(lib_symbols\n%s)\n%s\n%s\n(embedded_fonts no))\n'

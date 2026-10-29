@@ -190,19 +190,21 @@ library(vtube_cells_lib) {
             driver_type : pull_up;
              function: "(A+B)"; }
   }
-  cell(OR4_N16X7) {
-    area: 2.5;
+  // OR4 (sch/logic/OR4_N16): two 6N16B as cathode followers with the four cathodes tied, Rs 2.2k || 100p,
+  // Rk 12k (OR2_N16 widened, owner 2026-10-29: in place of the diode OR4_N16X7). LV output; each input on
+  // its own divider (follower grid, 2.7 pF).
+  cell(OR4_N16) {
+    area: 2;
     current_unit : "1mA";
     heat_current: 800;
     tubes(names) {
-      N16B: 0.5;
-      X7B: 2;
+      N16B: 2;
     }
-    pin(A) { direction: input; fanout_load: 1.0; }
-    pin(B) { direction: input; fanout_load: 1.0; }
-    pin(C) { direction: input; fanout_load: 1.0; }
-    pin(D) { direction: input; fanout_load: 1.0; }
-    pin(Y) { direction: output;
+    pin(A) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 1.0; }
+    pin(B) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 1.0; }
+    pin(C) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 1.0; }
+    pin(D) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 1.0; }
+    pin(Y) { vtube_level : "LV"; direction: output;
                max_fanout : 10;
             driver_type : pull_up;
              function: "(A+B+C+D)"; }

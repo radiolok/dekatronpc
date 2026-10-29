@@ -1170,3 +1170,18 @@ undesigned `DFFSR` / `DFFSR_n` (7 tubes, the diode not counted) are gone from th
 +38 tubes are the 6Kh7B, one per reset flop (34 DFFRN + 4 DFFSN); the rest is ABC drift. The 4 `NOT(rst_n)` gates
 in front of the old preset flops are gone. Not designed now: `NOR4_N16` 90, `OR4_N16X7` 72.5, `AND2_N16X7` 36,
 `GUIDE_EN_J2` 30, `NAND4_N16X7` 10.
+
+### OR4_N16 replaces the diode OR4_N16X7 (2026-10-29)
+
+The owner chose the cathode-follower OR4 (`doc/or4_variants.md`, `sch/logic/OR4_N16`): 2 tubes instead of 2.5.
+
+| Block | Diode reset | **OR4_N16** |
+|---|---|---|
+| IpLine | 501 | **497.5** |
+| ApLine | 566 | **555** |
+| MachineCtrl | 333.5 | **327** |
+| **Total** | 1400.5 | **1379.5** + 5 relays |
+
+ABC takes the cheaper OR4 54 times (from 29 of the diode one); `NAND4_N16X7` drops out. Follower → follower chains
+(`synt_dpc.tcl -div`): 65 over the three blocks (MachineCtrl 10 → 23), the open point of the follower family. Not
+designed now: `AND2_N16X7` 33 tubes, `GUIDE_EN_J2` 30.

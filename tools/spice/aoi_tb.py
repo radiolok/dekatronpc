@@ -9,7 +9,7 @@ A1OOI_N16J2: the sheet holds two cells on one 6N16B. The bench drives cell 1; ce
 (-20 V, an LV "0") and Y2 open, so its triode only couples through the tube.
 Node names are the KiCad ones (/A1, /Y1, /Y1_LV ...).
 
-usage: aoi_tb.py [a1|a22|n4 ...]     runs the plain-SPICE reference and prints the .meas values
+usage: aoi_tb.py [a1|a22|n4|o4 ...]     runs the plain-SPICE reference and prints the .meas values
 """
 import os, re, subprocess, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -28,17 +28,18 @@ def tb_of(key):
     pin = {p: (p + "1" if one else p) for p in c['pins']}           # cell pin -> sheet pin
     src = {pin[p]: slots([s[i] for s in c['seq']], A.T) for i, p in enumerate(c['pins'])}
     y = "Y1" if one else "Y"
-    meas = A.meas_lines(c, {q: "/" + pin[q] for q in c['pins']}, "/" + y, f"/{y}_LV")
+    lv = c.get('out') == "LV"
+    meas = A.meas_lines(c, {q: "/" + pin[q] for q in c['pins']}, "/" + y, None if lv else f"/{y}_LV", f"/PL_{y}0a" if lv else None)
     p = A.params(key)
     inputs = {pin[q]: A.c1_of(p, c['grid'][q]) for q in c['pins']}
     fixed = {"A2": "LV0", "B2": "LV0", "C2": "LV0", "Y2": "NC"} if one else {}
     states = " ".join("".join(map(str, s)) for s in c['seq'])
-    return dict(key=key, name=c['name'], p=p, src=src, inputs=inputs, outputs={y: FANOUT}, fixed=fixed,
+    return dict(key=key, name=c['name'], p=p, lv=lv, src=src, inputs=inputs, outputs={y: FANOUT}, fixed=fixed,
                 stop=A.T * len(c['seq']), meas=meas, cell=c,
                 note=f"States ({''.join(c['pins'])}) 2 us each: {states} (aoi_sweep.CELLS['{key}']).")
 
 
-TBS = {k: (lambda k=k: tb_of(k)) for k in ("a1", "a22", "n4")}
+TBS = {k: (lambda k=k: tb_of(k)) for k in ("a1", "a22", "n4", "o4")}
 
 
 def cell_net(tb, p):
@@ -68,7 +69,11 @@ def deck(tb):
         if net == "LV0": s += f"R0{k} /{k} /LV0 0.001\n"
     s += cell_net(tb, p)
     for o, ng in tb['outputs'].items():
-        s += L.div(f"y{o}", f"/{o}", f"/{o}_LV", p, p['C1g'] * ng) + L.loads(f"/{o}_LV", p, ng, o)
+        if tb['lv']:     # LV output (OR4_N16): straight onto the loads; plate names as in the KiCad bench
+            s += "".join(f"XL{o}{i} /PL_{o}{i}a /{o} 0 /PL_{o}{i}b /{o} 0 6N16B\nRL{o}{i}a vcc /PL_{o}{i}a 10k\n"
+                         f"RL{o}{i}b vcc /PL_{o}{i}b 10k\n" for i in range(ng // 2))
+        else:
+            s += L.div(f"y{o}", f"/{o}", f"/{o}_LV", p, p['C1g'] * ng) + L.loads(f"/{o}_LV", p, ng, o)
     s += f".tran 5n {tb['stop']:.3f}u\n.control\nrun\n" + "\n".join(tb['meas']) + "\n.endc\n.end\n"
     return s
 

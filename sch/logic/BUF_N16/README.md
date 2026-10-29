@@ -2,7 +2,7 @@
 
 Cell page. REQ-MOD-003 (BUF_N16, OR2_N16 in the library), REQ-MOD-005 (boards), REQ-MOD-012 (logic levels), REQ-MOD-004 (delays, fan-out, power; simulated, not yet measured). Designed by `doc/cell_design_method.md`.
 
-BUF_N16 is the base of the cathode-follower family. [OR2_N16](../OR2_N16/README.md) is the same follower with both cathodes tied. The design shared by both cells (how a follower joins the HV/LV scheme, the split cathode resistor, the input divider, the datasheet limits, the options evaluated, the model) is on this page; the OR2 page holds its own results and the hazard.
+BUF_N16 is the base of the cathode-follower family. [OR2_N16](../OR2_N16/README.md) is the same follower with both cathodes tied, [OR4_N16](../OR4_N16/README.md) with four. The design shared by both cells (how a follower joins the HV/LV scheme, the split cathode resistor, the input divider, the datasheet limits, the options evaluated, the model) is on this page; the OR2 page holds its own results and the hazard.
 
 | | BUF_N16 |
 |---|---|
@@ -214,6 +214,6 @@ For both follower cells:
 
 - **The two net rules (own input divider, output only to gate grids) are new for synthesis and P&R.** The liberty now marks the follower inputs (`vtube_grid "follower"`, 2.7 pF) and the LV output, and `rtl/run/div_insert.py` places their separate dividers and reports follower → follower chains (`doc/hv_lv_dividers.md`). The liberty needs a way to express them, for example an LV net type that only a follower drives and only gate grids load, and a separate fanout_load for a follower input (≈ 0.7 of a gate grid, C1 2.7 pF). The owner decides how, and whether `OR2_N16` stays in the synthesis library under these limits. **[2026-10-28]** The levels are now in the liberty (`vtube_level`, `vtube_grid`, `vtube_c1`) and `rtl/run/div_insert.py` places the dividers and flags follower → follower nets. On the 2026-10-11 netlists it found 19 such chains (`doc/hv_lv_dividers.md`).
 - **HV "1" margin 19.4 V** against the rough rule of 25 V. The follower's own input divider could use 470k / 220k: the HV "1" margin becomes 30.4 V and the LV "0" margin falls from 11.2 to 9.5 V. That changes the divider ratio of REQ-MOD-012 for this one grid type, so it is the owner's call. It is one value in `gen_cf_n16.py` / `cf_sweep.DEFAULT`.
-- **Liberty:** `BUF_N16` (0.5 tube) and `OR2_N16` (1 tube) already have the right tube counts. Add the delays to `vtube_timing.json` once the owner agrees (REQ-MOD-004, OPEN-014).
+- **Liberty:** `BUF_N16` (0.5 tube) and `OR2_N16` (1 tube) have the right tube counts. **[2026-10-29]** `vtube_timing.json` has their LV → LV delays at fanout 6 (input grid −5 V → Y −5 V, where the next gate's arc starts): BUF_N16 [15, 245] ns, OR2_N16 [18, 266] ns.
 - **Measure on real tubes:** the "0" level (Ugk near cut-off sets it), the grid clamp level of the loads, the delays and the OR2 hazard.
 - **Loads other than 6N16B grids** (6Zh2B g1 and g3) are not simulated. A pentode g1 clamps like a triode grid, so it should work; g3 has its own Miller trap (method §4a).

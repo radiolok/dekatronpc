@@ -58,9 +58,9 @@ E1 Y 0 VALUE = { ((v(A) > 0.5) || (v(B) > 0.5)) ? 1 : 0 }
 E1 Y 0 VALUE = { ((v(A) > 0.5) || (v(B) > 0.5)) ? 1 : 0 }
 .ENDS OR2_N16X7
 
-.SUBCKT OR4_N16X7 A B C D Y
+.SUBCKT OR4_N16 A B C D Y
 E1 Y 0 VALUE = { ((v(A) > 0.5) || (v(B) > 0.5) || (v(C) > 0.5) || (v(D) > 0.5)) ? 1 : 0 }
-.ENDS OR4_N16X7
+.ENDS OR4_N16
 
 .SUBCKT OR10_X7 A B C D E F G H K L Y
 E1 Y 0 VALUE = { ((v(A) > 0.5) || (v(B) > 0.5) || (v(C) > 0.5) || (v(D) > 0.5) || (v(E) > 0.5) || (v(F) > 0.5) || (v(G) > 0.5) || (v(H) > 0.5) || (v(K) > 0.5) || (v(L) > 0.5)) ? 1 : 0 }

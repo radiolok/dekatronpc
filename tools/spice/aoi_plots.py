@@ -20,7 +20,7 @@ import aoi_sweep as A      # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 
 REPO = LP.REPO
-CELL = {"a1": ("A1OOI_N16J2", "aoi21_"), "a22": ("A2OOI_J2", "aoi22_"), "n4": ("NOR4_N16", "nor4_")}
+CELL = {"a1": ("A1OOI_N16J2", "aoi21_"), "a22": ("A2OOI_J2", "aoi22_"), "n4": ("NOR4_N16", "nor4_"), "o4": ("OR4_N16", "or4_")}
 GRIDS = (2, 4, 6, 8, 10)
 HV = {0: 55.0, 1: 146.9}
 
@@ -46,10 +46,16 @@ def waveforms(out, tmp):
         c = A.CELLS[key]
         pins = [p + "1" for p in c['pins']] if key == "a1" else list(c['pins'])
         y = "Y1" if key == "a1" else "Y"
-        r, t, v = LP.kicad_waves(name + "_tb", [f"/{p}" for p in pins] + [f"/{y}", f"/{y}_LV"], LP_TMP(tmp))
-        grid = {"g1": "g1", "g3": "g3", "tri": "triode grid"}
+        lv = c.get('out') == "LV"
+        second = f"/PL_{y}0a" if lv else f"/{y}_LV"
+        r, t, v = LP.kicad_waves(name + "_tb", [f"/{p}" for p in pins] + [f"/{y}", second], LP_TMP(tmp))
+        grid = {"g1": "g1", "g3": "g3", "tri": "triode grid", "fol": "follower grid"}
         rows = [(f"{p} (LV, {grid[c['grid'][q]]})", v[i], "lv") for i, (p, q) in enumerate(zip(pins, c['pins']))]
-        rows += [(f"{y} (HV, plate)", v[len(pins)], "hv"), (f"{y}_LV (after the divider, 6 grids)", v[len(pins) + 1], "lv")]
+        if lv:
+            rows += [(f"{y} (LV, cathode-follower output on 6 grids)", v[len(pins)], "lv"),
+                     ("PL_Y0a (HV, plate of a load gate on Y)", v[len(pins) + 1], "hv")]
+        else:
+            rows += [(f"{y} (HV, plate)", v[len(pins)], "hv"), (f"{y}_LV (after the divider, 6 grids)", v[len(pins) + 1], "lv")]
         labels = ["".join(map(str, s)) for s in c['seq']]
         labels[0] = "".join(c['pins']) + "\n" + labels[0]
         LP.wave_fig(dest(out, key, "tran.png"), f"{name}: KiCad testbench in ngspice, fanout 6", t, rows, labels=labels)
@@ -65,7 +71,8 @@ def transfer(out, tmp):
     """Y against the HV net of one input (swept 30..160 V), the other inputs at levels that make it count"""
     sens = {"a1": {"A": (None, 1, 0), "B": (1, None, 0), "C": (0, 0, None)},
             "a22": {"A": (None, 1, 0, 0), "B": (1, None, 0, 0), "C": (0, 0, None, 1), "D": (0, 0, 1, None)},
-            "n4": {"A": (None, 0, 0, 0), "B": (0, None, 0, 0), "C": (0, 0, None, 0), "D": (0, 0, 0, None)}}
+            "n4": {"A": (None, 0, 0, 0), "B": (0, None, 0, 0), "C": (0, 0, None, 0), "D": (0, 0, 0, None)},
+            "o4": {"A": (None, 0, 0, 0), "B": (0, None, 0, 0), "C": (0, 0, None, 0), "D": (0, 0, 0, None)}}
     th = {}
     for key, (name, _) in CELL.items():
         c = A.CELLS[key]; p = A.params(key)
@@ -78,9 +85,11 @@ def transfer(out, tmp):
                 n = q.lower(); ins[q] = n
                 s += f"VH{n} h{n} 0 {HV[b] if b is not None else 100}\nR1{n} h{n} {n} 470k\nR2{n} {n} nb 200k\n"
             s += A.cell_net(c, ins, "y", p)
-            s += f"R1y y yl 470k\nR2y yl nb 200k\n" + A.L.loads("yl", p, 6, "y")
+            lv = c.get('out') == "LV"
+            # an LV output: what it means on the next HV net, the plate of a load gate
+            s += A.L.loads("y", p, 6, "y") if lv else f"R1y y yl 470k\nR2y yl nb 200k\n" + A.L.loads("yl", p, 6, "y")
             wave = os.path.join(tmp, f"vtc_{key}_{pin}.txt")
-            s += f".control\ndc VH{pin.lower()} 30 160 0.5\nwrdata {wave} v(y)\n.endc\n.end\n"
+            s += f".control\ndc VH{pin.lower()} 30 160 0.5\nwrdata {wave} v({A.PLATE if lv else 'y'})\n.endc\n.end\n"
             fn = os.path.join(tmp, f"vtc_{key}_{pin}.cir"); open(fn, "w").write(s); LP.ngspice(fn)
             d = np.loadtxt(wave); x, yv = d[:, 0], d[:, 1]
             ax.plot(x, yv, lw=1.8, color=(LP.BLUE, LP.ORANGE, LP.GREEN, "#8a5cc2")[k], label=f"{pin}")
@@ -88,7 +97,7 @@ def transfer(out, tmp):
             ax.text(x[-1] + 1, yv[-1], pin, fontsize=8, va="center")
         for yy, txt in ((150, "+150"), (92, "92: next stage sees 0"), (50, "+50")):
             LP.refline(ax, yy, txt, 162)
-        ax.set_xlabel("HV net feeding the input, V"); ax.set_ylabel("Y, V"); ax.set_xlim(30, 175); ax.set_ylim(0, 160)
+        ax.set_xlabel("HV net feeding the input, V"); ax.set_ylabel("load plate on Y, V" if c.get('out') == "LV" else "Y, V"); ax.set_xlim(30, 175); ax.set_ylim(0, 160)
         ax.set_title(f"{name}: static transfer, fanout 6 (other inputs at the levels that make the input count)", loc="left", fontsize=10)
         ax.legend(frameon=False, loc="lower left", fontsize=8)
         fig.savefig(dest(out, key, "vtc.png"), dpi=110); plt.close(fig)
@@ -102,7 +111,10 @@ def fanout(out):
     for key, (name, _) in CELL.items():
         rows = [(n, m) for k, _, n, m in res if k == key]
         arcs = A.arcs(A.CELLS[key])
+        lv = A.CELLS[key].get('out') == "LV"
         fig, ax = plt.subplots(figsize=(7, 4.2), constrained_layout=True)
+        if lv:      # an LV output: plot the delay to the load plate (input -5 V -> load plate 100 V)
+            arcs = [(k + "p", pin, di, do, t) for k, pin, di, do, t in arcs]
         for i, (k, pin, di, do, t) in enumerate(arcs):
             col = LP.BLUE if do == "fall" else LP.ORANGE
             ys = [m.get(k, np.nan) * 1e9 for n, m in rows]
@@ -110,7 +122,7 @@ def fanout(out):
             ax.text(GRIDS[-1] + 0.15, ys[-1], k, fontsize=7, va="center", color=col)
         ax.plot([], [], color=LP.BLUE, label="Y falls (tpHL)"); ax.plot([], [], color=LP.ORANGE, label="Y rises (tpLH)")
         ax.set_xlim(1, GRIDS[-1] + 2.2); ax.set_ylim(0, None); ax.set_xticks(GRIDS)
-        ax.set_xlabel("grids on Y (fanout)"); ax.set_ylabel("ns, input −5 V → Y 100 V")
+        ax.set_xlabel("grids on Y (fanout)"); ax.set_ylabel("ns, input −5 V → load plate 100 V" if lv else "ns, input −5 V → Y 100 V")
         ax.set_title(f"{name}: delay of every arc against fanout", loc="left", fontsize=10)
         ax.legend(frameon=False, loc="upper left", fontsize=8)
         fig.savefig(dest(out, key, "fanout.png"), dpi=110); plt.close(fig)

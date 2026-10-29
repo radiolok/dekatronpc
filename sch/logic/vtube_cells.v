@@ -135,7 +135,8 @@ specify
 endspecify
 endmodule
 
-module OR4_N16X7(A, B, C, D, Y);
+// OR4_N16: cathode followers, LV output
+module OR4_N16(A, B, C, D, Y);
 input A, B, C, D;
 output Y;
 assign Y = A | B | C | D;
