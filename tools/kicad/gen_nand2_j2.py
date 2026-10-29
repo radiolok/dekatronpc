@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Generate the NAND2_J2 cell sheet and its testbench (doc/cell_design_method.md, doc/nand2_j2_6zh2b.md).
+"""Generate the NAND2_J2 cell sheet and its testbench (doc/cell_design_method.md, sch/logic/NAND2_J2/README.md).
 
-usage: gen_nand2_j2.py OUT_DIR      -> OUT_DIR/NAND2_J2.kicad_sch, OUT_DIR/NAND2_J2_tb.kicad_sch
+usage: gen_nand2_j2.py OUT_DIR      -> OUT_DIR/NAND2_J2/NAND2_J2.kicad_sch, OUT_DIR/NAND2_J2/NAND2_J2_tb.kicad_sch
 Copied from gen_nor2_n16.py; the cell and testbench sections are new, the .meas lines come from
 tools/spice/nand2_sweep.py so the KiCad run and the plain-SPICE sweep measure the same things.
 Every run makes new UUIDs: regenerate only to start a new cell from this one, not to edit a drawn cell
@@ -10,10 +10,11 @@ Every run makes new UUIDs: regenerate only to start a new cell from this one, no
 import math, uuid, re, sys, os
 
 OUT = sys.argv[1]
+os.makedirs(os.path.join(OUT, "NAND2_J2"), exist_ok=True)
 SYSLIB = os.environ.get("KICAD_SYMBOL_DIR", "/usr/share/kicad/symbols")
 REPO = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 PROJ = "NAND2_J2_tb"
-SIMLIB = "${KIPRJMOD}/../libs/6Zh2B.sub"
+SIMLIB = "${KIPRJMOD}/../../libs/6Zh2B.sub"
 TUBE_PINS = "1=A 2=G3 3=G2 6=K 7=G1"
 TUBE = "6Ж2Б"
 
@@ -219,8 +220,8 @@ cell.text("NAND2_J2: Y = ~(A & B). One 6Zh2B (6Ж2Б), dual-control pentode: A o
           "Each HV net that drives grids needs one divider HV -> LV: 470k || C1 from the net to the LV net, 200k to -50 V,\n"
           "C1 = 3.9 pF per g1 grid + 6.8 pF per g3 grid on that net (see NAND2_J2_tb). Inputs only from such a divider.\n"
           "Unused input: tie it to the other input. Supplies: +150 V, -50 V (dividers only), heater 6.3 V 0.2 A on H1/H2.\n"
-          "Page: doc/nand2_j2_6zh2b.md", (18*G, 60*G))
-cell.dump(os.path.join(OUT, "NAND2_J2.kicad_sch"), "NAND2_J2 - 2NAND on 6Zh2B",
+          "Page: sch/logic/NAND2_J2/README.md", (18*G, 60*G))
+cell.dump(os.path.join(OUT, "NAND2_J2", "NAND2_J2.kicad_sch"), "NAND2_J2 - 2NAND on 6Zh2B",
           comments=["Y = ~(A & B); A (g1), B (g3): LV (+10/-20 V); Y: HV (+150/+50 V)", "Ra 15k, Rg2 15k, Cb 15p"])
 # ---------------------------------------------------------------- testbench
 ROOT = "/%s" % tb.uuid
@@ -357,6 +358,6 @@ tb.text("NAND2_J2 testbench. 2 us per input state, DUT (A,B) = 00 10 11 01 01 11
         "OUT (HV) -> one divider (C1 = 5 x 10.7 pF) -> OUT_LV -> 5 load gates, inputs tied = fanout 10 (5 g1 + 5 g3).\n"
         "Plot V(/IN_A) V(/IN_B) V(/OUT) V(/OUT_LV); .meas results: y0..y7 = OUT at the end of each state, tphl_a/b, tplh_a/b.",
         (20*G, 90*G))
-tb.dump(os.path.join(OUT, "NAND2_J2_tb.kicad_sch"), "NAND2_J2 testbench", root=True,
+tb.dump(os.path.join(OUT, "NAND2_J2", "NAND2_J2_tb.kicad_sch"), "NAND2_J2 testbench", root=True,
         comments=["HV +150/+50 V, LV +10/-20 V, fanout 10, 2 us per input state"], paper="A3")
 print("ok")

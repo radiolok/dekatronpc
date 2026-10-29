@@ -47,7 +47,7 @@ Why one sheet holds both halves: KiCad stores one symbol unit per sheet file for
 
 ### The HV → LV divider
 
-Unchanged from NOR2_N16 (`doc/nor2_n16_6n16b.md`): one divider per HV net, R1 470 kΩ ‖ C1 from the plate to the LV net, R2 200 kΩ from the LV net to −50 V, **C1 = 3.9 pF × the number of grids on the net**.
+Unchanged from NOR2_N16 (`sch/logic/NOR2_N16/README.md`): one divider per HV net, R1 470 kΩ ‖ C1 from the plate to the LV net, R2 200 kΩ from the LV net to −50 V, **C1 = 3.9 pF × the number of grids on the net**.
 
 The bounds were rechecked with an inverter as the driver. Its plate falls 147 → 55 V instead of 147 → 39 V for a NOR with both inputs high, so the grid kick is smaller, but the window is the same:
 
@@ -178,7 +178,7 @@ Power per tube:
 
 ## Model
 
-`sch/libs/6N16B.sub`, the Koren model from NOR2_N16 (checked against the datasheet in `doc/nor2_n16_6n16b.md` and `doc/6n16b_datasheet.md`). For this cell it gained one element: `C7 Pa Pb {CPP}`, the plate-to-plate capacitance, CPP = 0.5 pF (datasheet Ca1a2 0.5 ± 0.15 pF). NOR2_N16 ties the plates, so its results do not change; the NOR2_N16 sweep was rerun and matches its page.
+`sch/libs/6N16B.sub`, the Koren model from NOR2_N16 (checked against the datasheet in `sch/logic/NOR2_N16/README.md` and `doc/6n16b_datasheet.md`). For this cell it gained one element: `C7 Pa Pb {CPP}`, the plate-to-plate capacitance, CPP = 0.5 pF (datasheet Ca1a2 0.5 ± 0.15 pF). NOR2_N16 ties the plates, so its results do not change; the NOR2_N16 sweep was rerun and matches its page.
 
 The model does not have the grid-to-other-plate capacitance; the datasheet does not give it, and the screen between the sections should keep it below Ca1a2.
 
@@ -186,16 +186,16 @@ The model does not have the grid-to-other-plate capacitance; the datasheet does 
 
 | File | |
 |---|---|
-| `sch/logic/NOT_N16.kicad_sch` | the cell (two inverters); embed it as a hierarchical sheet |
-| `sch/logic/NOT_N16_tb.kicad_pro`, `NOT_N16_tb.kicad_sch` | testbench project |
+| `sch/logic/NOT_N16/NOT_N16.kicad_sch` | the cell (two inverters); embed it as a hierarchical sheet |
+| `sch/logic/NOT_N16/NOT_N16_tb.kicad_pro`, `NOT_N16_tb.kicad_sch` | testbench project |
 | `sch/libs/6N16B.sub` | model |
 | `tools/kicad/gen_not_n16.py` | generated both sheets (the first time only; edit the drawn cell in KiCad) |
 | `tools/spice/not_sweep.py` | fanout sweep; takes Ra, R1, R2, C1g and model overrides (`M="MU=20.8"`) |
-| `tools/spice/not_plots.py` | rebuilds every figure on this page into `doc/img` |
+| `tools/spice/not_plots.py` | rebuilds every figure on this page into `img/` |
 
 - **KiCad simulator:** open `NOT_N16_tb.kicad_pro`, Inspect → Simulator. Plot `V(/IN_A)`, `V(/IN_B)`, `V(/OUT_A)`, `V(/OUT_B)`, `V(/OUT_A_LV)`.
-- **Command line:** `tools/spice/sim_kicad.sh sch/logic/NOT_N16_tb.kicad_sch`.
-- **Embedding in a module:** add a sheet with file `NOT_N16.kicad_sch`, connect A1, Y1, A2, Y2, H1, H2. Draw one divider per HV net that drives grids, C1 = 3.9 pF per grid. Tie the input of an unused half to an LV net. The project must sit one directory below `sch/`.
+- **Command line:** `tools/spice/sim_kicad.sh sch/logic/NOT_N16/NOT_N16_tb.kicad_sch`.
+- **Embedding in a module:** add a sheet with file `NOT_N16.kicad_sch`, connect A1, Y1, A2, Y2, H1, H2. Draw one divider per HV net that drives grids, C1 = 3.9 pF per grid. Tie the input of an unused half to an LV net. The project must sit two directories below `sch/` (`sch/logic/<CELL>/`).
 
 ## Open points
 

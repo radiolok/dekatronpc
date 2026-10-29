@@ -9,7 +9,7 @@ Both scans were supplied by the owner; neither has a URL. The tables are transcr
 
 On the 6Ж2Б-В sheet, the "-В" means increased reliability. Its limits differ from the handbook's in places, and **its lead numbering is different** (see [Pinout](#pinout-and-dimensions)).
 
-This repo already has a KiCad symbol `vacuum_tube:6Ж2Б` and liberty cells `BUF_6J2B`, `NAND2_J2` (`rtl/vtube/vtube_cells.lib`). The SPICE model is `sch/libs/6Zh2B.sub`, fitted to the curves on this page by `tools/spice/fit_6zh2b.py`; the comparison is in [Model](#model).
+This repo already has a KiCad symbol `vacuum_tube:6Ж2Б` and liberty cells `BUF_6J2B`, `NAND2_J2` (`sch/logic/vtube_cells.lib`). The SPICE model is `sch/libs/6Zh2B.sub`, fitted to the curves on this page by `tools/spice/fit_6zh2b.py`; the comparison is in [Model](#model).
 
 ## Description
 
@@ -174,7 +174,7 @@ To redraw the figures: `tools/spice/datasheet_6zh2b_plots.py [OUT_DIR]` (default
 
 ## Model
 
-`sch/libs/6Zh2B.sub` is a behavioural model fitted to Рис. 215 and 216 by `tools/spice/fit_6zh2b.py`, which also writes the file. Its equations and assumptions are in `doc/nand2_j2_6zh2b.md`, section Model.
+`sch/libs/6Zh2B.sub` is a behavioural model fitted to Рис. 215 and 216 by `tools/spice/fit_6zh2b.py`, which also writes the file. Its equations and assumptions are in `sch/logic/NAND2_J2/README.md`, section Model.
 
 ![sheet vs model](img/6zh2b_model.png)
 

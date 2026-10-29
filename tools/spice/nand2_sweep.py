@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""NAND2_J2 transient sweep over fanout (doc/nand2_j2_6zh2b.md).
+"""NAND2_J2 transient sweep over fanout (sch/logic/NAND2_J2/README.md).
 Gate: one 6Zh2B, A on g1, B on g3 (LV: 1 = +10, 0 = -20 V), HV plate output (1 = +150, 0 = +50 V) through Ra,
 screen through Rg2 from +150 V; HV->LV divider R1 || C1 / R2 to -50 V.
 Chain: ideal HV pulse -> divider -> driver NAND (inputs tied) -> divider -> DUT A/B;

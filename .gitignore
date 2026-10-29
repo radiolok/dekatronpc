@@ -35,6 +35,7 @@ run/*.json
 # структурные схемы для SCHEMES.md
 !img/schemes/*.svg
 !doc/img/*.png
+!sch/logic/*/img/*.png
 tools/schemes/out/
 __pycache__/
 

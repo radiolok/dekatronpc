@@ -1,7 +1,7 @@
 # Tube count: analysis of the synthesis report and how to reach the budget (now ≤ 1200)
 
 Date: 2026-10-06. Covers the Yosys netlists of `IpLine`, `ApLine` and `MachineCtrl`
-(`rtl/run/run_tests.sh -s`, `rtl/run/synt_dpc.tcl`, `rtl/vtube/vtube_cells.lib`
+(`rtl/run/run_tests.sh -s`, `rtl/run/synt_dpc.tcl`, `sch/logic/vtube_cells.lib`
 with the uncommitted renames `NOT_N16`, `A1OOI_N16J2`, `A2OOI_J2`).
 §1–§7 are the original analysis (no RTL or flow file was changed then; all experiments
 ran on scratch copies). §8–§14 record what was implemented afterwards.
@@ -279,7 +279,7 @@ blocks. Every flop removed now saves about 7–9 tubes (with its enable mux), so
 
 ### Flow changes
 
-- `rtl/vtube/vtube_cells.lib`: `QN` pin (`function: "IQN"`) on `LATCH`, `DFF`,
+- `sch/logic/vtube_cells.lib`: `QN` pin (`function: "IQN"`) on `LATCH`, `DFF`,
   `DFFSR`, `DFFSR_n`.
 - `rtl/run/abc_area.abc`: `strash; &get -n; &deepsyn -J 50 -T 30; &put; dch -f; map -a; topo`.
   `-J` (stop after 50 steps without improvement) keeps the result reproducible.
@@ -759,10 +759,10 @@ switch, never by fast or clocked logic. Where a relay saves no tube, the tubes s
 
 ### Library and modules
 
-- `rtl/vtube/vtube_cells.lib`: cell `RELAY_2CO` (pins `COIL`, `NC1/NO1/C1`, `NC2/NO2/C2`;
+- `sch/logic/vtube_cells.lib`: cell `RELAY_2CO` (pins `COIL`, `NC1/NO1/C1`, `NC2/NO2/C2`;
   `Cn = COIL ? NOn : NCn`), area 0, `heat_current` 0, group `relays(names) { RELAY_2CO: 1; }`.
   The output pins have **no function**, so ABC never uses the relay as a general mux;
-  it only appears where RTL instantiates it. Model in `rtl/vtube/vtube_cells.v`.
+  it only appears where RTL instantiates it. Model in `sch/logic/vtube_cells.v`.
 - `rtl/Logic/Relay.sv` (added to `DPC.files` and `Emulator.qsf`):
   - `RELAY_2CO` behavioral model under `ifndef SYNTH` (in synthesis the liberty cell is used);
   - `RelayMux #(W, S)`: 2^S words of W bits, selected by S switches. A tree of changeover

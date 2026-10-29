@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""DLATCH_J2N16 and DFF_J2N16 transient checks (doc/latch_j2n16.md), built from the RSLATCH_J2N16 cell of
+"""DLATCH_J2N16 and DFF_J2N16 transient checks (sch/logic/RSLATCH_J2N16/README.md), built from the RSLATCH_J2N16 cell of
 latch_sweep.py and one 6N16B (NOT_N16) for the inverters.
 
 DLATCH: the RS latch with S = D and R = ~D; the inverter is half a 6N16B (Ra 10k) and its divider in the cell

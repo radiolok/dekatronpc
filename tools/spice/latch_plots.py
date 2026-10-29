@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Build every figure of the latch / flip-flop page (doc/latch_j2n16.md) from the sources in the repo.
+"""Build every figure of the latch / flip-flop page (sch/logic/RSLATCH_J2N16/README.md) from the sources in the repo.
 
-usage: tools/spice/latch_plots.py [OUT_DIR]          (default: doc/img)
+usage: tools/spice/latch_plots.py [OUT_DIR]          (default: each figure into sch/logic/<CELL>/img)
 
 Writes
   latch_rs_cell.png, latch_d2_cell.png, latch_dff_cell.png   cell sheets exported from KiCad
@@ -29,6 +29,16 @@ import dff_sweep as D      # noqa: E402
 SCH = os.path.join(REPO, "sch", "logic")
 P = dict(L.BASE, **L.CHOSEN, edge="neg")
 GRIDS = (2, 4, 6, 8, 10)
+IMG_CELL = {"latch_rs_cell.png": "RSLATCH_J2N16", "latch_rs_tran.png": "RSLATCH_J2N16", "latch_fanout.png": "RSLATCH_J2N16",
+            "latch_d2_cell.png": "DLATCH2_J2N16",
+            "latch_dff_cell.png": "DFF_J2N16", "latch_dff_tb.png": "DFF_J2N16", "latch_dff_tran.png": "DFF_J2N16"}
+
+def dest(out, png):
+    """Where a figure goes: OUT_DIR if given, else the img/ folder of the cell page that shows it."""
+    d = out or os.path.join(REPO, "sch", "logic", IMG_CELL[png], "img")
+    os.makedirs(d, exist_ok=True)
+    return os.path.join(d, png)
+
 
 BLUE, ORANGE, GREEN = "#2a78d6", "#eb6834", "#2e9e6a"
 INK, MUTED, GRID, SURF = "#1f1f1e", "#6b6a64", "#e4e3dc", "#fcfcfb"
@@ -71,17 +81,17 @@ def schematics(out, tmp):
                       ("DFF_J2N16_tb", {"DFF_J2N16_tb-DUT.svg": "latch_dff_cell.png", "DFF_J2N16_tb.svg": "latch_dff_tb.png"})):
         svg = os.path.join(tmp, tb)
         os.makedirs(svg, exist_ok=True)
-        subprocess.run(["kicad-cli", "sch", "export", "svg", "-e", "-o", svg, os.path.join(SCH, tb + ".kicad_sch")],
+        subprocess.run(["kicad-cli", "sch", "export", "svg", "-e", "-o", svg, os.path.join(SCH, tb[:-len("_tb")], tb + ".kicad_sch")],
                        check=True, capture_output=True)
         for s, png in pages.items():
-            crop_png(os.path.join(svg, s), os.path.join(out, png), width=2600 if "tb.svg" in s else 3000)
+            crop_png(os.path.join(svg, s), dest(out, png), width=2600 if "tb.svg" in s else 3000)
 
 
 def kicad_waves(tb, vecs, tmp):
-    sch = os.path.join(SCH, tb + ".kicad_sch")
+    sch = os.path.join(SCH, tb[:-len("_tb")], tb + ".kicad_sch")
     cir = os.path.join(tmp, tb + ".cir")
     subprocess.run(["kicad-cli", "sch", "export", "netlist", "--format", "spice", "-o", cir, sch], check=True, capture_output=True)
-    txt = open(cir).read().replace('.include "/../', '.include "%s/../' % SCH)
+    txt = open(cir).read().replace('.include "/../', '.include "%s/../' % os.path.dirname(sch))
     wave = os.path.join(tmp, tb + ".txt")
     txt = re.sub(r"^\.end\s*$", ".control\nrun\nwrdata %s %s\n.endc\n.end\n" % (wave, " ".join("v(%s)" % v for v in vecs)),
                  txt, flags=re.M)
@@ -115,12 +125,12 @@ def waveforms(out, tmp):
     rs, t, v = kicad_waves("RSLATCH_J2N16_tb", ["/S", "/R", "/E", "/Q", "/QN", "/DUT/FQ"], tmp)
     rows = [("S (LV)", v[0], "lv"), ("R (LV)", v[1], "lv"), ("E (LV, two g3)", v[2], "lv"),
             ("Q (HV)", v[3], "hv"), ("QN (HV)", v[4], "hv"), ("FQ (LV, cross-coupled grid of triode A)", v[5], "lv")]
-    wave_fig(os.path.join(out, "latch_rs_tran.png"), "RSLATCH_J2N16: KiCad testbench in ngspice, fanout 6 on Q and QN",
+    wave_fig(dest(out, "latch_rs_tran.png"), "RSLATCH_J2N16: KiCad testbench in ngspice, fanout 6 on Q and QN",
              t, rows, labels=["SRE\n011", "000", "100", "101", "100", "010", "011", "001", "101", "001", "011", "000"])
     df, t, v = kicad_waves("DFF_J2N16_tb", ["/C", "/D", "/DUT/QM", "/DUT/ES", "/Q", "/QN"], tmp)
     rows = [("C (LV, clock 1 MHz)", v[0], "lv"), ("D (LV)", v[1], "lv"), ("QM (HV, master Q)", v[2], "hv"),
             ("ES (LV, slave enable = ~C)", v[3], "lv"), ("Q (HV)", v[4], "hv"), ("QN (HV)", v[5], "hv")]
-    wave_fig(os.path.join(out, "latch_dff_tran.png"), "DFF_J2N16: KiCad testbench in ngspice, 1 MHz, fanout 6",
+    wave_fig(dest(out, "latch_dff_tran.png"), "DFF_J2N16: KiCad testbench in ngspice, 1 MHz, fanout 6",
              t, rows)
     return rs, df
 
@@ -206,14 +216,13 @@ def fanout(out):
     ax.set_xlabel("grids on Q (fanout)"); ax.set_ylabel("MHz")
     ax.set_title("Register → register clock limit (two DFF in a row)", loc="left", fontsize=10)
     ax.legend(frameon=False, loc="lower left", fontsize=8)
-    fig.savefig(os.path.join(out, "latch_fanout.png"), dpi=105)
+    fig.savefig(dest(out, "latch_fanout.png"), dpi=105)
     plt.close(fig)
     return rows, tim, dffr, fm
 
 
 if __name__ == "__main__":
-    out = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else os.path.join(REPO, "doc", "img"))
-    os.makedirs(out, exist_ok=True)
+    out = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else None
     with tempfile.TemporaryDirectory() as tmp:
         schematics(out, tmp)
         rs, df = waveforms(out, tmp)
@@ -226,4 +235,4 @@ if __name__ == "__main__":
     for k, n, x, dt in tim: print(f"{k:6s} N={n:2d}: {dt:5.0f} ns on the LV grids")
     for r in dffr: print(D.fmt(*r))
     for e, n, per in fm: print(f"shift {e} N={n:2d}: shortest period {per*1e3:4.0f} ns ({1/per:.2f} MHz)")
-    print("figures in", out)
+    print("figures in", out or "sch/logic/<CELL>/img")

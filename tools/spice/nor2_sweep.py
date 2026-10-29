@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""NOR2_N16 transient sweep over fanout (doc/nor2_n16_6n16b.md).
+"""NOR2_N16 transient sweep over fanout (sch/logic/NOR2_N16/README.md).
 Gate: LV grid inputs (1 = +10, 0 = -20 V), HV plate output (1 = +150, 0 = +50 V); HV->LV divider R1 || C1 / R2 to -50 V.
 Chain: ideal HV pulse -> divider -> driver NOR (inputs tied) -> divider -> DUT A/B;
 DUT Y -> one divider (C1 = C1g x grids) -> N grids (N/2 load gates with both inputs tied).

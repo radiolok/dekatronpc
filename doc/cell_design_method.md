@@ -1,6 +1,6 @@
 # How to design a tube logic cell
 
-The method is distilled from the first cell, NOR2_N16 (`doc/nor2_n16_6n16b.md`), and extended with the second, NAND2_J2 on a 6Zh2B pentode (`doc/nand2_j2_6zh2b.md`), and the third, NOT_N16 (`doc/not_n16_6n16b.md`). Use it for BUF_N16, OR2_N16 and the rest of REQ-MOD-003. Each step lists what to do, what to check, and the traps already hit once.
+The method is distilled from the first cell, NOR2_N16 (`sch/logic/NOR2_N16/README.md`), and extended with the second, NAND2_J2 on a 6Zh2B pentode (`sch/logic/NAND2_J2/README.md`), the third, NOT_N16 (`sch/logic/NOT_N16/README.md`), the latches RSLATCH_J2N16 / DLATCH2_J2N16 / DFF_J2N16 (`sch/logic/RSLATCH_J2N16/README.md` and the pages next to it) and the cathode followers BUF_N16 / OR2_N16 (`sch/logic/BUF_N16/README.md`, `sch/logic/OR2_N16/README.md`). All cells are listed in `sch/logic/README.md`. Use it for the rest of REQ-MOD-003. Each step lists what to do, what to check, and the traps already hit once.
 
 Requirements: REQ-MOD-012 (levels), REQ-MOD-004 (delays, fan-out, power), REQ-MOD-005 (boards), REQ-AUTH-* (no silicon).
 
@@ -8,7 +8,7 @@ Requirements: REQ-MOD-012 (levels), REQ-MOD-004 (delays, fan-out, power), REQ-MO
 
 | Input | Where | NOR2_N16 example |
 |---|---|---|
-| Logic function, tube count | liberty `rtl/vtube/vtube_cells.lib` (`function`, `tubes`) | Y = ~(A \| B), one 6N16B |
+| Logic function, tube count | liberty `sch/logic/vtube_cells.lib` (`function`, `tubes`) | Y = ~(A \| B), one 6N16B |
 | Level families | TRS REQ-MOD-012 | HV on plates 1 = +150 V, 0 = +50 V; LV on grids 1 = +10 V, 0 = −20 V |
 | Supplies | TRS REQ-MOD-012, REQ-PWR-* | +150 V, −50 V, heater 6.3 V |
 | Input and output family of the cell | the cell's role | in LV (grids), out HV (plate) |
@@ -22,7 +22,9 @@ The level families and how cells join:
 
 - An HV output drives grids through a divider R1 ‖ C1 / R2 to −50 V with ratio 0.3 (470k / 200k): +150 → +10, +50 → −20.
 - One divider serves one HV net. All grids on that net share it, and C1 = 3.9 pF per grid.
+- In a netlist the divider is the cell `DIV_HL`: `rtl/run/div_insert.py` places one per HV net, module and grid class, with C1 = Σ `vtube_c1`; P&R chooses the board (`doc/hv_lv_dividers.md`). A new cell needs `vtube_level` on its outputs and `vtube_grid` / `vtube_c1` on its inputs in the liberty when they differ from the defaults (HV plate output, triode grid 3.9 pF).
 - LV → HV conversion is always a tube stage. The cell is one.
+- A cathode-follower cell (BUF_N16, OR2_N16) is the exception: LV in, **LV out**, straight onto gate grids with no divider. Its input grid needs its own divider, and its output may drive only gate grids (§4d).
 
 ## 1. The tube model
 
@@ -74,6 +76,7 @@ This trap has come up on every cell so far: NOR2_N16 (kick on the falling edge),
 | 6N16B triode grid | Cga 1.5 pF, gain ≈ 15 | ≈ 30 pF while active (Miller), ≈ 4 pF cut off | 3.9 pF | C1 cannot match both regions: too small and the edge crawls, too large and the falling edge kicks the grid below −50 V |
 | 6Zh2B g1 | Cg1a 0.03 pF: **no Miller** | ≈ 5 pF (Cg1k 3 + Cg1g2 1.9) | 3.3 pF (2.7 with a fast driver) | 3.9 pF is over-compensated. A fast triode driver (NOT_N16) kicks g1 to −43 V on the falling edge |
 | 6Zh2B g3 | Cg3a 1.8 pF (measured) | Cg3k 3 + Cb 15 pF in the cell | 6.8 pF | Held at "1" while another grid swings the plate: Miller integrator, the plate crawls at I_divider / Cg3a |
+| 6N16B cathode-follower grid (BUF_N16, OR2_N16) | Cga 1.5 pF, plate fixed on +150 V: **no Miller** | ≈ 2 pF conducting (bootstrapped Cgk), 4.2 pF cut off; a "1" is not clamped (+10 V) | 2.7 pF on its **own** divider | 1.2–1.5 pF: the "1" crawls (Y = Vg − 9 V needs the full +10 V); 3.3 pF and up: grid below −41 V |
 
 Rules:
 
@@ -167,6 +170,17 @@ A cell is accepted when all of these hold at every fanout from 2 to the target:
 - **One sheet file, one value.** Two instances of a sub-sheet cannot have different C1 (§4), so signals between the instances go through their own dividers in the parent sheet.
 - **Net labels at pin stubs** (`tools/kicad/gen_latch_j2n16.py`) keep a multi-tube cell generator short. Bottom tube pins are 1.27 mm apart, so route the heater pins bent at different heights. Verify the drawing with the KiCad netlist against the plain SPICE bench (`latch_tb.py`): they must agree to 0.01 %.
 
+## 4d. Traps found on BUF_N16 and OR2_N16 (cathode followers, LV output)
+
+- **A follower's cathode sits above its grid** by about Ua/μ near cut-off (≈ 5 V at Ua 160 V). With the cathode resistor alone, a "0" input of −18.7 V gives only −13.4 V out (5.8 V of LV margin). Split the cathode resistor (Rs from the cathode to Y, Rk from Y to −50 V) and take Y from the tap: the drop on Rs puts Y back near −19 V.
+- **A follower output on gate grids is a stiff source into grid diodes.** With Y straight from the cathode the load grids draw 4–5 mA each: Ik 16–41 mA, Pa 1.6–5.8 W. Rs limits that current. Check Ik and Pa with the loads attached, not on the bare stage.
+- **Y follows the input grid, so a follower needs the input's full "1".** A divider shared with gate grids clamps the "1" at +0.4 V, and the follower's "1" lands between VIL and the switching point. Give a follower grid its own divider. For the same reason a follower cannot drive another follower: its unclamped "1" is only +1 … +4 V.
+- **A plate resistor fixes the "0" level but starves the "1"** (the follower must supply Rk's current through it). Bypassing it with a capacitor makes the levels depend on the data history. Check a long "1" followed by a short "0" and a "1".
+- **A bypass capacitor across Rs must stay small** (100 pF). A larger one stores a charge from the last "0" that pulls the next "1" down for microseconds.
+- **Wired-OR followers have a hazard of their own.** When one input falls and the other rises, the falling grid drags the shared cathode down through Cgk and cancels part of the rising grid's C1 step. The rising grid then creeps up through the 140 kΩ divider, and Y with it. Measure the recovery, not only the dip: with Rk 10k it took 0.9–1.9 µs, and with 12k under 0.25 µs.
+- **Measure the delay through one load gate** (input grid → load plate 100 V). The LV → LV delay of a follower hides the slow tail of the "1" level, which is what the next gate needs.
+- **ERC:** a follower plate sits on +150 V. Make the plate pin passive in that sheet, or ERC reports open collector against power output.
+
 ## 5. Draw the cell in KiCad
 
 ### Generate the sheets with a script
@@ -188,7 +202,7 @@ The script embeds the stock symbols, so the files open without project library t
   - Driver and load instances of the cell sheet.
   - Dividers drawn at top level.
   - `.tran` and `.meas` as text directives. They use hierarchical net names, e.g. `v(/OUT)`, because KiCad prefixes root-sheet nets with `/`.
-- **Projects one directory below `sch/`** (for example `sch/logic/`), because `Sim.Library` is `${KIPRJMOD}/../libs/<tube>.sub`.
+- **Projects two directories below `sch/`** (`sch/logic/<CELL>/`), because `Sim.Library` is `${KIPRJMOD}/../../libs/<tube>.sub`.
 - **Simulation properties on the tube instance:** `Sim.Library`, `Sim.Name`, `Sim.Device SUBCKT`, `Sim.Pins`. KiCad merges the units of a multi-unit tube into one `X` line.
 - **Pin types:** plates `open_collector` (wired plates pass ERC), cathodes `passive`.
 
@@ -220,7 +234,7 @@ tools/spice/sim_kicad.sh sch/logic/<CELL>_tb.kicad_sch   # KiCad's own netlist t
 
 ## 7. Document the cell
 
-The cell page is `doc/<cell>_<tube>.md`, with images in `doc/img/` (`.gitignore` lets `doc/img/*.png` through). Use the structure of `doc/nor2_n16_6n16b.md`:
+Each cell has its own folder `sch/logic/<CELL>/`: the cell sheet `<CELL>.kicad_sch`, the testbench project `<CELL>_tb.kicad_pro/.kicad_sch`, the cell page `README.md` and its images in `img/` (`.gitignore` lets `sch/logic/*/img/*.png` through). The sheets reach the tube models as `${KIPRJMOD}/../../libs/`, so a cell folder sits two levels below `sch/`. Add the cell to the index `sch/logic/README.md`. Use the structure of `sch/logic/NOR2_N16/README.md`:
 
 1. Summary table: function, tubes, inputs and outputs with their families, supplies, parts, levels, delays, worst grid voltage.
 2. Logic levels, and how the cell joins the HV/LV scheme.
@@ -237,7 +251,7 @@ The cell page is `doc/<cell>_<tube>.md`, with images in `doc/img/` (`.gitignore`
 9. Files and how to simulate and embed the cell.
 10. Open points.
 
-Build every figure with one script: `tools/spice/nor2_plots.py [OUT_DIR]` (default `doc/img`). It exports the schematics from KiCad and crops them, runs the KiCad testbench, the static transfer deck and the fanout sweep, and draws the charts. For a new cell, copy it and change the CELL block (testbench file, crop of the cell page, parameters, signals to plot, input states). Rerun it whenever the cell or the testbench changes, so the page never shows stale figures.
+Build every figure with one script: `tools/spice/nor2_plots.py [OUT_DIR]` (default `sch/logic/NOR2_N16/img`). It exports the schematics from KiCad and crops them, runs the KiCad testbench, the static transfer deck and the fanout sweep, and draws the charts. For a new cell, copy it and change the CELL block (testbench file, crop of the cell page, parameters, signals to plot, input states). Rerun it whenever the cell or the testbench changes, so the page never shows stale figures.
 
 Charts follow the repo convention:
 - one hue per panel;

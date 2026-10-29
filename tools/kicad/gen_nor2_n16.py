@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
-"""Generate the NOR2_N16 cell sheet and its testbench (doc/cell_design_method.md, doc/nor2_n16_6n16b.md).
+"""Generate the NOR2_N16 cell sheet and its testbench (doc/cell_design_method.md, sch/logic/NOR2_N16/README.md).
 
-usage: gen_nor2_n16.py OUT_DIR      -> OUT_DIR/NOR2_N16.kicad_sch, OUT_DIR/NOR2_N16_tb.kicad_sch
+usage: gen_nor2_n16.py OUT_DIR      -> OUT_DIR/NOR2_N16/NOR2_N16.kicad_sch, OUT_DIR/NOR2_N16/NOR2_N16_tb.kicad_sch
 Every run makes new UUIDs: regenerate only to start a new cell from this one, not to edit a drawn cell
 (edit that in KiCad). Stock symbols come from the KiCad install, the tube from sch/libs/vacuum_tube.kicad_sym.
 """
 import math, uuid, re, sys, os
 
 OUT = sys.argv[1]
+os.makedirs(os.path.join(OUT, "NOR2_N16"), exist_ok=True)
 SYSLIB = os.environ.get("KICAD_SYMBOL_DIR", "/usr/share/kicad/symbols")
 REPO = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 PROJ = "NOR2_N16_tb"
-SIMLIB = "${KIPRJMOD}/../libs/6N16B.sub"
+SIMLIB = "${KIPRJMOD}/../../libs/6N16B.sub"
 TUBE_PINS = "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb"
 
 def U(): return str(uuid.uuid4())
@@ -195,8 +196,8 @@ cell.text("NOR2_N16: Y = ~(A | B). One 6N16B (6Н16Б): two triodes, plates in p
           "200k from the LV net to -50 V, C1 = 3.9 pF per grid on that net (see NOR2_N16_tb).\n"
           "LV inputs must come from such a divider (grid current is limited by it), never from a stiff source.\n"
           "Unused input: tie it to the other input. Supplies: +150 V, -50 V (dividers only), heater 6.3 V 0.4 A on H1/H2.\n"
-          "Page: doc/nor2_n16_6n16b.md", (20*G, 58*G))
-cell.dump(os.path.join(OUT, "NOR2_N16.kicad_sch"), "NOR2_N16 - 2NOR on 6N16B",
+          "Page: sch/logic/NOR2_N16/README.md", (20*G, 58*G))
+cell.dump(os.path.join(OUT, "NOR2_N16", "NOR2_N16.kicad_sch"), "NOR2_N16 - 2NOR on 6N16B",
           comments=["Y = ~(A | B); A, B: LV (+10/-20 V); Y: HV (+150/+50 V)", "Ra 10k to +150 V"])
 
 # ---------------------------------------------------------------- testbench
@@ -341,6 +342,6 @@ tb.text("NOR2_N16 testbench. 2 us per input state, DUT (A,B) = 00 10 01 11 00.\n
         "OUT (HV) -> one divider (C1 = 3.9 pF x 10 grids) -> OUT_LV -> 5 load gates, inputs tied = fanout 10.\n"
         "Plot V(/IN_A) V(/IN_B) V(/OUT) V(/OUT_LV); .meas results are printed in the simulator console.",
         (20*G, 80*G))
-tb.dump(os.path.join(OUT, "NOR2_N16_tb.kicad_sch"), "NOR2_N16 testbench", root=True,
+tb.dump(os.path.join(OUT, "NOR2_N16", "NOR2_N16_tb.kicad_sch"), "NOR2_N16 testbench", root=True,
         comments=["HV +150/+50 V, LV +10/-20 V, fanout 10, 2 us per input state"], paper="A3")
 print("ok")

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""RSLATCH_J2N16 timing constraints by bisection (doc/latch_j2n16.md).
+"""RSLATCH_J2N16 timing constraints by bisection (sch/logic/RSLATCH_J2N16/README.md).
 
 usage: latch_timing.py [grids ...]      (default 2 6 10)
   wmin   shortest E pulse (LV, measured at -5 V crossings) that sets the latch from Q = 0 with S held high;

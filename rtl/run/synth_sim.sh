@@ -8,7 +8,7 @@
 #           delays) instead of DekatronTubeV2, defined DEKATRON_DELAY_MODEL
 #           in synthesis and simulation; output in synth_sim_delay/
 #     -t    tube delays (implies -d): the cells get the delays of
-#           rtl/vtube/vtube_timing.json through SDF (iverilog -gspecify,
+#           sch/logic/vtube_timing.json through SDF (iverilog -gspecify,
 #           vtube_sdf.py) and every trigger a setup/hold checker; a run
 #           with violations fails. Default tests: Dekatron Counter
 #           DekatronPC. Output in synth_sim_timing/ (doc/vtube_sdf_timing.md)
@@ -32,7 +32,7 @@
 #   OneShot, Impulse hs_clk pulse timing (phase generator, write window)
 #   RstTimeRelay     time relay in the reset lines (extracted from DekatronPC.sv)
 #   Ram, IpMemory    memory (ferrite)
-# Library cells are simulated with rtl/vtube/vtube_cells.v.
+# Library cells are simulated with sch/logic/vtube_cells.v.
 #
 # Output goes to rtl/run/synth_sim/: one directory per test with the netlist,
 # synthesis log, simulation log and VCD. The exit code is the number of
@@ -42,9 +42,10 @@ set -uo pipefail
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
 root_dir=$(cd "${script_dir}/.." && pwd -P)
 work_dir=${script_dir}/synth_sim
-cell_lib=${root_dir}/vtube/vtube_cells.lib
-cell_models=${root_dir}/vtube/vtube_cells.v
-cell_timing=${root_dir}/vtube/vtube_timing.json
+cell_dir=$(cd "${root_dir}/../sch/logic" && pwd -P)
+cell_lib=${cell_dir}/vtube_cells.lib
+cell_models=${cell_dir}/vtube_cells.v
+cell_timing=${cell_dir}/vtube_timing.json
 dpc_files=${root_dir}/DekatronPC/DPC.files
 
 do_synth=1
@@ -196,7 +197,7 @@ simulate() {
 	if [ ${timing} -ne 0 ]; then
 		python3 "${script_dir}/vtube_sdf.py" -c "${cell_models}" -T "${cell_timing}" \
 			-n "${dir}/${top}_synth.v" -t "${top}" -s "${dut}" -o "${dir}/sdf" || return 2
-		sdf=(-s vtube_sdf "${dir}/sdf/vtube_sdf.sv" "${root_dir}/vtube/vtube_timing_check.v")
+		sdf=(-s vtube_sdf "${dir}/sdf/vtube_sdf.sv" "${cell_dir}/vtube_timing_check.v")
 	fi
 	echo "  sim   ${name}${clk_ns:+ (Clk ${clk_ns} ns)}"
 	iverilog -g2012 -o "${dir}/${name}_netlist" -DIPMEMFILE -DSIMPLEBOOT ${sim_defs} ${defines} \

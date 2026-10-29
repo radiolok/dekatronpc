@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""RSLATCH_J2N16 currents and dissipation per state (doc/latch_j2n16.md), from the sweep deck at fanout 10.
+"""RSLATCH_J2N16 currents and dissipation per state (sch/logic/RSLATCH_J2N16/README.md), from the sweep deck at fanout 10.
 
 usage: latch_static.py [M="6Zh2B params"] ...   prints, at the end of every state of latch_sweep.SEQ, the plate,
 screen and cathode current and dissipation of both pentodes and both triodes, nominal model and MU2 +-20 %.

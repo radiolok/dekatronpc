@@ -2,7 +2,7 @@
 
 This page redraws the Soviet reference sheet for the 6N16B (pages 48–50) as Markdown. The original scan is at https://frank.pocnet.net/sheets/113/6/6N16B.pdf.
 
-The tables are transcribed from the sheet. The curves were digitized from the scan; the data are in `doc/data/6n16b_datasheet.json`, and the plots are drawn by `tools/spice/datasheet_6n16b_plots.py`. The last section compares the sheet with the SPICE model `sch/libs/6N16B.sub`. Cells built on this tube: `doc/nor2_n16_6n16b.md`.
+The tables are transcribed from the sheet. The curves were digitized from the scan; the data are in `doc/data/6n16b_datasheet.json`, and the plots are drawn by `tools/spice/datasheet_6n16b_plots.py`. The last section compares the sheet with the SPICE model `sch/libs/6N16B.sub`. Cells built on this tube: `sch/logic/NOR2_N16/README.md`.
 
 ## Description
 

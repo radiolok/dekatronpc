@@ -200,7 +200,7 @@ if [ ${synt} -ne 0 ]; then
 	./synth IpLine
 	./synth ApLine
 	./synth MachineCtrl
-	python3 dpc_stat.py -j IpLine.json,ApLine.json,MachineCtrl.json -l ../vtube/vtube_cells.lib
+	python3 dpc_stat.py -j IpLine.json,ApLine.json,MachineCtrl.json -l ../../sch/logic/vtube_cells.lib
 fi
 
 if [ ${gate} -ne 0 ]; then

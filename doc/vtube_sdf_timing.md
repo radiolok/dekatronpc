@@ -11,10 +11,10 @@ for setup and hold.
 
 | File | Role |
 |---|---|
-| `rtl/vtube/vtube_cells.v` | each cell got a `specify` block with every input→output path at delay 0. Without `iverilog -gspecify` the blocks are ignored and the earlier flows behave exactly as before (checked: `-d` Dekatron, Counter, DekatronPC pass). |
-| `rtl/vtube/vtube_timing.json` | **the only place for the numbers**: per cell, per arc (`A->Y`, `posedge C->Q`, `S->Q`, …), one value or `[rise, fall]` in ns; `setuphold` for the triggers. |
+| `sch/logic/vtube_cells.v` | each cell got a `specify` block with every input→output path at delay 0. Without `iverilog -gspecify` the blocks are ignored and the earlier flows behave exactly as before (checked: `-d` Dekatron, Counter, DekatronPC pass). |
+| `sch/logic/vtube_timing.json` | **the only place for the numbers**: per cell, per arc (`A->Y`, `posedge C->Q`, `S->Q`, …), one value or `[rise, fall]` in ns; `setuphold` for the triggers. |
 | `rtl/run/vtube_sdf.py` | reads the netlist, the specify paths and the table; writes one SDF per netlist module and `vtube_sdf.sv`, a second simulation root with the `$sdf_annotate` calls, the checkers and a summary line. |
-| `rtl/vtube/vtube_timing_check.v` | `vtube_setuphold`, a behavioural setup/hold checker. Icarus parses `$setuphold` and SDF `TIMINGCHECK` but never checks them (tested on Icarus 13). |
+| `sch/logic/vtube_timing_check.v` | `vtube_setuphold`, a behavioural setup/hold checker. Icarus parses `$setuphold` and SDF `TIMINGCHECK` but never checks them (tested on Icarus 13). |
 | `rtl/run/synth_sim.sh` | `-t` (tube delays, implies `-d`, output in `synth_sim_timing/`), `-c NS` (Clk period). |
 | `Dekatron_tb`, `Counter_tb`, `DekatronPC_tb` | under `DEKATRON_DELAY_MODEL` the Clk period is `` `CLK_NS `` (default 1000 ns). |
 

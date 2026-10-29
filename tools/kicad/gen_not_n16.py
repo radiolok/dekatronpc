@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Generate the NOT_N16 cell sheet and its testbench (doc/cell_design_method.md, doc/not_n16_6n16b.md).
+"""Generate the NOT_N16 cell sheet and its testbench (doc/cell_design_method.md, sch/logic/NOT_N16/README.md).
 
-usage: gen_not_n16.py OUT_DIR      -> OUT_DIR/NOT_N16.kicad_sch, OUT_DIR/NOT_N16_tb.kicad_sch
+usage: gen_not_n16.py OUT_DIR      -> OUT_DIR/NOT_N16/NOT_N16.kicad_sch, OUT_DIR/NOT_N16/NOT_N16_tb.kicad_sch
 One sheet = one 6N16B = two independent inverters (liberty NOT_N16 is half a tube): A1 -> Y1, A2 -> Y2.
 Copied from gen_nor2_n16.py; the cell and testbench sections are new, the .meas lines come from
 tools/spice/not_sweep.py so the KiCad run and the plain-SPICE sweep measure the same things.
@@ -10,11 +10,12 @@ Every run makes new UUIDs: regenerate only to start over, not to edit a drawn ce
 import math, uuid, re, sys, os
 
 OUT = sys.argv[1]
+os.makedirs(os.path.join(OUT, "NOT_N16"), exist_ok=True)
 SYSLIB = os.environ.get("KICAD_SYMBOL_DIR", "/usr/share/kicad/symbols")
 REPO = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 PROJ = "NOT_N16_tb"
 
-SIMLIB = "${KIPRJMOD}/../libs/6N16B.sub"
+SIMLIB = "${KIPRJMOD}/../../libs/6N16B.sub"
 TUBE_PINS = "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb"
 
 def U(): return str(uuid.uuid4())
@@ -195,8 +196,8 @@ cell.text("NOT_N16: Y1 = ~A1, Y2 = ~A2. One 6N16B (6Н16Б): two independent inv
           "200k from the LV net to -50 V, C1 = 3.9 pF per grid on that net (see NOT_N16_tb).\n"
           "LV inputs must come from such a divider (grid current is limited by it), never from a stiff source.\n"
           "Unused half: tie its input to a used LV net or to the other input. Supplies: +150 V, -50 V (dividers only),\n"
-          "heater 6.3 V 0.4 A on H1/H2. Page: doc/not_n16_6n16b.md", (20*G, 58*G))
-cell.dump(os.path.join(OUT, "NOT_N16.kicad_sch"), "NOT_N16 - 2 x NOT on 6N16B",
+          "heater 6.3 V 0.4 A on H1/H2. Page: sch/logic/NOT_N16/README.md", (20*G, 58*G))
+cell.dump(os.path.join(OUT, "NOT_N16", "NOT_N16.kicad_sch"), "NOT_N16 - 2 x NOT on 6N16B",
           comments=["Y1 = ~A1, Y2 = ~A2; A: LV (+10/-20 V); Y: HV (+150/+50 V)", "Ra 10k to +150 V per triode"])
 
 # ---------------------------------------------------------------- testbench
@@ -357,6 +358,6 @@ tb.text("NOT_N16 testbench. 2 us per input state, DUT (A,B) = 00 10 11 01 00: ea
         "Plot V(/IN_A) V(/IN_B) V(/OUT_A) V(/OUT_B) V(/OUT_A_LV); .meas: ya0..4 / yb0..4 = OUT_A / OUT_B at the end of each state,\n"
         "xlo_min / xlo_max / xhi_min = the static output while the other half switches (plate-to-plate capacitance).",
         (20*G, 98*G))
-tb.dump(os.path.join(OUT, "NOT_N16_tb.kicad_sch"), "NOT_N16 testbench", root=True,
+tb.dump(os.path.join(OUT, "NOT_N16", "NOT_N16_tb.kicad_sch"), "NOT_N16 testbench", root=True,
         comments=["HV +150/+50 V, LV +10/-20 V, fanout 10 on each output, 2 us per input state"], paper="A3")
 print("ok")

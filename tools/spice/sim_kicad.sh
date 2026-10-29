@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Simulate a KiCad testbench from the command line, the same netlist the KiCad simulator runs.
-# usage: tools/spice/sim_kicad.sh sch/logic/NOR2_N16_tb.kicad_sch [out_dir]
+# usage: tools/spice/sim_kicad.sh sch/logic/NOR2_N16/NOR2_N16_tb.kicad_sch [out_dir]
 # kicad-cli leaves ${KIPRJMOD} empty, so the model path is fixed up to the project directory.
 # Text directives on the sheet (.tran, .meas) go into the netlist; .meas results are printed.
 set -euo pipefail

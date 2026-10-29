@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Build every figure of the NAND2_J2 cell page (doc/nand2_j2_6zh2b.md) from the sources in the repo.
+"""Build every figure of the NAND2_J2 cell page (sch/logic/NAND2_J2/README.md) from the sources in the repo.
 
-usage: tools/spice/nand2_plots.py [OUT_DIR]          (default: doc/img)
+usage: tools/spice/nand2_plots.py [OUT_DIR]          (default: sch/logic/NAND2_J2/img)
 
 Writes nand2_j2_cell.png, nand2_j2_tb.png (schematics exported from KiCad), nand2_j2_tran.png (KiCad testbench
 waveforms), nand2_j2_vtc.png (static transfer, nand2_static.py) and nand2_j2_fanout.png (delay vs fanout,
@@ -21,7 +21,8 @@ sys.path.insert(0, HERE)
 import nand2_sweep, nand2_static  # noqa: E402
 
 # ---- CELL: what to plot ------------------------------------------------------------------------------
-CELL_SCH = os.path.join(REPO, "sch", "logic", "NAND2_J2_tb.kicad_sch")
+CELL_DIR = os.path.join(REPO, "sch", "logic", "NAND2_J2")
+CELL_SCH = os.path.join(CELL_DIR, "NAND2_J2_tb.kicad_sch")
 CELL_SHEET_SVG = "NAND2_J2_tb-DUT.svg"          # the DUT page of the testbench export = the cell sheet
 CELL_CROP_MM = (60, 52, 172, 142)               # area of the cell drawing on its A4 page
 PARAMS = dict(R1="470k", R2="200k", C1g=3.9, C1g3=6.8, Cb=15, Ra="15k", Rg2="15k")
@@ -154,7 +155,7 @@ def fanout(out):
 
 
 if __name__ == "__main__":
-    out = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else os.path.join(REPO, "doc", "img"))
+    out = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else os.path.join(CELL_DIR, "img"))
     os.makedirs(out, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
         schematics(out, tmp)

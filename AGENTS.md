@@ -83,7 +83,7 @@ Decode on the pair {insn_mode, insn}. All 32 combinations must be covered. Undef
 - rtl/Emulator/: FPGA-only layer (keyboard, MS6205, IN-12, FirmwareLoader, io_register_block, legacy consul). Notes: rtl/DekatronPC/emulator_inspection.md.
 - rtl/Logic/, rtl/Functions/: primitives and codecs.
 - rtl/uart/: UART at 110 baud, 7N1.
-- rtl/vtube/: tube liberty, cell models and timing.
+- sch/logic/: tube logic cells, one folder per cell (`<CELL>.kicad_sch`, `<CELL>_tb.kicad_pro/.kicad_sch`, README.md cell page, img/; index in sch/logic/README.md, old sketches in legacy/), and the cell library: liberty vtube_cells.lib, models vtube_cells.v/.sp, timing vtube_timing.json, vtube_timing_check.v.
 - rtl/programs/: .bfk programs and the bootloader.
 - rtl/run/: scripts.
 - rtl/tests/: Icarus/Verilator testbenches.
@@ -102,7 +102,7 @@ CI is .github/workflows/*.yml and runs inside the Docker image from ./Dockerfile
 - `./run_tests.sh -t`: Icarus tests, then DekatronPC_tb in Verilator, compared with dpcrun step by step on helloworld, program.bfk and pi.bfk.
 - `./run_tests.sh -d`: the same flow with the delay model.
 - `./run_tests.sh -s`: Yosys synthesis with the tube count. dpc_stat.py needs rtl/run/.venv. ABC drifts by ±10 tubes, so compare small changes over several seeds.
-- `./synth_sim.sh [-d] [-t [-c NS]] [test…]`: netlist simulation (doc/synth_sim.md, doc/vtube_sdf_timing.md). Keep rtl/vtube/vtube_cells.v one to one with vtube_cells.lib. Cell timing lives only in rtl/vtube/vtube_timing.json.
+- `./synth_sim.sh [-d] [-t [-c NS]] [test…]`: netlist simulation (doc/synth_sim.md, doc/vtube_sdf_timing.md). Keep sch/logic/vtube_cells.v one to one with vtube_cells.lib. Cell timing lives only in sch/logic/vtube_timing.json.
 - `./build_fpga.sh [elab|syn|compile|program]`: Quartus build (doc/fpga_build.md). The file list in rtl/quartus/ is stale.
 - `cd tb && make <target> SIM=icarus`: cocotb (needs cocotb ≥ 2.0, pyuvm and pytest; venv ~/.venvs/dekatronpc). Never install cocotb-coverage: it pins cocotb < 2.
 

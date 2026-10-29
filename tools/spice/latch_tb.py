@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Testbench definitions shared by the KiCad testbenches (tools/kicad/gen_latch_j2n16.py) and the plain-SPICE
-reference runs, for RSLATCH_J2N16, DLATCH2_J2N16 and DFF_J2N16 (doc/latch_j2n16.md).
+reference runs, for RSLATCH_J2N16, DLATCH2_J2N16 and DFF_J2N16 (sch/logic/RSLATCH_J2N16/README.md).
 
 Each testbench: ideal HV sources (PWL) -> divider -> driver (6N16B triode, Ra 10k; second triode cut off) ->
 divider -> DUT input; each DUT output -> one divider -> load tubes (6N16B, both grids on the net).

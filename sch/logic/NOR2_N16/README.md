@@ -204,21 +204,21 @@ The model sits inside the datasheet spread. The full comparison against the digi
 
 | File | |
 |---|---|
-| `sch/logic/NOR2_N16.kicad_sch` | the cell; embed it as a hierarchical sheet |
-| `sch/logic/NOR2_N16_tb.kicad_pro`, `NOR2_N16_tb.kicad_sch` | testbench project |
+| `sch/logic/NOR2_N16/NOR2_N16.kicad_sch` | the cell; embed it as a hierarchical sheet |
+| `sch/logic/NOR2_N16/NOR2_N16_tb.kicad_pro`, `NOR2_N16_tb.kicad_sch` | testbench project |
 | `sch/libs/6N16B.sub` | model |
 | `tools/spice/sim_kicad.sh` | runs a KiCad testbench from the command line: exports the netlist and prints the `.meas` results |
 | `tools/spice/nor2_sweep.py` | fanout sweep; it also takes Ra, R1, R2, C1 and L as parameters |
-| `tools/spice/nor2_plots.py` | rebuilds every figure on this page into `doc/img` (schematics, waveforms, transfer, fanout) |
+| `tools/spice/nor2_plots.py` | rebuilds every figure on this page into `img/` (schematics, waveforms, transfer, fanout) |
 | `tools/spice/ngrun.py` | runs a deck through KiCad's `libngspice.so.0`; no ngspice binary needed |
 
 - **KiCad simulator:** open `NOR2_N16_tb.kicad_pro` and choose Inspect → Simulator. The sheet holds `.tran 5n 10u` and the `.meas` lines. Plot `V(/IN_A)`, `V(/IN_B)`, `V(/OUT)` and `V(/OUT_LV)`.
-- **Command line:** `tools/spice/sim_kicad.sh sch/logic/NOR2_N16_tb.kicad_sch`.
+- **Command line:** `tools/spice/sim_kicad.sh sch/logic/NOR2_N16/NOR2_N16_tb.kicad_sch`.
 - **Embedding in a module:**
   - Add a hierarchical sheet with file `NOR2_N16.kicad_sch` and connect A, B, Y, H1 and H2.
   - Draw one divider per HV net that drives grids, with C1 = 3.9 pF per grid on that net.
   - Tie an unused input to the other input.
-  - The model path is `${KIPRJMOD}/../libs/6N16B.sub`, so the project must sit one directory below `sch/`.
+  - The model path is `${KIPRJMOD}/../../libs/6N16B.sub`, so the project must sit two directories below `sch/` (`sch/logic/<CELL>/`).
   - The power symbols `+150V`, `-50V` and `+6.3V` are embedded in the sheets; KiCad's stock `power` library does not have them, so the GUI warns about a missing library symbol.
 
 ## Open points

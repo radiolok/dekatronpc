@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""NAND2_J2 static checks (doc/nand2_j2_6zh2b.md): operating points per input state and transfer curves.
+"""NAND2_J2 static checks (sch/logic/NAND2_J2/README.md): operating points per input state and transfer curves.
 
 usage: nand2_static.py            prints levels, currents and dissipation per state (MU2 nominal and +-20 %),
                                   and the transfer thresholds of each input with the other input high.

@@ -3,6 +3,8 @@
 #                       netlist with their parameters (netlist simulation puts
 #                       the RTL model back, see synth_sim.sh)
 #   -p <name> <value>   override a parameter of the top module
+#   -div                insert the HV -> LV dividers (DIV_HL cells) after mapping
+#                       and check the signal levels (div_insert.py, doc/hv_lv_dividers.md)
 #   -D <name>[=<value>] define a preprocessor macro, e.g. DEKATRON_DELAY_MODEL
 #                       (the netlist instantiates DekatronTubeDelay); without
 #                       a value it is 1
@@ -19,11 +21,13 @@ set top        [lindex $argv 1]
 set blackboxes {}
 set top_params {}
 set defines {}
+set div 0
 for {set i 2} {$i < $argc} {incr i} {
   switch -- [lindex $argv $i] {
     -bb { lappend blackboxes [lindex $argv [incr i]] }
     -p  { lappend top_params [lindex $argv [incr i]] [lindex $argv [incr i]] }
     -D  { lappend defines [lindex $argv [incr i]] }
+    -div { set div 1 }
     default { puts "unknown option [lindex $argv $i]"; exit 1 }
   }
 }
@@ -37,7 +41,7 @@ foreach def $defines {
   }
 }
 
-set cell_lib "$script_dir/../vtube/vtube_cells.lib"
+set cell_lib "$script_dir/../../sch/logic/vtube_cells.lib"
 
 set fp [open [lindex $argv 0] r]
 set file_data [read $fp]
@@ -94,11 +98,18 @@ yosys clean
 # A tube trigger has the inverted output for free: inverters on Q go to QN
 yosys write_json ${top}_premap.json
 exec python3 $script_dir/qn_absorb.py -l $cell_lib -i ${top}_premap.json -o ${top}_qn.json >@ stdout
+set netlist_json ${top}_qn.json
+# HV -> LV dividers as DIV_HL cells, one per HV net and grid class; P&R places them
+if {$div} {
+  exec python3 $script_dir/div_insert.py -l $cell_lib -i ${top}_qn.json -o ${top}_div.json >@ stdout
+  set netlist_json ${top}_div.json
+}
 yosys design -reset
 yosys read_liberty -lib $cell_lib
-yosys read_json ${top}_qn.json
+yosys read_json $netlist_json
 yosys hierarchy -top $top
 file delete ${top}_premap.json ${top}_qn.json ${top}_cells_sim.v
+if {$div} { file delete ${top}_div.json }
 
 yosys write_verilog ${top}_synth.v
 #

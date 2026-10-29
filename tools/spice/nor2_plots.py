@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Build every figure of the NOR2_N16 cell page (doc/nor2_n16_6n16b.md) from the sources in the repo.
+"""Build every figure of the NOR2_N16 cell page (sch/logic/NOR2_N16/README.md) from the sources in the repo.
 
-usage: tools/spice/nor2_plots.py [OUT_DIR]          (default: doc/img)
+usage: tools/spice/nor2_plots.py [OUT_DIR]          (default: sch/logic/NOR2_N16/img)
 
 Writes nor2_n16_cell.png, nor2_n16_tb.png (schematics exported from KiCad), nor2_n16_tran.png (KiCad testbench
 waveforms), nor2_n16_vtc.png (static transfer) and nor2_n16_fanout.png (delay vs fanout, nor2_sweep.py).
@@ -22,7 +22,8 @@ sys.path.insert(0, HERE)
 import nor2_sweep  # noqa: E402
 
 # ---- CELL: what to plot ------------------------------------------------------------------------------
-CELL_SCH = os.path.join(REPO, "sch", "logic", "NOR2_N16_tb.kicad_sch")
+CELL_DIR = os.path.join(REPO, "sch", "logic", "NOR2_N16")
+CELL_SCH = os.path.join(CELL_DIR, "NOR2_N16_tb.kicad_sch")
 CELL_SHEET_SVG = "NOR2_N16_tb-DUT.svg"          # the DUT page of the testbench export = the cell sheet
 CELL_CROP_MM = (70, 50, 190, 145)               # area of the cell drawing on its A4 page
 PARAMS = dict(R1="470k", R2="200k", C1g=3.9, Ra="10k")
@@ -181,7 +182,7 @@ def fanout(out):
 
 
 if __name__ == "__main__":
-    out = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else os.path.join(REPO, "doc", "img"))
+    out = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else os.path.join(CELL_DIR, "img"))
     os.makedirs(out, exist_ok=True)
     with tempfile.TemporaryDirectory() as tmp:
         schematics(out, tmp)

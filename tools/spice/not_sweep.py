@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""NOT_N16 transient sweep over fanout (doc/not_n16_6n16b.md).
+"""NOT_N16 transient sweep over fanout (sch/logic/NOT_N16/README.md).
 Cell: one 6N16B = two independent inverters, each triode with its own Ra to +150 V.
 Gate: LV grid input (1 = +10, 0 = -20 V), HV plate output (1 = +150, 0 = +50 V); HV->LV divider R1 || C1 / R2 to -50 V.
 Chain: ideal HV pulse -> divider -> driver NOT -> divider -> DUT grid; each DUT output -> one divider

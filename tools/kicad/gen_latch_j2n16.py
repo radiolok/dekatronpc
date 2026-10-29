@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Generate the RSLATCH_J2N16, DLATCH2_J2N16 and DFF_J2N16 sheets and their testbenches
-(doc/cell_design_method.md, doc/latch_j2n16.md).
+(doc/cell_design_method.md, sch/logic/RSLATCH_J2N16/README.md).
 
 usage: gen_latch_j2n16.py OUT_DIR
-  OUT_DIR/RSLATCH_J2N16.kicad_sch   cell: gated RS latch, 2 x 6Zh2B + 1 x 6N16B (sub-sheet of the two below)
-  OUT_DIR/DLATCH2_J2N16.kicad_sch   two D latches: 2 x RSLATCH + one 6N16B for both D inverters (7 tubes)
-  OUT_DIR/DFF_J2N16.kicad_sch       master-slave D flip-flop, falling edge: 2 x RSLATCH + one 6N16B (D and C) (7 tubes)
-  OUT_DIR/<cell>_tb.kicad_sch/.kicad_pro   testbenches; stimulus, loads and .meas from tools/spice/latch_tb.py
+  OUT_DIR/RSLATCH_J2N16/RSLATCH_J2N16.kicad_sch   cell: gated RS latch, 2 x 6Zh2B + 1 x 6N16B (sub-sheet of the two below)
+  OUT_DIR/DLATCH2_J2N16/DLATCH2_J2N16.kicad_sch   two D latches: 2 x RSLATCH + one 6N16B for both D inverters (7 tubes)
+  OUT_DIR/DFF_J2N16/DFF_J2N16.kicad_sch       master-slave D flip-flop, falling edge: 2 x RSLATCH + one 6N16B (D and C) (7 tubes)
+  OUT_DIR/<cell>/<cell>_tb.kicad_sch/.kicad_pro   testbenches; stimulus, loads and .meas from tools/spice/latch_tb.py
 
 Unlike gen_nand2_j2.py the parts are connected by net labels at short pin stubs, not by drawn wires: the cells have
 many internal nets, and the labels carry the same names as the plain-SPICE reference (latch_tb.py).
@@ -16,6 +16,7 @@ the instances of all three testbench projects.
 import math, uuid, re, sys, os
 
 OUT = sys.argv[1]
+for _c in ("RSLATCH_J2N16", "DLATCH2_J2N16", "DFF_J2N16"): os.makedirs(os.path.join(OUT, _c), exist_ok=True)
 SYSLIB = os.environ.get("KICAD_SYMBOL_DIR", "/usr/share/kicad/symbols")
 REPO = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 sys.path.insert(0, os.path.join(REPO, "tools", "spice"))
@@ -55,9 +56,9 @@ def fix_tube_pins(b):
     return b
 
 J2, N16 = "vacuum_tube:6Ж2Б", "vacuum_tube:6Н16Б"
-SIM = {J2: {"Sim.Library": "${KIPRJMOD}/../libs/6Zh2B.sub", "Sim.Name": "6Zh2B", "Sim.Device": "SUBCKT",
+SIM = {J2: {"Sim.Library": "${KIPRJMOD}/../../libs/6Zh2B.sub", "Sim.Name": "6Zh2B", "Sim.Device": "SUBCKT",
             "Sim.Pins": "1=A 2=G3 3=G2 6=K 7=G1"},
-       N16: {"Sim.Library": "${KIPRJMOD}/../libs/6N16B.sub", "Sim.Name": "6N16B", "Sim.Device": "SUBCKT",
+       N16: {"Sim.Library": "${KIPRJMOD}/../../libs/6N16B.sub", "Sim.Name": "6N16B", "Sim.Device": "SUBCKT",
              "Sim.Pins": "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb"}}
 
 def tube_lib(name, key):
@@ -261,11 +262,11 @@ rs.text("RSLATCH_J2N16: gated RS latch. QN = ~((S & E) | Q), Q = ~((R & E) | QN)
         "Two AND-OR-INVERT halves: 6Zh2B (S or R on g1, E on g3) and one triode of the 6N16B on a common plate, Ra 10k.\n"
         "Each plate drives the other half's triode through a divider in the cell (470k || 3.9 pF / 200k to -50 V).\n"
         "S, R, E: LV (1 = +10 V, 0 = -20 V). Q, QN: HV (1 = +150 V, 0 = +50 V). S = R = 1 with E = 1 is forbidden (Q = QN = 0).\n"
-        "Screens Rg2 15k from +150 V; Cb 15 pF on each g3 holds E against the plate swing (g3 Miller, doc/nand2_j2_6zh2b.md).\n"
+        "Screens Rg2 15k from +150 V; Cb 15 pF on each g3 holds E against the plate swing (g3 Miller, sch/logic/NAND2_J2/README.md).\n"
         "Input divider C1 per grid: S, R (pentode g1) 2.7 pF; E (two g3) 2 x 6.8 pF. Outputs: one divider per net, 3.9 pF per triode grid.\n"
         "Simulated, fanout 2/10: E -> Q 172/368 ns, S -> QN 138/337 ns; E pulse >= 216/454 ns; setup 182/432 ns, hold <= 0.\n"
-        "Heater 6.3 V: 2 x 0.2 A + 0.4 A on H1/H2. Page: doc/latch_j2n16.md", (20*G, 85*G))
-rs.dump(os.path.join(OUT, "RSLATCH_J2N16.kicad_sch"), "RSLATCH_J2N16 - gated RS latch",
+        "Heater 6.3 V: 2 x 0.2 A + 0.4 A on H1/H2. Page: sch/logic/RSLATCH_J2N16/README.md", (20*G, 85*G))
+rs.dump(os.path.join(OUT, "RSLATCH_J2N16", "RSLATCH_J2N16.kicad_sch"), "RSLATCH_J2N16 - gated RS latch",
         comments=["QN = ~((S&E)|Q), Q = ~((R&E)|QN); S, R, E: LV; Q, QN: HV", "2 x 6Zh2B + 6N16B; Ra 10k, Rg2 15k, Cb 15p"], paper="A3")
 
 RS_PINS = [("S", "input", "L", 1), ("R", "input", "L", 3), ("E", "input", "L", 5), ("H1", "passive", "L", 8),
@@ -291,13 +292,13 @@ divider(dl, 45*G, 27*G, "DN1", "R1", C1P, hier=HD)
 divider(dl, 45*G, 52*G, "DN2", "R2", C1P, hier=HD)
 for i, (uid, yy) in enumerate(((S['dl_l1'], 20*G), (S['dl_l2'], 45*G)), 1):
     nets = {"S": f"D{i}", "R": f"R{i}", "E": "E", "Q": f"Q{i}", "QN": f"QN{i}", "H1": "H1", "H2": "H2"}
-    dl.subsheet(f"L{i}", "RSLATCH_J2N16.kicad_sch", (90*G, yy), RS_SIZE, RS_PINS, nets,
+    dl.subsheet(f"L{i}", "../RSLATCH_J2N16/RSLATCH_J2N16.kicad_sch", (90*G, yy), RS_SIZE, RS_PINS, nets,
                 [(PROJ["dl"], f"/{R['dl']}/{S['dl_dut']}", str(2 + i))], uid, hier=HD)
 dl.text("DLATCH2_J2N16: two D latches, Qi = Di while E = 1, held while E = 0. 7 tubes: 2 x RSLATCH_J2N16 + one 6N16B.\n"
         "The 6N16B inverts D1 and D2 (Ra 10k), each through a divider (2.7 pF, one pentode g1) to R of its latch.\n"
         "D pins: one pentode g1 + one triode grid (divider C1 2.7 + 3.9 pF). E: four g3 (4 x 6.8 pF). Outputs HV.\n"
-        "A 16-tube board holds two of these (four latches) or two DFF_J2N16. Page: doc/latch_j2n16.md", (20*G, 80*G))
-dl.dump(os.path.join(OUT, "DLATCH2_J2N16.kicad_sch"), "DLATCH2_J2N16 - two D latches",
+        "A 16-tube board holds two of these (four latches) or two DFF_J2N16. Page: sch/logic/RSLATCH_J2N16/README.md", (20*G, 80*G))
+dl.dump(os.path.join(OUT, "DLATCH2_J2N16", "DLATCH2_J2N16.kicad_sch"), "DLATCH2_J2N16 - two D latches",
         comments=["Qi = Di while E = 1; D, E: LV; Q, QN: HV", "2 x RSLATCH_J2N16 + 6N16B (D inverters)"], paper="A3")
 
 # ---------------------------------------------------------------- DFF_J2N16
@@ -308,10 +309,10 @@ divider(df, 45*G, 27*G, "DN", "RM", C1P, hier=HF)
 divider(df, 45*G, 52*G, "CN", "ES", pf(2 * C1G3), hier=HF)
 divider(df, 125*G, 22*G, "QM", "SS", C1P, hier=HF)
 divider(df, 125*G, 32*G, "QNM", "RS", C1P, hier=HF)
-df.subsheet("M", "RSLATCH_J2N16.kicad_sch", (90*G, 20*G), RS_SIZE,
+df.subsheet("M", "../RSLATCH_J2N16/RSLATCH_J2N16.kicad_sch", (90*G, 20*G), RS_SIZE,
             RS_PINS, {"S": "D", "R": "RM", "E": "C", "Q": "QM", "QN": "QNM", "H1": "H1", "H2": "H2"},
             [(PROJ["df"], f"/{R['df']}/{S['df_dut']}", "3")], S['df_m'], hier=HF)
-df.subsheet("S", "RSLATCH_J2N16.kicad_sch", (90*G, 50*G), RS_SIZE,
+df.subsheet("S", "../RSLATCH_J2N16/RSLATCH_J2N16.kicad_sch", (90*G, 50*G), RS_SIZE,
             RS_PINS, {"S": "SS", "R": "RS", "E": "ES", "Q": "Q", "QN": "QN", "H1": "H1", "H2": "H2"},
             [(PROJ["df"], f"/{R['df']}/{S['df_dut']}", "4")], S['df_s'], hier=HF)
 df.text("DFF_J2N16: master-slave D flip-flop, Q takes D at the FALLING edge of C (owner's drawing, 2026-10-27).\n"
@@ -320,8 +321,8 @@ df.text("DFF_J2N16: master-slave D flip-flop, Q takes D at the FALLING edge of C
         "The C inverter must stay in the cell: the master opens before the slave closes by its delay, race margin ~90 ns.\n"
         "Simulated: register to register 1.11 / 1.05 / 0.93 MHz at fanout 2 / 6 / 10; C -> Q 340/539 ns (fanout 2/10); hold <= 0.\n"
         "D: one pentode g1 + one triode grid (C1 2.7 + 3.9 pF). C: two g3 + one triode grid (2 x 6.8 + 3.9 pF). 7 tubes, heater 2.0 A.\n"
-        "Page: doc/latch_j2n16.md", (20*G, 80*G))
-df.dump(os.path.join(OUT, "DFF_J2N16.kicad_sch"), "DFF_J2N16 - D flip-flop, falling edge",
+        "Page: sch/logic/RSLATCH_J2N16/README.md", (20*G, 80*G))
+df.dump(os.path.join(OUT, "DFF_J2N16", "DFF_J2N16.kicad_sch"), "DFF_J2N16 - D flip-flop, falling edge",
         comments=["Q <= D at the falling edge of C; D, C: LV; Q, QN: HV", "2 x RSLATCH_J2N16 + 6N16B (D and C inverters)"], paper="A3")
 
 
@@ -379,9 +380,9 @@ def testbench(key, tb, cell_file, cell_pins, size):
             "Each output -> one divider (C1 3.9 pF per grid) -> x_LV -> load tubes, both grids on the net.\n"
             + tb['note'] + "\nThe plain-SPICE run of the same bench: python3 tools/spice/latch_tb.py", (20*G, yt + 3*G))
     sh.text("\n".join("." + l for l in tb['meas']), (20*G, yt + 12*G), 1.0)
-    sh.dump(os.path.join(OUT, f"{tb['name']}_tb.kicad_sch"), f"{tb['name']} testbench", root=True,
+    sh.dump(os.path.join(OUT, tb["name"], f"{tb['name']}_tb.kicad_sch"), f"{tb['name']} testbench", root=True,
             comments=["HV +150/+50 V, LV +10/-20 V", tb["note"][:120]], paper="A1")
-    open(os.path.join(OUT, f"{tb['name']}_tb.kicad_pro"), "w").write(
+    open(os.path.join(OUT, tb["name"], f"{tb['name']}_tb.kicad_pro"), "w").write(
         '{\n  "meta": {\n    "filename": "%s_tb.kicad_pro",\n    "version": 3\n  }\n}\n' % tb['name'])
 
 testbench("rs", TB.rslatch_tb(), "RSLATCH_J2N16.kicad_sch", RS_PINS, RS_SIZE)

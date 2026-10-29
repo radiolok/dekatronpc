@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gated RS latch RSLATCH_J2N16 transient sweep over fanout (doc/latch_j2n16.md).
+"""Gated RS latch RSLATCH_J2N16 transient sweep over fanout (sch/logic/RSLATCH_J2N16/README.md).
 
 Cell: two AND-OR-INVERT halves on a common plate each, cross-coupled:
     QN = ~((S & E) | Q)      pentode 6Zh2B #1 (AND of S, E) + triode A of a 6N16B (grid from Q)

@@ -4141,7 +4141,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Sheetfile" "BUF_х2_6Н16Б.kicad_sch"
+		(property "Sheetfile" "legacy/BUF_х2_6Н16Б.kicad_sch"
 			(at 62.23 41.2246 0)
 			(effects
 				(font
@@ -4179,7 +4179,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Sheetfile" "2OR.kicad_sch"
+		(property "Sheetfile" "legacy/2OR.kicad_sch"
 			(at 236.22 74.2446 0)
 			(effects
 				(font
@@ -4217,7 +4217,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Sheetfile" "INV_x2_6Н16Б.kicad_sch"
+		(property "Sheetfile" "legacy/INV_x2_6Н16Б.kicad_sch"
 			(at 140.97 37.4146 0)
 			(effects
 				(font
@@ -4255,7 +4255,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Sheetfile" "INV_6Ж2Б.kicad_sch"
+		(property "Sheetfile" "legacy/INV_6Ж2Б.kicad_sch"
 			(at 101.6 39.9546 0)
 			(effects
 				(font
@@ -4293,7 +4293,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Sheetfile" "2NOR.kicad_sch"
+		(property "Sheetfile" "legacy/2NOR.kicad_sch"
 			(at 190.5 47.5746 0)
 			(effects
 				(font
@@ -4331,7 +4331,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Sheetfile" "untitled.kicad_sch"
+		(property "Sheetfile" "legacy/untitled.kicad_sch"
 			(at 29.21 41.2246 0)
 			(effects
 				(font
@@ -4369,7 +4369,7 @@
 				(justify left bottom)
 			)
 		)
-		(property "Sheetfile" "2NAND_6J2B.kicad_sch"
+		(property "Sheetfile" "legacy/2NAND_6J2B.kicad_sch"
 			(at 232.41 38.6846 0)
 			(effects
 				(font

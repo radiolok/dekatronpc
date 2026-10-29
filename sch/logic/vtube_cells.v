@@ -329,6 +329,22 @@ specify
 endspecify
 endmodule
 
+// HV -> LV divider of one net (470k || C1 / 200k to -50 V), placed by rtl/run/div_insert.py.
+// Logically a wire. C1_DPF = speed-up capacitance in 0.1 pF (sum over the grids it feeds),
+// GRIDS = number of grids, CLASS = 0 gate grids, 1 cathode-follower grids. Its delay is part of the
+// gate delays of vtube_timing.json, so the path here is 0.
+module DIV_HL(HV, LV);
+parameter C1_DPF = 39;
+parameter GRIDS = 1;
+parameter CLASS = 0;
+input HV;
+output LV;
+assign LV = HV;
+specify
+	(HV => LV) = 0;
+endspecify
+endmodule
+
 module GUIDE_EN_J2(EN, G, Y);
 input EN, G;
 output Y;
