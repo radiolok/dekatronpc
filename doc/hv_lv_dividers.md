@@ -86,7 +86,7 @@ Findings:
 ## Open points (owner)
 
 - **Follower chains:** what to do with them.
-  - (a) `dont_use` on BUF_N16 / OR2_N16 for ABC. OR2 is then built from NOR2 + NOT, which costs tubes.
+  - (a) `dont_use` on BUF_N16 / OR2_N16 for ABC. OR2 is then built from NOR2 + NOT, which costs tubes. **Chosen (owner, 2026-10-30)**, with OR4_N16 and the diode gates: 1464 tubes, no chains (`doc/follower_chains.md`).
   - (b) A legalisation pass after ABC that replaces an OR2 driving a follower with NOR2 + NOT or a different cell.
   - (c) Keep OR2 only where its output goes to gates.
 

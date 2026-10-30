@@ -95,6 +95,8 @@ When A falls and B rises together, Y should stay "1". The falling grid A pulls t
 
 At low fanout the glitch crosses the next stage's threshold for about 0.1–0.2 µs. It settles well inside a 1 MHz clock, so it is harmless in synchronous logic, but it must not reach a latch enable or a clock. NOR2_N16 has the same kind of hazard (70 V). Rk 10k instead of 12k made this recovery 0.9–1.9 µs, which is why Rk is 12k.
 
+**Synthesis (owner, 2026-10-30): `dont_use`.** ABC cannot see the LV level, so it chained followers (65 illegal grids). The followers stay in the library for hand-placed use, where the net rules are checked by hand. Synthesis no longer picks them (`doc/follower_chains.md`).
+
 ## Files and how to use
 
 | File | |

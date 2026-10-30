@@ -10,6 +10,7 @@ library(vtube_cells_lib) {
   define(vtube_grid, pin, string);
   define(vtube_c1, pin, float);
   cell(BUF_N16) {
+    dont_use : true;   // cathode follower: LV out cannot drive another follower, and ABC does not see levels; doc/follower_chains.md (owner, 2026-10-30)
     area: 0.5;
     tubes(names) {
       N16B: 0.5;
@@ -23,6 +24,7 @@ library(vtube_cells_lib) {
               function: "A"; }
   }
   cell(BUF_6J2B) {
+    dont_use : true;   // not designed; doc/follower_chains.md (owner, 2026-10-30)
     area: 1;
     current_unit : "1mA";
     heat_current: 200;
@@ -62,6 +64,7 @@ library(vtube_cells_lib) {
               function: "A'"; }
   }
   cell(NAND2_N16X7) {
+    dont_use : true;   // not designed (diode gates need stiff drivers, doc/or4_variants.md); doc/follower_chains.md (owner, 2026-10-30)
     area: 1.5;
     current_unit : "1mA";
     heat_current: 500;
@@ -77,6 +80,7 @@ library(vtube_cells_lib) {
              function: "(A*B)'"; }
   }
   cell(AND2_N16X7) {
+    dont_use : true;   // not designed (diode gates need stiff drivers, doc/or4_variants.md); doc/follower_chains.md (owner, 2026-10-30)
     area: 1.5;
     current_unit : "1mA";
     heat_current: 500;
@@ -108,6 +112,7 @@ library(vtube_cells_lib) {
 
   }
   cell(NAND4_N16X7) {
+    dont_use : true;   // not designed (diode gates need stiff drivers, doc/or4_variants.md); doc/follower_chains.md (owner, 2026-10-30)
     area: 2.5;
     current_unit : "1mA";
     heat_current: 800;
@@ -162,6 +167,7 @@ library(vtube_cells_lib) {
              function: "((A*B)+(C*D))'"; }
   }
   cell(OR2_N16) {
+    dont_use : true;   // cathode follower: LV out cannot drive another follower, and ABC does not see levels; doc/follower_chains.md (owner, 2026-10-30)
     area: 1;
     current_unit : "1mA";
     heat_current: 400;
@@ -176,6 +182,7 @@ library(vtube_cells_lib) {
              function: "(A+B)"; }
   }
   cell(OR2_N16X7) {
+    dont_use : true;   // not designed (diode gates need stiff drivers, doc/or4_variants.md); doc/follower_chains.md (owner, 2026-10-30)
     area: 1.5;
     current_unit : "1mA";
     heat_current: 500;
@@ -194,6 +201,7 @@ library(vtube_cells_lib) {
   // Rk 12k (OR2_N16 widened, owner 2026-10-29: in place of the diode OR4_N16X7). LV output; each input on
   // its own divider (follower grid, 2.7 pF).
   cell(OR4_N16) {
+    dont_use : true;   // cathode follower: LV out cannot drive another follower, and ABC does not see levels; doc/follower_chains.md (owner, 2026-10-30)
     area: 2;
     current_unit : "1mA";
     heat_current: 800;
@@ -210,6 +218,7 @@ library(vtube_cells_lib) {
              function: "(A+B+C+D)"; }
   }
   cell(OR10_X7) {
+    dont_use : true;   // not designed (diode gates need stiff drivers, doc/or4_variants.md); doc/follower_chains.md (owner, 2026-10-30)
     area: 5;
     current_unit : "1mA";
     heat_current: 800;
@@ -262,6 +271,7 @@ library(vtube_cells_lib) {
              function: "(A+B+C+D)'"; }
   }
   cell(NOR2_N16X7) {
+    dont_use : true;   // not designed (diode gates need stiff drivers, doc/or4_variants.md); doc/follower_chains.md (owner, 2026-10-30)
     area: 1.5;
     current_unit : "1mA";
     heat_current: 500;
@@ -277,6 +287,7 @@ library(vtube_cells_lib) {
              function: "(A+B)'"; }
   }
   cell(NOR4_N16X7) {
+    dont_use : true;   // not designed (diode gates need stiff drivers, doc/or4_variants.md); doc/follower_chains.md (owner, 2026-10-30)
     area: 2.5;
     current_unit : "1mA";
     heat_current: 800;
@@ -294,6 +305,7 @@ library(vtube_cells_lib) {
              function: "(A+B+C+D)'"; }
   }
     cell(NOR10_N16X7) {
+    dont_use : true;   // not designed (diode gates need stiff drivers, doc/or4_variants.md); doc/follower_chains.md (owner, 2026-10-30)
     area: 5.5;
     current_unit : "1mA";
     heat_current: 800;

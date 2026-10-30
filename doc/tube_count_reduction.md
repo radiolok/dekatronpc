@@ -1185,3 +1185,19 @@ The owner chose the cathode-follower OR4 (`doc/or4_variants.md`, `sch/logic/OR4_
 ABC takes the cheaper OR4 54 times (from 29 of the diode one); `NAND4_N16X7` drops out. Follower → follower chains
 (`synt_dpc.tcl -div`): 65 over the three blocks (MachineCtrl 10 → 23), the open point of the follower family. Not
 designed now: `AND2_N16X7` 33 tubes, `GUIDE_EN_J2` 30.
+
+### `dont_use` on the followers and the diode gates (owner, 2026-10-30)
+
+`doc/follower_chains.md`: the followers saved tubes only through illegal follower → follower chains. The liberty now marks
+BUF_N16, OR2_N16, OR4_N16, all `*_N16X7` / `OR10_X7` diode gates and `BUF_6J2B` `dont_use`.
+
+| Block | OR4_N16 | **dont_use** |
+|---|---|---|
+| IpLine | 497.5 | **522.5** |
+| ApLine | 555 | **602** |
+| MachineCtrl | 327 | **339.5** |
+| **Total** | 1379.5 (65 illegal grids) | **1464** + 5 relays |
+
+The netlist is built only from designed cells (plus the RTL-instantiated `GUIDE_EN_J2` and `RELAY_2CO`): NAND2_J2 277,
+NOR2_N16 339, NOT_N16 259, NOR4_N16 44, A1OOI_N16J2 67, A2OOI_J2 10, DFF_J2N16 24, DFFRN 34, DFFSN 4. A legalization pass
+would win back about 46–55 tubes.

@@ -45,3 +45,5 @@ The same flow with `dont_use` on the followers:
 - **No followers:** 1464 tubes, a netlist of designed cells only, legal by construction, with no new tool.
 
 The followers stay worth about 46–55 tubes even after legalization, but only if the pass is written. Wider OR cells do not matter: OR6 saves 3 tubes, and ABC will not pick them by itself. Owner's call: write the legalization pass, or `dont_use` the followers (and the diode gates, until they are designed).
+
+**Decision (owner, 2026-10-30): `dont_use`.** The liberty marks BUF_N16, OR2_N16, OR4_N16, every `*_N16X7` / `OR10_X7` diode gate and `BUF_6J2B` `dont_use` (the flops DFFRN/DFFSN_J2N16X7 are not affected). `run_tests.sh -s`: **1464 tubes** + 5 relays, `equiv_opt` proven, no follower chains.

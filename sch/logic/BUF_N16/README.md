@@ -193,6 +193,8 @@ For both follower cells:
 - **Grid current** (RGI 2 kΩ + diode). It sets how hard the load grids clamp a "1" and so the "1" level. It is not fitted to the sheet's pulse curves. If real grids clamp harder, the "1" level moves closer to 0 V, which is the safe direction.
 - **Ugk near cut-off at Ua ≈ 160 V** sets the "0" level, which is the tight margin. The MU spread (±20 %) covers it in the table above.
 
+**Synthesis (owner, 2026-10-30): `dont_use`.** ABC cannot see the LV level, so it chained followers (65 illegal grids). The followers stay in the library for hand-placed use, where the net rules are checked by hand. Synthesis no longer picks them (`doc/follower_chains.md`).
+
 ## Files and how to use
 
 | File | |

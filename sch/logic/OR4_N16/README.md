@@ -113,6 +113,8 @@ The worst "0", −16.5 V, leaves 8.9 V to the load's VIL (−7.6 V). OR2_N16's w
 
 Synthesis (`run_tests.sh -s`, 2026-10-29): **54 cells, 108 tubes**; total 1379.5 tubes (−21 against the diode OR4). ABC now takes OR4 where it took OR2 + NOR, and `NAND4_N16X7` is gone. The follower → follower chains reported by `div_insert.py` grew to 65 over the three blocks (MachineCtrl 10 → 23). That is the open point of the follower family (BUF_N16 page, `doc/hv_lv_dividers.md`).
 
+**Synthesis (owner, 2026-10-30): `dont_use`.** ABC cannot see the LV level, so it chained followers (65 illegal grids). The followers stay in the library for hand-placed use, where the net rules are checked by hand. Synthesis no longer picks them (`doc/follower_chains.md`).
+
 ## Files and how to run
 
 | File | What |
@@ -132,6 +134,6 @@ To embed the cell: each input gets its own divider from the driving HV net (470k
 
 ## Open points
 
-- **Follower → follower chains** in synthesis (65 now). ABC does not know the levels; it needs `dont_use`, a legalization pass, or an LV net class in the flow. Owner's call (`doc/hv_lv_dividers.md`).
+- **Follower → follower chains**: closed by `dont_use` (2026-10-30). Back in synthesis only with a legalization pass (`doc/follower_chains.md`).
 - **Hazard** above 92 V at fanout 2, as OR2_N16.
 - **Measure on tubes** (REQ-MOD-004).

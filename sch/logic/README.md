@@ -21,9 +21,9 @@ This folder holds the logic cells of the tube machine (REQ-MOD-003/004/005), eac
 | [DFFSN_J2N16X7](DFFSN_J2N16X7/README.md) | DFF_J2N16 + asynchronous preset (SN = 0) | 8 (+ 1 × 6Kh7B) | LV + reset line → HV | SN → Q 273 … 611 ns | `DFFSN_J2N16X7` | |
 | [DFF_J2N16](DFF_J2N16/README.md) | D flip-flop, **falling** edge of C | 7 (2 × RSLATCH + 1 × 6N16B) | LV → HV | C↓→Q 340 … 539 ns; 1.11 … 0.93 MHz register to register | `DFF_J2N16` | synthesis adds one clock inverter per clock net |
 
-"Liberty" names the cell in `vtube_cells.lib`. "Proposed" means that the page proposes the entry and the owner has not reviewed it yet.
+"Liberty" names the cell in `vtube_cells.lib`. BUF_N16, OR2_N16 and OR4_N16 carry `dont_use` (owner, 2026-10-30): ABC does not see the LV level and chained them; they stay available for hand-placed use (`doc/follower_chains.md`). "Proposed" means that the page proposes the entry and the owner has not reviewed it yet.
 
-The library also has cells that are not designed yet: `BUF_6J2B`, `NOT_J2`, the `*_N16X7` gates, `OR10_X7`, `GUIDE_EN_J2`, and the non-tube `RELAY_2CO`, `DIV_HL`, `TIEHI`, `TIELO`.
+The library also has cells that are not designed yet, all `dont_use` except the RTL-instantiated ones: `BUF_6J2B`, `NOT_J2`, the `*_N16X7` gates, `OR10_X7`, `GUIDE_EN_J2`, and the non-tube `RELAY_2CO`, `DIV_HL`, `TIEHI`, `TIELO`.
 
 ## Common rules
 
