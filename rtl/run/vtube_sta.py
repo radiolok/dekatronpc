@@ -469,6 +469,15 @@ def phase_delay_of(sta):
     return 0
 
 
+def phase_width_of(sta):
+    if sta.phase_width_hs is not None:
+        return sta.phase_width_hs
+    for cn in sta.cells:
+        if cn.endswith('osPhase1'):
+            return sta.param(cn, 'DELAY', 0)
+    return 0
+
+
 def summarize(sta):
     setup, hold, gating = sta.checks()
     gd = [g for g in gating if g['cls'] == 'data']
@@ -495,7 +504,7 @@ def report(sta, freqs, npaths, title):
     s = summarize(sta)
     pd = phase_delay_of(sta)
     out = [f'## {title}', '',
-           f'Phase start delay {pd} hsClk = {pd * HS_NS:.0f} ns; clock '
+           f'Phase start delay {pd} hsClk = {pd * HS_NS:.0f} ns, guide phases {phase_width_of(sta)} hsClk each; clock '
            f'{"ideal (0 ns at every trigger)" if sta.ideal_clock else "propagated through the clock inverters"}; '
            f'memory outputs {sta.mem_ns:.0f} ns after the edge'
            + (f'; cell delays × {sta.derate:g}' if sta.derate != 1.0 else '') + '.', '']
@@ -626,11 +635,20 @@ def main():
     if a.p is None:
         st = sta(None)
         pd0 = phase_delay_of(st)
-        lines, s = report(st, a.f, a.paths, f'As synthesized: phase delay {pd0} hsClk')
+        lines, s = report(st, a.f, a.paths, f'As synthesized: phase delay {pd0} hsClk, '
+                          f'phases {phase_width_of(st)} hsClk')
         out += lines
-        pd = max(1, math.ceil(pd0 - s['gate_slack'] / HS_NS))
+        if a.phase_width is None:
+            # the narrowest phases every guide gate passes (doc/vtube_sta.md §6)
+            w = phase_width_of(st)
+            while summarize(st)['pulse_margin'] <= 0 and w < 50:
+                w += 1
+                a.phase_width = w
+                st = sta(None)
+        pd = max(1, math.ceil(pd0 - summarize(st)['gate_slack'] / HS_NS))
         st = sta(pd)
-        lines, _ = report(st, a.f, a.paths, f'Phase delay fitted to the step command: {pd} hsClk')
+        lines, _ = report(st, a.f, a.paths, f'Fitted: phases {phase_width_of(st)} hsClk, '
+                          f'phase delay {pd} hsClk')
     else:
         st = sta(a.p)
         lines, _ = report(st, a.f, a.paths, f'Phase delay {a.p} hsClk')

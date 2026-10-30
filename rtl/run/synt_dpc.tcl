@@ -8,6 +8,10 @@
 #   -D <name>[=<value>] define a preprocessor macro, e.g. DEKATRON_DELAY_MODEL
 #                       (the netlist instantiates DekatronTubeDelay); without
 #                       a value it is 1
+#   -flat               also write <top>_flat.json: the written netlist read
+#                       back and flattened through the board boundaries, with
+#                       the cell names of <top>_synth.v (vtube_sta.py loads,
+#                       vtube_sdf.py -j)
 # Without options the flow is the tube-count flow used by run_tests.sh -s.
 if { $argc < 2 } {
   puts "call script <file_with_v_list> <top_level_module> \[-bb <module>\] \[-p <name> <value>\]"
@@ -22,12 +26,14 @@ set blackboxes {}
 set top_params {}
 set defines {}
 set div 0
+set flat 0
 for {set i 2} {$i < $argc} {incr i} {
   switch -- [lindex $argv $i] {
     -bb { lappend blackboxes [lindex $argv [incr i]] }
     -p  { lappend top_params [lindex $argv [incr i]] [lindex $argv [incr i]] }
     -D  { lappend defines [lindex $argv [incr i]] }
     -div { set div 1 }
+    -flat { set flat 1 }
     default { puts "unknown option [lindex $argv $i]"; exit 1 }
   }
 }
@@ -117,6 +123,31 @@ file delete ${top}_premap.json ${top}_qn.json ${top}_cells_sim.v
 if {$div} { file delete ${top}_div.json }
 
 yosys write_verilog ${top}_synth.v
+
+# Flat netlist with the names of the file above (write_verilog renames the
+# $-names, so it is read back): the sources only as headers, for the port
+# directions of the black boxes
+if {$flat} {
+  yosys design -save final
+  yosys design -reset
+  yosys read -define SYNTH=1
+  foreach def $defines {
+    if {[string first "=" $def] >= 0} { yosys read -define $def } else { yosys read -define $def=1 }
+  }
+  yosys read_liberty -lib $cell_lib
+  foreach line $data {
+    if {[string first $tb_suffix $line] == -1 && $line ne ""} {
+      yosys read_verilog -sv -lib [file join $list_dir $line]
+    }
+  }
+  yosys read_verilog -overwrite ${top}_synth.v
+  yosys hierarchy -top $top
+  yosys setattr -mod -unset keep_hierarchy *
+  yosys flatten
+  yosys opt_clean -purge
+  yosys write_json ${top}_flat.json
+  yosys design -load final
+}
 #
 # # show
 yosys show -format dot -lib ${top}_synth.v -prefix $top

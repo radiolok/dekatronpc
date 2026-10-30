@@ -2,21 +2,27 @@
 # Gate-level simulation: the Icarus tests of run_tests.sh -t, run against the
 # Yosys netlist of the DUT instead of its RTL.
 #
-#   synth_sim.sh [-n] [-d] [-t] [-c NS] [test ...]
+#   synth_sim.sh [-n] [-d] [-t] [-c NS] [-o HS] [-w HS] [test ...]
 #     -n    skip synthesis, reuse the netlists in synth_sim/<test>/
 #     -d    delay-based dekatron model: DekatronTubeDelay (no hsClk, #N
 #           delays) instead of DekatronTubeV2, defined DEKATRON_DELAY_MODEL
 #           in synthesis and simulation; output in synth_sim_delay/
-#     -t    tube delays (implies -d): the cells get the delays of
-#           sch/logic/vtube_timing.json through SDF (iverilog -gspecify,
-#           vtube_sdf.py) and every trigger a setup/hold checker; a run
+#     -t    tube delays (implies -d): every cell gets the delays of the
+#           liberty tables (vtube_cells_timing.lib, from vtube_timing.json)
+#           at the load of its output net, through SDF (iverilog -gspecify,
+#           vtube_sdf.py -l -j, the same delays as vtube_sta.py), and every
+#           trigger a setup/hold checker; a run
 #           with violations fails. Default tests: Dekatron Counter
 #           DekatronPC. Output in synth_sim_timing/ (doc/vtube_sdf_timing.md)
 #     -o HS phase start delay after the Clk edge, hsClk periods of 100 ns
 #           (DEKATRON_PHASE_DELAY_HS, REQ-PULSE-009): at least the worst
-#           step command path. Default 0 (RTL), 22 under -t: the longest
-#           path, ready -> valid -> step_f after a write, is about 2 us
-#           with 150 ns gates (doc/vtube_sdf_timing.md §3.3)
+#           step command path. Default 0 (RTL), 33 under -t: the longest
+#           step command with the SPICE cell delays settles at 3.24 us
+#           (vtube_sta.sh fits it, doc/vtube_sta.md §3)
+#     -w HS width of each guide phase, hsClk periods of 100 ns
+#           (DEKATRON_PHASE1_HS / DEKATRON_PHASE2_HS). Default 3 (the
+#           1 MHz RTL), 6 under -t: a tube gate of DekatronPulseSender does
+#           not pass a pulse shorter than its own delay (doc/vtube_sta.md §6)
 #     -c NS Clk period in ns for Dekatron, Counter and DekatronPC under -d
 #           (default 1000); the other testbenches keep their own clock
 #     test  Dekatron Counter IpLine ApLine MachineCtrl DekatronPC Pi
@@ -55,19 +61,22 @@ clk_ns=""
 all_tests=(Dekatron Counter IpLine ApLine MachineCtrl DekatronPC)
 
 phase_delay=""
-while getopts "ndtc:o:h" opt; do
+phase_width=""
+while getopts "ndtc:o:w:h" opt; do
 	case ${opt} in
 	n) do_synth=0 ;;
 	d) delay=1 ;;
 	t) timing=1; delay=1 ;;
 	c) clk_ns=${OPTARG} ;;
 	o) phase_delay=${OPTARG} ;;
-	*) sed -n '2,39p' "$0"; exit 1 ;;
+	w) phase_width=${OPTARG} ;;
+	*) sed -n '2,45p' "$0"; exit 1 ;;
 	esac
 done
 shift $((OPTIND - 1))
 tests=("$@")
-[ ${timing} -ne 0 ] && [ -z "${phase_delay}" ] && phase_delay=22
+[ ${timing} -ne 0 ] && [ -z "${phase_delay}" ] && phase_delay=33
+[ ${timing} -ne 0 ] && [ -z "${phase_width}" ] && phase_width=6
 if [ ${#tests[@]} -eq 0 ]; then
 	tests=("${all_tests[@]}")
 	[ ${timing} -ne 0 ] && tests=(Dekatron Counter DekatronPC)
@@ -93,6 +102,9 @@ if [ ${delay} -ne 0 ]; then
 	if [ ${timing} -ne 0 ]; then
 		work_dir=${script_dir}/synth_sim_timing
 		sim_defs+=" -gspecify"
+		# delays at the load of each net: flat netlist + table liberty
+		synth_defs+=(-flat)
+		python3 "${script_dir}/vtube_liberty.py" > /dev/null
 	fi
 	mkdir -p "${work_dir}"
 	sed "s|^\.\./|${root_dir}/|" "${dpc_files}" > "${work_dir}/DPC.files"
@@ -102,6 +114,7 @@ fi
 # Phase start delay: a parameter default of DekatronCounter, so a define at
 # synthesis reaches every counter of the netlist (the OneShot black box keeps it)
 [ -n "${phase_delay}" ] && synth_defs+=(-D DEKATRON_PHASE_DELAY_HS=${phase_delay})
+[ -n "${phase_width}" ] && synth_defs+=(-D DEKATRON_PHASE1_HS=${phase_width} -D DEKATRON_PHASE2_HS=${phase_width})
 
 # Per-test setup: synthesized top, its parameters (must match the testbench
 # instantiation), black boxes, RTL put back in simulation, simulation runs.
@@ -196,7 +209,8 @@ simulate() {
 	local sdf=()
 	if [ ${timing} -ne 0 ]; then
 		python3 "${script_dir}/vtube_sdf.py" -c "${cell_models}" -T "${cell_timing}" \
-			-n "${dir}/${top}_synth.v" -t "${top}" -s "${dut}" -o "${dir}/sdf" || return 2
+			-n "${dir}/${top}_synth.v" -t "${top}" -s "${dut}" -o "${dir}/sdf" \
+			-l "${cell_dir}/vtube_cells_timing.lib" -j "${dir}/${top}_flat.json" || return 2
 		sdf=(-s vtube_sdf "${dir}/sdf/vtube_sdf.sv" "${cell_dir}/vtube_timing_check.v")
 	fi
 	echo "  sim   ${name}${clk_ns:+ (Clk ${clk_ns} ns)}"

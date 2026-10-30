@@ -21,8 +21,17 @@ to every instance of that module separately; Verilog hierarchical names
 reach any scope. A cell with such a name itself gets cell_<type>.sdf
 (empty INSTANCE), applied to the cell's own scope.
 
+Load-aware mode (-l vtube_cells_timing.lib -j top_flat.json): every cell
+instance gets the delays of the liberty tables at the load of the net its
+output drives (sum of the sink pins' capacitance in grids, from the netlist
+flattened by synt_dpc.tcl -flat), the same delays vtube_sta.py uses. The SDF
+is then written per module instance (s<k>.sdf), not per module, because two
+instances of one module drive different loads. Without -l/-j every arc has
+its fanout-6 value from vtube_timing.json.
+
 usage: vtube_sdf.py -c vtube_cells.v -T vtube_timing.json -n top_synth.v
                     -t top -s tb.dut_instance -o OUT_DIR
+                    [-l vtube_cells_timing.lib -j top_flat.json]
 """
 
 import argparse
@@ -115,20 +124,68 @@ def clock_edge(cpaths):
     return "negedge" if any(e.strip() == "negedge" for e, _, _ in cpaths) else "posedge"
 
 
-def cell_entry(ctype, inst, paths, timing):
+def cell_entry(ctype, inst, paths, timing, loads=None, flat=None):
     t = timing["cells"][ctype]
     io = []
     for edge, a, y in paths[ctype]:
         key = f"{edge}{a}->{y}"
         if key not in t["iopath"]:
             sys.exit(f"vtube_timing.json: {ctype} has no value for {key}")
+        v = t["iopath"][key]
+        if loads is not None:
+            v = loads.value(ctype, flat, edge, a, y, v)
         src = f"({edge.strip()} {a})" if edge else a
-        io.append(f"(IOPATH {src} {y} {delay(t['iopath'][key])})")
+        io.append(f"(IOPATH {src} {y} {delay(v)})")
     ent = (f' (CELL (CELLTYPE "{ctype}") (INSTANCE {inst})\n'
            f'  (DELAY (ABSOLUTE {" ".join(io)}))')
     for d, (su, ho) in t.get("setuphold", {}).items():
         ent += f"\n  (TIMINGCHECK (SETUPHOLD {d} ({clock_edge(paths[ctype])} C) ({su}) ({ho})))"
     return ent + ")"
+
+
+class Loads:
+    """Arc delays at the load of each flat cell instance (load-aware mode)."""
+
+    def __init__(self, lib_path, flat_path, top):
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        from vtube_sta import load_lib, interp
+        self.interp = interp
+        self.index, self.lib = load_lib(lib_path)
+        mod = json.load(open(flat_path))["modules"][top]
+        load = {}
+        for c in mod["cells"].values():
+            lc = self.lib.get(c["type"])
+            for p, bits in c["connections"].items():
+                if c["port_directions"].get(p) == "input":
+                    cap = lc["pins"][p]["cap"] if lc and p in lc["pins"] else 1.0
+                    for b in bits:
+                        if isinstance(b, int):
+                            load[b] = load.get(b, 0.0) + cap
+        self.out_load = {name: {p: max((load.get(b, 0.0) for b in bits if isinstance(b, int)), default=0.0)
+                                for p, bits in c["connections"].items()
+                                if c["port_directions"].get(p) == "output"}
+                         for name, c in mod["cells"].items()}
+        self.missing = 0
+
+    def value(self, ctype, flat, edge, a, y, fallback):
+        """[rise, fall] of arc a->y of the instance, fallback where the liberty has none."""
+        lc = self.lib.get(ctype)
+        loads = self.out_load.get(flat)
+        if lc is None or loads is None:
+            self.missing += loads is None
+            return fallback
+        kind = {"negedge": "falling_edge", "posedge": "rising_edge"}.get(edge.strip())
+        for arc in lc["arcs"]:
+            if arc.src != a or arc.dst != y:
+                continue
+            if kind and arc.kind != kind or not kind and arc.kind in ("falling_edge", "rising_edge"):
+                continue
+            fb = fallback if isinstance(fallback, list) else [fallback, fallback]
+            x = loads.get(y, 0.0)
+            r = round(self.interp(self.index, arc.rise, x), 1) if arc.rise else fb[0]
+            f = round(self.interp(self.index, arc.fall, x), 1) if arc.fall else fb[1]
+            return [r, f]
+        return fallback
 
 
 def write_sdf(path, design, entries, timing):
@@ -145,7 +202,10 @@ def main():
     ap.add_argument("-t", "--top", required=True)
     ap.add_argument("-s", "--scope", required=True, help="hierarchical name of the top instance")
     ap.add_argument("-o", "--out", required=True)
+    ap.add_argument("-l", "--lib", help="timing liberty (vtube_cells_timing.lib): load-aware delays")
+    ap.add_argument("-j", "--flat", help="flat netlist JSON (synt_dpc.tcl -flat): the loads")
     args = ap.parse_args()
+    loads = Loads(args.lib, args.flat, args.top) if args.lib and args.flat else None
 
     paths = cell_paths(args.cells)
     timing = json.load(open(args.timing))
@@ -178,17 +238,32 @@ def main():
 
     annotate, checks, n_cells, n_masked = [], [], 0, 0
 
-    def walk(mod, scope):
+    def flat_name(rel, inst):
+        return ".".join(rel + [plain(inst)])
+
+    def walk(mod, scope, rel):
         nonlocal n_cells, n_masked
-        if mod in sdf_of:
+        if loads is not None:
+            cells = [(t, n) for t, n in mods[mod] if t in paths and paths[t]]
+            entries = [cell_entry(t, plain(n), paths, timing, loads, flat_name(rel, n))
+                       for t, n in cells if not bad_name(n)]
+            if entries:
+                f = os.path.join(out, f"s{len(annotate)}.sdf")
+                write_sdf(f, plain(mod), entries, timing)
+                annotate.append(f'\t$sdf_annotate("{f}", {scope});')
+        elif mod in sdf_of:
             annotate.append(f'\t$sdf_annotate("{sdf_of[mod]}", {scope});')
         for t, inst in mods[mod]:
             ref = f"{scope}.{vname(inst)}"
             if t in mods:
-                walk(t, ref)
+                walk(t, ref, rel + [plain(inst)])
             elif t in paths and paths[t]:
                 n_cells += 1
-                if bad_name(inst):
+                if bad_name(inst) and loads is not None:
+                    f = os.path.join(out, f"s{len(annotate)}.sdf")
+                    write_sdf(f, t, [cell_entry(t, "", paths, timing, loads, flat_name(rel, inst))], timing)
+                    annotate.append(f'\t$sdf_annotate("{f}", {ref});')
+                elif bad_name(inst):
                     annotate.append(f'\t$sdf_annotate("{cell_sdf[t]}", {ref});')
                 sh = timing["cells"][t].get("setuphold", {}).get("D")
                 if sh and t in ASYNC:
@@ -204,7 +279,8 @@ def main():
                         f" .QUALIFY({q})) c{len(checks)} (.C({ref}.C), .D({ref}.D),"
                         f" .S({s}), .R({r}), .EN({en}));")
 
-    walk(args.top, args.scope)
+    walk(args.top, args.scope, [])
+
     total = lambda f: " + ".join(f"c{i}.{f}" for i in range(len(checks))) or "0"
     sv = [f"// Generated by rtl/run/vtube_sdf.py from {os.path.basename(args.netlist)}"
           f" and {os.path.basename(args.timing)}; do not edit.",
@@ -218,7 +294,9 @@ def main():
           "endmodule"]
     open(os.path.join(args.out, "vtube_sdf.sv"), "w").write("\n".join(sv) + "\n")
     print(f"  sdf   {n_cells} cells, {len(annotate)} annotated scopes, {len(checks)} triggers checked"
-          f" ({n_masked} qualified)")
+          f" ({n_masked} qualified)"
+          + (f", delays at each net load ({loads.missing} dead cells, removed by the flattening:"
+             " fanout-6 values)" if loads else ""))
 
 
 if __name__ == "__main__":

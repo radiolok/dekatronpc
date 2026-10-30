@@ -5,22 +5,22 @@ Date: 2026-10-30. Related: OPEN-014 (is the clock achievable), OPEN-013
 the netlist), REQ-MOD-004 (cell delays).
 
 The question was whether the designed cells can run the machine at 100 kHz
-or faster. **Not as the RTL stands: the guide phases of 300 ns (3 hsClk) are
-shorter than the switching time of the NAND2_J2 gates in
-`DekatronPulseSender` (345–545 ns), so the guide pulse never reaches the
-dekatron and the counters do not count at any clock** (§6, found by the
-netlist simulation and then added to the STA). With phases of 600 ns
-(6 hsClk) and the phase start delay raised to fit the step command:
+or faster. **Yes, with the guide phases widened to 600 ns: the netlist with
+SPICE cell delays at the real load of every net runs helloworld and
+program.bfk correctly at 8 and 9 µs with no setup/hold violation** (§7).
 
-| Load model | Phase delay | Minimum period | 100 kHz |
-|---|---|---|---|
-| fanout tables (real load of each net) | 33 hsClk | 8.54 µs, 117 kHz | meets, 1.5 µs slack |
-| fanout 6 on every net (what the SDF of `synth_sim.sh -t` uses) | 48 hsClk | 12.5 µs, 80 kHz | fails |
-
-So 100 kHz is reachable only if the real nets are as light as the netlist
-says (median 1.7 grids) and the phases are widened (owner's decision,
-OPEN-013). 250 kHz and 1 MHz are out of reach with this netlist: the limit is
-the logic depth, two combinational chains of 13–16 stages each.
+* The RTL phases of 300 ns (3 hsClk) are shorter than the switching time of
+  the NAND2_J2 gates of `DekatronPulseSender` (345–545 ns): the guide pulse
+  never reaches the dekatron and the counters do not count at any clock
+  (§6). The phase width is now a build parameter (`DEKATRON_PHASE1_HS`,
+  `DEKATRON_PHASE2_HS`): 3 for the 1 MHz RTL, 6 for the tube machine.
+* STA, phases 6 hsClk, phase delay 33 hsClk: minimum period **8.54 µs
+  (117 kHz)**; 100 kHz meets with 1.46 µs of slack. The simulation passes at
+  8 µs, so the STA is a safe bound (its worst paths are not exercised by
+  these programs). With fanout 6 on every net instead of the real loads:
+  12.5 µs (80 kHz).
+* 250 kHz and 1 MHz are out of reach with this netlist: the limit is the
+  logic depth, two combinational chains of 13–16 stages each (§3.2).
 
 ## 1. What was built
 
@@ -271,6 +271,50 @@ for the owner: widen `PHASE1_HS`/`PHASE2_HS` (the 3/3/4 split is checked
 against `HS_PER_CLK` = 10 of the 1 MHz RTL, so the RTL clock changes too), or
 redesign the guide path so the phase does not pass two NAND2_J2 stages; make
 `vtube_sdf.py` load-aware so the simulation and the STA use the same delays.
+
+## 7. Tube build: phases as a parameter, load-aware SDF (2026-10-30)
+
+Owner: a dekatron can be switched as slowly as wanted, so the phases follow
+the machine's clock; make them what tubes can build.
+
+* `DekatronCounter`: `PHASE1_HS`/`PHASE2_HS` default to the macros
+  `DEKATRON_PHASE1_HS`/`DEKATRON_PHASE2_HS` (3 if undefined: the RTL at
+  1 MHz is unchanged). `synth_sim.sh -w HS` sets both; under `-t` the
+  defaults are now phases 6 and phase delay 33 (was 22). `vtube_sta.sh`
+  synthesizes with the same values, and `vtube_sta.py` fits the narrowest
+  phases and the shortest phase delay itself unless `--phase-width`/`-p`
+  are given. In the machine both are RC timing circuits of the phase
+  generator, sized for its clock.
+* `vtube_sdf.py -l vtube_cells_timing.lib -j <top>_flat.json`: each cell
+  instance gets the delays of the liberty tables at the load of its output
+  net, the same delays as the STA; the SDF is written per module instance.
+  `synt_dpc.tcl -flat` writes the flat netlist with the names of
+  `<top>_synth.v`; `synth_sim.sh -t` uses both. 29 dead cells (outputs
+  unused above their module, removed by the flattening) keep the fanout-6
+  values.
+* Memory model (`RAM.sv`, under `DEKATRON_DELAY_MODEL` only): `rd_data`
+  changes 665 ns (a tube trigger's C→Q) after the clock edge, not on it.
+  With 0 ns the new opcode reached `op_q` of MachineCtrl before its clock,
+  which comes 280 ns late through the clock inverter (the hold −44 ns of
+  §3.5; 4238 setup reports in program.bfk). Requirement on the memory: its
+  output must not change earlier than ~300 ns after Clk. The RTL delay-model
+  tests (ApLine, DekatronPC helloworld) pass with it.
+
+Netlist simulation (`synth_sim.sh -t`, phases 6, phase delay 33):
+
+| Clk | helloworld | program.bfk | checkers |
+|---|---|---|---|
+| 9 µs | Success, 47.8 ms | Success, 554 ms | 0 setup, 0 hold |
+| 8 µs | Success | Success | 0 setup, 0 hold |
+| 7 µs | Success, 37.2 ms | Success, 431 ms | 1 setup at `machineCtrl` `state[1]` |
+
+The violation at 7 µs is not a period limit. The path starts at `rst_busy`
+of the reset time relay, which ends in absolute time (here 5.04 µs after the
+edge), and runs through 10 stages into the MachineCtrl FSM with no
+synchronizer. The STA leaves such paths out (class async); in the simulation
+it hits the clock edge by chance. In the machine it can latch a wrong state
+at any clock: `rst_busy` (and the reset lines that feed the FSMs) needs a
+synchronizer or a clocked release; RTL decision for the owner.
 
 ## 5. Limits of the model
 

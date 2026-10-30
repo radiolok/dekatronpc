@@ -105,6 +105,19 @@
 `define DEKATRON_PHASE_DELAY_HS 0
 `endif
 
+// Длительность фаз подкатодов, такты hsClk. Декатрону всё равно, как
+// медленно его переключать (не короче GUIDE_STEP_HS), а ламповый
+// формирователь DekatronPulseSender не пропускает импульс короче своего
+// времени переключения (NAND2_J2 345–545 нс). В RTL на 1 МГц — 3 + 3;
+// ламповую машину собирают с фазами под её такт: synth_sim.sh -w,
+// vtube_sta.sh подбирает наименьшие (doc/vtube_sta.md §6)
+`ifndef DEKATRON_PHASE1_HS
+`define DEKATRON_PHASE1_HS 3
+`endif
+`ifndef DEKATRON_PHASE2_HS
+`define DEKATRON_PHASE2_HS 3
+`endif
+
 module DekatronCounter #(
     parameter unsigned D_NUM          = 3,
     parameter unsigned WIDTH          = D_NUM * DEKATRON_WIDTH,
@@ -131,8 +144,8 @@ module DekatronCounter #(
 
     // Нарезка такта счёта
     parameter unsigned HS_PER_CLK     = 10,
-    parameter unsigned PHASE1_HS      = 3,
-    parameter unsigned PHASE2_HS      = 3,
+    parameter unsigned PHASE1_HS      = `DEKATRON_PHASE1_HS,
+    parameter unsigned PHASE2_HS      = `DEKATRON_PHASE2_HS,
     parameter unsigned PHASE_DELAY_HS = `DEKATRON_PHASE_DELAY_HS
 
 )(
