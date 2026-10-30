@@ -6,6 +6,7 @@ library(vtube_cells_lib) {
   //   vtube_grid (input pin): "triode", "pentode_g1", "pentode_g3", "follower" (a cathode follower grid:
   //     needs its own divider). Default "triode".
   //   vtube_c1 (input pin): divider speed-up capacitance per grid, pF. Default 3.9.
+  //   fanout_load (input pin): load in triode grids = vtube_c1 / 3.9 pF (rtl/run/vtube_liberty.py checks it).
   define(vtube_level, pin, string);
   define(vtube_grid, pin, string);
   define(vtube_c1, pin, float);
@@ -17,7 +18,7 @@ library(vtube_cells_lib) {
     }
     current_unit : "1mA";
     heat_current: 200;
-    pin(A) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 1.0;}
+    pin(A) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 0.69;}
     pin(Y) { vtube_level : "LV"; direction: output;
               driver_type : pull_up;
                max_fanout : 10;
@@ -104,7 +105,7 @@ library(vtube_cells_lib) {
       J2B: 1;
     }
     pin(A) { vtube_grid : "pentode_g1"; vtube_c1 : 3.9; direction: input; fanout_load: 1.0; }
-    pin(B) { vtube_grid : "pentode_g3"; vtube_c1 : 6.8; direction: input; fanout_load: 1.0; }
+    pin(B) { vtube_grid : "pentode_g3"; vtube_c1 : 6.8; direction: input; fanout_load: 1.74; }
     pin(Y) { vtube_level : "HV"; direction: output;
             driver_type : pull_up;
                max_fanout : 10;
@@ -140,8 +141,8 @@ library(vtube_cells_lib) {
       J2B: 1;
       N16B: 0.5;
     }
-    pin(A) { vtube_grid : "pentode_g1"; vtube_c1 : 2.7; direction: input; fanout_load: 1.0; }
-    pin(B) { vtube_grid : "pentode_g3"; vtube_c1 : 6.8; direction: input; fanout_load: 1.0; }
+    pin(A) { vtube_grid : "pentode_g1"; vtube_c1 : 2.7; direction: input; fanout_load: 0.69; }
+    pin(B) { vtube_grid : "pentode_g3"; vtube_c1 : 6.8; direction: input; fanout_load: 1.74; }
     pin(C) { direction: input; fanout_load: 1.0; }
     pin(Y) { vtube_level : "HV"; direction: output;
             driver_type : pull_up;
@@ -157,10 +158,10 @@ library(vtube_cells_lib) {
     tubes(names) {
       J2B: 2;
     }
-    pin(A) { vtube_grid : "pentode_g1"; vtube_c1 : 2.7; direction: input; fanout_load: 1.0; }
-    pin(B) { vtube_grid : "pentode_g3"; vtube_c1 : 6.8; direction: input; fanout_load: 1.0; }
-    pin(C) { vtube_grid : "pentode_g1"; vtube_c1 : 2.7; direction: input; fanout_load: 1.0; }
-    pin(D) { vtube_grid : "pentode_g3"; vtube_c1 : 6.8; direction: input; fanout_load: 1.0; }
+    pin(A) { vtube_grid : "pentode_g1"; vtube_c1 : 2.7; direction: input; fanout_load: 0.69; }
+    pin(B) { vtube_grid : "pentode_g3"; vtube_c1 : 6.8; direction: input; fanout_load: 1.74; }
+    pin(C) { vtube_grid : "pentode_g1"; vtube_c1 : 2.7; direction: input; fanout_load: 0.69; }
+    pin(D) { vtube_grid : "pentode_g3"; vtube_c1 : 6.8; direction: input; fanout_load: 1.74; }
     pin(Y) { vtube_level : "HV"; direction: output;
             driver_type : pull_up;
                max_fanout : 10;
@@ -174,8 +175,8 @@ library(vtube_cells_lib) {
     tubes(names) {
       N16B: 1;
     }
-    pin(A) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 1.0; }
-    pin(B) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 1.0; }
+    pin(A) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 0.69; }
+    pin(B) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 0.69; }
     pin(Y) { vtube_level : "LV"; direction: output;
                max_fanout : 10;
             driver_type : pull_up;
@@ -208,10 +209,10 @@ library(vtube_cells_lib) {
     tubes(names) {
       N16B: 2;
     }
-    pin(A) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 1.0; }
-    pin(B) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 1.0; }
-    pin(C) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 1.0; }
-    pin(D) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 1.0; }
+    pin(A) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 0.69; }
+    pin(B) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 0.69; }
+    pin(C) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 0.69; }
+    pin(D) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 0.69; }
     pin(Y) { vtube_level : "LV"; direction: output;
                max_fanout : 10;
             driver_type : pull_up;
