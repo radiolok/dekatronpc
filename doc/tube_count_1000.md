@@ -30,7 +30,7 @@ total tube count of IpLine + ApLine + MachineCtrl, mean of four `&deepsyn` seeds
 | TC-O2 | Cells `AOI211_J2N16` (+ `AOI221`, `AOI222`), on top of TC-O1 | −6.2 (−11.4) | `AOI211_J2N16` **done** (`sch/logic/AOI211_J2N16`, TRS v0.28): measured 1111.5 → 1105.3; `AOI221`/`AOI222` open | §6 |
 | TC-O3 | BinToBcd with inverted outputs, memory buses active-low | −19.5 | open: owner (interface) | §6 |
 | TC-O4 | CIN through the memory read bus, no rx/memory mux | −25 | open: REQ-UART-008; bf100: speed neutral, variant A recommended | §6, §6.1 |
-| TC-O5 | No `rst_n` on the 31 glue triggers | −31 | blocked by REQ-REF-011 | §6 |
+| TC-O5 | No `rst_n` on the 32 glue triggers; low `rst_n` holds `hard_rst`; `tx_vld` gated by the reset line | −33.0 | **done** (TRS v0.33): measured 1105.3 → 1072.3 | §6, §6.2 |
 | TC-O6 | ±IP panel keys dropped | −25 | open: Appendix B | §6 |
 | TC-O7 | Program loading by an external loader writing program memory | ≈ −79 | open: REQ-LOAD-001…003, OPEN-018 | §6 |
 | TC-O8 | No prefetch P3 | −26 | open: REQ-PERF-003 (speed) | §6 |
@@ -292,6 +292,130 @@ Recommendation: A, with the rx bits on the memory read bus. Not done yet: it
 moves the selection out of the counted blocks, so the memory support has to show
 that the gating is really free (owner's decision, REQ-UART-008).
 
+### 6.2. TC-O5: which triggers need `rst_n` (register audit, 2026-11-01)
+
+Owner, 2026-11-01: check every register; most of them should not need `rst_n`.
+Netlist of branch head (`rtl/run/*_synth.v`), every storage cell of the three boxes:
+
+| Block | Register | Cell | Synchronous reset by `soft_rst \| hard_rst` | Needs `rst_n`? |
+|---|---|---|---|---|
+| IpLine | `state[3:0]` | 4 × DFFRN | → `S_IDLE` | no |
+| IpLine | `ip_counted_q`, `scanning_q`, `halt_pending_q`, `insn_valid_q`, `eot_q`, `overflow_q` | 6 × DFFRN | → 0 | no |
+| IpLine | `dir_q` (`ip_counter.dec`) | DFFRN | none | **no, no reset at all**: every path into `S_IP`/`S_LOOP` writes it first (S_IDLE accept/halt, key step in S_HALT/S_INSN_IN; S_SCAN_EVAL is reached only through S_LOOP), and it acts only with `ip_valid`/`loop_valid` |
+| IpLine | `key_moved_q` | DFFRN | none | **no**: a wrong 1 only blocks a key that is already held; `key_release` clears it in the first S_HALT/S_INSN_IN cycle with the keys up |
+| ApLine | `state[2:0]` | 3 × DFFRN | → `S_IDLE` | no |
+| ApLine | `lock_q` (MemLock), `mem_here_q` | 2 × DFFRN | → 0 | no |
+| ApLine | `data_counter.at_top_q`, `zero_q` | 2 × DFF | — | already without reset |
+| MachineCtrl | `state[3:0]` | 3 × DFFRN + DFFSN | `rst_line` → `S_RST_WAIT` → `run_on_rst ? S_IDLE : S_HALT` | no |
+| MachineCtrl | `insn_loading`, `one_step`, `pf_q` (`ip_ahead`), `rst_soft` | 4 × DFFRN | `rst_line` → 0 / `~hard_rst` | no |
+| MachineCtrl | `insn_mode` (= `ap_op[4]`) | DFFRN | set on leaving `S_RST_WAIT` | no |
+| MachineCtrl | `op_q` (`ap_op[3:0]`) | 4 × DFFRN | none | **no**: a data register, loaded by the fetch before every decode |
+| MachineCtrl | `overflow_q` | DFFRN | follows `loop_overflow` every Clk | no: `rst_line` outranks `overflow_hit`, and IpLine's `overflow_q` is 0 one Clk into the reset |
+| MachineCtrl | `iret` | — | none | emulator only (`EN_EMULATOR`), not in the tube netlist; can count from `rst_line` |
+| counters | `enLatch` (LATCH_J2N16) | 11 | — | no reset, transparent in `CmdWin` |
+
+Result: **none of the 32 triggers needs `rst_n` for its function.** Each is either
+forced by the reset lines (and the time relay holds them for ≈ 10 Clk, so the
+synchronous reset always has edges to work with) or written before it is read.
+Measured gain from §6: −31 (DFFRN 8 → DFF 7 for 31 cells, plus the DFFSN).
+
+What `rst_n` still guards is only **the window before the first Clk edge under a
+reset line**. In that window the glue state is random (tube triggers power up at
+random, as dekatrons do, REQ-DEK-017):
+
+- Counter and memory requests are safe **while a reset line is high**: the counter's
+  `ready = ~(soft_rst | hard_rst)`, and every `*_valid` / `mem_valid` /
+  `insn_in_ready` / `rx_rdy` contains `go`. So nothing moves and nothing is written.
+- But today `RstTimeRelay` is **held off** while `rst_n` is low
+  (`trig = … & rst_n`) and fires the power-up hard reset only after `rst_n` goes
+  high. Without `rst_n` on the glue, the time between power-up and that hard reset
+  has random states with `go = 1`: ApLine in `S_FLUSH` would write a data cell,
+  IpLine in `S_INSN_IN` with a random `insn_loading` would write program memory
+  (ferrite keeps the program across power-off, so this is the real risk).
+- `tx_vld = (state == S_COUT)` and `is_halted` are not gated by `go`: a random
+  `S_COUT` can hand one character to the UART at the very first edge. The UART is
+  outside the tube count (REQ-AUTH), so it can ignore `tx_vld` while a reset line
+  is high for free; or one gate in MachineCtrl.
+
+So TC-O5 needs one more rule: **the reset line is high from power-on** (the time
+relay is energised by power-up, not started by the end of `rst_n`). In the model
+that is `RstTimeRelay` treating `~rst_n` as a hard-reset trigger that holds the line,
+which is what the machine already does a moment later through `RST_ON_POWERUP`.
+Then `rst_n` leaves the three boxes entirely (one HD-68 pin each), and stays only in
+the memory support and the emulator layer.
+
+Side effects to handle when it is done:
+
+- `rst_n` would now reach the discharges through `hard_rst` (AGENTS §4: "`rst_n`
+  never moves a discharge"). With `RST_ON_POWERUP = 1` the end result is the same
+  hard reset; only `RST_ON_POWERUP = 0` changes behaviour.
+- IpLine_tb, ApLine_tb (ties both lines to 0) and MachineCtrl_tb start with
+  `rst_n` only; they need a reset-line pulse first, or the state stays X.
+- Netlist simulation (`synth_sim.sh`, `-t`): DFF without reset starts X and must
+  resolve through the gates of the synchronous reset; ABC's restructuring can keep
+  X there (X pessimism). This has to be checked; it is the main technical risk.
+- REQ-REF-011 ("every FSM initialised by `rst_n`") becomes "by the reset lines".
+
+**Owner's decision (2026-11-01).** First: keep `rst_n` on the `state` registers only
+(11 triggers; measured 1086.8, −18.5). Then, on reflection: the machine has no reset
+of logic of its own, **`rst_n` = `hard_rst` | `soft_rst`**. So `rst_n` leaves every
+glue trigger, and low `rst_n` holds the hard-reset line, as power-on does.
+
+Done (TRS v0.33):
+
+- IpLine, ApLine, MachineCtrl: the `if (~rst_n)` branch of the main FSM is gone, the
+  block is `always_ff @(posedge clk)`; the existing `if (soft_rst | hard_rst)` /
+  `if (rst_line)` branch is the reset. All 32 triggers are `DFF_J2N16`.
+- `RstTimeRelay`: `hard_rst = ~rst_n | (active & is_hard)`, `soft_rst = rst_n &
+  active & ~is_hard`, `busy = ~rst_n | active`. The power-up hold (`RST_ON_POWERUP`)
+  follows the release, so the line is high from `rst_n` low until `HOLD_HS` after it
+  and the clock has edges to reset the glue. While the line is high the counters'
+  `ready` is low, so a random state issues no counter or memory request.
+- `rst_n` stays a port of IpLine/ApLine only as the model reset of the RC delay
+  elements of the counters (`OneShot`/`Impulse`, black boxes; the tube machine has
+  none), and in MachineCtrl only for the emulator's `iret` counter (removed by
+  synthesis with `EN_EMULATOR = 0`; it must survive the soft reset by EOT, the
+  Verilator testbench counts from there).
+- IpLine_tb, ApLine_tb and MachineCtrl_tb pulse a reset line after `rst_n`
+  (IpLine soft, so that IP stays 0 for looptest; ApLine and MachineCtrl hard, as
+  the time relay at power-up). ApLine_tb used to tie both lines to 0.
+
+| Block | Seed 0 | 1 | 2 | 3 | Mean | Before | Δ |
+|---|---|---|---|---|---|---|---|
+| IpLine | 354 | 354.5 | 354.5 | 347.5 | 352.6 | 369.1 | −16.5 |
+| ApLine | 418.5 | 415 | 415 | 413.5 | 415.5 | 416.4 | −0.9 |
+| MachineCtrl | 319.5 | 314 | 308.5 | 313 | 313.8 | 319.9 | −6.1 |
+| **Total** | 1092 | 1083.5 | 1078 | 1074 | **1081.8** | 1105.3 | **−23.5** |
+
+Over 8 seeds (0–7): 1106.8 → 1078.4, **−28.4**, close to the −32 of 32 triggers
+(`DFFRN_J2N16X7` 8 → `DFF_J2N16` 7); the split between blocks is ABC drift.
+
+`tx_vld = (state == S_COUT)` was not gated by `go`, so a random `S_COUT` at the first
+Clk edge after power-on could hand the terminal one character (the terminal does not
+see the reset line, Appendix B is frozen). Owner, 2026-11-01: gate it in MachineCtrl,
+`tx_vld = (state == S_COUT) & ~rst_line`. One gate in theory; measured with it:
+
+| Block | Seed 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | Mean 0–3 | Mean 0–7 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| IpLine | 353.5 | 351.5 | 356.5 | 352 | 354 | 355 | 358 | 347.5 | 353.4 | 353.5 |
+| ApLine | 418 | 414.5 | 416.5 | 414.5 | 416 | 415 | 416.5 | 414.5 | 415.9 | 415.7 |
+| MachineCtrl | 301 | 302 | 305 | 304.5 | 306.5 | 311 | 302 | 306 | 303.1 | 304.8 |
+| **Total** | 1072.5 | 1068 | 1078 | 1071 | 1076.5 | 1081 | 1076.5 | 1068 | **1072.3** | **1073.9** |
+
+**Final TC-O5: 1105.3 → 1072.3 (−33.0) over seeds 0–3, 1106.8 → 1073.9 (−32.9) over
+seeds 0–7**, i.e. one tube per trigger for all 32. MachineCtrl's −9 against the run
+without the gate is ABC drift, not the gate.
+
+Verification (2026-11-01, final RTL with the `tx_vld` gate): `rtl/run/emul` IpLine, ApLine, MachineCtrl PASS; `run_tests.sh -t`
+(Icarus + Verilator against dpcrun on helloworld, program.bfk, pi.bfk) PASS; `run_tests.sh -d`
+PASS, pi.bfk on the delay model 27 452 640 µs (7 Clk less than before: the hard reset
+now starts while `rst_n` is low); `run_tests.sh -s` (seed 0, with the `tx_vld` gate) 1072.5: no `DFFRN`/`DFFSN` left,
+IpLine 12, ApLine 7, MachineCtrl 14 `DFF_J2N16`; `synth_sim.sh` 7/7 PASS (the netlist DFFs
+start X and resolve through the synchronous reset); `synth_sim.sh -t` (Dekatron, Counter,
+DekatronPC hello / program) PASS, 0 setup / 0 hold violations; cocotb regression 34/34.
+`synth_sim.sh -t MachineCtrl` cannot work and is not in the default `-t` set:
+MachineCtrl_tb has a fixed 10 ns clock (`always #5`) and ignores `-c`.
+
 ### What the glue features cost (ablation: the feature tied off, everything else kept)
 
 | Feature | Tubes | Option |
@@ -373,13 +497,13 @@ requirement is small: the library cells (−17…−29, after design work) and o
 | TC-O1, TC-O2 | `NOR3_N16` + `AOI211` designed (done: 1105.3) | −23.5 | none (REQ-MOD-003 library) |
 | TC-O3 | BinToBcd inverted, memory buses active-low | −19.5 | interface convention, not in the TRS |
 | TC-O4 | CIN through the memory read bus | −25 | REQ-UART-008 |
-| TC-O5 | Glue triggers without `rst_n` | −31 | REQ-REF-011 |
+| TC-O5 | Glue triggers without `rst_n` | −33.0 | done, TRS v0.33 |
 | TC-O6 | ±IP panel keys dropped | −25 | Appendix B (`keyNextIp/keyPrevIp`) |
 | TC-O7 | Program loading by an external loader writing program memory directly | ≈ −79 | REQ-LOAD-001…003, OPEN-018 |
 | TC-O8 | No prefetch | −26 | REQ-PERF-003 (speed) |
 
-For example, TC-O1 + O2 (−24), TC-O3 (−19.5), TC-O4 (−25) and TC-O5 (−31) give ≈ 1029;
-with TC-O6 as well ≈ 1004. TC-O7 alone gives ≈ 1050; TC-O7 + O1 + O2 + O3 + O4 ≈ 981. The estimates add only roughly (ABC drift ±10, the options overlap).
+Done so far: TC-O1 + O2 + O5 give **1072.3** (§6.2). From there TC-O3 (−19.5) and TC-O4 (−25) give ≈ 1028;
+with TC-O6 as well ≈ 1003. TC-O7 on top of 1072.3 gives ≈ 993; TC-O7 + O3 + O4 ≈ 949. The estimates add only roughly (ABC drift ±10, the options overlap).
 
 ## 8. Flow changes (for whoever runs synthesis next)
 

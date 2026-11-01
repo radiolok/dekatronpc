@@ -60,7 +60,7 @@ module ApLine #(
     parameter [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0]
               DATA_TOP_VALUE = {4'd2, 4'd5, 4'd5}                // 255
 )(
-    input  wire rst_n,
+    input  wire rst_n,        // только модельный сброс RC-элементов задержки счётчиков; триггеры клея сбрасывают линии (TC-O5)
     input  wire clk,
 `ifndef DEKATRON_DELAY_MODEL
     input  wire hs_clk,       // только тактовая модель декатронов
@@ -285,15 +285,13 @@ module ApLine #(
     //------------------------------------------------------------------
     // Основной автомат
     //------------------------------------------------------------------
-    always_ff @(posedge clk, negedge rst_n) begin
-        if (~rst_n) begin
-            state      <= S_IDLE;
-            lock_q     <= 1'b0;
-            mem_here_q <= 1'b0;
-        end
+    // Все триггеры сбрасывают линии soft_rst/hard_rst синхронно или они
+    // пишутся до чтения; rst_n в ламповой машине нет: его роль играет
+    // аппаратный сброс реле времени при включении (REQ-REF-011, TC-O5)
+    always_ff @(posedge clk) begin
         // Физический сброс счётчиков: адрес ушёл в нуль, содержимое
         // выходного регистра памяти к нему не относится
-        else if (soft_rst | hard_rst) begin
+        if (soft_rst | hard_rst) begin
             state      <= S_IDLE;
             lock_q     <= 1'b0;
             mem_here_q <= 1'b0;

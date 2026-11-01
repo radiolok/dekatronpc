@@ -79,7 +79,7 @@ module IpLine #(
     // Чтение счётчика циклов нужно только для индикации в эмуляторе
     parameter bit          LOOP_READ         = 1'b0
 )(
-    input  wire rst_n,        // сброс логики; разряд декатронов не двигает
+    input  wire rst_n,        // только модельный сброс RC-элементов задержки счётчиков; триггеры клея сбрасывают линии (TC-O5)
     input  wire clk,
 `ifndef DEKATRON_DELAY_MODEL
     input  wire hs_clk,       // только тактовая модель декатронов
@@ -361,21 +361,13 @@ module IpLine #(
     //------------------------------------------------------------------
     // Основной автомат
     //------------------------------------------------------------------
-    always_ff @(posedge clk, negedge rst_n) begin
-        if (~rst_n) begin
-            state          <= S_IDLE;
-            ip_counted_q   <= 1'b0;
-            scanning_q     <= 1'b0;
-            dir_q          <= 1'b0;
-            key_moved_q    <= 1'b0;
-            halt_pending_q <= 1'b0;
-            overflow_q     <= 1'b0;
-            eot_q          <= 1'b0;
-            insn_valid_q   <= 1'b0;
-        end
+    // Все триггеры сбрасывают линии soft_rst/hard_rst синхронно или они
+    // пишутся до чтения; rst_n в ламповой машине нет: его роль играет
+    // аппаратный сброс реле времени при включении (REQ-REF-011, TC-O5)
+    always_ff @(posedge clk) begin
         // Физический сброс счётчиков обнуляет и состояние выборки:
         // адрес ушёл на начало, прочитанная инструкция недостоверна
-        else if (soft_rst | hard_rst) begin
+        if (soft_rst | hard_rst) begin
             state          <= S_IDLE;
             ip_counted_q   <= 1'b0;
             scanning_q     <= 1'b0;

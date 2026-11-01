@@ -79,7 +79,7 @@ module MachineCtrl #(
     parameter bit          EN_EMULATOR   = 1'b0   // счётчик выполненных инструкций
 )(
     input  wire clk,
-    input  wire rst_n,        // сброс логики; разряд декатронов не двигает
+    input  wire rst_n,        // только счётчик iret эмулятора; автомат сбрасывают линии (TC-O5)
 
     //------------------------------------------------------------------
     // Пульт управления
@@ -269,7 +269,10 @@ module MachineCtrl #(
     wire op_end  = (in_wait & go & ~cout_echo) | ((state == S_COUT) & tx_rdy);
     wire op_load = (state == S_FETCH_W) | op_end;
 
-    assign tx_vld = (state == S_COUT);
+    // Триггеры автомата без rst_n (TC-O5): при включении состояние случайно
+    // до первого такта под линией сброса, и случайное S_COUT отдало бы
+    // терминалу символ. Пока линия поднята, вывода нет
+    assign tx_vld = (state == S_COUT) & ~rst_line;
 
     // Приём символа завершается, когда ApLine закончил CIN: до этого
     // момента счётчик данных пишется прямо с rx_data_bcd, и передающая
@@ -326,19 +329,11 @@ module MachineCtrl #(
     //------------------------------------------------------------------
     // Основной автомат
     //------------------------------------------------------------------
-    always_ff @(posedge clk, negedge rst_n) begin
-        if (~rst_n) begin
-            state        <= S_HALT;
-            insn_mode    <= 1'b0;          // после включения — Debug ISA
-            insn_loading <= 1'b0;
-            one_step     <= 1'b0;
-            overflow_q   <= 1'b0;
-            rst_soft     <= 1'b0;
-            op_q         <= '0;
-            pf_q         <= 1'b0;
-            iret         <= '0;
-        end
-        else begin
+    // Все триггеры сбрасывают линии soft_rst/hard_rst синхронно или они
+    // пишутся до чтения; rst_n в ламповой машине нет: его роль играет
+    // аппаратный сброс реле времени при включении (REQ-REF-011, TC-O5)
+    always_ff @(posedge clk) begin
+        begin
             overflow_q <= loop_overflow;
 
             if (op_load) op_q <= insn;
@@ -406,7 +401,6 @@ module MachineCtrl #(
             // Декодирование
             //--------------------------------------------------------------
             S_DECODE: begin
-                if (EN_EMULATOR) iret <= iret + 32'd1;
                 pf_q <= 1'b0;
 
                 if (insn_loading & insn_eot) begin
@@ -568,6 +562,15 @@ module MachineCtrl #(
 
             end   // конец ветки «сброс не активен»
         end
+    end
+
+    // Счётчик выполненных инструкций, только эмулятор: по rst_n, а не по
+    // линиям — программный сброс по EOT его не обнуляет
+    always_ff @(posedge clk, negedge rst_n) begin
+        if (~rst_n)
+            iret <= '0;
+        else if (EN_EMULATOR & (state == S_DECODE) & ~rst_line & ~overflow_hit)
+            iret <= iret + 32'd1;
     end
 
 `ifndef SYNTH

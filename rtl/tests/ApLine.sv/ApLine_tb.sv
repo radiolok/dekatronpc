@@ -62,6 +62,10 @@ ClockDivider #(
 `endif
 
 reg             valid    = 1'b0;
+// Линия аппаратного сброса: держится при включении, как реле времени
+// (RST_ON_POWERUP). Триггеры клея rst_n не получают
+// (REQ-REF-011, TC-O5)
+reg             HardRst  = 1'b0;
 reg  [4:0]      op       = 5'h10;   // BF NOP
 reg  [11:0]     rx_data  = 12'd0;
 
@@ -100,7 +104,7 @@ ApLine apLine (
     .hs_clk         (hsClk),
 `endif
     .soft_rst       (1'b0),
-    .hard_rst       (1'b0),
+    .hard_rst       (HardRst),
     .valid          (valid),
     .ready          (ready),
     .op             (op),
@@ -249,7 +253,11 @@ initial begin
     op      <= 5'h10;
     rx_data <= 12'd0;
 
+    HardRst <= 1'b1;
     #2000 Rst_n <= 1'b1;
+    repeat (12) @(posedge Clk);
+    HardRst <= 1'b0;
+    @(posedge Clk);
     while (!ready) @(posedge Clk);
 
     $display("AP increment test");
