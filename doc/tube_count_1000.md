@@ -32,7 +32,7 @@ total tube count of IpLine + ApLine + MachineCtrl, mean of four `&deepsyn` seeds
 | TC-O4 | CIN through the memory read bus, no rx/memory mux | −25 | open: REQ-UART-008; bf100: speed neutral, variant A recommended | §6, §6.1 |
 | TC-O5 | No `rst_n` on the 32 glue triggers; low `rst_n` holds `hard_rst`; `tx_vld` gated by the reset line | −33.0 | **done** (TRS v0.33): measured 1105.3 → 1072.3 | §6, §6.2 |
 | TC-O6 | ±IP panel keys dropped | −25 | open: Appendix B | §6 |
-| TC-O7 | Program loading by an external loader writing program memory | ≈ −79 | open: REQ-LOAD-001…003, OPEN-018 | §6 |
+| TC-O7 | ~~Program loading by an external loader writing program memory~~ | ≈ −79 | **rejected by the owner** (2026-11-01): loading stays in the machine — with the panel switches it starts by itself | §6, §7 |
 | TC-O8 | No prefetch P3 | −26 | open: REQ-PERF-003 (speed) | §6 |
 | TC-O9 | `insn_valid` dropped (redundant for MachineCtrl) | −8 | open: small, IpLine_tb rework | §6 |
 
@@ -499,11 +499,11 @@ requirement is small: the library cells (−17…−29, after design work) and o
 | TC-O4 | CIN through the memory read bus | −25 | REQ-UART-008 |
 | TC-O5 | Glue triggers without `rst_n` | −33.0 | done, TRS v0.33 |
 | TC-O6 | ±IP panel keys dropped | −25 | Appendix B (`keyNextIp/keyPrevIp`) |
-| TC-O7 | Program loading by an external loader writing program memory directly | ≈ −79 | REQ-LOAD-001…003, OPEN-018 |
+| TC-O7 | ~~Program loading by an external loader writing program memory directly~~ | ≈ −79 | **rejected by the owner** (2026-11-01) |
 | TC-O8 | No prefetch | −26 | REQ-PERF-003 (speed) |
 
 Done so far: TC-O1 + O2 + O5 give **1072.3** (§6.2). From there TC-O3 (−19.5) and TC-O4 (−25) give ≈ 1028;
-with TC-O6 as well ≈ 1003. TC-O7 on top of 1072.3 gives ≈ 993; TC-O7 + O3 + O4 ≈ 949. The estimates add only roughly (ABC drift ±10, the options overlap).
+with TC-O6 as well ≈ 1003. TC-O7 is **rejected by the owner** (2026-11-01): program loading (SOT/EOT over the `insn_in` channel) stays in the machine, because with the panel switches (RunOnHardRst, SoftRstOnEOT, RunOnSoftRst) the computer starts up by itself. Without it, below 1000 needs TC-O3 + O4 + O6 (≈ 1003) and a little more. The estimates add only roughly (ABC drift ±10, the options overlap).
 
 ## 8. Flow changes (for whoever runs synthesis next)
 
