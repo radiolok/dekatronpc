@@ -34,7 +34,9 @@ run/*.json
 
 # структурные схемы для SCHEMES.md
 !img/schemes/*.svg
-!doc/img/*.png
+# doc/img: все PNG-рисунки, в любой подпапке, идут в git (схемы
+# от run_tests.sh -p попадают в rtl/run, а не сюда)
+!doc/img/**/*.png
 !sch/logic/*/img/*.png
 !sch/tubes/*/scan/*.png
 !sch/tubes/*/img/*.png

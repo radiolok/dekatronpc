@@ -11,7 +11,8 @@
 // машины. hsClk в ней нет вовсе — он только для тактовой модели декатрона
 // на FPGA и в симуляции без задержек. Длительности — в нс, как у RC-цепей
 // и самого декатрона [TRS v0.25]:
-//   GUIDE_STEP / FALL_STEP — переход на подкатод и сваливание (оценки)
+//   GUIDE_STEP / FALL_STEP — переход на подкатод и сваливание (оценки;
+//     FALL_STEP 1000 по SPICE-модели А110, doc/dekatron_physics.md [TRS v0.31])
 //   WRITE_MIN / RESET_MIN  — запись и сброс по катоду (оценки, OPEN-013)
 //   GUIDE_MAX              — предел импульса подкатода (только диагностика)
 //   PHASE_DELAY / PHASE1 / PHASE2 — нарезка такта генератором фаз
@@ -21,7 +22,7 @@
 `define DEKATRON_GUIDE_STEP_NS 200
 `endif
 `ifndef DEKATRON_FALL_STEP_NS
-`define DEKATRON_FALL_STEP_NS 300
+`define DEKATRON_FALL_STEP_NS 1000
 `endif
 `ifndef DEKATRON_GUIDE_MAX_NS
 `define DEKATRON_GUIDE_MAX_NS 10000

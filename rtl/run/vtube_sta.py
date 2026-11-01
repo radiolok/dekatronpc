@@ -338,7 +338,7 @@ class Sta:
             self.put_pulse(ob, cn, 'r', width)
         elif t == 'DekatronTubeDelay':
             guide = self.param(cn, 'GUIDE_STEP_NS', 200)
-            fall = self.param(cn, 'FALL_STEP_NS', 300)
+            fall = self.param(cn, 'FALL_STEP_NS', 1000)
             best = None
             early = None
             for p in ('guide_a_i', 'guide_b_i'):

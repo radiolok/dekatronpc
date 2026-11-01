@@ -1,0 +1,48 @@
+{
+ "tube": "A110",
+ "name_ru": "А-110",
+ "type": "miniature gas-discharge switching dekatron (counting tube with individual cathode outputs)",
+ "source": "One-page reference sheet, image supplied by the owner on 2026-11-01, kept as doc/data/a110_sheet.png (no URL known)",
+ "digitized": "2026-11-01, transcribed from the sheet by hand. The sheet has no curves.",
+ "description": "Miniature gas-discharge switching dekatron, intended for counting and counting-decision devices. Glass bulb, baseless (РШ27). Filled with a deionizing gas mixture. Blue glow, read visually by the position of the discharge glow.",
+ "electrical": [
+  {"name": "burning voltage", "name_ru": "Напряжение горения", "min": 175, "max": 205, "unit": "V", "cond": null, "note": null},
+  {"name": "supply voltage", "name_ru": "Напряжение источника питания", "min": 350, "max": null, "unit": "V", "cond": null, "note": "printed as '> 350 V'"},
+  {"name": "anode current", "name_ru": "Ток анода", "min": 0.7, "max": 0.9, "unit": "mA", "cond": null, "note": null},
+  {"name": "control pulse frequency (counting rate)", "name_ru": "Данные управляющих импульсов: частота (скорость счёта)", "min": null, "max": 1000000, "unit": "Hz", "cond": null, "note": "printed as '< 1 000 000 Hz'"},
+  {"name": "control pulse amplitude", "name_ru": "Данные управляющих импульсов: амплитуда импульса", "value": 38, "unit": "V", "cond": null, "note": "single value, no tolerance, no polarity and no duration printed"},
+  {"name": "reset pulse amplitude", "name_ru": "Амплитуда импульсов сброса", "min": 150, "max": null, "unit": "V", "cond": null, "note": "printed as '> 150 V'; the electrode it is applied to, polarity and duration are not printed"},
+  {"name": "service life", "name_ru": "Долговечность", "min": 1000, "max": null, "unit": "h", "cond": null, "note": "printed as '> 1000 h'"}
+ ],
+ "capacitances": [],
+ "ratings": [],
+ "pinout": [
+  {"pin": 1, "electrode": "cathode 9", "name_ru": "катод 9-й"},
+  {"pin": 2, "electrode": "cathode 8", "name_ru": "катод 8-й"},
+  {"pin": 3, "electrode": "cathode 7", "name_ru": "катод 7-й"},
+  {"pin": 4, "electrode": "cathode 6", "name_ru": "катод 6-й"},
+  {"pin": 5, "electrode": "guide (sub-cathode) 2", "name_ru": "подкатод 2-й"},
+  {"pin": 6, "electrode": "cathode 5", "name_ru": "катод 5-й"},
+  {"pin": 7, "electrode": "cathode 4", "name_ru": "катод 4-й"},
+  {"pin": 8, "electrode": "cathode 3", "name_ru": "катод 3-й"},
+  {"pin": 9, "electrode": "guide (sub-cathode) 1", "name_ru": "подкатод 1-й"},
+  {"pin": 10, "electrode": "cathode 2", "name_ru": "катод 2-й"},
+  {"pin": 11, "electrode": "cathode 1", "name_ru": "катод 1-й"},
+  {"pin": 12, "electrode": "cathode 0", "name_ru": "катод нулевой"},
+  {"pin": 13, "electrode": "anode", "name_ru": "анод"}
+ ],
+ "pinout_note": "13 flexible leads. All ten main cathodes have their own leads; each guide set is one lead. The sheet shows no pin numbering on the drawing and no key position for the lead order.",
+ "dimensions": [
+  {"name": "bulb diameter", "value": 22.5, "unit": "mm", "note": "printed as Ø22,5"},
+  {"name": "bulb length, dome to lead end of the bulb", "value": 41, "unit": "mm", "note": null},
+  {"name": "lead length", "value": 50, "unit": "mm", "note": "from the lead end of the bulb to the lead ends"},
+  {"name": "height over the bulb and the side pip", "value": 29, "unit": "mm", "note": "from the top of the bulb to the end of the glass pip below it"},
+  {"name": "dome to pip", "value": 27, "unit": "mm", "note": "horizontal dimension from the dome end to the pip, as drawn; the drawing does not make clear whether it ends at the pip axis or its far edge"},
+  {"name": "pip diameter", "value": 3.5, "unit": "mm", "note": "printed as Ø3,5"}
+ ],
+ "plots": {},
+ "checks": [
+  {"name": "pinout vs KiCad symbol vacuum_tube:А110", "result": "pins 1-13 identical", "pass": true}
+ ],
+ "notes": "No tolerances, no min/max ratings table, no capacitances, no curves, no guide bias, no pulse widths or polarity, no cathode resistor value. Tolerances are not given anywhere; the dimensions carry no max/min marks."
+}

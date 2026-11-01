@@ -50,7 +50,7 @@ module DekatronTubeDelay #(
     // Длительности, нс [TRS v0.25]: модель на задержках hsClk не знает.
     // DekatronModule передаёт макросы DEKATRON_*_NS (rtl/parameters.sv)
     parameter unsigned GUIDE_STEP_NS    = 200,
-    parameter unsigned FALL_STEP_NS     = 300,
+    parameter unsigned FALL_STEP_NS     = 1000,
     parameter unsigned GUIDE_MAX_NS     = 10000,
     parameter unsigned WRITE_MIN_NS     = 5000,
     parameter unsigned RESET_MIN_NS     = 5000,

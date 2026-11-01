@@ -1,0 +1,520 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='810' viewBox='0 0 1200 810'>
+<title>Декада с записью: 10 катодных ламп</title>
+<rect x='0' y='0' width='1200' height='810' fill='white'/>
+<text x='20.0' y='26.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='15' text-anchor='start' fill='#111' font-weight='bold'>Рис. 1. Декада с записью (счётчик данных): лампа записи в каждом катоде</text>
+<polyline points='561.0,62.0 579.0,62.0' fill='none' stroke='#111' stroke-width='2'/>
+<text x='570.0' y='57.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>+350 В</text>
+<polyline points='570.0,62.0 570.0,92.5' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='565.0' y='92.5' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='570.0,128.5 570.0,159.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='579.0' y='114.5' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='start' fill='#111'>Rа 180…220k</text>
+<text x='562.0' y='155.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>A</text>
+<polyline points='504.0,195.0 420.0,195.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='498.0' y='189.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>ПК1</text>
+<circle cx='420.0' cy='195.0' r='3.2' fill='#111'/>
+<polyline points='420.0,62.0 420.0,110.5' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='415.0' y='110.5' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='420.0,146.5 420.0,195.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='429.0' y='132.5' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='start' fill='#111'>Rсм</text>
+<polyline points='411.0,62.0 429.0,62.0' fill='none' stroke='#111' stroke-width='2'/>
+<text x='420.0' y='57.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>Uсм</text>
+<polyline points='420.0,76.0 386.0,76.0' fill='none' stroke='#c05000' stroke-width='1.5' stroke-dasharray='6,4'/>
+<polyline points='420.0,183.0 386.0,183.0' fill='none' stroke='#c05000' stroke-width='1.5' stroke-dasharray='6,4'/>
+<polyline points='386.0,76.0 386.0,122.5' fill='none' stroke='#c05000' stroke-width='1.5' stroke-dasharray='6,4'/>
+<polyline points='378.0,122.5 394.0,122.5' fill='none' stroke='#c05000' stroke-width='2'/>
+<polygon points='378,136.5 394,136.5 386,122.5' fill='none' stroke='#c05000' stroke-width='1.5'/>
+<polyline points='386.0,136.5 386.0,183.0' fill='none' stroke='#c05000' stroke-width='1.5' stroke-dasharray='6,4'/>
+<text x='374.0' y='112.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='10' text-anchor='end' fill='#c05000'>½ 6Х7Б</text>
+<text x='374.0' y='125.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='10' text-anchor='end' fill='#c05000'>(если нужен)</text>
+<polyline points='280.0,195.0 346.0,195.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='346.0,185.0 346.0,205.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='354.0,185.0 354.0,205.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='354.0,195.0 420.0,195.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='350.0' y='181.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>Cп</text>
+<circle cx='280.0' cy='195.0' r='3.2' fill='#111'/>
+<polyline points='280.0,62.0 280.0,110.5' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='275.0' y='110.5' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='280.0,146.5 280.0,195.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='289.0' y='132.5' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='start' fill='#111'>Ra</text>
+<polyline points='271.0,62.0 289.0,62.0' fill='none' stroke='#111' stroke-width='2'/>
+<text x='280.0' y='57.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>+150</text>
+<circle cx='280.0' cy='243.0' r='20' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='271.0,232.0 289.0,232.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='280.0,232.0 280.0,223.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='270.0,240.0 290.0,240.0' fill='none' stroke='#111' stroke-width='1.2' stroke-dasharray='6,4'/>
+<polyline points='270.0,240.0 242.0,240.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='270.0,248.0 290.0,248.0' fill='none' stroke='#111' stroke-width='1.2' stroke-dasharray='6,4'/>
+<polyline points='270.0,248.0 242.0,248.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='271.0,256.0 289.0,256.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='280.0,256.0 280.0,263.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='304.0' y='279.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='10' text-anchor='middle' fill='#111'>GUIDE_EN_J2</text>
+<polyline points='280.0,195.0 280.0,223.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='238.0' y='241.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>GuideA</text>
+<text x='238.0' y='257.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>En</text>
+<polyline points='280.0,263.0 280.0,271.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='271.0,271.0 289.0,271.0' fill='none' stroke='#111' stroke-width='2'/>
+<text x='280.0' y='286.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'></text>
+<text x='266.0' y='275.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='10' text-anchor='end' fill='#111'>0 В</text>
+<polyline points='636.0,195.0 720.0,195.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='642.0' y='189.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='start' fill='#111'>ПК2</text>
+<circle cx='720.0' cy='195.0' r='3.2' fill='#111'/>
+<polyline points='720.0,62.0 720.0,110.5' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='715.0' y='110.5' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='720.0,146.5 720.0,195.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='711.0' y='132.5' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>Rсм</text>
+<polyline points='711.0,62.0 729.0,62.0' fill='none' stroke='#111' stroke-width='2'/>
+<text x='720.0' y='57.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>Uсм</text>
+<polyline points='720.0,76.0 754.0,76.0' fill='none' stroke='#c05000' stroke-width='1.5' stroke-dasharray='6,4'/>
+<polyline points='720.0,183.0 754.0,183.0' fill='none' stroke='#c05000' stroke-width='1.5' stroke-dasharray='6,4'/>
+<polyline points='754.0,76.0 754.0,122.5' fill='none' stroke='#c05000' stroke-width='1.5' stroke-dasharray='6,4'/>
+<polyline points='746.0,122.5 762.0,122.5' fill='none' stroke='#c05000' stroke-width='2'/>
+<polygon points='746,136.5 762,136.5 754,122.5' fill='none' stroke='#c05000' stroke-width='1.5'/>
+<polyline points='754.0,136.5 754.0,183.0' fill='none' stroke='#c05000' stroke-width='1.5' stroke-dasharray='6,4'/>
+<text x='766.0' y='112.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='10' text-anchor='start' fill='#c05000'>½ 6Х7Б</text>
+<text x='766.0' y='125.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='10' text-anchor='start' fill='#c05000'>(если нужен)</text>
+<polyline points='720.0,195.0 786.0,195.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='786.0,185.0 786.0,205.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='794.0,185.0 794.0,205.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='794.0,195.0 860.0,195.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='790.0' y='181.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>Cп</text>
+<circle cx='860.0' cy='195.0' r='3.2' fill='#111'/>
+<polyline points='860.0,62.0 860.0,110.5' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='855.0' y='110.5' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='860.0,146.5 860.0,195.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='851.0' y='132.5' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>Ra</text>
+<polyline points='851.0,62.0 869.0,62.0' fill='none' stroke='#111' stroke-width='2'/>
+<text x='860.0' y='57.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>+150</text>
+<circle cx='860.0' cy='243.0' r='20' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='851.0,232.0 869.0,232.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='860.0,232.0 860.0,223.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='850.0,240.0 870.0,240.0' fill='none' stroke='#111' stroke-width='1.2' stroke-dasharray='6,4'/>
+<polyline points='870.0,240.0 898.0,240.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='850.0,248.0 870.0,248.0' fill='none' stroke='#111' stroke-width='1.2' stroke-dasharray='6,4'/>
+<polyline points='870.0,248.0 898.0,248.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='851.0,256.0 869.0,256.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='860.0,256.0 860.0,263.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='836.0' y='279.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='10' text-anchor='middle' fill='#111'>GUIDE_EN_J2</text>
+<polyline points='860.0,195.0 860.0,223.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='902.0' y='241.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='start' fill='#111'>GuideB</text>
+<text x='902.0' y='257.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='start' fill='#111'>En</text>
+<polyline points='860.0,263.0 860.0,271.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='851.0,271.0 869.0,271.0' fill='none' stroke='#111' stroke-width='2'/>
+<text x='860.0' y='286.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'></text>
+<text x='874.0' y='275.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='10' text-anchor='start' fill='#111'>0 В</text>
+<circle cx='570.0' cy='225.0' r='66' fill='none' stroke='#111' stroke-width='2'/>
+<circle cx='565.2' cy='270.9' r='3.6' fill='#111'/>
+<circle cx='555.7' cy='268.9' r='1.8' fill='#111'/>
+<circle cx='546.9' cy='265.0' r='1.8' fill='#111'/>
+<circle cx='539.1' cy='259.3' r='3.6' fill='#111'/>
+<circle cx='532.6' cy='252.2' r='1.8' fill='#111'/>
+<circle cx='527.8' cy='243.8' r='1.8' fill='#111'/>
+<circle cx='524.8' cy='234.6' r='3.6' fill='#111'/>
+<circle cx='523.8' cy='225.0' r='1.8' fill='#111'/>
+<circle cx='524.8' cy='215.4' r='1.8' fill='#111'/>
+<circle cx='527.8' cy='206.2' r='3.6' fill='#111'/>
+<circle cx='532.6' cy='197.8' r='1.8' fill='#111'/>
+<circle cx='539.1' cy='190.7' r='1.8' fill='#111'/>
+<circle cx='546.9' cy='185.0' r='3.6' fill='#111'/>
+<circle cx='555.7' cy='181.1' r='1.8' fill='#111'/>
+<circle cx='565.2' cy='179.1' r='1.8' fill='#111'/>
+<circle cx='574.8' cy='179.1' r='3.6' fill='#111'/>
+<circle cx='584.3' cy='181.1' r='1.8' fill='#111'/>
+<circle cx='593.1' cy='185.0' r='1.8' fill='#111'/>
+<circle cx='600.9' cy='190.7' r='3.6' fill='#111'/>
+<circle cx='607.4' cy='197.8' r='1.8' fill='#111'/>
+<circle cx='612.2' cy='206.2' r='1.8' fill='#111'/>
+<circle cx='615.2' cy='215.4' r='3.6' fill='#111'/>
+<circle cx='616.2' cy='225.0' r='1.8' fill='#111'/>
+<circle cx='615.2' cy='234.6' r='1.8' fill='#111'/>
+<circle cx='612.2' cy='243.8' r='3.6' fill='#111'/>
+<circle cx='607.4' cy='252.2' r='1.8' fill='#111'/>
+<circle cx='600.9' cy='259.3' r='1.8' fill='#111'/>
+<circle cx='593.1' cy='265.0' r='3.6' fill='#111'/>
+<circle cx='584.3' cy='268.9' r='1.8' fill='#111'/>
+<circle cx='574.8' cy='270.9' r='1.8' fill='#111'/>
+<circle cx='570.0' cy='225.0' r='21.12' fill='none' stroke='#111' stroke-width='1.2'/>
+<text x='570.0' y='230.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='13' text-anchor='middle' fill='#111' font-weight='bold'>А110</text>
+<polyline points='513.4,259.0 513.4,285.0 120.0,350.0 120.0,385.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='120.0' cy='385.0' r='3.2' fill='#111'/>
+<text x='126.0' y='379.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='start' fill='#111'>K0</text>
+<polyline points='120.0,385.0 94.0,385.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='100.0,381.0 94.0,385.0 100.0,389.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='91.0' y='389.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>чт0</text>
+<polyline points='120.0,385.0 120.0,422.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='115.0' y='422.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='120.0,458.0 120.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='129.0' y='444.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='start' fill='#111'>Rк</text>
+<circle cx='120.0' cy='495.0' r='3.2' fill='#111'/>
+<text x='114.0' y='489.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>B0</text>
+<polyline points='120.0,495.0 150.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='150.0,415.0 150.0,437.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='145.0' y='437.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='150.0,473.0 150.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='159.0' y='459.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='start' fill='#111'>Rп</text>
+<polyline points='141.0,415.0 159.0,415.0' fill='none' stroke='#111' stroke-width='2'/>
+<text x='150.0' y='410.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>+150</text>
+<circle cx='120.0' cy='555.0' r='18' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='112.0,547.0 128.0,547.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='120.0,547.0 120.0,537.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='111.0,555.0 129.0,555.0' fill='none' stroke='#111' stroke-width='1.2' stroke-dasharray='6,4'/>
+<polyline points='111.0,555.0 96.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='112.0,564.0 128.0,564.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='120.0,564.0 120.0,573.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='120.0,495.0 120.0,537.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='96.0' cy='555.0' r='3.2' fill='#111'/>
+<polyline points='66.0,555.0 77.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='77.0,545.0 77.0,565.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='85.0,545.0 85.0,565.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='85.0,555.0 96.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='64.0' y='547.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='10' text-anchor='end' fill='#111'>W0</text>
+<polyline points='96.0,555.0 96.0,567.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='91.0' y='567.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='96.0,603.0 96.0,615.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='96.0' cy='615.0' r='3.2' fill='#111'/>
+<polyline points='120.0,573.0 120.0,615.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='120.0' cy='615.0' r='3.2' fill='#111'/>
+<polyline points='522.6,270.9 522.6,292.9 220.0,350.0 220.0,385.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='220.0' cy='385.0' r='3.2' fill='#111'/>
+<text x='226.0' y='379.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='start' fill='#111'>K1</text>
+<polyline points='220.0,385.0 194.0,385.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='200.0,381.0 194.0,385.0 200.0,389.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='191.0' y='389.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>чт1</text>
+<polyline points='220.0,385.0 220.0,422.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='215.0' y='422.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='220.0,458.0 220.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='220.0' cy='495.0' r='3.2' fill='#111'/>
+<text x='214.0' y='489.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>B1</text>
+<polyline points='220.0,495.0 250.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='250.0,415.0 250.0,437.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='245.0' y='437.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='250.0,473.0 250.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='241.0,415.0 259.0,415.0' fill='none' stroke='#111' stroke-width='2'/>
+<text x='250.0' y='410.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>+150</text>
+<circle cx='220.0' cy='555.0' r='18' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='212.0,547.0 228.0,547.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='220.0,547.0 220.0,537.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='211.0,555.0 229.0,555.0' fill='none' stroke='#111' stroke-width='1.2' stroke-dasharray='6,4'/>
+<polyline points='211.0,555.0 196.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='212.0,564.0 228.0,564.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='220.0,564.0 220.0,573.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='220.0,495.0 220.0,537.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='196.0' cy='555.0' r='3.2' fill='#111'/>
+<polyline points='166.0,555.0 177.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='177.0,545.0 177.0,565.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='185.0,545.0 185.0,565.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='185.0,555.0 196.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='164.0' y='547.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='10' text-anchor='end' fill='#111'>W1</text>
+<polyline points='196.0,555.0 196.0,567.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='191.0' y='567.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='196.0,603.0 196.0,615.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='196.0' cy='615.0' r='3.2' fill='#111'/>
+<polyline points='220.0,573.0 220.0,615.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='220.0' cy='615.0' r='3.2' fill='#111'/>
+<polyline points='534.3,280.5 534.3,298.5 320.0,350.0 320.0,385.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='320.0' cy='385.0' r='3.2' fill='#111'/>
+<text x='326.0' y='379.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='start' fill='#111'>K2</text>
+<polyline points='320.0,385.0 294.0,385.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='300.0,381.0 294.0,385.0 300.0,389.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='291.0' y='389.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>чт2</text>
+<polyline points='320.0,385.0 320.0,422.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='315.0' y='422.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='320.0,458.0 320.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='320.0' cy='495.0' r='3.2' fill='#111'/>
+<text x='314.0' y='489.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>B2</text>
+<polyline points='320.0,495.0 350.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='350.0,415.0 350.0,437.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='345.0' y='437.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='350.0,473.0 350.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='341.0,415.0 359.0,415.0' fill='none' stroke='#111' stroke-width='2'/>
+<text x='350.0' y='410.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>+150</text>
+<circle cx='320.0' cy='555.0' r='18' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='312.0,547.0 328.0,547.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='320.0,547.0 320.0,537.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='311.0,555.0 329.0,555.0' fill='none' stroke='#111' stroke-width='1.2' stroke-dasharray='6,4'/>
+<polyline points='311.0,555.0 296.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='312.0,564.0 328.0,564.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='320.0,564.0 320.0,573.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='320.0,495.0 320.0,537.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='296.0' cy='555.0' r='3.2' fill='#111'/>
+<polyline points='266.0,555.0 277.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='277.0,545.0 277.0,565.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='285.0,545.0 285.0,565.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='285.0,555.0 296.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='264.0' y='547.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='10' text-anchor='end' fill='#111'>W2</text>
+<polyline points='296.0,555.0 296.0,567.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='291.0' y='567.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='296.0,603.0 296.0,615.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='296.0' cy='615.0' r='3.2' fill='#111'/>
+<polyline points='320.0,573.0 320.0,615.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='320.0' cy='615.0' r='3.2' fill='#111'/>
+<polyline points='547.8,287.1 547.8,301.1 420.0,350.0 420.0,385.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='420.0' cy='385.0' r='3.2' fill='#111'/>
+<text x='426.0' y='379.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='start' fill='#111'>K3</text>
+<polyline points='420.0,385.0 394.0,385.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='400.0,381.0 394.0,385.0 400.0,389.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='391.0' y='389.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>чт3</text>
+<polyline points='420.0,385.0 420.0,422.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='415.0' y='422.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='420.0,458.0 420.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='420.0' cy='495.0' r='3.2' fill='#111'/>
+<text x='414.0' y='489.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>B3</text>
+<polyline points='420.0,495.0 450.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='450.0,415.0 450.0,437.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='445.0' y='437.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='450.0,473.0 450.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='441.0,415.0 459.0,415.0' fill='none' stroke='#111' stroke-width='2'/>
+<text x='450.0' y='410.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>+150</text>
+<circle cx='420.0' cy='555.0' r='18' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='412.0,547.0 428.0,547.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='420.0,547.0 420.0,537.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='411.0,555.0 429.0,555.0' fill='none' stroke='#111' stroke-width='1.2' stroke-dasharray='6,4'/>
+<polyline points='411.0,555.0 396.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='412.0,564.0 428.0,564.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='420.0,564.0 420.0,573.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='420.0,495.0 420.0,537.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='396.0' cy='555.0' r='3.2' fill='#111'/>
+<polyline points='366.0,555.0 377.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='377.0,545.0 377.0,565.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='385.0,545.0 385.0,565.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='385.0,555.0 396.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='364.0' y='547.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='10' text-anchor='end' fill='#111'>W3</text>
+<polyline points='396.0,555.0 396.0,567.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='391.0' y='567.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='396.0,603.0 396.0,615.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='396.0' cy='615.0' r='3.2' fill='#111'/>
+<polyline points='420.0,573.0 420.0,615.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='420.0' cy='615.0' r='3.2' fill='#111'/>
+<polyline points='562.5,290.6 562.5,300.6 520.0,350.0 520.0,385.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='520.0' cy='385.0' r='3.2' fill='#111'/>
+<text x='526.0' y='379.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='start' fill='#111'>K4</text>
+<polyline points='520.0,385.0 494.0,385.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='500.0,381.0 494.0,385.0 500.0,389.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='491.0' y='389.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>чт4</text>
+<polyline points='520.0,385.0 520.0,422.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='515.0' y='422.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='520.0,458.0 520.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='520.0' cy='495.0' r='3.2' fill='#111'/>
+<text x='514.0' y='489.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>B4</text>
+<polyline points='520.0,495.0 550.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='550.0,415.0 550.0,437.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='545.0' y='437.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='550.0,473.0 550.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='541.0,415.0 559.0,415.0' fill='none' stroke='#111' stroke-width='2'/>
+<text x='550.0' y='410.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>+150</text>
+<circle cx='520.0' cy='555.0' r='18' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='512.0,547.0 528.0,547.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='520.0,547.0 520.0,537.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='511.0,555.0 529.0,555.0' fill='none' stroke='#111' stroke-width='1.2' stroke-dasharray='6,4'/>
+<polyline points='511.0,555.0 496.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='512.0,564.0 528.0,564.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='520.0,564.0 520.0,573.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='520.0,495.0 520.0,537.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='496.0' cy='555.0' r='3.2' fill='#111'/>
+<polyline points='466.0,555.0 477.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='477.0,545.0 477.0,565.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='485.0,545.0 485.0,565.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='485.0,555.0 496.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='464.0' y='547.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='10' text-anchor='end' fill='#111'>W4</text>
+<polyline points='496.0,555.0 496.0,567.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='491.0' y='567.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='496.0,603.0 496.0,615.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='496.0' cy='615.0' r='3.2' fill='#111'/>
+<polyline points='520.0,573.0 520.0,615.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='520.0' cy='615.0' r='3.2' fill='#111'/>
+<polyline points='577.5,290.6 577.5,300.6 620.0,350.0 620.0,385.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='620.0' cy='385.0' r='3.2' fill='#111'/>
+<text x='626.0' y='379.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='start' fill='#111'>K5</text>
+<polyline points='620.0,385.0 594.0,385.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='600.0,381.0 594.0,385.0 600.0,389.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='591.0' y='389.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>чт5</text>
+<polyline points='620.0,385.0 620.0,422.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='615.0' y='422.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='620.0,458.0 620.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='620.0' cy='495.0' r='3.2' fill='#111'/>
+<text x='614.0' y='489.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>B5</text>
+<polyline points='620.0,495.0 650.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='650.0,415.0 650.0,437.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='645.0' y='437.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='650.0,473.0 650.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='641.0,415.0 659.0,415.0' fill='none' stroke='#111' stroke-width='2'/>
+<text x='650.0' y='410.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>+150</text>
+<circle cx='620.0' cy='555.0' r='18' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='612.0,547.0 628.0,547.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='620.0,547.0 620.0,537.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='611.0,555.0 629.0,555.0' fill='none' stroke='#111' stroke-width='1.2' stroke-dasharray='6,4'/>
+<polyline points='611.0,555.0 596.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='612.0,564.0 628.0,564.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='620.0,564.0 620.0,573.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='620.0,495.0 620.0,537.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='596.0' cy='555.0' r='3.2' fill='#111'/>
+<polyline points='566.0,555.0 577.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='577.0,545.0 577.0,565.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='585.0,545.0 585.0,565.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='585.0,555.0 596.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='564.0' y='547.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='10' text-anchor='end' fill='#111'>W5</text>
+<polyline points='596.0,555.0 596.0,567.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='591.0' y='567.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='596.0,603.0 596.0,615.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='596.0' cy='615.0' r='3.2' fill='#111'/>
+<polyline points='620.0,573.0 620.0,615.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='620.0' cy='615.0' r='3.2' fill='#111'/>
+<polyline points='592.2,287.1 592.2,301.1 720.0,350.0 720.0,385.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='720.0' cy='385.0' r='3.2' fill='#111'/>
+<text x='726.0' y='379.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='start' fill='#111'>K6</text>
+<polyline points='720.0,385.0 694.0,385.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='700.0,381.0 694.0,385.0 700.0,389.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='691.0' y='389.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>чт6</text>
+<polyline points='720.0,385.0 720.0,422.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='715.0' y='422.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='720.0,458.0 720.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='720.0' cy='495.0' r='3.2' fill='#111'/>
+<text x='714.0' y='489.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>B6</text>
+<polyline points='720.0,495.0 750.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='750.0,415.0 750.0,437.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='745.0' y='437.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='750.0,473.0 750.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='741.0,415.0 759.0,415.0' fill='none' stroke='#111' stroke-width='2'/>
+<text x='750.0' y='410.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>+150</text>
+<circle cx='720.0' cy='555.0' r='18' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='712.0,547.0 728.0,547.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='720.0,547.0 720.0,537.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='711.0,555.0 729.0,555.0' fill='none' stroke='#111' stroke-width='1.2' stroke-dasharray='6,4'/>
+<polyline points='711.0,555.0 696.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='712.0,564.0 728.0,564.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='720.0,564.0 720.0,573.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='720.0,495.0 720.0,537.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='696.0' cy='555.0' r='3.2' fill='#111'/>
+<polyline points='666.0,555.0 677.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='677.0,545.0 677.0,565.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='685.0,545.0 685.0,565.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='685.0,555.0 696.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='664.0' y='547.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='10' text-anchor='end' fill='#111'>W6</text>
+<polyline points='696.0,555.0 696.0,567.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='691.0' y='567.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='696.0,603.0 696.0,615.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='696.0' cy='615.0' r='3.2' fill='#111'/>
+<polyline points='720.0,573.0 720.0,615.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='720.0' cy='615.0' r='3.2' fill='#111'/>
+<polyline points='605.7,280.5 605.7,298.5 820.0,350.0 820.0,385.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='820.0' cy='385.0' r='3.2' fill='#111'/>
+<text x='826.0' y='379.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='start' fill='#111'>K7</text>
+<polyline points='820.0,385.0 794.0,385.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='800.0,381.0 794.0,385.0 800.0,389.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='791.0' y='389.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>чт7</text>
+<polyline points='820.0,385.0 820.0,422.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='815.0' y='422.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='820.0,458.0 820.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='820.0' cy='495.0' r='3.2' fill='#111'/>
+<text x='814.0' y='489.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>B7</text>
+<polyline points='820.0,495.0 850.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='850.0,415.0 850.0,437.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='845.0' y='437.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='850.0,473.0 850.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='841.0,415.0 859.0,415.0' fill='none' stroke='#111' stroke-width='2'/>
+<text x='850.0' y='410.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>+150</text>
+<circle cx='820.0' cy='555.0' r='18' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='812.0,547.0 828.0,547.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='820.0,547.0 820.0,537.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='811.0,555.0 829.0,555.0' fill='none' stroke='#111' stroke-width='1.2' stroke-dasharray='6,4'/>
+<polyline points='811.0,555.0 796.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='812.0,564.0 828.0,564.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='820.0,564.0 820.0,573.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='820.0,495.0 820.0,537.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='796.0' cy='555.0' r='3.2' fill='#111'/>
+<polyline points='766.0,555.0 777.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='777.0,545.0 777.0,565.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='785.0,545.0 785.0,565.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='785.0,555.0 796.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='764.0' y='547.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='10' text-anchor='end' fill='#111'>W7</text>
+<polyline points='796.0,555.0 796.0,567.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='791.0' y='567.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='796.0,603.0 796.0,615.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='796.0' cy='615.0' r='3.2' fill='#111'/>
+<polyline points='820.0,573.0 820.0,615.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='820.0' cy='615.0' r='3.2' fill='#111'/>
+<polyline points='617.4,270.9 617.4,292.9 920.0,350.0 920.0,385.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='920.0' cy='385.0' r='3.2' fill='#111'/>
+<text x='926.0' y='379.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='start' fill='#111'>K8</text>
+<polyline points='920.0,385.0 894.0,385.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='900.0,381.0 894.0,385.0 900.0,389.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='891.0' y='389.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>чт8</text>
+<polyline points='920.0,385.0 920.0,422.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='915.0' y='422.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='920.0,458.0 920.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='920.0' cy='495.0' r='3.2' fill='#111'/>
+<text x='914.0' y='489.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>B8</text>
+<polyline points='920.0,495.0 950.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='950.0,415.0 950.0,437.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='945.0' y='437.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='950.0,473.0 950.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='941.0,415.0 959.0,415.0' fill='none' stroke='#111' stroke-width='2'/>
+<text x='950.0' y='410.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>+150</text>
+<circle cx='920.0' cy='555.0' r='18' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='912.0,547.0 928.0,547.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='920.0,547.0 920.0,537.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='911.0,555.0 929.0,555.0' fill='none' stroke='#111' stroke-width='1.2' stroke-dasharray='6,4'/>
+<polyline points='911.0,555.0 896.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='912.0,564.0 928.0,564.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='920.0,564.0 920.0,573.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='920.0,495.0 920.0,537.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='896.0' cy='555.0' r='3.2' fill='#111'/>
+<polyline points='866.0,555.0 877.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='877.0,545.0 877.0,565.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='885.0,545.0 885.0,565.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='885.0,555.0 896.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='864.0' y='547.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='10' text-anchor='end' fill='#111'>W8</text>
+<polyline points='896.0,555.0 896.0,567.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='891.0' y='567.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='896.0,603.0 896.0,615.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='896.0' cy='615.0' r='3.2' fill='#111'/>
+<polyline points='920.0,573.0 920.0,615.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='920.0' cy='615.0' r='3.2' fill='#111'/>
+<polyline points='626.6,259.0 626.6,285.0 1020.0,350.0 1020.0,385.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='1020.0' cy='385.0' r='3.2' fill='#111'/>
+<text x='1026.0' y='379.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='start' fill='#111'>K9</text>
+<polyline points='1020.0,385.0 994.0,385.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='1000.0,381.0 994.0,385.0 1000.0,389.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='991.0' y='389.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>чт9</text>
+<polyline points='1020.0,385.0 1020.0,422.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='1015.0' y='422.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='1020.0,458.0 1020.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='1020.0' cy='495.0' r='3.2' fill='#111'/>
+<text x='1014.0' y='489.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='end' fill='#111'>B9</text>
+<polyline points='1020.0,495.0 1050.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='1050.0,415.0 1050.0,437.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='1045.0' y='437.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='1050.0,473.0 1050.0,495.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='1041.0,415.0 1059.0,415.0' fill='none' stroke='#111' stroke-width='2'/>
+<text x='1050.0' y='410.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>+150</text>
+<circle cx='1020.0' cy='555.0' r='18' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='1012.0,547.0 1028.0,547.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='1020.0,547.0 1020.0,537.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='1011.0,555.0 1029.0,555.0' fill='none' stroke='#111' stroke-width='1.2' stroke-dasharray='6,4'/>
+<polyline points='1011.0,555.0 996.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='1012.0,564.0 1028.0,564.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='1020.0,564.0 1020.0,573.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='1020.0,495.0 1020.0,537.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='996.0' cy='555.0' r='3.2' fill='#111'/>
+<polyline points='966.0,555.0 977.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='977.0,545.0 977.0,565.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='985.0,545.0 985.0,565.0' fill='none' stroke='#111' stroke-width='2'/>
+<polyline points='985.0,555.0 996.0,555.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='964.0' y='547.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='10' text-anchor='end' fill='#111'>W9</text>
+<polyline points='996.0,555.0 996.0,567.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='991.0' y='567.0' width='10' height='36' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='996.0,603.0 996.0,615.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='996.0' cy='615.0' r='3.2' fill='#111'/>
+<polyline points='1020.0,573.0 1020.0,615.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<circle cx='1020.0' cy='615.0' r='3.2' fill='#111'/>
+<polyline points='90.0,615.0 1050.0,615.0' fill='none' stroke='#111' stroke-width='2.5'/>
+<text x='1056.0' y='619.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='13' text-anchor='start' fill='#111' font-weight='bold'>−Eк</text>
+<text x='1056.0' y='635.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='start' fill='#555'>(отрицательное</text>
+<text x='1056.0' y='649.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='start' fill='#555'>смещение)</text>
+<text x='90.0' y='637.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='12' text-anchor='start' fill='#111'>лампы записи V0…V9: 10 триодов = 5 × 6Н16Б</text>
+<text x='20.0' y='670.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='12' text-anchor='#111' fill='#111'>чт0…чт9 — линии чтения, уровень НВ: на BinToBcd (отдельная плата) и признаки Zero/Nine.</text>
+<text x='20.0' y='690.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='12' text-anchor='#111' fill='#111'>Чтение: лампа открыта, Bi = −20 В. Не горит: Ki = −20 В — НВ «0». Горит: Ki ≈ 0 В (I·Rк > 20 В, сетки нагрузки зажимают) — НВ «1».</text>
+<text x='20.0' y='710.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='12' text-anchor='#111' fill='#111'>Запись: Wi падает (ВВ +150 → +50), через Cс сетка уходит на 100 В ниже катода, лампа закрыта на τ = Rс·Cс ≫ такт.</text>
+<text x='20.0' y='730.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='12' text-anchor='#111' fill='#111'>Bi и Ki закрытых катодов поднимаются через Rп к +150 В, разряду остаётся единственный открытый катод.</text>
+<text x='20.0' y='750.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='12' text-anchor='#111' fill='#111'>Сброс в 0 / в TOP — та же запись с фиксированным номером.</text>
+<text x='20.0' y='770.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='12' text-anchor='#111' fill='#111'>Подкатоды — по Яблонскому (рис. 3-1, 3-4, 4-8): импульс через Cп, смещение Uсм через Rсм; пунктир — восстанавливающий диод, если расчёт его потребует.</text>
+</svg>
