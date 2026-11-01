@@ -28,7 +28,7 @@ total tube count of IpLine + ApLine + MachineCtrl, mean of four `&deepsyn` seeds
 | TC-X5 | Overflow halt from an IpLine strobe | +5.7 | rejected | §6 |
 | TC-O1 | Cell `NOR3_N16` (3 triodes, 1.5 tubes) | −17.3 | **done** (`sch/logic/NOR3_N16`, TRS v0.27): measured 1128.8 → 1111.5 | §6 |
 | TC-O2 | Cells `AOI211_J2N16` (+ `AOI221`, `AOI222`), on top of TC-O1 | −6.2 (−11.4) | `AOI211_J2N16` **done** (`sch/logic/AOI211_J2N16`, TRS v0.28): measured 1111.5 → 1105.3; `AOI221`/`AOI222` open | §6 |
-| TC-O3 | BinToBcd with inverted outputs, memory buses active-low | −19.5 | open: owner (interface) | §6 |
+| TC-O3 | BinToBcd with inverted outputs, memory buses active-low | −19.5 | **accepted by the owner** (2026-11-01, TRS v0.38: it has to fit on the dekatron board), not implemented | §6 |
 | TC-O4 | CIN through the memory read bus, no rx/memory mux | −25 | open: REQ-UART-008; bf100: speed neutral, variant A recommended | §6, §6.1 |
 | TC-O5 | No `rst_n` on the 32 glue triggers; low `rst_n` holds `hard_rst`; `tx_vld` gated by the reset line | −33.0 | **done** (TRS v0.33): measured 1105.3 → 1072.3 | §6, §6.2 |
 | TC-O6 | ±IP panel keys dropped | −25 | open: Appendix B | §6 |
@@ -230,7 +230,7 @@ All on the flow of §5, means of four seeds unless noted.
 | TC-O9 | `insn_valid` dropped (redundant: MachineCtrl's `go` in `S_FETCH_W` already implies a finished fetch) | IpLine −6.1, MachineCtrl −1.7: **−8** | not done: IpLine_tb checks the flag in five places; small |
 | TC-X5 | Overflow halt from an IpLine strobe instead of MachineCtrl's edge trigger `overflow_q` | IpLine +15, MachineCtrl −10: **+5.7** | rejected |
 | TC-O5 | Asynchronous reset dropped from the 31 glue triggers (`DFFRN` 8 → `DFF` 7; the reset lines already reset the state synchronously, the time relay fires a hard reset at power-up) | **−31** | **TRS forbids**: REQ-REF-011, every FSM initialised by `rst_n`; it would also let random states write memory while `rst_n` is low |
-| TC-O3 | BinToBcd with inverted outputs (NOR without the output inverters) | −3 per decade before `amap`, −1.5 after: **−19.5** for 13 decades | not done: inverts the memory address and data buses and the display/terminal ports; the memory side takes either polarity for free, but every interface and test follows. Owner's call |
+| TC-O3 | BinToBcd with inverted outputs (NOR without the output inverters) | −3 per decade before `amap`, −1.5 after: **−19.5** for 13 decades | not done: inverts the memory address and data buses and the display/terminal ports; the memory side takes either polarity for free, but every interface and test follows. **Accepted by the owner (2026-11-01, TRS v0.38)**: the read circuit (6Kh7B diodes + BinToBcd) must fit in 14 places on the dekatron board |
 | TC-O4 | CIN without the `rx ↔ memory` mux on the Data input (rx through the memory read bus, each source gated at its end) | the mux costs **25.4** | not done: REQ-UART-008 has ApLine load Data straight from `rx_data_bcd`; the gating would move into memory support |
 
 ### 6.1. TC-O4: where CIN puts the character (Brainfuck-100)

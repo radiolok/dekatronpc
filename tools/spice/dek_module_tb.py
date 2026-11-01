@@ -43,7 +43,7 @@ LIBS = os.path.abspath(os.path.join(HERE, "..", "..", "sch", "libs"))
 IMG = os.path.abspath(os.path.join(HERE, "..", "..", "sch", "logic", "DEKATRON_A110", "img"))
 
 DEF = dict(E=350, RA="200k", CW="3p", RK="33k", RP="62k", VP=150, EK=50, CC="100p", RC="1Meg",
-           RW="10k", CL="30p", NLOAD=2, READ="diode", RS="30k", RPU="100k", VPU=5, CDR="5p", CB="0.1p", CDS="0", RK1="33k", RK2="33k", RD1="1Meg", RD2="2.2Meg", CD1="22p", USM=20, RSM="100k", CP="220p", RKEY="10k", VKEY=50, VKW=150,
+           RW="10k", CL="30p", NLOAD=2, READ="diode", RS="30k", RPU="100k", VPU=5, CDR="5p", CB="0.1p", CKA="0.1p", CDS="0", RK1="33k", RK2="33k", RD1="1Meg", RD2="2.2Meg", CD1="22p", USM=20, RSM="100k", CP="220p", RKEY="10k", VKEY=50, VKW=150,
            DIODE=0, CFG="full", PW=600e-9, OV=50e-9, WRW=5e-6, SLOT=10e-6, PD=3.3e-6, EN=1)
 T0 = 60e-6           # power-up and settling before the first slot
 VIL, VSW = -7.6, -2.2  # NOR2_N16 LV input: VIL and switching point
@@ -183,7 +183,7 @@ def netlist(st, stop, p, out_vecs, dat):
               f"VEN{g} en{g} 0 {en}", f"R3{g} en{g} l3{g} 470k", f"C3{g} en{g} l3{g} 6.8p",
               f"R4{g} l3{g} vn50 200k",
               f"XK{g} ka{g} l3{g} sg{g} 0 l1{g} 6Zh2B", f"RS{g} v150 sg{g} 15k",
-              f"RKEY{g} vkey ka{g} {p['RKEY']}", f"CP{g} ka{g} {g} {p['CP']}",
+              f"RKEY{g} vkey ka{g} {p['RKEY']}", f"CKA{g} ka{g} 0 {p['CKA']}", f"CP{g} ka{g} {g} {p['CP']}",
               f"RSM{g} {g} usm {p['RSM']}"]
         if int(p["DIODE"]):
             L.append(f"XD{g} {g} usm 6Kh7B")
