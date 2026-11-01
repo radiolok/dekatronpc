@@ -11,6 +11,33 @@ Metric: the `run_tests.sh -s` set (IpLine + ApLine + MachineCtrl with their coun
 memory / reset relay / panel not counted), **mean of four `&deepsyn` seeds 0–3**
 (`rtl/run/synth_seeds.sh`, new). ABC drifts by ±10 between seeds.
 
+## 0. Option index
+
+Stable IDs for later sessions: cite them as `doc/tube_count_1000.md` TC-xx. Δ is the
+total tube count of IpLine + ApLine + MachineCtrl, mean of four `&deepsyn` seeds.
+
+| ID | Option | Δ, tubes | Status | Section |
+|---|---|---|---|---|
+| TC-D1 | One `LATCH_J2N16` per decade, open in `CmdWin`, instead of the carry-flag triggers `nines_q`/`zeroes_q` | −120.4 | **done** (90d63d9) | §3 |
+| TC-D2 | Counters flattened into their blocks; only boards and boxes kept in the netlist | −56.9 | **done** (712ddfb) | §4 |
+| TC-D3 | ABC `amap -F 4 -A 20` instead of `map -a` | −49.1 | **done** (2ef6eea) | §5 |
+| TC-X1 | Counter-level Valid/Ready removed (owner's proposal) | +4 | no gain, not done | §6 |
+| TC-X2 | State-code search for IpLine/ApLine | ±5 | no gain | §6 |
+| TC-X3 | Other ABC scripts (`&deepsyn` longer, `mfs`, `&nf`, second pass) | ±5 or broken | no gain | §5 |
+| TC-X4 | Whole machine as one block (repartition) | −7 | not done, three boxes stay | §4, §6 |
+| TC-X5 | Overflow halt from an IpLine strobe | +5.7 | rejected | §6 |
+| TC-O1 | Cell `NOR3_N16` (3 triodes, 1.5 tubes) | −17.3 | open: cell to design | §6 |
+| TC-O2 | Cells `AOI211_J2N16` (+ `AOI221`, `AOI222`), on top of TC-O1 | −6.2 (−11.4) | open: cells to design | §6 |
+| TC-O3 | BinToBcd with inverted outputs, memory buses active-low | −19.5 | open: owner (interface) | §6 |
+| TC-O4 | CIN through the memory read bus, no rx/memory mux | −25 | open: REQ-UART-008 | §6 |
+| TC-O5 | No `rst_n` on the 31 glue triggers | −31 | blocked by REQ-REF-011 | §6 |
+| TC-O6 | ±IP panel keys dropped | −25 | open: Appendix B | §6 |
+| TC-O7 | Program loading by an external loader writing program memory | ≈ −79 | open: REQ-LOAD-001…003, OPEN-018 | §6 |
+| TC-O8 | No prefetch P3 | −26 | open: REQ-PERF-003 (speed) | §6 |
+| TC-O9 | `insn_valid` dropped (redundant for MachineCtrl) | −8 | open: small, IpLine_tb rework | §6 |
+
+Combinations toward 1000 are in §7; the feature costs (ablation) behind TC-O4…O8 in §6.
+
 ## 1. Starting point
 
 | Block | Seed 0 | 1 | 2 | 3 | Mean |
@@ -194,33 +221,33 @@ DekatronPC hello / program) PASS, 0 setup / 0 hold violations; STA as above.
 
 All on the flow of §5, means of four seeds unless noted.
 
-| Idea | Measured | Decision |
-|---|---|---|
-| Counter-level Valid/Ready removed, kept only at IpLine/ApLine (owner, 2026-11-01) | IpLine + ApLine 847.6 against 843.6: **+4**, noise | no gain once the counters are flattened (§4): the counter's `ready = ¬(soft_rst \| hard_rst)` and `accept = valid & ready` merge with the block's `go`. The interface stays (AGENTS: Valid/Ready above the dekatron); it costs nothing |
-| State codes of IpLine/ApLine (random search, as T6) | `binary`: 371–380 against 375 (seed 0, 24 tries); `none` with any codes ≥ 404 | no gain: Yosys' FSM optimization matters, the codes don't |
-| Other ABC scripts | §5 | `amap -F 4 -A 20` adopted |
-| One block instead of three boxes | 8 seeds: 1130.8 → 1123.9, **−7** (it was −21 before `amap`) | the three functional boxes stay; balancing them moves logic but not the count (the three-block flatten in §4 gave −4) |
-| `insn_valid` dropped (redundant: MachineCtrl's `go` in `S_FETCH_W` already implies a finished fetch) | IpLine −6.1, MachineCtrl −1.7: **−8** | not done: IpLine_tb checks the flag in five places; small |
-| Overflow halt from an IpLine strobe instead of MachineCtrl's edge trigger `overflow_q` | IpLine +15, MachineCtrl −10: **+5.7** | rejected |
-| Asynchronous reset dropped from the 31 glue triggers (`DFFRN` 8 → `DFF` 7; the reset lines already reset the state synchronously, the time relay fires a hard reset at power-up) | **−31** | **TRS forbids**: REQ-REF-011, every FSM initialised by `rst_n`; it would also let random states write memory while `rst_n` is low |
-| BinToBcd with inverted outputs (NOR without the output inverters) | −3 per decade before `amap`, −1.5 after: **−19.5** for 13 decades | not done: inverts the memory address and data buses and the display/terminal ports; the memory side takes either polarity for free, but every interface and test follows. Owner's call |
-| CIN without the `rx ↔ memory` mux on the Data input (rx through the memory read bus, each source gated at its end) | the mux costs **25.4** | not done: REQ-UART-008 has ApLine load Data straight from `rx_data_bcd`; the gating would move into memory support |
+| ID | Idea | Measured | Decision |
+|---|---|---|---|
+| TC-X1 | Counter-level Valid/Ready removed, kept only at IpLine/ApLine (owner, 2026-11-01) | IpLine + ApLine 847.6 against 843.6: **+4**, noise | no gain once the counters are flattened (§4): the counter's `ready = ¬(soft_rst \| hard_rst)` and `accept = valid & ready` merge with the block's `go`. The interface stays (AGENTS: Valid/Ready above the dekatron); it costs nothing |
+| TC-X2 | State codes of IpLine/ApLine (random search, as T6) | `binary`: 371–380 against 375 (seed 0, 24 tries); `none` with any codes ≥ 404 | no gain: Yosys' FSM optimization matters, the codes don't |
+| TC-X3 | Other ABC scripts | §5 | `amap -F 4 -A 20` adopted |
+| TC-X4 | One block instead of three boxes | 8 seeds: 1130.8 → 1123.9, **−7** (it was −21 before `amap`) | the three functional boxes stay; balancing them moves logic but not the count (the three-block flatten in §4 gave −4) |
+| TC-O9 | `insn_valid` dropped (redundant: MachineCtrl's `go` in `S_FETCH_W` already implies a finished fetch) | IpLine −6.1, MachineCtrl −1.7: **−8** | not done: IpLine_tb checks the flag in five places; small |
+| TC-X5 | Overflow halt from an IpLine strobe instead of MachineCtrl's edge trigger `overflow_q` | IpLine +15, MachineCtrl −10: **+5.7** | rejected |
+| TC-O5 | Asynchronous reset dropped from the 31 glue triggers (`DFFRN` 8 → `DFF` 7; the reset lines already reset the state synchronously, the time relay fires a hard reset at power-up) | **−31** | **TRS forbids**: REQ-REF-011, every FSM initialised by `rst_n`; it would also let random states write memory while `rst_n` is low |
+| TC-O3 | BinToBcd with inverted outputs (NOR without the output inverters) | −3 per decade before `amap`, −1.5 after: **−19.5** for 13 decades | not done: inverts the memory address and data buses and the display/terminal ports; the memory side takes either polarity for free, but every interface and test follows. Owner's call |
+| TC-O4 | CIN without the `rx ↔ memory` mux on the Data input (rx through the memory read bus, each source gated at its end) | the mux costs **25.4** | not done: REQ-UART-008 has ApLine load Data straight from `rx_data_bcd`; the gating would move into memory support |
 
 ### What the glue features cost (ablation: the feature tied off, everything else kept)
 
-| Feature | Tubes |
-|---|---|
-| Program loading SOT/EOT (`insn_in` channel): IpLine 41.6 + MachineCtrl 37.6 | **79** |
-| Halt in IpLine (step to the next instruction, `S_HALT`), with the ±IP keys | 35.5 |
-| ±IP panel keys alone | 25 |
-| CIN mux | 25.4 |
-| Prefetch P3: `pf_q` 18 + `op_q` 8 | 26 |
-| Overflow halt in MachineCtrl | 21 |
-| Step key (`one_step`) | 19 |
-| Halt key | 6 |
-| Lazy zero test of `[` `]` from the memory register | 4.7 |
-| Bell | 3 |
-| Echo | 2.6 |
+| Feature | Tubes | Option |
+|---|---|---|
+| Program loading SOT/EOT (`insn_in` channel): IpLine 41.6 + MachineCtrl 37.6 | **79** | TC-O7 |
+| Halt in IpLine (step to the next instruction, `S_HALT`), with the ±IP keys | 35.5 | – |
+| ±IP panel keys alone | 25 | TC-O6 |
+| CIN mux | 25.4 | TC-O4 |
+| Prefetch P3: `pf_q` 18 + `op_q` 8 | 26 | TC-O8 |
+| Overflow halt in MachineCtrl | 21 | (TC-X5) |
+| Step key (`one_step`) | 19 | – |
+| Halt key | 6 | – |
+| Lazy zero test of `[` `]` from the memory register | 4.7 | – |
+| Bell | 3 | – |
+| Echo | 2.6 | – |
 
 ### Library: cells that tubes give naturally but the liberty doesn't have
 
@@ -229,13 +256,13 @@ The liberty has NOR2, NOR4, NOT, NAND2, AOI21, AOI22, so a three-input NOR costs
 (2 tubes). Hypothetical cells added to a scratch liberty (`DPC_CELL_LIB`, new), with the
 pin data of their family:
 
-| Added | Total | Δ |
-|---|---|---|
-| — | 1128.8 | – |
-| `NOR3_N16` (3 triodes, 1.5 tubes) | 1111.5 | **−17.3** |
-| + `AOI211_J2N16` ((A·B)+C+D)', 6Zh2B + 6N16B, 2 tubes | 1105.3 | **−23.5** |
-| + `AOI221_J2N16` (2.5), `AOI222_J2` (3) | 1100.1 | −28.7 |
-| `AOI211` + `AOI221` without NOR3 | 1114.2 | −14.6 |
+| ID | Added | Total | Δ |
+|---|---|---|---|
+| | — | 1128.8 | – |
+| TC-O1 | `NOR3_N16` (3 triodes, 1.5 tubes) | 1111.5 | **−17.3** |
+| TC-O2 | + `AOI211_J2N16` ((A·B)+C+D)', 6Zh2B + 6N16B, 2 tubes | 1105.3 | **−23.5** |
+| TC-O2 | + `AOI221_J2N16` (2.5), `AOI222_J2` (3) | 1100.1 | −28.7 |
+| | `AOI211` + `AOI221` without NOR3 | 1114.2 | −14.6 |
 
 `NOR3_N16` is the cheapest to design (the NOR2/NOR4 family, `sch/logic/NOR4_N16`); it is
 the one recommended. These are not in the flow: a cell enters the liberty only once it is
@@ -243,13 +270,13 @@ designed (REQ-MOD-004/005).
 
 ## 7. Where it stands, and the road below 1000
 
-| Step | Total (mean of 4 seeds) | Δ |
-|---|---|---|
-| Start (9637e0c) | 1355.3 | – |
-| §3 enable latches | 1234.9 | −120.4 |
-| §4 counters flattened into their blocks | 1178 | −56.9 |
-| §5 `amap` | **1128.9** | −49.1 |
-| | | **−226.4 (−16.7 %)** |
+| ID | Step | Total (mean of 4 seeds) | Δ |
+|---|---|---|---|
+| | Start (9637e0c) | 1355.3 | – |
+| TC-D1 | §3 enable latches | 1234.9 | −120.4 |
+| TC-D2 | §4 counters flattened into their blocks | 1178 | −56.9 |
+| TC-D3 | §5 `amap` | **1128.9** | −49.1 |
+| | | | **−226.4 (−16.7 %)** |
 
 The first goal (about 1200) is met with 71 tubes to spare; Clk stays 100 kHz (STA 8.0 µs),
 IpLine and ApLine still work at the same time, the netlist simulations with tube delays pass.
@@ -258,20 +285,18 @@ The second goal (below 1000) needs about −130 more. What is left without chang
 requirement is small: the library cells (−17…−29, after design work) and one block
 (−7) give ≈ 1095. The rest needs the owner:
 
-| Option | Δ | Requirement touched |
-|---|---|---|
-| `NOR3_N16` (+ `AOI211`) designed | −17…−24 | none (REQ-MOD-003 library) |
-| BinToBcd inverted, memory buses active-low | −19.5 | interface convention, not in the TRS |
-| CIN through the memory read bus | −25 | REQ-UART-008 |
-| Glue triggers without `rst_n` | −31 | REQ-REF-011 |
-| ±IP panel keys dropped | −25 | Appendix B (`keyNextIp/keyPrevIp`) |
-| Program loading by an external loader writing program memory directly | ≈ −79 | REQ-LOAD-001…003, OPEN-018 |
-| No prefetch | −26 | REQ-PERF-003 (speed) |
+| ID | Option | Δ | Requirement touched |
+|---|---|---|---|
+| TC-O1, TC-O2 | `NOR3_N16` (+ `AOI211`) designed | −17…−24 | none (REQ-MOD-003 library) |
+| TC-O3 | BinToBcd inverted, memory buses active-low | −19.5 | interface convention, not in the TRS |
+| TC-O4 | CIN through the memory read bus | −25 | REQ-UART-008 |
+| TC-O5 | Glue triggers without `rst_n` | −31 | REQ-REF-011 |
+| TC-O6 | ±IP panel keys dropped | −25 | Appendix B (`keyNextIp/keyPrevIp`) |
+| TC-O7 | Program loading by an external loader writing program memory directly | ≈ −79 | REQ-LOAD-001…003, OPEN-018 |
+| TC-O8 | No prefetch | −26 | REQ-PERF-003 (speed) |
 
-For example, NOR3 + AOI211 (−24), inverted read-out (−19.5), CIN via the bus (−25) and
-`rst_n` dropped (−31) give ≈ 1029; with the ±IP keys dropped as well ≈ 1004. Loading by an
-external loader alone gives ≈ 1050; with the library cells, the inverted read-out and CIN
-via the bus ≈ 981. The estimates add only roughly (ABC drift ±10, the options overlap).
+For example, TC-O1 + O2 (−24), TC-O3 (−19.5), TC-O4 (−25) and TC-O5 (−31) give ≈ 1029;
+with TC-O6 as well ≈ 1004. TC-O7 alone gives ≈ 1050; TC-O7 + O1 + O2 + O3 + O4 ≈ 981. The estimates add only roughly (ABC drift ±10, the options overlap).
 
 ## 8. Flow changes (for whoever runs synthesis next)
 
