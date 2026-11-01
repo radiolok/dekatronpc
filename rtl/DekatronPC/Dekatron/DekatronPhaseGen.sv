@@ -45,10 +45,12 @@
 // времязадающей цепью, а Rst_n исчезает — это чисто модельный сигнал
 // начальной установки счётчиков задержки.
 //
-// `DEKATRON_DELAY_MODEL: та же схема, но OneShot/Impulse работают на
-// задержках #N (см. их описание), и hsClk к ним не подводится вовсе —
-// на вход Clk подаётся 0. Фазы отсчитываются от фронта Clk в абсолютном
-// времени: PHASE1_HS * 100 нс и (PHASE1_HS + PHASE2_HS) * 100 нс.
+// `DEKATRON_DELAY_MODEL (синтез и нетлист ламповой машины): та же схема,
+// но OneShot/Impulse — RC-цепи на задержках #N, порта hsClk нет вовсе
+// [TRS v0.25]. Длительности в нс задают макросы DEKATRON_PHASE_DELAY_NS,
+// DEKATRON_PHASE1_NS, DEKATRON_PHASE2_NS и DEKATRON_EDGE_NS (импульс
+// дифференцирующей цепи), rtl/parameters.sv; параметры *_HS — только для
+// тактовой модели.
 //
 //----------------------------------------------------------------------
 // ЭКОНОМИЯ ЛАМП
@@ -66,8 +68,10 @@ module DekatronPhaseGen #(
     parameter unsigned PHASE2_HS      = 3,  // длительность второй фазы
     parameter unsigned PHASE_DELAY_HS = 0   // задержка начала фаз от фронта Clk
 )(
-    input  wire hsClk,    // временная база модели (10 × Clk)
-    input  wire Clk,      // такт счёта (1 МГц)
+`ifndef DEKATRON_DELAY_MODEL
+    input  wire hsClk,    // временная база тактовой модели (10 × Clk)
+`endif
+    input  wire Clk,      // такт счёта
     input  wire Rst_n,    // модельный сброс элементов задержки
 
     output wire Phase1,
@@ -82,19 +86,32 @@ module DekatronPhaseGen #(
 
     wire ClkRise;
     wire PhaseStart;  // начало первой фазы
-    wire Win1;      // окно [0 .. PHASE1_HS)
+    wire Win1;      // окно первой фазы
     wire Win1Fall;  // спад Win1: начало второй фазы
 
-    // Временная база элементов задержки. В модели на задержках её нет.
+    // Длительности. Тактовая модель (FPGA, симуляция без задержек) —
+    // такты hsClk из параметров *_HS. Модель на задержках (синтез и
+    // нетлист ламповой машины) — RC-цепи в нс из макросов
+    // DEKATRON_PHASE*_NS (rtl/parameters.sv), hsClk нет [TRS v0.25]
 `ifdef DEKATRON_DELAY_MODEL
-    wire tClk = 1'b0;
+    localparam int unsigned DELAY_NS  = `DEKATRON_PHASE_DELAY_NS;
+    localparam int unsigned PHASE1_NS = `DEKATRON_PHASE1_NS;
+    localparam int unsigned PHASE2_NS = `DEKATRON_PHASE2_NS;
+    localparam int unsigned EDGE_NS   = `DEKATRON_EDGE_NS;
+    localparam bit          HAS_DELAY = (DELAY_NS > 0);
 `else
-    wire tClk = hsClk;
+    localparam bit          HAS_DELAY = (PHASE_DELAY_HS > 0);
 `endif
 
     // Начало такта счёта
-    Impulse clkRiseDet (
-        .Clk     (tClk),
+    Impulse
+`ifdef DEKATRON_DELAY_MODEL
+    #(.WIDTH_NS (EDGE_NS))
+`endif
+    clkRiseDet (
+`ifndef DEKATRON_DELAY_MODEL
+        .Clk     (hsClk),
+`endif
         .Rst_n   (Rst_n),
         .En      (Clk),
         .Impulse (ClkRise)
@@ -102,22 +119,33 @@ module DekatronPhaseGen #(
 
     // Задержка начала фаз: окно от фронта Clk, фазы — от его спада
     generate
-        if (PHASE_DELAY_HS > 0) begin : g_delay
+        if (HAS_DELAY) begin : g_delay
             wire WinDelay;
 
             OneShot #(
-                .DELAY (PHASE_DELAY_HS)
+`ifdef DEKATRON_DELAY_MODEL
+                .DELAY_NS (DELAY_NS)
+`else
+                .DELAY    (PHASE_DELAY_HS)
+`endif
             ) osDelay (
-                .Clk     (tClk),
+`ifndef DEKATRON_DELAY_MODEL
+                .Clk     (hsClk),
+`endif
                 .Rst_n   (Rst_n),
                 .En      (ClkRise),
                 .Impulse (WinDelay)
             );
 
             Impulse #(
+`ifdef DEKATRON_DELAY_MODEL
+                .WIDTH_NS (EDGE_NS),
+`endif
                 .FALL (1'b1)
             ) delayEndDet (
-                .Clk     (tClk),
+`ifndef DEKATRON_DELAY_MODEL
+                .Clk     (hsClk),
+`endif
                 .Rst_n   (Rst_n),
                 .En      (WinDelay),
                 .Impulse (PhaseStart)
@@ -130,9 +158,15 @@ module DekatronPhaseGen #(
 
     // Первая фаза
     OneShot #(
-        .DELAY (PHASE1_HS)
+`ifdef DEKATRON_DELAY_MODEL
+        .DELAY_NS (PHASE1_NS)
+`else
+        .DELAY    (PHASE1_HS)
+`endif
     ) osPhase1 (
-        .Clk     (tClk),
+`ifndef DEKATRON_DELAY_MODEL
+        .Clk     (hsClk),
+`endif
         .Rst_n   (Rst_n),
         .En      (PhaseStart),
         .Impulse (Win1)
@@ -140,18 +174,29 @@ module DekatronPhaseGen #(
 
     // Вторая фаза — окно от спада первой, встык без зазора
     Impulse #(
+`ifdef DEKATRON_DELAY_MODEL
+        .WIDTH_NS (EDGE_NS),
+`endif
         .FALL (1'b1)
     ) win1FallDet (
-        .Clk     (tClk),
+`ifndef DEKATRON_DELAY_MODEL
+        .Clk     (hsClk),
+`endif
         .Rst_n   (Rst_n),
         .En      (Win1),
         .Impulse (Win1Fall)
     );
 
     OneShot #(
-        .DELAY (PHASE2_HS)
+`ifdef DEKATRON_DELAY_MODEL
+        .DELAY_NS (PHASE2_NS)
+`else
+        .DELAY    (PHASE2_HS)
+`endif
     ) osPhase2 (
-        .Clk     (tClk),
+`ifndef DEKATRON_DELAY_MODEL
+        .Clk     (hsClk),
+`endif
         .Rst_n   (Rst_n),
         .En      (Win1Fall),
         .Impulse (Phase2)
@@ -161,8 +206,13 @@ module DekatronPhaseGen #(
 
 `ifndef SYNTH
     initial begin
+`ifdef DEKATRON_DELAY_MODEL
+        if (PHASE1_NS == 0 || PHASE2_NS == 0)
+            $error("DekatronPhaseGen: DEKATRON_PHASE1_NS and DEKATRON_PHASE2_NS must be > 0");
+`else
         if (PHASE1_HS == 0 || PHASE2_HS == 0)
             $error("DekatronPhaseGen: PHASE1_HS and PHASE2_HS must be > 0");
+`endif
     end
 
     // Зазора между фазами быть не должно: вторая поднята к спаду первой.

@@ -13,7 +13,7 @@ def fig_gates():
 
     # --- генератор фаз
     f.pin_in(12, 80, 90, "Clk")
-    f.box(90, 55, 110, 50, "Impulse", ["фронт по hsClk"])
+    f.box(90, 55, 110, 50, "Impulse", ["фронт Clk"])
     f.wire([(200, 80), (240, 80)], arrow=False, label="ClkRise", lx=204, ly=73)
     f.wire([(240, 80), (240, 55), (270, 55)])
     f.box(270, 30, 130, 50, "OneShot", ["DELAY = PHASE1"])

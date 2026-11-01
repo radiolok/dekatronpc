@@ -2,22 +2,16 @@
 // FALL = 1: по спаду En (в железе — дифференцирующая RC-цепь на заднем
 // фронте; так DekatronPhaseGen запускает вторую фазу концом первой).
 //
-// `DEKATRON_DELAY_MODEL: модель без тактовой базы. Clk не используется,
-// длительность импульса — HS_NS нс (один такт hsClk, который заменяет
-// модель). Только для Icarus; в нетлисте Impulse — чёрный ящик.
-// Период hsClk в модели на задержках, нс: Clk / 10 (rtl/parameters.sv,
-// DEKATRON_CLK_NS, TRS v0.24). Запасное умолчание — для сборок без
-// parameters.sv (cocotb)
-`ifndef DEKATRON_HS_NS
-`define DEKATRON_HS_NS 1000
-`endif
+// `DEKATRON_DELAY_MODEL: модель на задержках, тактовой базы нет вовсе —
+// нет и порта Clk; импульс длится WIDTH_NS нс (дифференцирующая RC-цепь,
+// TRS v0.25). Только для Icarus; в нетлисте Impulse — чёрный ящик.
 module Impulse #(
-    parameter HS_NS = `DEKATRON_HS_NS,  // длительность импульса в модели на задержках, нс
+    parameter WIDTH_NS = 100,  // длительность импульса в модели на задержках, нс
     parameter bit FALL = 1'b0  // 1: импульс по спаду En
 )(
-/* verilator lint_off UNUSEDSIGNAL */
+`ifndef DEKATRON_DELAY_MODEL
     input Clk,
-/* verilator lint_on UNUSEDSIGNAL */
+`endif
     input En,
     input Rst_n,
     output wire Impulse
@@ -27,11 +21,11 @@ module Impulse #(
 timeunit 1ns;
 timeprecision 1ps;
 
-// En, каким он был HS_NS назад. Присваивание инерционное: En короче
-// HS_NS сюда не доходит, и импульс равен самому En, как и в тактовой
+// En, каким он был WIDTH_NS назад. Присваивание инерционное: En короче
+// WIDTH_NS сюда не доходит, и импульс равен самому En, как и в тактовой
 // модели, когда En не застаёт ни одного фронта Clk.
 wire D_state;
-assign #(HS_NS) D_state = En & Rst_n;
+assign #(WIDTH_NS) D_state = En & Rst_n;
 
 generate
     if (FALL) begin : gen_fall

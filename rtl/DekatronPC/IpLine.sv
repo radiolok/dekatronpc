@@ -81,7 +81,9 @@ module IpLine #(
 )(
     input  wire rst_n,        // сброс логики; разряд декатронов не двигает
     input  wire clk,
-    input  wire hs_clk,
+`ifndef DEKATRON_DELAY_MODEL
+    input  wire hs_clk,       // только тактовая модель декатронов
+`endif
 
     // Физические линии сброса счётчиков (удерживает реле времени)
     input  wire soft_rst,
@@ -203,7 +205,9 @@ module IpLine #(
     ) ip_counter (
         .rst_n     (rst_n),
         .clk       (clk),
+`ifndef DEKATRON_DELAY_MODEL
         .hs_clk    (hs_clk),
+`endif
         .soft_rst  (soft_rst),
         .hard_rst  (hard_rst),
         .valid     (ip_valid),
@@ -240,7 +244,9 @@ module IpLine #(
     ) loop_counter (
         .rst_n     (rst_n),
         .clk       (clk),
+`ifndef DEKATRON_DELAY_MODEL
         .hs_clk    (hs_clk),
+`endif
         .soft_rst  (soft_rst),
         .hard_rst  (hard_rst),
         .valid     (loop_valid),

@@ -120,9 +120,11 @@ module DekatronModule #(
     // Порядок фаз, дающий инкремент
     parameter bit          INC_BY_A_THEN_B = 1'b1
 )(
+`ifndef DEKATRON_DELAY_MODEL
 /* verilator lint_off UNUSEDSIGNAL */
-    input  wire       hsClk,     // временная база модели декатрона
+    input  wire       hsClk,     // временная база тактовой модели декатрона
 /* verilator lint_on UNUSEDSIGNAL */
+`endif
 
     // Счёт: общие шины подкатодов счётчика и разрешение этой декады
     input  wire       GuideA,
@@ -210,19 +212,23 @@ module DekatronModule #(
     // Декатрон
     //------------------------------------------------------------------
     // `DEKATRON_DELAY_MODEL: модель на задержках #N без hsClk
-    // (DekatronTubeDelay.sv, только Icarus). Иначе — тактовая модель.
+    // (DekatronTubeDelay.sv, синтез и нетлист), длительности в нс из
+    // макросов DEKATRON_*_NS [TRS v0.25]. Иначе — тактовая модель.
 `ifdef DEKATRON_DELAY_MODEL
     DekatronTubeDelay #(
+        .GUIDE_STEP_NS    (`DEKATRON_GUIDE_STEP_NS),
+        .FALL_STEP_NS     (`DEKATRON_FALL_STEP_NS),
+        .GUIDE_MAX_NS     (`DEKATRON_GUIDE_MAX_NS),
+        .WRITE_MIN_NS     (`DEKATRON_WRITE_MIN_NS),
+        .RESET_MIN_NS     (`DEKATRON_RESET_MIN_NS),
 `else
     DekatronTubeV2 #(
-`endif
         .GUIDE_STEP_HS    (GUIDE_STEP_HS),
         .FALL_STEP_HS     (FALL_STEP_HS),
         .GUIDE_MAX_HS     (GUIDE_MAX_HS),
         .WRITE_MIN_HS     (WRITE_MIN_HS),
-        //.WRITE_MAX_HS     (2*WRITE_MIN_HS),
         .RESET_MIN_HS     (RESET_MIN_HS),
-        //.RESET_MAX_HS     (2*RESET_MIN_HS),
+`endif
         .EN_RESETN        (TOP_LIMIT_MODE),
         .RESET_N_POS      (TOP_PIN_OUT),
         .INIT_DIGIT       (INIT_DIGIT),
@@ -285,6 +291,17 @@ module DekatronModule #(
 
 `ifndef SYNTH
     initial begin
+`ifdef DEKATRON_DELAY_MODEL
+        // Модель на задержках: те же условия в нс, на такт CLK_PERIOD_NS
+        if (`DEKATRON_PHASE1_NS < `DEKATRON_GUIDE_STEP_NS ||
+            `DEKATRON_PHASE2_NS < `DEKATRON_GUIDE_STEP_NS)
+            $error("DekatronModule: фаза короче DEKATRON_GUIDE_STEP_NS: разряд не успеет уйти на подкатод");
+        if (`DEKATRON_PHASE_DELAY_NS + `DEKATRON_PHASE1_NS + `DEKATRON_PHASE2_NS +
+            `DEKATRON_FALL_STEP_NS >= CLK_PERIOD_NS)
+            $error("DekatronModule: фазы и сваливание (%0d нс) не укладываются в такт Clk (%0d нс)",
+                   `DEKATRON_PHASE_DELAY_NS + `DEKATRON_PHASE1_NS + `DEKATRON_PHASE2_NS +
+                   `DEKATRON_FALL_STEP_NS, CLK_PERIOD_NS);
+`else
         // Фазы обязаны вмещать переход разряда на подкатод
         if (PHASE1_HS < GUIDE_STEP_HS)
             $error("DekatronModule: PHASE1_HS (%0d) < GUIDE_STEP_HS (%0d): разряд не успеет уйти на подкатод",
@@ -305,6 +322,7 @@ module DekatronModule #(
 
         if ((PHASE_DELAY_HS + PHASE1_HS + PHASE2_HS) >= HS_PER_CLK)
             $error("DekatronModule: фазы занимают весь такт, окна сваливания не остаётся");
+`endif
 
         if (TOP_PIN_OUT > 9)
             $error("DekatronModule: TOP_PIN_OUT (%0d) must be in range 0..9",

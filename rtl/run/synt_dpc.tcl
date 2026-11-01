@@ -5,9 +5,12 @@
 #   -p <name> <value>   override a parameter of the top module
 #   -div                insert the HV -> LV dividers (DIV_HL cells) after mapping
 #                       and check the signal levels (div_insert.py, doc/hv_lv_dividers.md)
-#   -D <name>[=<value>] define a preprocessor macro, e.g. DEKATRON_DELAY_MODEL
-#                       (the netlist instantiates DekatronTubeDelay); without
-#                       a value it is 1
+#   -D <name>[=<value>] define a preprocessor macro, e.g. DEKATRON_PHASE1_NS;
+#                       without a value it is 1
+# Synthesis is always the tube machine: DEKATRON_DELAY_MODEL is defined and
+# DekatronTubeDelay is read after the list, so the netlist has no hsClk at
+# all (hsClk drives only the clocked dekatron model of the FPGA emulator and
+# of the simulations without delays, TRS v0.25).
 #   -flat               also write <top>_flat.json: the written netlist read
 #                       back and flattened through the board boundaries, with
 #                       the cell names of <top>_synth.v (vtube_sta.py loads,
@@ -39,6 +42,7 @@ for {set i 2} {$i < $argc} {incr i} {
 }
 
 yosys read -define SYNTH=1
+yosys read -define DEKATRON_DELAY_MODEL=1
 foreach def $defines {
   if {[string first "=" $def] >= 0} {
     yosys read -define $def
@@ -56,6 +60,10 @@ close $fp
 set list_dir [file dirname [file normalize [lindex $argv 0]]]
 
 set data [split $file_data "\n"]
+# The delay-based dekatron model is not in DPC.files (Verilator and Quartus
+# never see it): add it unless the list already has it
+set tube_delay [file normalize [file join $script_dir ../DekatronPC/Dekatron/DekatronTubeDelay.sv]]
+if {[lsearch -glob $data *DekatronTubeDelay.sv] < 0} { lappend data $tube_delay }
 set tb_suffix "_tb"
 foreach line $data {
   if {[string first $tb_suffix $line] == -1} {
@@ -131,6 +139,7 @@ if {$flat} {
   yosys design -save final
   yosys design -reset
   yosys read -define SYNTH=1
+  yosys read -define DEKATRON_DELAY_MODEL=1
   foreach def $defines {
     if {[string first "=" $def] >= 0} { yosys read -define $def } else { yosys read -define $def=1 }
   }

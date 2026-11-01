@@ -6,8 +6,43 @@
 `ifndef DEKATRON_CLK_NS
 `define DEKATRON_CLK_NS 10000
 `endif
-`ifndef DEKATRON_HS_NS
-`define DEKATRON_HS_NS (`DEKATRON_CLK_NS / 10)
+
+// Модель на задержках (`DEKATRON_DELAY_MODEL): синтез и нетлист ламповой
+// машины. hsClk в ней нет вовсе — он только для тактовой модели декатрона
+// на FPGA и в симуляции без задержек. Длительности — в нс, как у RC-цепей
+// и самого декатрона [TRS v0.25]:
+//   GUIDE_STEP / FALL_STEP — переход на подкатод и сваливание (оценки)
+//   WRITE_MIN / RESET_MIN  — запись и сброс по катоду (оценки, OPEN-013)
+//   GUIDE_MAX              — предел импульса подкатода (только диагностика)
+//   PHASE_DELAY / PHASE1 / PHASE2 — нарезка такта генератором фаз
+//     (REQ-PULSE-009); ламповую сборку задают synth_sim.sh -o/-w
+//   EDGE                   — импульс дифференцирующей цепи (Impulse)
+`ifndef DEKATRON_GUIDE_STEP_NS
+`define DEKATRON_GUIDE_STEP_NS 200
+`endif
+`ifndef DEKATRON_FALL_STEP_NS
+`define DEKATRON_FALL_STEP_NS 300
+`endif
+`ifndef DEKATRON_GUIDE_MAX_NS
+`define DEKATRON_GUIDE_MAX_NS 10000
+`endif
+`ifndef DEKATRON_WRITE_MIN_NS
+`define DEKATRON_WRITE_MIN_NS 5000
+`endif
+`ifndef DEKATRON_RESET_MIN_NS
+`define DEKATRON_RESET_MIN_NS 5000
+`endif
+`ifndef DEKATRON_PHASE_DELAY_NS
+`define DEKATRON_PHASE_DELAY_NS 0
+`endif
+`ifndef DEKATRON_PHASE1_NS
+`define DEKATRON_PHASE1_NS 3000
+`endif
+`ifndef DEKATRON_PHASE2_NS
+`define DEKATRON_PHASE2_NS 3000
+`endif
+`ifndef DEKATRON_EDGE_NS
+`define DEKATRON_EDGE_NS 100
 `endif
 /* verilator lint_off UNUSEDPARAM */
     parameter IP_DEKATRON_NUM = 4'd5;
@@ -22,9 +57,8 @@
 
     // Тактов hsClk на такт Clk: hsClk всегда в 10 раз быстрее Clk
     parameter HSCLK_DIV = 10;
-    // Период Clk и hsClk, нс: абсолютное время для тестбенчей и моделей
-    // на задержках (OneShot, Impulse, DekatronTubeDelay, RstTimeRelay).
-    // Эмулятор на FPGA считает такты hsClk (10 МГц) и от них не зависит
+    // Период Clk и hsClk, нс: тактовая база тестбенчей. Модель на
+    // задержках hsClk не знает (длительности — макросы *_NS выше)
     parameter CLK_PERIOD_NS = `DEKATRON_CLK_NS;
     parameter HSCLK_NS      = CLK_PERIOD_NS / HSCLK_DIV;
 

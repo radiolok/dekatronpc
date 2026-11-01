@@ -106,15 +106,34 @@ reg Rst_n;
 reg HardRst;      // hard_rst физическая линия
 reg SoftRst;
 reg Clk;
+`ifndef DEKATRON_DELAY_MODEL
 reg hsClk;
+`endif
 
+parameter TEST_NUM = 2000;
+parameter RAND_NUM = 400;     // выборок в части 2
+
+`ifdef DEKATRON_DELAY_MODEL
+// Модель на задержках: hsClk нет вовсе [TRS v0.25]; Clk напрямую с
+// периодом CLK_NS, первый фронт через 50 нс после снятия Rst_n
+`ifndef CLK_NS
+`define CLK_NS CLK_PERIOD_NS
+`endif
+initial begin
+    Clk = 1'b0;
+    wait (Rst_n === 1'b1);
+    #50;
+    forever begin
+        Clk = 1'b1; #(`CLK_NS / 2.0);
+        Clk = 1'b0; #(`CLK_NS / 2.0);
+    end
+end
+`else
 initial begin
     hsClk = 1'b0;
     forever #(HSCLK_NS / 2.0) hsClk = ~hsClk;   // Clk / HSCLK_DIV
 end
 
-parameter TEST_NUM = 2000;
-parameter RAND_NUM = 400;     // выборок в части 2
 
 ClockDivider #(
     .DIVISOR(HSCLK_DIV)
@@ -123,6 +142,7 @@ ClockDivider #(
     .clock_in(hsClk),
     .clock_out(Clk)
 );
+`endif
 
 reg        ip_valid = 1'b0;
 wire       ip_ready;
@@ -170,7 +190,9 @@ IpLine #(
 ) ipLine (
     .rst_n        (Rst_n),
     .clk          (Clk),
+`ifndef DEKATRON_DELAY_MODEL
     .hs_clk       (hsClk),
+`endif
     .soft_rst     (SoftRst),
     .hard_rst     (HardRst),
     .valid        (ip_valid),

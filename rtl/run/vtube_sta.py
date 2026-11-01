@@ -10,13 +10,14 @@ arrivals are kept per edge and per signal class:
 
   clk   the Clk port and what is derived from it alone: the clock
         inverters and the phase generators (Impulse / OneShot chains,
-        modelled from their parameters: OneShot = DELAY hsClk window from
-        the rise of En, Impulse = one hsClk from the rise, or the fall if FALL)
+        modelled from their parameters: OneShot = DELAY_NS window from
+        the rise of En, Impulse = WIDTH_NS from the rise, or the fall if FALL;
+        the netlist has no hsClk, TRS v0.25)
   data  launched at a clock edge: a trigger (C active edge + C->Q), or the
         memory (Ram, IpMemory: ideal synchronous, outputs --mem-ns after the
         edge)
   tube  a dekatron's main cathodes: the end of the guide pulse plus
-        FALL_STEP_HS, from the guide pins of the DekatronTubeDelay box. The
+        FALL_STEP_NS, from the guide pins of the DekatronTubeDelay box. The
         reading is valid at the NEXT Clk edge (DekatronCounter: "after a step
         out is valid at the next clk edge"), so a tube path that reaches a
         step command is due before the phase of the next cycle.
@@ -35,7 +36,8 @@ Checks, for a Clk period T:
                                                    late(tube) - T <= lead
 The first condition sets the phase start delay (REQ-PULSE-009). Unless -p is
 given, the report first shows the netlist as synthesized, then repeats the
-analysis with the smallest DEKATRON_PHASE_DELAY_HS that meets it.
+analysis with the smallest DEKATRON_PHASE_DELAY_NS that meets it (in steps
+of FIT_NS).
 
 usage: vtube_sta.py -n flat.json [-l vtube_cells_timing.lib] [-p HS]
                     [-f KHZ ...] [--paths N] [--ideal-clock] [--mem-ns NS] [-o report.md]
@@ -51,9 +53,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from vtube_liberty import parse_liberty  # noqa: E402
 
-# hsClk period, ns: Clk / 10 at the 100 kHz machine (TRS v0.24; was 100 ns
-# while hsClk was a fixed 10 MHz)
-HS_NS = 1000.0
+# Step of the fitted phase delay and phase width, ns. All times are in ns:
+# the tube netlist has no hsClk (TRS v0.25)
+FIT_NS = 100
 DATA = ('data', 'tube')
 
 
@@ -149,15 +151,15 @@ def short(s, n=70):
 
 
 class Sta:
-    def __init__(self, mod, lib, phase_hs, ideal_clock, mem_ns, derate=1.0, phase_width_hs=None):
+    def __init__(self, mod, lib, phase_delay_ns, ideal_clock, mem_ns, derate=1.0, phase_width_ns=None):
         self.index, self.lib = lib
         self.cells = mod['cells']
         self.names = bit_names(mod)
-        self.phase_hs = phase_hs
+        self.phase_delay_ns = phase_delay_ns
         self.ideal_clock = ideal_clock
         self.mem_ns = mem_ns
         self.derate = derate
-        self.phase_width_hs = phase_width_hs
+        self.phase_width_ns = phase_width_ns
         self.pulse_checks = []   # (cell, pin, source, pulse width in, delay of its leading edge)
         self.pulses = {}         # bit -> source -> (leading edge, width)
         self.drv, self.snk = {}, collections.defaultdict(list)
@@ -301,21 +303,21 @@ class Sta:
                     self.async_starts.append((cn, t, self.name(eb)))
                 return
             if t == 'Impulse':
-                e_in, width = ('f' if self.param(cn, 'FALL', 0) else 'r'), HS_NS
+                e_in, width = ('f' if self.param(cn, 'FALL', 0) else 'r'), self.param(cn, 'WIDTH_NS', 100)
             else:
-                e_in, width = 'r', self.param(cn, 'DELAY', 1) * HS_NS
-                if cn.endswith('g_delay.osDelay') and self.phase_hs is not None:
-                    width = self.phase_hs * HS_NS
-                if re.search(r'osPhase[12]$', cn) and self.phase_width_hs is not None:
-                    width = self.phase_width_hs * HS_NS
+                e_in, width = 'r', self.param(cn, 'DELAY_NS', 1000)
+                if cn.endswith('g_delay.osDelay') and self.phase_delay_ns is not None:
+                    width = self.phase_delay_ns
+                if re.search(r'osPhase[12]$', cn) and self.phase_width_ns is not None:
+                    width = self.phase_width_ns
             if a.late[e_in] is None:
                 return
             self.put(ob, 'clk', 'r', a.late[e_in], a.early[e_in], (eb, 'clk', e_in, cn), a.start)
             self.put(ob, 'clk', 'f', a.late[e_in] + width, a.early[e_in] + width, (eb, 'clk', e_in, cn), a.start)
             self.put_pulse(ob, cn, 'r', width)
         elif t == 'DekatronTubeDelay':
-            guide = self.param(cn, 'GUIDE_STEP_HS', 2) * HS_NS
-            fall = self.param(cn, 'FALL_STEP_HS', 3) * HS_NS
+            guide = self.param(cn, 'GUIDE_STEP_NS', 200)
+            fall = self.param(cn, 'FALL_STEP_NS', 300)
             best = None
             early = None
             for p in ('guide_a_i', 'guide_b_i'):
@@ -463,20 +465,20 @@ class Sta:
 # Report
 # --------------------------------------------------------------------------
 def phase_delay_of(sta):
-    if sta.phase_hs is not None:
-        return sta.phase_hs
+    if sta.phase_delay_ns is not None:
+        return sta.phase_delay_ns
     for cn in sta.cells:
         if cn.endswith('g_delay.osDelay'):
-            return sta.param(cn, 'DELAY', 0)
+            return sta.param(cn, 'DELAY_NS', 0)
     return 0
 
 
 def phase_width_of(sta):
-    if sta.phase_width_hs is not None:
-        return sta.phase_width_hs
+    if sta.phase_width_ns is not None:
+        return sta.phase_width_ns
     for cn in sta.cells:
         if cn.endswith('osPhase1'):
-            return sta.param(cn, 'DELAY', 0)
+            return sta.param(cn, 'DELAY_NS', 0)
     return 0
 
 
@@ -506,7 +508,7 @@ def report(sta, freqs, npaths, title):
     s = summarize(sta)
     pd = phase_delay_of(sta)
     out = [f'## {title}', '',
-           f'Phase start delay {pd} hsClk = {pd * HS_NS:.0f} ns, guide phases {phase_width_of(sta)} hsClk each; clock '
+           f'Phase start delay {pd} ns, guide phases {phase_width_of(sta)} ns each; clock '
            f'{"ideal (0 ns at every trigger)" if sta.ideal_clock else "propagated through the clock inverters"}; '
            f'memory outputs {sta.mem_ns:.0f} ns after the edge'
            + (f'; cell delays × {sta.derate:g}' if sta.derate != 1.0 else '') + '.', '']
@@ -618,13 +620,13 @@ def main():
     ap.add_argument('-n', required=True, help='flat Yosys JSON netlist')
     ap.add_argument('-l', default=os.path.join(here, '../../sch/logic/vtube_cells_timing.lib'))
     ap.add_argument('-t', default='DekatronPC', help='top module')
-    ap.add_argument('-p', type=int, default=None, help='phase start delay, hsClk')
+    ap.add_argument('-p', type=int, default=None, help='phase start delay, ns')
     ap.add_argument('-f', type=float, nargs='*', default=[100, 150, 200, 250, 1000], help='Clk to judge, kHz')
     ap.add_argument('-o', help='also write the report here')
     ap.add_argument('--paths', type=int, default=3)
     ap.add_argument('--ideal-clock', action='store_true', help='clock at 0 ns at every trigger')
     ap.add_argument('--mem-ns', type=float, default=0.0, help='memory output delay after the Clk edge')
-    ap.add_argument('--phase-width', type=int, default=None, help='width of each guide phase, hsClk (RTL: 3)')
+    ap.add_argument('--phase-width', type=int, default=None, help='width of each guide phase, ns (RTL: 3000)')
     ap.add_argument('--derate', type=float, default=1.0, help='scale every cell delay and setup/hold (tube spread)')
     a = ap.parse_args()
     lib = load_lib(a.l)
@@ -637,23 +639,23 @@ def main():
     if a.p is None:
         st = sta(None)
         pd0 = phase_delay_of(st)
-        lines, s = report(st, a.f, a.paths, f'As synthesized: phase delay {pd0} hsClk, '
-                          f'phases {phase_width_of(st)} hsClk')
+        lines, s = report(st, a.f, a.paths, f'As synthesized: phase delay {pd0} ns, '
+                          f'phases {phase_width_of(st)} ns')
         out += lines
         if a.phase_width is None:
             # the narrowest phases every guide gate passes (doc/vtube_sta.md §6)
             w = phase_width_of(st)
-            while summarize(st)['pulse_margin'] <= 0 and w < 50:
-                w += 1
+            while summarize(st)['pulse_margin'] <= 0 and w < 5000:
+                w += FIT_NS
                 a.phase_width = w
                 st = sta(None)
-        pd = max(1, math.ceil(pd0 - summarize(st)['gate_slack'] / HS_NS))
+        pd = max(FIT_NS, FIT_NS * math.ceil((pd0 - summarize(st)['gate_slack']) / FIT_NS))
         st = sta(pd)
-        lines, _ = report(st, a.f, a.paths, f'Fitted: phases {phase_width_of(st)} hsClk, '
-                          f'phase delay {pd} hsClk')
+        lines, _ = report(st, a.f, a.paths, f'Fitted: phases {phase_width_of(st)} ns, '
+                          f'phase delay {pd} ns')
     else:
         st = sta(a.p)
-        lines, _ = report(st, a.f, a.paths, f'Phase delay {a.p} hsClk')
+        lines, _ = report(st, a.f, a.paths, f'Phase delay {a.p} ns')
     out += lines + clock_report(st) + fanout_report(st)
     if st.async_starts:
         out += [f'### Not timed: {len(st.async_starts)} OneShot / Impulse started by data (write windows)', '']

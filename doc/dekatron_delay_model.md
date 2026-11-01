@@ -304,3 +304,81 @@ in §5.2.
 
 In the delay-mode DekatronPC netlist, the `hsClk` input of `DekatronPC` is
 declared and drives nothing, and `rstRelay` has `.hs_clk(1'h0)`.
+
+## 10. Step 4: no hsClk port at all, durations in ns, synthesis on the delay model (TRS v0.25)
+
+Owner, 2026-11-01: hsClk has one job. It drives the complex clocked
+dekatron model so that it runs without delays on the FPGA (and in the RTL
+runs). Logic simulated with delays must have no hsClk signal at all, and
+neither must synthesis.
+
+### 10.1 What changed
+
+- Under `DEKATRON_DELAY_MODEL` no module has an hsClk port: `DekatronPC.hsClk`,
+  `IpLine.hs_clk`, `ApLine.hs_clk`, `RstTimeRelay.hs_clk`,
+  `DekatronCounter.hs_clk`, `DekatronModule.hsClk`, `DekatronPulseSender.hsClk`,
+  `DekatronPhaseGen.hsClk`. `OneShot` and `Impulse` have no `Clk` port.
+  The `tclk = 1'b0` stubs are gone. The clocked build keeps every port as
+  before, so the Emulator interface (TRS Appendix B) does not change: the
+  Emulator never builds with the delay model.
+- Durations of the delay world are in ns, not in hsClk periods. The tube
+  machine's RC chains and the tube itself are not tied to any clock. The
+  values are macros in `rtl/parameters.sv`:
+
+  | Macro | Default | Meaning |
+  |---|---:|---|
+  | `DEKATRON_GUIDE_STEP_NS` | 200 | discharge to a guide (estimate) |
+  | `DEKATRON_FALL_STEP_NS` | 300 | fall to the main cathode (estimate) |
+  | `DEKATRON_WRITE_MIN_NS`, `DEKATRON_RESET_MIN_NS` | 5000 | cathode write / reset (estimate, OPEN-013) |
+  | `DEKATRON_GUIDE_MAX_NS` | 10000 | guide pulse limit, diagnostics only |
+  | `DEKATRON_PHASE_DELAY_NS` | 0 | phase start after the Clk edge (REQ-PULSE-009) |
+  | `DEKATRON_PHASE1_NS`, `DEKATRON_PHASE2_NS` | 3000 | guide phases |
+  | `DEKATRON_EDGE_NS` | 100 | differentiator pulse (`Impulse`) |
+
+  `DekatronPhaseGen` passes them to the black boxes explicitly (`OneShot`
+  `DELAY_NS`, `Impulse` `WIDTH_NS`), and `DekatronModule` passes them to
+  `DekatronTubeDelay` (`GUIDE_STEP_NS` … `RESET_MIN_NS`), so the netlist
+  carries them and `vtube_sta.py` reads them from there. The `*_HS`
+  parameters belong to the clocked model only. The delay-world checks
+  (phases + fall, phase delay + write within `CLK_PERIOD_NS`) live in
+  `DekatronModule` and `DekatronCounter`.
+- Synthesis is always the tube machine. `synt_dpc.tcl` defines
+  `DEKATRON_DELAY_MODEL` and reads `DekatronTubeDelay.sv` after the list.
+  The tube-count netlists (`run_tests.sh -s`) have no hsClk either.
+- `synth_sim.sh` always simulates the delay-model netlist (`-d` is a no-op).
+  `-o`/`-w` are in ns; the defaults under `-t` are 3300 / 600 ns, the same
+  as `vtube_sta.sh`. `vtube_sta.py` works in ns (`-p`, `--phase-width`, fit
+  step 100 ns).
+- Testbenches under the define declare no `hsClk`. The IpLine/ApLine benches
+  make Clk directly instead of dividing hsClk.
+
+### 10.2 Results
+
+| Run | Result |
+|---|---|
+| `IpLine_synth.v`, `ApLine_synth.v`, `MachineCtrl_synth.v`, `DekatronPC_synth.v` | no `hsClk`/`hs_clk` |
+| `run_tests.sh -s` (`dpc_stat.py`) | 1357 tubes (1364 before; ABC spread ±10) |
+| `vtube_sta.sh` (3300 / 600 + 600 ns) | **8 924 ns, 112 kHz; 100 kHz meets with 1 076 ns slack**. Fitted phase delay 3100 ns: 8 724 ns |
+| `synth_sim.sh`, all 7 runs | pass |
+| `synth_sim.sh -t` at 10 µs | Dekatron, Counter pass with no violations; DekatronPC hello/program logic pass, 1 setup violation each (§10.3) |
+| `run_tests.sh -t` (helloworld, program.bfk, pi.bfk vs dpcrun) | pass |
+| `run_tests.sh -d` (with pi.bfk) | pass |
+| Verilator lint DekatronPC, Emulator | clean |
+| cocotb `test_dek_counter`, `test_impulse`, `test_oneshot`, `test_pulse_sender` | pass |
+
+With the 1 µs hsClk unit of TRS v0.24 the same netlist needed 13.1 µs
+(76 kHz): the phase slicing was rounded up to whole microseconds. In ns it
+is back to the v0.23 shape.
+
+### 10.3 The one setup violation: an asynchronous reset line
+
+The testbench presses `SoftRstKey` on a Clk edge. The relay raises `soft_rst`
+at once. It reaches the D input of `apLine.mem_here_q` (through the counters'
+`ready = ~(soft_rst | hard_rst)`) 119 ns after the edge, while the clock of
+that trigger comes through the clock inverters 194 ns after the edge. The
+D change lands 74.5 ns before C (setup 310 ns). The cause is not hsClk: the
+reset relay is asynchronous to Clk, the same class as the open item "a
+synchronizer on `rst_busy`" (TRS §22 item 14). Now it also reaches ApLine.
+On the real machine the panel relay switches at any moment, so the reset
+lines need a synchronizer to Clk, or the relay must switch only on a Clk
+phase. That is the owner's decision.

@@ -62,7 +62,9 @@ module ApLine #(
 )(
     input  wire rst_n,
     input  wire clk,
-    input  wire hs_clk,
+`ifndef DEKATRON_DELAY_MODEL
+    input  wire hs_clk,       // только тактовая модель декатронов
+`endif
 
     input  wire soft_rst,
     input  wire hard_rst,
@@ -164,7 +166,9 @@ module ApLine #(
     ) ap_counter (
         .rst_n     (rst_n),
         .clk       (clk),
+`ifndef DEKATRON_DELAY_MODEL
         .hs_clk    (hs_clk),
+`endif
         .soft_rst  (soft_rst),
         .hard_rst  (hard_rst),
         .valid     (ap_valid),
@@ -201,7 +205,9 @@ module ApLine #(
     ) data_counter (
         .rst_n     (rst_n),
         .clk       (clk),
+`ifndef DEKATRON_DELAY_MODEL
         .hs_clk    (hs_clk),
+`endif
         .soft_rst  (soft_rst),
         .hard_rst  (hard_rst),
         .valid     (data_valid),

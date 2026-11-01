@@ -51,10 +51,10 @@
 // Пока реле держит линию, счётчики заняты, а верхний автомат ждёт
 // снятия busy.
 //
-// `DEKATRON_DELAY_MODEL: модель без тактовой базы, hs_clk не используется.
-// Линия держится HOLD_HS * HS_NS нс от фронта запуска; если запуск ещё
-// держится, реле срабатывает снова через HS_NS, как тактовая модель на
-// следующем фронте hs_clk. Иголки нулевой длительности на запуске
+// `DEKATRON_DELAY_MODEL: модель на задержках, порта hs_clk нет [TRS v0.25].
+// Линия держится HOLD_HS * HS_NS нс от фронта запуска (HS_NS — число, а
+// не сигнал: та же выдержка, что у тактовой модели); если запуск ещё
+// держится, реле срабатывает снова через HS_NS. Иголки нулевой длительности на запуске
 // отсекает инерционная задержка 1 пс.
 //----------------------------------------------------------------------
 module RstTimeRelay #(
@@ -62,9 +62,9 @@ module RstTimeRelay #(
     parameter bit          RST_ON_POWERUP  = 1'b1,  // аппаратный сброс при включении
     parameter unsigned HS_NS           = HSCLK_NS   // такт hs_clk в модели на задержках, нс
 )(
-/* verilator lint_off UNUSEDSIGNAL */
+`ifndef DEKATRON_DELAY_MODEL
     input  wire  hs_clk,
-/* verilator lint_on UNUSEDSIGNAL */
+`endif
     input  wire  rst_n,
 
     input  wire  soft_key,      // пульт
@@ -182,7 +182,11 @@ module DekatronPC #(
     // Второй порт чтения памяти и счётчик инструкций — только эмулятор
     parameter bit          EN_EMULATOR      = 1'b0
 )(
+`ifndef DEKATRON_DELAY_MODEL
+    // Только тактовая модель декатронов (эмулятор на FPGA, симуляция без
+    // задержек). В синтезе и нетлисте ламповой машины порта нет [TRS v0.25]
     input  wire hsClk,
+`endif
     input  wire Clk,
     input  wire rst_n,          // сброс логики; разряд декатронов не двигает
 
@@ -259,14 +263,6 @@ module DekatronPC #(
     localparam int unsigned AP_W   = AP_DEKATRON_NUM   * DEKATRON_WIDTH;
     localparam int unsigned DATA_W = DATA_DEKATRON_NUM * DEKATRON_WIDTH;
 
-    // Временная база моделей декатронов, реле времени и генераторов фаз.
-    // В модели на задержках (`DEKATRON_DELAY_MODEL) она не нужна: порт
-    // hsClk остаётся (интерфейс с эмулятором заморожен), но внутрь не идёт.
-`ifdef DEKATRON_DELAY_MODEL
-    wire tclk = 1'b0;
-`else
-    wire tclk = hsClk;
-`endif
 
     //------------------------------------------------------------------
     // Реле времени в цепи сброса
@@ -278,7 +274,9 @@ module DekatronPC #(
         .HOLD_HS        (RST_HOLD_HS),
         .RST_ON_POWERUP (1'b1)
     ) rstRelay (
-        .hs_clk   (tclk),
+`ifndef DEKATRON_DELAY_MODEL
+        .hs_clk   (hsClk),
+`endif
         .rst_n    (rst_n),
         .soft_key (SoftRstKey),
         .hard_key (HardRstKey),
@@ -312,7 +310,9 @@ module DekatronPC #(
     ) ipLine (
         .rst_n         (rst_n),
         .clk           (Clk),
-        .hs_clk        (tclk),
+`ifndef DEKATRON_DELAY_MODEL
+        .hs_clk        (hsClk),
+`endif
         .soft_rst      (soft_rst),
         .hard_rst      (hard_rst),
 
@@ -392,7 +392,9 @@ module DekatronPC #(
     ) apLine (
         .rst_n       (rst_n),
         .clk         (Clk),
-        .hs_clk      (tclk),
+`ifndef DEKATRON_DELAY_MODEL
+        .hs_clk      (hsClk),
+`endif
         .soft_rst    (soft_rst),
         .hard_rst    (hard_rst),
 

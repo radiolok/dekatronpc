@@ -23,7 +23,9 @@ module Dekatron_tb();
 parameter WIDTH    = 4;
 parameter TOP_TEST = 12;
 
+`ifndef DEKATRON_DELAY_MODEL
 reg hsClk;
+`endif
 reg Clk;
 reg Rst_n;
 
@@ -33,10 +35,8 @@ reg Rst_n;
 `ifndef CLK_NS
 `define CLK_NS CLK_PERIOD_NS
 `endif
-// Модель на задержках: hsClk не нужен и стоит в нуле — так проверяется,
-// что DUT от него не зависит. Clk (HSCLK_DIV тактов hsClk) с той же фазой, что дал бы
-// делитель: первый фронт через 50 нс после снятия Rst_n.
-initial hsClk = 1'b0;
+// Модель на задержках: hsClk нет вовсе [TRS v0.25]. Clk с той же фазой,
+// что дал бы делитель: первый фронт через 50 нс после снятия Rst_n.
 initial begin
     Clk = 1'b0;
     wait (Rst_n === 1'b1);
@@ -80,9 +80,7 @@ wire GuideB;
 DekatronPulseSender #(
     .EXT_PHASES (1'b0)
 ) pulseSender (
-`ifdef DEKATRON_DELAY_MODEL
-    .hsClk   (1'b0),
-`else
+`ifndef DEKATRON_DELAY_MODEL
     .hsClk   (hsClk),
 `endif
     .Clk     (Clk),
@@ -102,7 +100,9 @@ DekatronModule #(
     .TOP_PIN_OUT    (4'd9),
     .INIT_DIGIT     (4'd0)
 ) dek (
+`ifndef DEKATRON_DELAY_MODEL
     .hsClk   (hsClk),
+`endif
     .GuideA  (GuideA),
     .GuideB  (GuideB),
     .En      (1'b1),

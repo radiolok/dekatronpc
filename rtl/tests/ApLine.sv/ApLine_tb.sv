@@ -25,13 +25,32 @@ module ApLine_tb (
 );
 reg Rst_n;
 reg Clk;
+`ifndef DEKATRON_DELAY_MODEL
 reg hsClk;
+`endif
+parameter TEST_NUM = 20000;
+
+`ifdef DEKATRON_DELAY_MODEL
+// Модель на задержках: hsClk нет вовсе [TRS v0.25]; Clk напрямую с
+// периодом CLK_NS, первый фронт через 50 нс после снятия Rst_n
+`ifndef CLK_NS
+`define CLK_NS CLK_PERIOD_NS
+`endif
+initial begin
+    Clk = 1'b0;
+    wait (Rst_n === 1'b1);
+    #50;
+    forever begin
+        Clk = 1'b1; #(`CLK_NS / 2.0);
+        Clk = 1'b0; #(`CLK_NS / 2.0);
+    end
+end
+`else
 initial begin
     hsClk = 1'b1;
     forever #(HSCLK_NS / 2.0) hsClk = ~hsClk;   // Clk / HSCLK_DIV
 end
 
-parameter TEST_NUM = 20000;
 
 ClockDivider #(
     .DIVISOR(HSCLK_DIV)
@@ -40,6 +59,7 @@ ClockDivider #(
     .clock_in(hsClk),
     .clock_out(Clk)
 );
+`endif
 
 reg             valid    = 1'b0;
 reg  [4:0]      op       = 5'h10;   // BF NOP
@@ -76,7 +96,9 @@ localparam [3:0]
 ApLine apLine (
     .rst_n          (Rst_n),
     .clk            (Clk),
+`ifndef DEKATRON_DELAY_MODEL
     .hs_clk         (hsClk),
+`endif
     .soft_rst       (1'b0),
     .hard_rst       (1'b0),
     .valid          (valid),

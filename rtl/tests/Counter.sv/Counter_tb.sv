@@ -31,17 +31,17 @@ localparam TOP      = 255;
 
 reg Rst_n;
 reg Clk;
+`ifndef DEKATRON_DELAY_MODEL
 reg hsClk;
+`endif
 `ifdef DEKATRON_DELAY_MODEL
 // Период Clk в нс (synth_sim.sh -c): поиск частоты, на которой работает
 // нетлист с задержками ламп (doc/vtube_sdf_timing.md)
 `ifndef CLK_NS
 `define CLK_NS CLK_PERIOD_NS
 `endif
-// Модель на задержках: hsClk не нужен и стоит в нуле — так проверяется,
-// что DUT от него не зависит. Clk с той же фазой, что дал бы делитель:
-// первый фронт через 50 нс после снятия Rst_n.
-initial hsClk = 1'b0;
+// Модель на задержках: hsClk нет вовсе [TRS v0.25]. Clk с той же фазой,
+// что дал бы делитель: первый фронт через 50 нс после снятия Rst_n.
 initial begin
     Clk = 1'b0;
     wait (Rst_n === 1'b1);
@@ -84,7 +84,9 @@ DekatronCounter  #(.D_NUM(DEKATRON_NUM),
 )counter(
     .rst_n    (Rst_n),
     .clk      (Clk),
+`ifndef DEKATRON_DELAY_MODEL
     .hs_clk   (hsClk),
+`endif
     .soft_rst (soft_rst),
     .hard_rst (hard_rst),
     .valid    (valid),
@@ -116,7 +118,9 @@ DekatronCounter  #(.D_NUM(IP_NUM),
 )ip_counter(
     .rst_n    (Rst_n),
     .clk      (Clk),
+`ifndef DEKATRON_DELAY_MODEL
     .hs_clk   (hsClk),
+`endif
     .soft_rst (soft_rst),
     .hard_rst (hard_rst),
     .valid    (1'b0),

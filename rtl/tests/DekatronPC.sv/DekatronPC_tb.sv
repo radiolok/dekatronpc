@@ -26,7 +26,9 @@
 module DekatronPC_tb;
 
 reg Clk;
+`ifndef DEKATRON_DELAY_MODEL
 reg hsClk;
+`endif
 reg rst_n;
 
 reg SoftRstKey;
@@ -81,11 +83,8 @@ wire rx_rdy;
 `ifndef CLK_NS
 `define CLK_NS CLK_PERIOD_NS
 `endif
-// Модель на задержках: hsClk машине не нужен и стоит в нуле — так
-// проверяется, что DekatronPC от него не зависит. Clk (HSCLK_DIV тактов hsClk) с той же
-// фазой, что дал бы делитель: rst_n снимается на фронте hsClk, первый
-// фронт Clk — на следующем.
-initial hsClk = 1'b0;
+// Модель на задержках: hsClk нет вовсе, у DekatronPC нет и порта
+// [TRS v0.25]. Первый фронт Clk через 100 нс после снятия rst_n.
 initial begin
     Clk = 1'b0;
     wait (rst_n === 1'b1);
@@ -184,7 +183,9 @@ end
 DekatronPC #(
     .EN_EMULATOR (1'b0)
 ) dekatronPC (
+`ifndef DEKATRON_DELAY_MODEL
     .hsClk           (hsClk),
+`endif
     .Clk             (Clk),
     .rst_n           (rst_n),
 

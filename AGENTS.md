@@ -27,7 +27,7 @@ A Brainfuck computer built from A110 dekatrons and vacuum tubes, plus an FPGA em
   - AP: 5 dekatrons. The RTL wraps 0 ↔ 99999 (no top limit); the 29999 option is OPEN-001.
   - Data: 3 dekatrons, 0–255.
 - **Memory**: program memory is 100k × 4-bit opcodes; data memory is 100k × 10-bit cells {hundreds[1:0], tens, ones}. It is a recursive bank tree with BANK_DIGITS = 2 for the real machine and 4 for the FPGA. Addresses are BCD tetrads compared directly, with no binary arithmetic; tetrads A..F raise err. The bootloader is the top bank, 99900–99999: write-protected, with the ovl_hit/ovl_data overlay.
-- **Clocks**: hsClk = 10 × Clk always (HSCLK_DIV = 10; it models dekatron pulse timing and exists in the emulator only), so one *_HS unit is Clk/10. Clk = 100 kHz by default: the build macro DEKATRON_CLK_NS (rtl/parameters.sv, CLK_PERIOD_NS/HSCLK_NS) gives the absolute time for testbenches and the delay models. The FPGA emulator counts hsClk cycles at 10 MHz / 1 MHz and ignores it.
+- **Clocks**: hsClk exists only for the clocked dekatron model (DekatronTubeV2), so that the complex model runs without delays on the FPGA and in Verilator/Icarus RTL runs. It is always 10 × Clk (HSCLK_DIV = 10; one *_HS unit = Clk/10). Clk = 100 kHz by default (build macro DEKATRON_CLK_NS in rtl/parameters.sv → CLK_PERIOD_NS, HSCLK_NS for testbench clocks). Synthesis and every delay simulation have no hsClk signal at all (TRS v0.25).
 
 ### ISA (never renumber existing codes)
 
@@ -75,7 +75,7 @@ Decode on the pair {insn_mode, insn}. All 32 combinations must be covered. Undef
 - **Yosys FSMs**: state registers carry (\* fsm_encoding = "binary" \*).
 - **Code**: synthesizable SystemVerilog only, with no X-masking tricks. FPGA primitives go only in the Emulator layer.
 - **Combinational loops**: Verilator UNOPTFLAT is an error. Fix it structurally, never with lint_off. A ripple written bit by bit into a vector that is also read counts as a loop: use locals in always_comb. Python models can't see zero-delay loops, so they don't replace a simulator.
-- **DekatronTubeDelay** (`define DEKATRON_DELAY_MODEL, Icarus only, not in DPC.files) is a clockless delay model. Under the define, the hsClk ports stay but are held at 0. Add no new modules or ports for it (doc/dekatron_delay_model.md).
+- **Delay model** (`define DEKATRON_DELAY_MODEL; DekatronTubeDelay is Icarus only and not in DPC.files) is the tube machine: synthesis always uses it (synt_dpc.tcl defines it and reads DekatronTubeDelay), and so do netlist sims and `run_tests.sh -d`. Under the define no module has an hsClk/hs_clk port, and OneShot/Impulse have no Clk port. All durations are in ns: the DEKATRON_*_NS macros in rtl/parameters.sv (guide/fall step, write/reset, phase delay/widths, edge pulse). The *_HS parameters belong to the clocked model only (doc/dekatron_delay_model.md, doc/dekatron_counter_single_cycle.md §7).
 
 ## 5. Repo map
 
@@ -108,7 +108,7 @@ CI is .github/workflows/*.yml and runs inside the Docker image from ./Dockerfile
 
 Gotchas:
 - CI uses **Icarus 12**, which has no break/continue in testbenches. A local Icarus 13 won't catch this (doc/ci_sim_check.md).
-- **Netlist with tube delays** (`synth_sim.sh -t`) needs the phase start delay (REQ-PULSE-009; `-o`, 4 hsClk = 4 µs under `-t`) and guide phases of 2 hsClk (`-w`); the default Clk period is 10 µs (hsClk 1 µs). Counter_tb drops its IP-like counter on netlists (`NETLIST_SIM`). doc/vtube_sdf_timing.md §3.3–3.6.
+- **Netlist with tube delays** (`synth_sim.sh -t`) needs the phase start delay (REQ-PULSE-009; `-o`, 3300 ns under `-t`) and guide phases of 600 ns (`-w`), the same as `vtube_sta.sh`. The default Clk period is 10 µs (`-c`). Counter_tb drops its IP-like counter on netlists (`NETLIST_SIM`). doc/vtube_sdf_timing.md §3.3–3.6.
 - **IpLine_tb** runs whatever is in rtl/firmware.hex, and after `-d` that is pi.bfk, which produces a multi-GB VCD. Regenerate first: `python3 generate_rom.py -f ../programs/looptest.bfk -o ../firmware.hex --hex`.
 - **Testbench timing**: testbenches drive DUT inputs with non-blocking assignments after a clock edge. They sample DUT outputs on a clock edge, never with wait() on a decoded line: netlist outputs can pulse for zero time, and the netlist doesn't mask X.
 

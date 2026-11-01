@@ -3,27 +3,21 @@
 // (IMP_ON_EN = 1: En сам входит в выход). Повторный En внутри окна его
 // не продлевает; если En держится до конца окна, окно начинается снова.
 //
-// `DEKATRON_DELAY_MODEL: модель без тактовой базы. Clk не используется,
-// окно — DELAY * HS_NS нс от фронта En (HS_NS = период hsClk, который
-// заменяет модель). Иголки нулевой длительности на En (дельта-
-// циклы нетлиста) окно не запускают: в тактовой модели их не видит
-// фронт Clk, здесь их отсекает инерционная задержка 1 пс. Только для
-// Icarus; в нетлисте OneShot — чёрный ящик.
-// Период hsClk в модели на задержках, нс: Clk / 10 (rtl/parameters.sv,
-// DEKATRON_CLK_NS, TRS v0.24). Запасное умолчание — для сборок без
-// parameters.sv (cocotb)
-`ifndef DEKATRON_HS_NS
-`define DEKATRON_HS_NS 1000
-`endif
+// `DEKATRON_DELAY_MODEL: модель на задержках, тактовой базы нет вовсе —
+// нет и порта Clk; окно — DELAY_NS нс от фронта En (RC-цепь, TRS v0.25).
+// Иголки нулевой длительности на En (дельта-циклы нетлиста) окно не
+// запускают: в тактовой модели их не видит фронт Clk, здесь их отсекает
+// инерционная задержка 1 пс. Только для Icarus; в нетлисте OneShot —
+// чёрный ящик.
 module OneShot #(
     parameter DELAY=1'b1,
     parameter WIDTH=$clog2(DELAY),
     parameter IMP_ON_EN = 1'b1,
-    parameter HS_NS = `DEKATRON_HS_NS   // такт hsClk в модели на задержках, нс
+    parameter DELAY_NS = 1000  // окно в модели на задержках, нс
 )(
-/* verilator lint_off UNUSEDSIGNAL */
+`ifndef DEKATRON_DELAY_MODEL
     input Clk,
-/* verilator lint_on UNUSEDSIGNAL */
+`endif
     input En,
     input Rst_n,
     output wire Impulse
@@ -41,7 +35,7 @@ reg win = 1'b0;
 always @(posedge en_f) begin : shot
     while (en_f) begin
         win = 1'b1;
-        #(DELAY * HS_NS);
+        #(DELAY_NS);
         win = 1'b0;
     end
 end
@@ -89,6 +83,7 @@ end
 `endif
 endmodule
 
+`ifndef DEKATRON_DELAY_MODEL
 module OneShot_tb();
 
 reg Clk = 1'b0;
@@ -133,4 +128,5 @@ always @(posedge Clk) begin
 end
 //synopsys translate_on
 endmodule
+`endif
 /* verilator lint_on DECLFILENAME */

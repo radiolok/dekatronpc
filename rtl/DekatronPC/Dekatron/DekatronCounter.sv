@@ -144,7 +144,9 @@ module DekatronCounter #(
 )(
     input  wire             rst_n,      // сброс логики фаз; разряд НЕ двигает
     input  wire             clk,        // такт счёта
-    input  wire             hs_clk,     // временная база модели декатронов
+`ifndef DEKATRON_DELAY_MODEL
+    input  wire             hs_clk,     // временная база тактовой модели декатронов
+`endif
 
     // Физические линии сброса. Идут прямо на катодные линии декад в
     // обход handshake: разводку по декадам делает счётчик.
@@ -274,14 +276,10 @@ module DekatronCounter #(
     wire rst_to_nine = hard_rst;
     wire rst_to_zero = soft_rst & ~hard_rst;
 
-    // Временная база генератора фаз. В модели на задержках
-    // (`DEKATRON_DELAY_MODEL) OneShot/Impulse отсчитывают время сами, и
-    // hs_clk внутрь счётчика не подводится вовсе.
-`ifdef DEKATRON_DELAY_MODEL
-    wire tclk = 1'b0;
-`else
-    wire tclk = hs_clk;
-`endif
+    // hs_clk — временная база только тактовой модели (FPGA, симуляция
+    // без задержек). В модели на задержках (`DEKATRON_DELAY_MODEL: синтез
+    // и нетлист ламповой машины) порта hs_clk нет вовсе: RC-цепи и
+    // декатрон отсчитывают время сами, в нс [TRS v0.25].
 
     //------------------------------------------------------------------
     // Общий генератор фаз на весь счётчик
@@ -294,7 +292,9 @@ module DekatronCounter #(
         .PHASE2_HS      (PHASE2_HS),
         .PHASE_DELAY_HS (PHASE_DELAY_HS)
     ) phaseGen (
-        .hsClk  (tclk),
+`ifndef DEKATRON_DELAY_MODEL
+        .hsClk  (hs_clk),
+`endif
         .Clk    (clk),
         .Rst_n  (rst_n),
         .Phase1 (phase1),
@@ -317,7 +317,9 @@ module DekatronCounter #(
         .PHASE1_HS  (PHASE1_HS),
         .PHASE2_HS  (PHASE2_HS)
     ) pulseSender (
-        .hsClk    (tclk),
+`ifndef DEKATRON_DELAY_MODEL
+        .hsClk    (hs_clk),
+`endif
         .Clk      (clk),
         .Rst_n    (rst_n),
         .StepF    (step_f),
@@ -409,7 +411,9 @@ module DekatronCounter #(
                 .PHASE2_HS       (PHASE2_HS),
                 .PHASE_DELAY_HS  (PHASE_DELAY_HS)
             ) dModule (
-                .hsClk    (tclk),
+`ifndef DEKATRON_DELAY_MODEL
+                .hsClk    (hs_clk),
+`endif
                 .GuideA   (guide_a),
                 .GuideB   (guide_b),
                 .En       (en_chain[d]),
@@ -438,13 +442,20 @@ module DekatronCounter #(
         // Запись по handshake держится от прихода команды (не раньше
         // задержки фаз, REQ-PULSE-009) до фронта, завершающего такт, и
         // показание должно установиться до этого фронта: хотя бы один
-        // такт hs_clk запаса
+        // такт hs_clk запаса. В модели на задержках — то же в нс
+`ifdef DEKATRON_DELAY_MODEL
+        if (`DEKATRON_PHASE_DELAY_NS + `DEKATRON_WRITE_MIN_NS >= CLK_PERIOD_NS ||
+            `DEKATRON_PHASE_DELAY_NS + `DEKATRON_RESET_MIN_NS >= CLK_PERIOD_NS)
+            $error("DekatronCounter: запись или сброс по катоду после задержки команды не укладывается в такт Clk (%0d нс)",
+                   CLK_PERIOD_NS);
+`else
         if (PHASE_DELAY_HS + WRITE_MIN_HS >= HS_PER_CLK)
             $error("DekatronCounter: запись (%0d hs) после задержки команды (%0d hs) не укладывается в такт (%0d hs)",
                    WRITE_MIN_HS, PHASE_DELAY_HS, HS_PER_CLK);
         if (PHASE_DELAY_HS + RESET_MIN_HS >= HS_PER_CLK)
             $error("DekatronCounter: сброс по катоду (%0d hs) после задержки команды (%0d hs) не укладывается в такт (%0d hs)",
                    RESET_MIN_HS, PHASE_DELAY_HS, HS_PER_CLK);
+`endif
         if (WIDTH != D_NUM * DEKATRON_WIDTH)
             $error("DekatronCounter: WIDTH (%0d) не соответствует D_NUM*DEKATRON_WIDTH (%0d)",
                    WIDTH, D_NUM * DEKATRON_WIDTH);
