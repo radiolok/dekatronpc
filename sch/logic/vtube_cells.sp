@@ -50,6 +50,10 @@ E1 Y 0 VALUE = { (((v(A) > 0.5) && (v(B) > 0.5)) || (v(C) > 0.5)) ? 0 : 1 }
 E1 Y 0 VALUE = { (((v(A) > 0.5) && (v(B) > 0.5)) || (v(C) > 0.5) || (v(D) > 0.5)) ? 0 : 1 }
 .ENDS A2OOI_N16X7
 
+.SUBCKT AOI211_J2N16 A B C D Y
+E1 Y 0 VALUE = { (((v(A) > 0.5) && (v(B) > 0.5)) || (v(C) > 0.5) || (v(D) > 0.5)) ? 0 : 1 }
+.ENDS AOI211_J2N16
+
 .SUBCKT OR2_N16 A B Y
 E1 Y 0 VALUE = { ((v(A) > 0.5) || (v(B) > 0.5)) ? 1 : 0 }
 .ENDS OR2_N16
@@ -69,6 +73,10 @@ E1 Y 0 VALUE = { ((v(A) > 0.5) || (v(B) > 0.5) || (v(C) > 0.5) || (v(D) > 0.5) |
 .SUBCKT NOR2_N16 A B Y
 E1 Y 0 VALUE = { ((v(A) > 0.5) || (v(B) > 0.5)) ? 0 : 1 }
 .ENDS NOR2_N16
+
+.SUBCKT NOR3_N16 A B C Y
+E1 Y 0 VALUE = { ((v(A) > 0.5) || (v(B) > 0.5) || (v(C) > 0.5)) ? 0 : 1 }
+.ENDS NOR3_N16
 
 .SUBCKT NOR4_N16 A B C D Y
 E1 Y 0 VALUE = { ((v(A) > 0.5) || (v(B) > 0.5) || (v(C) > 0.5) || (v(D) > 0.5)) ? 0 : 1 }

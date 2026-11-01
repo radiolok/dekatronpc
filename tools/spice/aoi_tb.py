@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """Testbench definitions shared by the KiCad testbenches (tools/kicad/gen_aoi.py) and the plain-SPICE reference
-runs, for A1OOI_N16J2, A2OOI_J2 and NOR4_N16 (sch/logic/A1OOI_N16J2/README.md, A2OOI_J2, NOR4_N16).
+runs, for A1OOI_N16J2, AOI211_J2N16, A2OOI_J2, NOR3_N16 and NOR4_N16 (sch/logic/A1OOI_N16J2/README.md, AOI211_J2N16, A2OOI_J2, NOR3_N16, NOR4_N16).
 
 As latch_tb.py: ideal HV sources (PWL) -> divider -> driver (6N16B triode, Ra 10k; second triode cut off) ->
 divider (C1 of the grid type) -> DUT input; the output -> one divider -> load tubes (6N16B, both grids on the net).
 The input sequences, the .meas lines and the cell values are those of aoi_sweep.py, at fanout 6.
 A1OOI_N16J2: the sheet holds two cells on one 6N16B. The bench drives cell 1; cell 2 has A2, B2, C2 on LV0
-(-20 V, an LV "0") and Y2 open, so its triode only couples through the tube.
+(-20 V, an LV "0") and Y2 open, so its triode only couples through the tube. NOR3_N16 the same: two cells on
+three 6N16B, the middle tube shared (C1 and A2).
 Node names are the KiCad ones (/A1, /Y1, /Y1_LV ...).
 
-usage: aoi_tb.py [a1|a22|n4|o4 ...]     runs the plain-SPICE reference and prints the .meas values
+usage: aoi_tb.py [a1|a211|a22|n3|n4|o4 ...]     runs the plain-SPICE reference and prints the .meas values
 """
 import os, re, subprocess, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -24,7 +25,7 @@ FANOUT = 6
 
 def tb_of(key):
     c = A.CELLS[key]
-    one = key == "a1"
+    one = key in ("a1", "n3")      # two cells per sheet: drive cell 1
     pin = {p: (p + "1" if one else p) for p in c['pins']}           # cell pin -> sheet pin
     src = {pin[p]: slots([s[i] for s in c['seq']], A.T) for i, p in enumerate(c['pins'])}
     y = "Y1" if one else "Y"
@@ -39,7 +40,7 @@ def tb_of(key):
                 note=f"States ({''.join(c['pins'])}) 2 us each: {states} (aoi_sweep.CELLS['{key}']).")
 
 
-TBS = {k: (lambda k=k: tb_of(k)) for k in ("a1", "a22", "n4", "o4")}
+TBS = {k: (lambda k=k: tb_of(k)) for k in ("a1", "a211", "a22", "n3", "n4", "o4")}
 
 
 def cell_net(tb, p):
@@ -49,6 +50,11 @@ def cell_net(tb, p):
         for i in ("1", "2"):
             s += f"RA{i} vcc /Y{i} {p['Ra']}\n" + L.penta(i, f"/Y{i}", f"/A{i}", f"/B{i}", p)
         s += f"XT pt1 /C1 0 pt2 /C2 0 6N16B\nVT1 /Y1 pt1 0\nVT2 /Y2 pt2 0\n"
+    elif tb['key'] == "n3":
+        # Л1: A1, B1 on Y1; Л2: C1 on Y1, A2 on Y2; Л3: B2, C2 on Y2
+        s += f"RA1 vcc /Y1 {p['Ra']}\nRA2 vcc /Y2 {p['Ra']}\n"
+        for t, (ga, ya, gb, yb) in enumerate((("A1", "Y1", "B1", "Y1"), ("C1", "Y1", "A2", "Y2"), ("B2", "Y2", "C2", "Y2")), 1):
+            s += f"XT{t} pt{t}a /{ga} 0 pt{t}b /{gb} 0 6N16B\nVT{t}a /{ya} pt{t}a 0\nVT{t}b /{yb} pt{t}b 0\n"
     elif tb['key'] == "a22":
         s += f"RA vcc /Y {p['Ra']}\n" + L.penta("1", "/Y", "/A", "/B", p) + L.penta("2", "/Y", "/C", "/D", p)
     else:

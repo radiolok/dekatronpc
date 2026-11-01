@@ -26,10 +26,10 @@ total tube count of IpLine + ApLine + MachineCtrl, mean of four `&deepsyn` seeds
 | TC-X3 | Other ABC scripts (`&deepsyn` longer, `mfs`, `&nf`, second pass) | ±5 or broken | no gain | §5 |
 | TC-X4 | Whole machine as one block (repartition) | −7 | not done, three boxes stay | §4, §6 |
 | TC-X5 | Overflow halt from an IpLine strobe | +5.7 | rejected | §6 |
-| TC-O1 | Cell `NOR3_N16` (3 triodes, 1.5 tubes) | −17.3 | open: cell to design | §6 |
-| TC-O2 | Cells `AOI211_J2N16` (+ `AOI221`, `AOI222`), on top of TC-O1 | −6.2 (−11.4) | open: cells to design | §6 |
+| TC-O1 | Cell `NOR3_N16` (3 triodes, 1.5 tubes) | −17.3 | **done** (`sch/logic/NOR3_N16`, TRS v0.27): measured 1128.8 → 1111.5 | §6 |
+| TC-O2 | Cells `AOI211_J2N16` (+ `AOI221`, `AOI222`), on top of TC-O1 | −6.2 (−11.4) | `AOI211_J2N16` **done** (`sch/logic/AOI211_J2N16`, TRS v0.28): measured 1111.5 → 1105.3; `AOI221`/`AOI222` open | §6 |
 | TC-O3 | BinToBcd with inverted outputs, memory buses active-low | −19.5 | open: owner (interface) | §6 |
-| TC-O4 | CIN through the memory read bus, no rx/memory mux | −25 | open: REQ-UART-008 | §6 |
+| TC-O4 | CIN through the memory read bus, no rx/memory mux | −25 | open: REQ-UART-008; bf100: speed neutral, variant A recommended | §6, §6.1 |
 | TC-O5 | No `rst_n` on the 31 glue triggers | −31 | blocked by REQ-REF-011 | §6 |
 | TC-O6 | ±IP panel keys dropped | −25 | open: Appendix B | §6 |
 | TC-O7 | Program loading by an external loader writing program memory | ≈ −79 | open: REQ-LOAD-001…003, OPEN-018 | §6 |
@@ -233,6 +233,65 @@ All on the flow of §5, means of four seeds unless noted.
 | TC-O3 | BinToBcd with inverted outputs (NOR without the output inverters) | −3 per decade before `amap`, −1.5 after: **−19.5** for 13 decades | not done: inverts the memory address and data buses and the display/terminal ports; the memory side takes either polarity for free, but every interface and test follows. Owner's call |
 | TC-O4 | CIN without the `rx ↔ memory` mux on the Data input (rx through the memory read bus, each source gated at its end) | the mux costs **25.4** | not done: REQ-UART-008 has ApLine load Data straight from `rx_data_bcd`; the gating would move into memory support |
 
+### 6.1. TC-O4: where CIN puts the character (Brainfuck-100)
+
+Two ways to drop the `rx ↔ memory` mux on the Data counter input:
+
+- **A, into the counter (as now)**: CIN loads the counter and sets MemLock.
+  The rx bits reach the counter over the memory read bus.
+- **B, into memory**: CIN writes the cell directly. MemLock is cleared (the
+  cell is overwritten, so nothing is flushed), and the write-through register
+  holds the character (`mem_here_q = 1`).
+
+Per CIN they differ by one operation, and only through the first later op that
+needs a decision. `+ - .` need the value in the counter: B pays a counter load
+(`S_DSET`), A pays nothing. `< >` need the cell in memory: A pays a flush, B
+pays nothing. `[ ]` are neutral (the zero test comes from the counter or the
+memory register), and so are `[-]` (CLRD, `set_zero` either way) and another `,`.
+
+`tools/bf100/cin_next.py` runs the 53 Brainfuck-100 programs that execute a `,`
+on their `.in` (20 M steps max; 98 `long.b` has no file) and counts that first
+op after each executed `,`:
+
+| First deciding op after `,` | Executed | Programs where it is the majority |
+|---|---|---|
+| `+ -` (data) | 8666 (756 without `awib`) | 23 |
+| `.` (COUT) | 40 | 1 (`primality-by-trial-division`) |
+| `< >` (address) | 1762 | 29 |
+| end of program | 3 | – |
+
+The total is skewed by `awib-0.4.b` (`,+`: 7910 of the reads are its EOF
+normalisation). Counted by program, the address move wins slightly, 29 against 24:
+reading into an array (`,>`, `,<`: sorts, interpreters, `cat2`, `reverse`, `utm`,
+`Collatz`). The data ops come from `,----------` (subtracting `'\n'` or `'0'`:
+`atoi`, `luhn`, `caesar`, `primes`) and `,+` (EOF −1 → 0: `rot13`, `head`,
+`mac2unix`, `bfc`). In the program text the commonest successor is `[`/`]`
+(read loops `,[` … `,]`), which is neutral. Text counts are polluted by commas in
+comments (`utm.b`, `Zozotez.b`), so only executed reads are used.
+
+**Speed does not decide it.** At 110 baud one character takes ≈ 91 ms ≈ 9100
+Clk at 100 kHz. One operation more or less per character is ≈ 0.01 %. The
+choice rests on tubes and on how much the semantics move:
+
+- **A** keeps the behaviour (CIN → counter, MemLock set), so dpcrun, `ApLine_tb`
+  and the rx_rdy timing (REQ-UART-008, Appendix B) stay as they are. The mux
+  leaves ApLine only if the read bus is shared: the sender (external, may be
+  non-tube, REQ-AUTH) drives `rx_data_bcd` onto it only during CIN, and the
+  memory output register is off the bus or cleared then. A clear is safe: after
+  CIN, MemLock is set and the register's content is not used until the next
+  flush, which refills it. In RTL the selection moves from ApLine into the
+  memory support/top level (`RAM.sv` already selects `ovl_hit ? ovl_data : bank_rd`).
+- **B** changes the MemLock rules (CIN clears lock instead of setting it), so
+  dpcrun, the TRS (REQ-UART-008, the MemLock paragraph) and the tests follow. It
+  does not remove the mux by itself: `mem_wr_data` becomes `cin ? rx : data_out`
+  (10 bits instead of 12) unless the write bus is shared too. Sharing the write
+  bus is harder, because the counter's cathode read lines cannot be switched off
+  without clearing the counter.
+
+Recommendation: A, with the rx bits on the memory read bus. Not done yet: it
+moves the selection out of the counted blocks, so the memory support has to show
+that the gating is really free (owner's decision, REQ-UART-008).
+
 ### What the glue features cost (ablation: the feature tied off, everything else kept)
 
 | Feature | Tubes | Option |
@@ -266,7 +325,31 @@ pin data of their family:
 
 `NOR3_N16` is the cheapest to design (the NOR2/NOR4 family, `sch/logic/NOR4_N16`); it is
 the one recommended. These are not in the flow: a cell enters the liberty only once it is
-designed (REQ-MOD-004/005).
+designed (REQ-MOD-004/005). TC-O1 is now designed (`sch/logic/NOR3_N16/README.md`, two cells on
+three 6N16B) and in `vtube_cells.lib` with the same pin data as the scratch entry. Measured
+2026-11-01, `synth_seeds.sh -s "0 1 2 3" IpLine ApLine MachineCtrl`, HEAD liberty against the new one:
+
+| Seed | 0 | 1 | 2 | 3 | Mean |
+|---|---|---|---|---|---|
+| without NOR3_N16 | 1129.0 | 1142.5 | 1119.0 | 1125.0 | 1128.8 |
+| with NOR3_N16 | 1114.0 | 1122.5 | 1105.5 | 1104.0 | **1111.5 (−17.3)** |
+
+`run_tests.sh -s` (seed 0): IpLine 370.5, ApLine 417.0, MachineCtrl 326.5, 96 `NOR3_N16` (144 tubes),
+`NOR4_N16` down to 48. With the cell, `run_tests.sh -t`, `-d`, `synth_sim.sh` (7/7) and the cocotb
+regression (34/34) pass.
+
+TC-O2, first cell: `AOI211_J2N16` is designed (`sch/logic/AOI211_J2N16/README.md`: A1OOI_N16J2 with
+the second triode of the 6N16B as input D, one cell on two tubes) and in `vtube_cells.lib` with the pin
+data of the scratch entry. Measured 2026-11-01 the same way, the NOR3_N16 liberty against the new one:
+
+| Seed | 0 | 1 | 2 | 3 | Mean |
+|---|---|---|---|---|---|
+| without AOI211_J2N16 | 1114.0 | 1122.5 | 1105.5 | 1104.0 | 1111.5 |
+| with AOI211_J2N16 | 1110.5 | 1115.0 | 1095.5 | 1100.5 | **1105.3 (−6.2)** |
+
+`run_tests.sh -s` (seed 0): IpLine 368.5, ApLine 417.5, MachineCtrl 324.5, 28 `AOI211_J2N16` (56 tubes),
+`NOR3_N16` down to 85. `AOI221_J2N16` / `AOI222_J2` (another −5.2 by the estimate) are not designed. With the cell,
+`run_tests.sh -t`, `-d`, `synth_sim.sh` (7/7) and the cocotb regression (34/34) pass; STA 8.18 µs (100 kHz, 1.8 µs slack).
 
 ## 7. Where it stands, and the road below 1000
 
@@ -287,7 +370,7 @@ requirement is small: the library cells (−17…−29, after design work) and o
 
 | ID | Option | Δ | Requirement touched |
 |---|---|---|---|
-| TC-O1, TC-O2 | `NOR3_N16` (+ `AOI211`) designed | −17…−24 | none (REQ-MOD-003 library) |
+| TC-O1, TC-O2 | `NOR3_N16` + `AOI211` designed (done: 1105.3) | −23.5 | none (REQ-MOD-003 library) |
 | TC-O3 | BinToBcd inverted, memory buses active-low | −19.5 | interface convention, not in the TRS |
 | TC-O4 | CIN through the memory read bus | −25 | REQ-UART-008 |
 | TC-O5 | Glue triggers without `rst_n` | −31 | REQ-REF-011 |

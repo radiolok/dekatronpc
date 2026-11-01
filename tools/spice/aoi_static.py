@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""A1OOI_N16J2 / A2OOI_J2 static checks: operating point of every input state, nominal model and the
+"""A1OOI_N16J2 / AOI211_J2N16 / A2OOI_J2 / NOR3_N16 / NOR4_N16 static checks: operating point of every input state, nominal model and the
 6Zh2B screen spread MU2 +-20 %. Inputs come from HV levels (NOT driver: "1" 146.9 V, "0" 55 V) through
 the 470k / 200k divider to -50 V, as on a real net.
 
-usage: aoi_static.py [a1|a22|n4 ...]
+usage: aoi_static.py [a1|a211|a22|n3|n4 ...]
 """
 import itertools, os, re, subprocess, sys, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -11,8 +11,8 @@ sys.path.insert(0, HERE)
 import aoi_sweep as A   # noqa: E402
 
 HV = {0: 55.0, 1: 146.9}
-PENT = {"A1OOI_N16J2": ["1"], "A2OOI_J2": ["1", "2"], "NOR4_N16": []}
-TRI = {"A1OOI_N16J2": ["1"], "A2OOI_J2": [], "NOR4_N16": ["1", "2", "3", "4"]}
+PENT = {"A1OOI_N16J2": ["1"], "AOI211_J2N16": ["1"], "A2OOI_J2": ["1", "2"], "NOR3_N16": [], "NOR4_N16": []}
+TRI = {"A1OOI_N16J2": ["1"], "AOI211_J2N16": ["1", "2"], "A2OOI_J2": [], "NOR3_N16": ["1", "2", "3"], "NOR4_N16": ["1", "2", "3", "4"]}
 SPREAD = [("nominal", {}), ("MU2 -20 %", dict(M="MU2=16.03")), ("MU2 +20 %", dict(M="MU2=24.04")),
           ("MU -20 %", dict(MN="MU=20.77")), ("KG1 -25 %", dict(MN="KG1=418.2"))]
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Build every figure of the A1OOI_N16J2, A2OOI_J2 and NOR4_N16 cell pages from the sources in the repo.
+"""Build every figure of the A1OOI_N16J2, AOI211_J2N16, A2OOI_J2, NOR3_N16, NOR4_N16 and OR4_N16 cell pages from the sources in the repo.
 
-usage: tools/spice/aoi_plots.py [OUT_DIR]          (default: each figure into sch/logic/<CELL>/img)
+usage: tools/spice/aoi_plots.py [OUT_DIR] [a1|a211|a22|n3|n4|o4 ...]   (default: all cells, each into sch/logic/<CELL>/img)
 
-Writes, per cell (prefix aoi21_ for A1OOI_N16J2, aoi22_ for A2OOI_J2, nor4_ for NOR4_N16):
+Writes, per cell (prefix aoi21_ for A1OOI_N16J2, aoi211_ for AOI211_J2N16, aoi22_ for A2OOI_J2, nor3_ for NOR3_N16, nor4_ for NOR4_N16, or4_ for OR4_N16):
   <p>cell.png, <p>tb.png   the cell sheet and the testbench root sheet, exported from KiCad
   <p>tran.png              KiCad testbench waveforms (ngspice)
   <p>vtc.png               static transfer: Y against the HV net of each input, the others enabling
@@ -20,7 +20,9 @@ import aoi_sweep as A      # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 
 REPO = LP.REPO
-CELL = {"a1": ("A1OOI_N16J2", "aoi21_"), "a22": ("A2OOI_J2", "aoi22_"), "n4": ("NOR4_N16", "nor4_"), "o4": ("OR4_N16", "or4_")}
+CELL = {"a1": ("A1OOI_N16J2", "aoi21_"), "a211": ("AOI211_J2N16", "aoi211_"), "a22": ("A2OOI_J2", "aoi22_"), "n3": ("NOR3_N16", "nor3_"), "n4": ("NOR4_N16", "nor4_"),
+        "o4": ("OR4_N16", "or4_")}
+TWO = ("a1", "n3")      # two cells per sheet: the bench drives cell 1 (A1, B1, C1 -> Y1)
 GRIDS = (2, 4, 6, 8, 10)
 HV = {0: 55.0, 1: 146.9}
 
@@ -44,8 +46,8 @@ def waveforms(out, tmp):
     res = {}
     for key, (name, _) in CELL.items():
         c = A.CELLS[key]
-        pins = [p + "1" for p in c['pins']] if key == "a1" else list(c['pins'])
-        y = "Y1" if key == "a1" else "Y"
+        pins = [p + "1" for p in c['pins']] if key in TWO else list(c['pins'])
+        y = "Y1" if key in TWO else "Y"
         lv = c.get('out') == "LV"
         second = f"/PL_{y}0a" if lv else f"/{y}_LV"
         r, t, v = LP.kicad_waves(name + "_tb", [f"/{p}" for p in pins] + [f"/{y}", second], LP_TMP(tmp))
@@ -70,7 +72,9 @@ def LP_TMP(tmp):
 def transfer(out, tmp):
     """Y against the HV net of one input (swept 30..160 V), the other inputs at levels that make it count"""
     sens = {"a1": {"A": (None, 1, 0), "B": (1, None, 0), "C": (0, 0, None)},
+            "a211": {"A": (None, 1, 0, 0), "B": (1, None, 0, 0), "C": (0, 0, None, 0), "D": (0, 0, 0, None)},
             "a22": {"A": (None, 1, 0, 0), "B": (1, None, 0, 0), "C": (0, 0, None, 1), "D": (0, 0, 1, None)},
+            "n3": {"A": (None, 0, 0), "B": (0, None, 0), "C": (0, 0, None)},
             "n4": {"A": (None, 0, 0, 0), "B": (0, None, 0, 0), "C": (0, 0, None, 0), "D": (0, 0, 0, None)},
             "o4": {"A": (None, 0, 0, 0), "B": (0, None, 0, 0), "C": (0, 0, None, 0), "D": (0, 0, 0, None)}}
     th = {}
@@ -130,7 +134,10 @@ def fanout(out):
 
 
 if __name__ == "__main__":
-    out = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else None
+    keys = [a for a in sys.argv[1:] if a in CELL]
+    dirs = [a for a in sys.argv[1:] if a not in CELL]
+    if keys: CELL = {k: v for k, v in CELL.items() if k in keys}
+    out = os.path.abspath(dirs[0]) if dirs else None
     with tempfile.TemporaryDirectory() as tmp:
         schematics(out, tmp)
         tb = waveforms(out, tmp)

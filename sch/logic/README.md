@@ -7,12 +7,14 @@ This folder holds the logic cells of the tube machine (REQ-MOD-003/004/005), eac
 | Cell | Function | Tubes | In → out | Delay, fanout 2 … 10 | Liberty | Page |
 |---|---|---|---|---|---|---|
 | [NOR2_N16](NOR2_N16/README.md) | Y = ~(A \| B) | one 6N16B | LV → HV | tpHL 73 … 90 ns, tpLH 105 … 290 ns | `NOR2_N16` | NOR gate; the HV/LV levels and the divider rule were set here |
+| [NOR3_N16](NOR3_N16/README.md) | Yi = ~(Ai \| Bi \| Ci) | three 6N16B per two cells (1.5 per cell, the middle tube shared) | LV → HV | Y falls 56 … 88 ns, rises 104 … 252 ns | `NOR3_N16` | two cells per sheet |
 | [NOR4_N16](NOR4_N16/README.md) | Y = ~(A \| B \| C \| D) | two 6N16B | LV → HV | Y falls 58 … 90 ns, rises 120 … 268 ns | `NOR4_N16` | |
 | [NAND2_J2](NAND2_J2/README.md) | Y = ~(A · B) | one 6Zh2B (A on g1, B on g3) | LV → HV | tpHL 166 … 396 ns, tpLH 122 … 466 ns | `NAND2_J2` | NAND gate, the 6Zh2B model |
 | [NOT_N16](NOT_N16/README.md) | Y1 = ~A1, Y2 = ~A2 | one 6N16B (½ per inverter) | LV → HV | tpHL 61 … 83 ns, tpLH 64 … 211 ns | `NOT_N16` | two inverters |
 | [BUF_N16](BUF_N16/README.md) | Y1 = A1, Y2 = A2 | one 6N16B (½ per buffer) | LV → **LV** | Y up 24 … 69 ns, Y down 32 … 224 ns (to the load plate) | `BUF_N16` | cathode followers, the base of the follower family |
 | [OR2_N16](OR2_N16/README.md) | Y = A \| B | one 6N16B | LV → **LV** | Y up 26 … 85 ns, Y down 41 … 241 ns (to the load plate) | `OR2_N16` | cathode followers on one cathode load; hazard |
 | [A1OOI_N16J2](A1OOI_N16J2/README.md) | Y = ~((A · B) + C), AOI21 | 6Zh2B + ½ 6N16B | LV → HV | worst arc 194 … 420 ns (A↑ to 92 V: 318 … 537 ns); C↑ 53 … 82 ns | `A1OOI_N16J2` | two cells per sheet |
+| [AOI211_J2N16](AOI211_J2N16/README.md) | Y = ~((A · B) + C + D), AOI211 | 6Zh2B + 6N16B | LV → HV | worst arc 217 … 450 ns (A↑ to 92 V: 343 … 549 ns); C↑, D↑ 53 … 83 ns | `AOI211_J2N16` | A1OOI_N16J2 with both triodes as inputs |
 | [A2OOI_J2](A2OOI_J2/README.md) | Y = ~((A · B) + (C · D)), AOI22 | 2 × 6Zh2B | LV → HV | worst arc 209 … 418 ns (A↑ / C↑ to 92 V: 338 … 551 ns) | `A2OOI_J2` | |
 | [OR4_N16](OR4_N16/README.md) | Y = A \| B \| C \| D | two 6N16B | LV → **LV** | Y up 26 … 90 ns, Y down 54 … 262 ns (to the load plate) | `OR4_N16` | cathode followers, four cathodes tied |
 | [RSLATCH_J2N16](RSLATCH_J2N16/README.md) | gated RS latch | 2 × 6Zh2B + 1 × 6N16B | LV → HV | E→Q 172 … 380 ns, S→Q 138 … 392 ns | proposed | the base of the latch family |

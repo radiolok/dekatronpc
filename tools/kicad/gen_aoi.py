@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-"""Generate the A1OOI_N16J2, A2OOI_J2, NOR4_N16 and OR4_N16 cell sheets and their testbenches (doc/cell_design_method.md,
+"""Generate the A1OOI_N16J2, AOI211_J2N16, A2OOI_J2, NOR3_N16, NOR4_N16 and OR4_N16 cell sheets and their testbenches (doc/cell_design_method.md,
 sch/logic/A1OOI_N16J2/README.md, sch/logic/A2OOI_J2/README.md).
 
 usage: gen_aoi.py OUT_DIR
   OUT_DIR/A1OOI_N16J2/A1OOI_N16J2.kicad_sch   two AOI21 cells: 2 x 6Zh2B + one 6N16B (one triode per cell)
+  OUT_DIR/AOI211_J2N16/AOI211_J2N16.kicad_sch one AOI211 cell: 6Zh2B + both triodes of one 6N16B on one plate
   OUT_DIR/A2OOI_J2/A2OOI_J2.kicad_sch         one AOI22 cell: 2 x 6Zh2B on one plate
+  OUT_DIR/NOR3_N16/NOR3_N16.kicad_sch         two three-input NORs: 3 x 6N16B, the middle tube shared
   OUT_DIR/NOR4_N16/NOR4_N16.kicad_sch         four-input NOR: 2 x 6N16B, all plates on Y
   OUT_DIR/OR4_N16/OR4_N16.kicad_sch           four-input OR: 2 x 6N16B cathode followers, LV output
   OUT_DIR/<cell>/<cell>_tb.kicad_sch/.kicad_pro   testbenches; stimulus, loads and .meas from tools/spice/aoi_tb.py
@@ -15,7 +17,7 @@ Every run makes new UUIDs: regenerate to start over, edit drawn sheets in KiCad.
 import sys, os
 
 OUT = sys.argv[1]
-for _c in ("A1OOI_N16J2", "A2OOI_J2", "NOR4_N16", "OR4_N16"): os.makedirs(os.path.join(OUT, _c), exist_ok=True)
+for _c in ("A1OOI_N16J2", "AOI211_J2N16", "A2OOI_J2", "NOR3_N16", "NOR4_N16", "OR4_N16"): os.makedirs(os.path.join(OUT, _c), exist_ok=True)
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 from kicad_sheet import *  # noqa: E402,F401,F403
@@ -26,9 +28,9 @@ import latch_tb as LTB  # noqa: E402
 P = TB.P
 RA, RG2, CB = P['Ra'], P['Rg2'], "%dp" % P['Cb']
 
-R = {k: U() for k in ("a1", "a22", "n4", "o4")}           # testbench root sheets
-S = {k: U() for k in ("a1", "a22", "n4", "o4")}           # the DUT sheet instance in each
-PROJ = {"a1": "A1OOI_N16J2_tb", "a22": "A2OOI_J2_tb", "n4": "NOR4_N16_tb", "o4": "OR4_N16_tb"}
+R = {k: U() for k in ("a1", "a211", "a22", "n3", "n4", "o4")}           # testbench root sheets
+S = {k: U() for k in ("a1", "a211", "a22", "n3", "n4", "o4")}           # the DUT sheet instance in each
+PROJ = {"a1": "A1OOI_N16J2_tb", "a211": "AOI211_J2N16_tb", "a22": "A2OOI_J2_tb", "n3": "NOR3_N16_tb", "n4": "NOR4_N16_tb", "o4": "OR4_N16_tb"}
 
 
 def pentode(sh, x, y, g1, g3, plate, screen, hier):
@@ -81,6 +83,43 @@ a2.dump(os.path.join(OUT, "A2OOI_J2", "A2OOI_J2.kicad_sch"), "A2OOI_J2 - AOI22",
 A2_PINS = [("A", "input", "L", 1), ("B", "input", "L", 3), ("C", "input", "L", 5), ("D", "input", "L", 7),
            ("H1", "passive", "L", 10), ("H2", "passive", "L", 11), ("Y", "output", "R", 3)]
 A2_SIZE = (14*G, 13*G)
+
+
+# ---------------------------------------------------------------- AOI211_J2N16: 6Zh2B + one 6N16B on one plate
+a3 = Sheet([(PROJ["a211"], f"/{R['a211']}/{S['a211']}", 1)])
+pentode(a3, x0, y0, "A", "B", "Y", "SG1", H2)
+t = a3.ref("Л")
+a3.part(N16, (x0, y0 + 30*G), None, "6Н16Б", {"1": "Y", "7": "C", **n16_bottom()}, unit=1, props=SIM[N16], hier=H2, refs=t)
+a3.part(N16, (x0 + 25*G, y0 + 30*G), None, "6Н16Б", {"5": "Y", "3": "D", "2": "GND"}, unit=2, props=SIM[N16], hier=H2, refs=t)
+a3.part("Device:R", (x0 + 25*G, y0 - 6*G), "R", RA, {"1": "+150V", "2": "Y"}, hier=H2)
+a3.text("AOI211_J2N16: AND-OR-INVERT (AOI211), Y = ~((A & B) | C | D). 2 tubes, one cell per sheet.\n"
+        "6Zh2B (A on g1, B on g3) and both triodes of one 6N16B (C, D on the grids) on one plate, Ra 15k to +150 V (2 W).\n"
+        "Screen Rg2 15k from +150 V; Cb 15 pF on g3 holds B against the plate swing (g3 Miller, sch/logic/NAND2_J2/README.md).\n"
+        "A-D: LV (1 = +10 V, 0 = -20 V). Y: HV (1 = +150 V, 0 = +50 V); one divider per output net, 3.9 pF per triode grid.\n"
+        "Input divider C1 per grid: A (pentode g1) 2.7 pF, B (g3) 6.8 pF, C, D (triode) 3.9 pF. Unused C or D: tie to the other.\n"
+        "Simulated, fanout 2/6/10: worst arc 217/328/450 ns to Y = 100 V; C, D rising alone 53-83 ns.\n"
+        "Heater 6.3 V: 0.2 A + 0.4 A on H1/H2. Page: sch/logic/AOI211_J2N16/README.md", (20*G, 85*G))
+a3.dump(os.path.join(OUT, "AOI211_J2N16", "AOI211_J2N16.kicad_sch"), "AOI211_J2N16 - AOI211",
+        comments=["Y = ~((A&B)|C|D); A-D: LV; Y: HV", "6Zh2B + 6N16B; Ra 15k, Rg2 15k, Cb 15p"], paper="A3")
+
+
+# ---------------------------------------------------------------- NOR3_N16: two cells on three 6N16B
+n3 = Sheet([(PROJ["n3"], f"/{R['n3']}/{S['n3']}", 1)])
+# Л1 and Л2 in the first column, Л3 in the second, next to Л2 (Y2 is on Л2B and Л3)
+for k, (ga, ya, gb, yb) in enumerate((("A1", "Y1", "B1", "Y1"), ("C1", "Y1", "A2", "Y2"), ("B2", "Y2", "C2", "Y2"))):
+    t = n3.ref("Л"); xx, yy = (x0, y0 + 30*G * k) if k < 2 else (x0 + 60*G, y0 + 30*G)
+    n3.part(N16, (xx, yy), None, "6Н16Б", {"1": ya, "7": ga, **n16_bottom()}, unit=1, props=SIM[N16], hier=H1, refs=t)
+    n3.part(N16, (xx + 25*G, yy), None, "6Н16Б", {"5": yb, "3": gb, "2": "GND"}, unit=2, props=SIM[N16], hier=H1, refs=t)
+n3.part("Device:R", (x0 + 40*G, y0 - 6*G), "R", TB.A.params("n3")['Ra'], {"1": "+150V", "2": "Y1"}, hier=H1)
+n3.part("Device:R", (x0 + 100*G, y0 + 24*G), "R", TB.A.params("n3")['Ra'], {"1": "+150V", "2": "Y2"}, hier=H1)
+n3.text("NOR3_N16: two three-input NORs, Yi = ~(Ai | Bi | Ci). 3 tubes = 2 cells (liberty: 1.5 per cell).\n"
+        "Л1: A1, B1 -> Y1. Л2 is shared: C1 -> Y1, A2 -> Y2. Л3: B2, C2 -> Y2. Ra 10k to +150 V on each Y (as NOR2_N16), 2 W.\n"
+        "A, B, C: LV (1 = +10 V, 0 = -20 V), each on a triode grid (divider C1 3.9 pF per grid). Y: HV; one divider per net.\n"
+        "An unused input goes to another input of the same cell; an unused cell: inputs on an LV 0.\n"
+        "Simulated, fanout 2/6/10: Y falls 56-88 ns, rises 104/177/252 ns; VOL 55 V (one input) ... 31 V (all three).\n"
+        "Heater 6.3 V: 3 x 0.4 A on H1/H2. Page: sch/logic/NOR3_N16/README.md", (20*G, 85*G))
+n3.dump(os.path.join(OUT, "NOR3_N16", "NOR3_N16.kicad_sch"), "NOR3_N16 - 2 x 3NOR on 3 x 6N16B",
+        comments=["Yi = ~(Ai|Bi|Ci); A, B, C: LV; Y: HV", "3 x 6N16B, middle tube shared; Ra 10k"], paper="A3")
 
 
 # ---------------------------------------------------------------- NOR4_N16: two 6N16B, four triodes on one plate
@@ -184,7 +223,9 @@ def testbench(key, tb, cell_file, cell_pins, size):
 
 
 testbench("a1", TB.tb_of("a1"), "A1OOI_N16J2.kicad_sch", A1_PINS, A1_SIZE)
+testbench("a211", TB.tb_of("a211"), "AOI211_J2N16.kicad_sch", A2_PINS, A2_SIZE)
 testbench("a22", TB.tb_of("a22"), "A2OOI_J2.kicad_sch", A2_PINS, A2_SIZE)
+testbench("n3", TB.tb_of("n3"), "NOR3_N16.kicad_sch", A1_PINS, A1_SIZE)
 testbench("n4", TB.tb_of("n4"), "NOR4_N16.kicad_sch", A2_PINS, A2_SIZE)
 testbench("o4", TB.tb_of("o4"), "OR4_N16.kicad_sch", A2_PINS, A2_SIZE)
 print("ok")

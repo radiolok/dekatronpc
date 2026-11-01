@@ -387,6 +387,82 @@ library(vtube_cells_lib_timing) {
       }
     }
   }
+  cell(AOI211_J2N16) {
+    area : 2;
+    current_unit : "1mA";
+    heat_current : 600;
+    tubes(names) {
+      J2B : 1;
+      N16B : 1;
+    }
+    pin(A) {
+      vtube_grid : "pentode_g1";
+      vtube_c1 : 2.7;
+      direction : input;
+      fanout_load : 0.69;
+      capacitance : 0.69;
+    }
+    pin(B) {
+      vtube_grid : "pentode_g3";
+      vtube_c1 : 6.8;
+      direction : input;
+      fanout_load : 1.74;
+      capacitance : 1.74;
+    }
+    pin(C) {
+      vtube_grid : "triode";
+      vtube_c1 : 3.9;
+      direction : input;
+      fanout_load : 1.0;
+      capacitance : 1;
+    }
+    pin(D) {
+      vtube_grid : "triode";
+      vtube_c1 : 3.9;
+      direction : input;
+      fanout_load : 1.0;
+      capacitance : 1;
+    }
+    pin(Y) {
+      vtube_level : "HV";
+      direction : output;
+      driver_type : pull_up;
+      max_fanout : 10;
+      function : "((A*B)+C+D)'";
+      timing() {
+        related_pin : "A";
+        timing_sense : negative_unate;
+        cell_rise(fanout3) { values("309.9, 538, 764.5"); }
+        rise_transition(fanout3) { values("0, 0, 0"); }
+        cell_fall(fanout3) { values("343, 466, 548.9"); }
+        fall_transition(fanout3) { values("0, 0, 0"); }
+      }
+      timing() {
+        related_pin : "B";
+        timing_sense : negative_unate;
+        cell_rise(fanout3) { values("289.2, 502, 713.3"); }
+        rise_transition(fanout3) { values("0, 0, 0"); }
+        cell_fall(fanout3) { values("207.6, 282, 332.2"); }
+        fall_transition(fanout3) { values("0, 0, 0"); }
+      }
+      timing() {
+        related_pin : "C";
+        timing_sense : negative_unate;
+        cell_rise(fanout3) { values("315.1, 547, 777.3"); }
+        rise_transition(fanout3) { values("0, 0, 0"); }
+        cell_fall(fanout3) { values("64.77, 88, 103.7"); }
+        fall_transition(fanout3) { values("0, 0, 0"); }
+      }
+      timing() {
+        related_pin : "D";
+        timing_sense : negative_unate;
+        cell_rise(fanout3) { values("316.2, 549, 780.1"); }
+        rise_transition(fanout3) { values("0, 0, 0"); }
+        cell_fall(fanout3) { values("52.26, 71, 83.64"); }
+        fall_transition(fanout3) { values("0, 0, 0"); }
+      }
+    }
+  }
   cell(A2OOI_J2) {
     area : 2;
     current_unit : "1mA";
@@ -812,6 +888,66 @@ library(vtube_cells_lib_timing) {
         cell_rise(fanout3) { values("174, 327, 480"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
         cell_fall(fanout3) { values("88.7, 99, 109.3"); }
+        fall_transition(fanout3) { values("0, 0, 0"); }
+      }
+    }
+  }
+  cell(NOR3_N16) {
+    area : 1.5;
+    current_unit : "1mA";
+    heat_current : 600;
+    tubes(names) {
+      N16B : 1.5;
+    }
+    pin(A) {
+      vtube_grid : "triode";
+      vtube_c1 : 3.9;
+      direction : input;
+      fanout_load : 1.0;
+      capacitance : 1;
+    }
+    pin(B) {
+      vtube_grid : "triode";
+      vtube_c1 : 3.9;
+      direction : input;
+      fanout_load : 1.0;
+      capacitance : 1;
+    }
+    pin(C) {
+      vtube_grid : "triode";
+      vtube_c1 : 3.9;
+      direction : input;
+      fanout_load : 1.0;
+      capacitance : 1;
+    }
+    pin(Y) {
+      vtube_level : "HV";
+      direction : output;
+      max_fanout : 10;
+      driver_type : pull_up;
+      function : "(A+B+C)'";
+      timing() {
+        related_pin : "A";
+        timing_sense : negative_unate;
+        cell_rise(fanout3) { values("188.2, 320, 455.7"); }
+        rise_transition(fanout3) { values("0, 0, 0"); }
+        cell_fall(fanout3) { values("79.89, 93, 104.9"); }
+        fall_transition(fanout3) { values("0, 0, 0"); }
+      }
+      timing() {
+        related_pin : "B";
+        timing_sense : negative_unate;
+        cell_rise(fanout3) { values("188.2, 320, 455.7"); }
+        rise_transition(fanout3) { values("0, 0, 0"); }
+        cell_fall(fanout3) { values("66.14, 77, 86.86"); }
+        fall_transition(fanout3) { values("0, 0, 0"); }
+      }
+      timing() {
+        related_pin : "C";
+        timing_sense : negative_unate;
+        cell_rise(fanout3) { values("188.2, 320, 455.7"); }
+        rise_transition(fanout3) { values("0, 0, 0"); }
+        cell_fall(fanout3) { values("65.28, 76, 85.73"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
     }

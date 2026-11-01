@@ -102,6 +102,19 @@ specify
 endspecify
 endmodule
 
+// AOI211: Y = ~((A & B) | C | D)
+module AOI211_J2N16(A, B, C, D, Y);
+input A, B, C, D;
+output Y;
+assign Y = ~((A & B) | C | D);
+specify
+	(A => Y) = 0;
+	(B => Y) = 0;
+	(C => Y) = 0;
+	(D => Y) = 0;
+endspecify
+endmodule
+
 // AOI22: Y = ~((A & B) | (C & D))
 module A2OOI_J2(A, B, C, D, Y);
 input A, B, C, D;
@@ -173,6 +186,17 @@ assign Y = ~(A | B);
 specify
 	(A => Y) = 0;
 	(B => Y) = 0;
+endspecify
+endmodule
+
+module NOR3_N16(A, B, C, Y);
+input A, B, C;
+output Y;
+assign Y = ~(A | B | C);
+specify
+	(A => Y) = 0;
+	(B => Y) = 0;
+	(C => Y) = 0;
 endspecify
 endmodule
 

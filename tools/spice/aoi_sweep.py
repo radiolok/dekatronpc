@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""AND-OR-INVERT cells A1OOI_N16J2 and A2OOI_J2 (AOI22), and NOR4_N16: transient sweep over fanout.
+"""AND-OR-INVERT cells A1OOI_N16J2 and A2OOI_J2 (AOI22), and NOR3_N16 / NOR4_N16: transient sweep over fanout.
 
 A1OOI_N16J2  Y = ~((A & B) | C)   6Zh2B: A on g1, B on g3; one 6N16B triode: C on the grid; one plate Y.
                                    This is one half of RSLATCH_J2N16 without the feedback.
 A2OOI_J2     Y = ~((A & B) | (C & D))   two 6Zh2B on one plate: A, C on g1; B, D on g3.
+AOI211_J2N16 Y = ~((A & B) | C | D)   6Zh2B: A on g1, B on g3; both triodes of one 6N16B: C, D on the grids;
+                                   one plate Y. A1OOI_N16J2 with the second triode of the 6N16B as a fourth input
+                                   (doc/tube_count_1000.md TC-O2); one cell per sheet, two tubes.
 Levels as REQ-MOD-012: LV inputs (1 = +10, 0 = -20 V), HV plate output (1 = +150, 0 = +50 V).
 Plate through Ra to +150 V, screens through Rg2 from +150 V, Cb on every g3 (as NAND2_J2).
 Chain per input: ideal HV pulse -> divider -> 6N16B triode driver (Ra 10k, the fastest driver of the
@@ -13,11 +16,16 @@ In A1OOI the second triode of the 6N16B is the other AOI of the sheet: here its 
 and its plate on its own Ra (it only couples through CPP).
 Delays: input crossing -5 V to Y crossing 100 V. States 2 us each, see SEQ.
 
+NOR3_N16     Y = ~(A | B | C)      one 6N16B (A, B) and one triode of a second 6N16B (C) on one plate, Ra 10k.
+                                   The sheet holds two cells on three tubes; the other triode of the shared tube is
+                                   the other cell: here its grid sits at -20 V (p['xg'] overrides the node) and its
+                                   plate on its own Ra. --xtalk: that triode switches while the cell is static.
 NOR4_N16     Y = ~(A | B | C | D)  two 6N16B, all four triodes on one plate, Ra 10k (as NOR2_N16).
 
 OR4_N16      Y = A | B | C | D     two 6N16B, cathode followers with the cathodes tied (OR2_N16 widened), LV output.
 
-usage: aoi_sweep.py [a1|a22|n4|o4 ...] [--grids 2,6,10] [cases.py]
+usage: aoi_sweep.py [a1|a211|a22|n3|n4|o4 ...] [--grids 2,6,10] [cases.py]
+       aoi_sweep.py --xtalk [--grids 2,6,10] [cases.py]      NOR3_N16 crosstalk between the two cells of the sheet
 """
 import os, re, subprocess, sys, tempfile
 from multiprocessing import Pool
@@ -40,6 +48,20 @@ CELLS = {
                     (0, 1, 0), (1, 1, 0),
                     (1, 0, 1),                         # hazard: B falls, C rises together (Y stays 0)
                     (1, 1, 1), (1, 1, 0), (0, 0, 0)]),
+    # AOI211_J2N16: A1OOI_N16J2 plus the second triode (D); the D arcs mirror C, the hazards add triode against triode
+    "a211": dict(name="AOI211_J2N16", pins="ABCD", f=lambda a, b, c, d: 1 - ((a & b) | c | d),
+                 grid=dict(A="g1", B="g3", C="tri", D="tri"),
+                 seq=[(0, 0, 0, 0), (1, 0, 0, 0), (1, 1, 0, 0),     # B rises with A held high
+                      (0, 1, 0, 0), (1, 1, 0, 0), (1, 0, 0, 0),     # A falls / rises with B held high (g3 Miller)
+                      (1, 0, 1, 0), (1, 0, 0, 0),                   # C with A high, B low
+                      (1, 0, 0, 1), (1, 0, 0, 0),                   # D with A high, B low
+                      (0, 0, 0, 0), (0, 1, 0, 0), (0, 1, 1, 0),     # C with B held high (g3 sees the plate swing)
+                      (0, 1, 0, 0), (0, 1, 0, 1), (0, 1, 0, 0),     # D with B held high
+                      (1, 1, 0, 0),
+                      (1, 0, 1, 0),                                 # hazard: B falls, C rises together (Y stays 0)
+                      (1, 0, 0, 1),                                 # hazard: C falls, D rises (triode against triode)
+                      (1, 1, 1, 1),                                 # all on: lowest VOL
+                      (1, 1, 1, 0), (0, 0, 0, 0)]),
     "a22": dict(name="A2OOI_J2", pins="ABCD", f=lambda a, b, c, d: 1 - ((a & b) | (c & d)),
                 grid=dict(A="g1", B="g3", C="g1", D="g3"),
                 seq=[(0, 0, 0, 0), (1, 0, 0, 0), (1, 1, 0, 0), (0, 1, 0, 0), (1, 1, 0, 0), (1, 0, 0, 0),
@@ -49,6 +71,15 @@ CELLS = {
                      (0, 1, 0, 1), (1, 1, 0, 1), (1, 1, 1, 1), (1, 1, 1, 0),
                      (1, 0, 1, 1),                      # hazard: B falls, D rises together (Y stays 0)
                      (1, 1, 1, 0), (0, 0, 0, 0)]),
+    # NOR3_N16: one 6N16B (A, B) + one triode of the shared 6N16B (C) on one plate, Ra as NOR2_N16
+    "n3": dict(name="NOR3_N16", pins="ABC", f=lambda a, b, c: 1 - (a | b | c),
+               grid=dict(A="tri", B="tri", C="tri"), p=dict(Ra="10k"),
+               seq=[(0, 0, 0), (1, 0, 0), (0, 0, 0), (0, 1, 0), (0, 0, 0), (0, 0, 1), (0, 0, 0),
+                    (1, 1, 1), (0, 1, 1),                  # all high: lowest VOL
+                    (0, 0, 0), (1, 0, 0),
+                    (0, 1, 0),                             # hazard: A falls, B rises together (Y stays 0)
+                    (0, 0, 1),                             # hazard: B falls, C (the shared tube) rises
+                    (0, 0, 0)]),
     # NOR4_N16: two 6N16B, all four triodes on one plate, Ra as NOR2_N16
     "n4": dict(name="NOR4_N16", pins="ABCD", f=lambda a, b, c, d: 1 - (a | b | c | d),
                grid=dict(A="tri", B="tri", C="tri", D="tri"), p=dict(Ra="10k"),
@@ -89,8 +120,17 @@ def cell_net(c, ins, y, p):
     n = f"RA vcc {y} {p['Ra']}\n"
     if c['name'] == "A1OOI_N16J2":
         n += L.penta("1", y, ins['A'], ins['B'], p) + triode_half("1", y, ins['C'], p)
+    elif c['name'] == "AOI211_J2N16":
+        # the pentode and both triodes of one 6N16B on Y; VT<i> measure the triode currents
+        n += L.penta("1", y, ins['A'], ins['B'], p)
+        n += (f"XT1 pt1 {ins['C']} 0 pt2 {ins['D']} 0 6N16B {p.get('MN', '')}\nVT1 {y} pt1 0\nVT2 {y} pt2 0\n")
     elif c['name'] == "A2OOI_J2":
         n += L.penta("1", y, ins['A'], ins['B'], p) + L.penta("2", y, ins['C'], ins['D'], p)
+    elif c['name'] == "NOR3_N16":
+        # XT1: A, B on Y; XT2: C on Y, the other triode is the other cell of the sheet (grid xg, own Ra)
+        n += (f"XT1 pt1 {ins['A']} 0 pt2 {ins['B']} 0 6N16B {p.get('MN', '')}\nVT1 {y} pt1 0\nVT2 {y} pt2 0\n"
+              f"XT2 pt3 {ins['C']} 0 ptx3 {p.get('xg', 'nb20')} 0 6N16B {p.get('MN', '')}\nVT3 {y} pt3 0\n"
+              f"RTX3 vcc ptx3 {p['Ra']}\n")
     elif c['name'] == "OR4_N16":
         # plates on +150 V, cathodes tied on k (VK measures the cathode current), Rs || Cs -> Y -> Rk -> -50 V
         n = (f"XF1 vcc {ins['A']} kk vcc {ins['B']} kk 6N16B {p.get('MN', '')}\n"
@@ -180,11 +220,44 @@ def deck(c, p, ngrid):
         s += L.div("y", "y", "yl", p, p['C1g'] * ngrid) + L.loads("yl", p, ngrid, "y")
         m = meas_lines(c, {pin: pin.lower() for pin in c['pins']}, "y", "yl")
     # cathode and screen currents of the 6Zh2B, worst over the run
-    if c['name'] not in ("NOR4_N16", "OR4_N16"):
-        for t in (["1"] if c['name'] == "A1OOI_N16J2" else ["1", "2"]):
+    if c['name'] not in ("NOR3_N16", "NOR4_N16", "OR4_N16"):
+        for t in (["1"] if c['name'] in ("A1OOI_N16J2", "AOI211_J2N16") else ["1", "2"]):
             m.append(f"meas tran ipmax{t} max i(VP{t}) from=0.5u to={stop}u")
     s += f".tran 5n {stop}u\n.control\nrun\n" + "\n".join(m) + "\n.endc\n.end\n"
     return s
+
+
+# NOR3_N16 crosstalk: (A1, A2) per state; B1, C1 at LV "0". A2 is the neighbour triode in the shared tube,
+# its plate Y2 on its own Ra, divider and loads. Y1 high while Y2 falls / rises (states 1, 2), low (4, 5).
+XSEQ = [(0, 0), (0, 1), (0, 0), (1, 0), (1, 1), (1, 0), (0, 0)]
+
+
+def xtalk_deck(p, ngrid):
+    c = CELLS["n3"]; stop = T * len(XSEQ)
+    s = f"* NOR3_N16 crosstalk\n.include {LIBS}/6N16B.sub\nVCC vcc 0 150\nVNB nb 0 -50\nVNB20 nb20 0 -20\n"
+    s += L.driver("a", [x[0] for x in XSEQ], "a", p, p['C1g']) + L.driver("x", [x[1] for x in XSEQ], "x", p, p['C1g'])
+    s += cell_net(c, {"A": "a", "B": "nb20", "C": "nb20"}, "y", {**p, 'xg': "x"})
+    s += L.div("y", "y", "yl", p, p['C1g'] * ngrid) + L.loads("yl", p, ngrid, "y")
+    s += L.div("y2", "ptx3", "y2l", p, p['C1g'] * ngrid) + L.loads("y2l", p, ngrid, "z")
+    m = []
+    for i in (1, 2, 4, 5):
+        m += [f"meas tran x{i}max max v(y) from={i * T}u to={(i + 1) * T}u",
+              f"meas tran x{i}min min v(y) from={i * T}u to={(i + 1) * T}u"]
+    m += [f"meas tran s{i} find v(y) at={i * T - 0.05:.3f}u" for i in (1, 4)]
+    m += [f"meas tran z{i} find v(ptx3) at={(i + 1) * T - 0.05:.3f}u" for i in (1, 2)]
+    s += f".tran 5n {stop}u\n.control\nrun\n" + "\n".join(m) + "\n.endc\n.end\n"
+    return s
+
+
+def xtalk_run(arg):
+    p, n = arg
+    fn = os.path.join(tempfile.gettempdir(), f"aoi_xtalk_{os.getpid()}.cir")
+    open(fn, "w").write(xtalk_deck(p, n))
+    o = subprocess.run([sys.executable, NGRUN, fn], capture_output=True, text=True).stdout
+    m = {k: float(v) for k, v in re.findall(r"^(\w+)\s+=\s+([-\d.e+]+)", o, re.M)}
+    return (f"NOR3_N16 xtalk {p.get('_name', ''):14s} N={n:2d} | Y2 {m['z2']:5.1f} <-> {m['z1']:4.1f} V"
+            f" | Y1 high {m['s1']:5.1f}: {max(m['x1max'], m['x2max']) - m['s1']:+4.1f} / {min(m['x1min'], m['x2min']) - m['s1']:+4.1f} V"
+            f" | Y1 low {m['s4']:5.1f}: {max(m['x4max'], m['x5max']) - m['s4']:+4.1f} / {min(m['x4min'], m['x5min']) - m['s4']:+4.1f} V")
 
 
 def run(arg):
@@ -241,10 +314,17 @@ if __name__ == "__main__":
     grids = (2, 4, 6, 8, 10)
     if "--grids" in args:
         i = args.index("--grids"); grids = tuple(int(x) for x in args[i + 1].split(",")); del args[i:i + 2]
+    xt = "--xtalk" in args
+    if xt: args.remove("--xtalk")
     keys = [a for a in args if a in CELLS] or list(CELLS)
     files = [a for a in args if a not in CELLS]
     CASES = [("nominal", {})]
     for f in files: exec(open(f).read())
+    if xt:
+        with Pool(8) as pool:
+            for r in pool.map(xtalk_run, [({**params("n3"), **ov, '_name': nm}, n) for nm, ov in CASES for n in grids]):
+                print(r)
+        sys.exit(0)
     jobs = [(k, {**params(k), **ov, '_name': nm}, n) for k in keys for nm, ov in CASES for n in grids]
     with Pool(8) as pool:
         for r in pool.map(run, jobs):

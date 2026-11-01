@@ -149,6 +149,26 @@ library(vtube_cells_lib) {
                max_fanout : 10;
              function: "((A*B)+C)'"; }
   }
+  // AOI211 (sch/logic/AOI211_J2N16): 6Zh2B with A on g1, B on g3, and both triodes
+  // of one 6N16B with C and D on the grids, all on one plate (Ra 15k). One cell
+  // per sheet, two tubes (TC-O2, doc/tube_count_1000.md).
+  cell(AOI211_J2N16){
+    area: 2;
+    current_unit : "1mA";
+    heat_current: 600;
+    tubes(names) {
+      J2B: 1;
+      N16B: 1;
+    }
+    pin(A) { vtube_grid : "pentode_g1"; vtube_c1 : 2.7; direction: input; fanout_load: 0.69; }
+    pin(B) { vtube_grid : "pentode_g3"; vtube_c1 : 6.8; direction: input; fanout_load: 1.74; }
+    pin(C) { vtube_grid : "triode"; vtube_c1 : 3.9; direction: input; fanout_load: 1.0; }
+    pin(D) { vtube_grid : "triode"; vtube_c1 : 3.9; direction: input; fanout_load: 1.0; }
+    pin(Y) { vtube_level : "HV"; direction: output;
+            driver_type : pull_up;
+               max_fanout : 10;
+             function: "((A*B)+C+D)'"; }
+  }
   // AOI22 (sch/logic/A2OOI_J2): two 6Zh2B on one plate (Ra 15k), A and C on g1,
   // B and D on g3; each pentode is an AND.
   cell(A2OOI_J2){
@@ -254,6 +274,24 @@ library(vtube_cells_lib) {
                max_fanout : 10;
             driver_type : pull_up;
              function: "(A+B)'"; }
+  }
+  // NOR3 (sch/logic/NOR3_N16): one 6N16B (A, B) and one triode of a second 6N16B (C)
+  // on one plate, Ra 10k. The sheet holds two cells on three tubes, the middle
+  // tube shared, so one cell is 1.5 tubes (TC-O1, doc/tube_count_1000.md).
+  cell(NOR3_N16) {
+    area: 1.5;
+    current_unit : "1mA";
+    heat_current: 600;
+    tubes(names) {
+      N16B: 1.5;
+    }
+    pin(A) { vtube_grid : "triode"; vtube_c1 : 3.9; direction: input; fanout_load: 1.0; }
+    pin(B) { vtube_grid : "triode"; vtube_c1 : 3.9; direction: input; fanout_load: 1.0; }
+    pin(C) { vtube_grid : "triode"; vtube_c1 : 3.9; direction: input; fanout_load: 1.0; }
+    pin(Y) { vtube_level : "HV"; direction: output;
+               max_fanout : 10;
+            driver_type : pull_up;
+             function: "(A+B+C)'"; }
   }
   cell(NOR4_N16) {
     area: 2;
