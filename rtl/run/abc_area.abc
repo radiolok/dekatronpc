@@ -3,5 +3,5 @@ strash
 &deepsyn -J 50 -T 30
 &put
 dch -f
-map -a
+amap -F 4 -A 20
 topo

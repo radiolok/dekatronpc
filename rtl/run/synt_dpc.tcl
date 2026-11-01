@@ -145,10 +145,20 @@ yosys design -load mapped
 # about +-10 tubes between seeds: compare small changes over several seeds,
 # rtl/run/synth_seeds.sh)
 set abc_script $script_dir/abc_area.abc
-if {[info exists ::env(DPC_ABC_SEED)]} {
+if {[info exists ::env(DPC_ABC_SCRIPT)]} {
+  # experiments: a whole ABC script, "SEED" in it replaced by DPC_ABC_SEED
+  set fs [open $::env(DPC_ABC_SCRIPT) r]
+  set txt [read $fs]
+  close $fs
+  set seed [expr {[info exists ::env(DPC_ABC_SEED)] ? $::env(DPC_ABC_SEED) : 0}]
   set abc_script [file normalize ${top}_seed.abc]
   set fs [open $abc_script w]
-  puts $fs "strash\n&get -n\n&deepsyn -J 50 -T 30 -S $::env(DPC_ABC_SEED)\n&put\ndch -f\nmap -a\ntopo"
+  puts $fs [string map [list SEED $seed] $txt]
+  close $fs
+} elseif {[info exists ::env(DPC_ABC_SEED)]} {
+  set abc_script [file normalize ${top}_seed.abc]
+  set fs [open $abc_script w]
+  puts $fs "strash\n&get -n\n&deepsyn -J 50 -T 30 -S $::env(DPC_ABC_SEED)\n&put\ndch -f\namap -F 4 -A 20\ntopo"
   close $fs
 }
 yosys equiv_opt -assert -async2sync -map ${top}_cells_sim.v \

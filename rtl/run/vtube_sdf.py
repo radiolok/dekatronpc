@@ -71,14 +71,22 @@ def cell_paths(cells_path):
     return paths
 
 
+# {(module, instance): pins whose net is already on an earlier pin of the cell}
+SHARED = {}
+
+
 def parse_netlist(path, qnets=None):
     """{module: [(type, instance)]} in file order (Yosys write_verilog layout:
     one instance header "type name (" per line). If qnets is a dict, it gets
-    {(module, instance): net on the .Q pin}."""
+    {(module, instance): net on the .Q pin}. Fills SHARED: an input tied to
+    the same net as an earlier one (ABC: AOI22 with A = D) has no path of its
+    own in Icarus, so its IOPATH is left out."""
     mods, cur, cur_mod, last = {}, None, None, None
     head = re.compile(rf"^module ({ID})\s*\(")
     inst = re.compile(rf"^\s*({ID})\s+({ID})\s*\(\s*$")
     qpin = re.compile(r"^\s*\.Q\((.*)\),?\s*$")
+    anypin = re.compile(r"^\s*\.(\w+)\((.*)\),?\s*$")
+    nets = {}
     for line in open(path):
         if cur is None:
             m = head.match(line)
@@ -92,7 +100,14 @@ def parse_netlist(path, qnets=None):
             if m and m.group(1) not in KEYWORDS:
                 cur.append((m.group(1), m.group(2)))
                 last = m.group(2)
+                nets = {}
                 continue
+            m = anypin.match(line)
+            if m and last is not None:
+                net = m.group(2).strip()
+                if net in nets.values():
+                    SHARED.setdefault((cur_mod, last), set()).add(m.group(1))
+                nets[m.group(1)] = net
             m = qpin.match(line)
             if m and qnets is not None and last is not None:
                 qnets[(cur_mod, last)] = m.group(1).strip()
@@ -126,10 +141,12 @@ def clock_edge(cpaths):
     return "negedge" if any(e.strip() == "negedge" for e, _, _ in cpaths) else "posedge"
 
 
-def cell_entry(ctype, inst, paths, timing, loads=None, flat=None):
+def cell_entry(ctype, inst, paths, timing, loads=None, flat=None, skip=()):
     t = timing["cells"][ctype]
     io = []
     for edge, a, y in paths[ctype]:
+        if a in skip:
+            continue
         key = f"{edge}{a}->{y}"
         if key not in t["iopath"]:
             sys.exit(f"vtube_timing.json: {ctype} has no value for {key}")
@@ -232,7 +249,8 @@ def main():
             if bad_name(n) and t not in cell_sdf:
                 cell_sdf[t] = os.path.join(out, f"cell_{t}.sdf")
                 write_sdf(cell_sdf[t], t, [cell_entry(t, "", paths, timing)], timing)
-        entries = [cell_entry(t, plain(n), paths, timing) for t, n in cells if not bad_name(n)]
+        entries = [cell_entry(t, plain(n), paths, timing, skip=SHARED.get((mod, n), ()))
+                   for t, n in cells if not bad_name(n)]
         if entries:
             base = re.sub(r"\W", "_", plain(mod))[-40:]
             sdf_of[mod] = os.path.join(out, f"m{i}_{base}.sdf")
@@ -247,7 +265,8 @@ def main():
         nonlocal n_cells, n_masked
         if loads is not None:
             cells = [(t, n) for t, n in mods[mod] if t in paths and paths[t]]
-            entries = [cell_entry(t, plain(n), paths, timing, loads, flat_name(rel, n))
+            entries = [cell_entry(t, plain(n), paths, timing, loads, flat_name(rel, n),
+                                  SHARED.get((mod, n), ()))
                        for t, n in cells if not bad_name(n)]
             if entries:
                 f = os.path.join(out, f"s{len(annotate)}.sdf")

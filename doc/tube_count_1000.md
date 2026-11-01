@@ -148,3 +148,44 @@ Verification: `synth_sim.sh` (all default tests, netlists without delays) PASS;
 `synth_sim.sh -t` (Dekatron, Counter, DekatronPC hello/program with tube delays at
 10 µs) PASS with 0 setup / 0 hold violations (the known asynchronous `soft_rst` path is
 not fixed, it just doesn't hit in this netlist). STA: 8.55 µs, 100 kHz with 1.45 µs.
+
+## 5. Done: `amap` instead of `map -a` (−49)
+
+Flattened blocks are larger, so the mapper was tried again. `DPC_ABC_SCRIPT` (new, in
+`synt_dpc.tcl`) runs a whole ABC script for experiments. Means over two seeds (0, 1)
+unless noted:
+
+| ABC script after `&deepsyn -J 50 -T 30; &put; dch -f` | Total |
+|---|---|
+| `map -a` (as before) | ≈ 1178 |
+| `&deepsyn -J 300 -T 120`, `map -a` | 1176.2 |
+| `map -a`, then a second deepsyn + map pass | 1175.7 |
+| `map -a; mfs` | breaks the mapping (330: `$lut` cells, rejected) |
+| `dc2; resyn2` first | fails (`resyn2` is not an alias in Yosys' ABC) |
+| **`amap`** | 1139.5; four seeds **1131.7** |
+| `amap -s`, `dch -f -a` | fail on one seed (rejected) |
+| `amap`, then `strash; dch -f; amap` again | 1135.7 |
+| `&deepsyn -J 300 -T 120`, `amap` | 1128.2 (four times the run time) |
+| **`amap -F 4 -A 20`** | 1135.7; four seeds **1128.8** — adopted |
+
+In the 2026-10-06 library `amap` was worse than `map -a` (§3 of the old report); with the
+designed cells, `dont_use` on the followers and the cheaper AOI21 it is the better mapper.
+It uses only designed cells (more `NOT_N16`, fewer `NAND2_J2`), and `equiv_opt` proves
+all three blocks. It maps for area only, yet the STA is better: **8.01 µs** (125 kHz),
+100 kHz with 2.0 µs.
+
+| Block | Seed 0 | 1 | 2 | 3 | Mean |
+|---|---|---|---|---|---|
+| IpLine | 375 | 386 | 370.5 | 378 | 377.4 |
+| ApLine | 426.5 | 429 | 426 | 423.5 | 426.3 |
+| MachineCtrl | 327.5 | 327.5 | 322.5 | 323.5 | 325.3 |
+| **Total** | 1129 | 1142.5 | 1119 | 1125 | **1128.9** |
+
+Found on the way: ABC now ties two inputs of one cell to the same net (`A2OOI_J2` with
+A = D, i.e. A·(B + C)). That is fine for the tubes (one net drives two grids), but Icarus
+then finds no module path for the second pin and `synth_sim.sh -t` failed on the SDF
+warning. `vtube_sdf.py` leaves out the IOPATH of an input that shares its net with an
+earlier input of the same cell.
+
+Verification: `synth_sim.sh` (7 runs) PASS; `synth_sim.sh -t` (Dekatron, Counter,
+DekatronPC hello / program) PASS, 0 setup / 0 hold violations; STA as above.
