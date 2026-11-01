@@ -9,10 +9,10 @@ Cell page. REQ-MOD-005 (NOR board), REQ-MOD-012 (logic levels), REQ-MOD-004 (del
 | Inputs A, B | LV level, straight to the grids |
 | Output Y | HV level, the common plate |
 | Supplies | +150 V (plate); −50 V (dividers only); heater 6.3 V, 0.4 A |
-| Parts | Ra 10 kΩ; per driven LV net a divider 470 kΩ ‖ C1 / 200 kΩ, C1 = 3.9 pF per grid |
+| Parts | Ra 10 kΩ + La 0.68 mH ‖ Rd 10 kΩ (damped anode peaking choke); per driven LV net a divider 470 kΩ ‖ C1 / 200 kΩ, C1 = 3.9 pF per grid |
 | Output levels, fanout 10 | Y = 146 V (1); 55 V one input high, 39 V both (0) |
-| Delay, fanout 2 … 10 | tpHL 73 … 90 ns, tpLH 105 … 290 ns |
-| Grid, worst transient | −38.8 V (limit −50 V) |
+| Delay, fanout 2 … 10 | tpHL 49 … 63 ns, tpLH 88 … 254 ns |
+| Grid, worst transient | −41.2 V (limit −50 V) |
 
 ## Logic levels
 
@@ -37,10 +37,10 @@ The LV "1" of +10 V is the open-circuit level of the divider. A driven grid clam
 |---|---|---|
 | A | LV in | triode A grid (pin 7) |
 | B | LV in | triode B grid (pin 3) |
-| Y | HV out | both plates (pins 1, 5) and Ra to +150 V |
+| Y | HV out | both plates (pins 1, 5), through La ‖ Rd and Ra to +150 V |
 | H1, H2 | heater | pins 8, 4; the module wires the heater chain |
 
-The cathodes (pins 6, 2) go to GND. The cell needs no negative supply; −50 V is only used by the dividers.
+La (0.68 mH, 2026-11-01) is a shunt-peaking choke: it holds the plate current up while the plate rises and speeds up the plate edge. Rd 10 kΩ across it damps the ringing on light loads (one pentode grid). One value serves fanout 1–10 (section "Peaking inductor" below). The cathodes (pins 6, 2) go to GND. The cell needs no negative supply; −50 V is only used by the dividers.
 
 ### The HV → LV divider
 
@@ -63,6 +63,8 @@ The divider is not part of the cell. It belongs to the net: one divider per HV n
 | 2.7 pF | −24 V | 2.0 / 1.8 µs | under-compensated, the grid crawls down |
 | 3.3 pF | −30 V | 88 / 104 ns | works, but sits 20 % from the cliff above |
 | **3.9 pF** | **−38.6 V** | **73 / 90 ns** | chosen: survives ±10 % on C1 |
+
+This table was made before La; with La ‖ Rd the lowest grid is −41.2 V at 3.9 pF (−42.4 V undamped), so 4.7 pF and up are out.
 | 4.7 pF | −49.8 V | 63 / 80 ns | at the −50 V grid limit |
 | 6.8 pF | below −50 V | — | beyond the limit |
 
@@ -86,10 +88,11 @@ The run uses the netlist that `kicad-cli` exports:
 | VOL_A / VOL_B (one input high) | 55.3 / 55.3 V |
 | VOL_AB (both) | 39.1 V |
 | LV_HI on OUT_LV (clamped by 10 grids) | +0.24 V |
-| LV_LO on OUT_LV, 1.9 µs after the edge | −16.2 V (settles to −21 V) |
-| GMIN, DUT grid A | −38.8 V |
-| TPHL, IN_A ↑ (−5 V) to OUT ↓ (100 V) | 99 ns |
-| TPLH, inputs ↓ (−5 V) to OUT ↑ (100 V) | 292 ns |
+| LV_LO on OUT_LV, 1.9 µs after the edge | −16.3 V (settles to −21 V) |
+| GMIN, DUT grid A | −40.4 V |
+| LVMIN, OUT_LV | −26.8 V |
+| TPHL, IN_A ↑ (−5 V) to OUT ↓ (100 V) | 66 ns |
+| TPLH, inputs ↓ (−5 V) to OUT ↑ (100 V) | 255 ns |
 
 ![waveforms](img/nor2_n16_tran.png)
 
@@ -126,16 +129,16 @@ A stiff +10 V source on a grid draws 4.8 mA of grid current (48 mW, under the 0.
 
 | Grids on the LV net | VOH | tpHL | tpLH | LV → LV, gate + divider (fall / rise) |
 |---|---|---|---|---|
-| 2 | 146.9 V | 73 ns | 105 ns | 60 / 84 ns |
-| 4 | 146.9 V | 78 ns | 152 ns | 65 / 123 ns |
-| 6 | 146.8 V | 83 ns | 199 ns | 70 / 163 ns |
-| 8 | 146.6 V | 87 ns | 245 ns | 73 / 204 ns |
-| 10 | 146.1 V | 90 ns | 290 ns | 75 / 247 ns |
+| 2 | 146.9 V | 49 ns | 88 ns | 35 / 71 ns |
+| 4 | 146.9 V | 53 ns | 128 ns | 39 / 105 ns |
+| 6 | 146.9 V | 56 ns | 169 ns | 44 / 141 ns |
+| 8 | 146.9 V | 60 ns | 211 ns | 47 / 180 ns |
+| 10 | 146.8 V | 63 ns | 254 ns | 50 / 221 ns |
 
-`tools/spice/nor2_sweep.py` produced this table (ideal HV pulse, divider, driver gate). The KiCad testbench gives 99/292 ns at fanout 10.
+`tools/spice/nor2_sweep.py` produced this table (ideal HV pulse, divider, driver gate; every gate with La ‖ Rd). The KiCad testbench gives 66/255 ns at fanout 10. Without La the same rows were tpHL 73…90, tpLH 105…290, LV → LV 60…75 / 84…247 ns.
 
 - **Static levels do not depend on fanout:** with one divider per net, the plate carries one 670 kΩ load at any fanout.
-- **Rise time grows linearly with fanout:** Ra has to charge C1 of all the grids. At fanout 10 a rising edge takes 0.3 µs, a third of a 1 MHz clock period (OPEN-014).
+- **Rise time grows linearly with fanout:** Ra has to charge C1 of all the grids. At fanout 10 a rising edge takes 0.25 µs (0.29 µs without La), a third of a 1 MHz clock period (OPEN-014).
 
 ## Datasheet limits
 
@@ -143,10 +146,10 @@ Source: https://frank.pocnet.net/sheets/113/6/6N16B.pdf
 
 | Quantity | Limit | Worst case in the cell |
 |---|---|---|
-| Ua | 200 V (350 V cut off) | 147 V (off) |
+| Ua | 200 V (350 V cut off) | 147 V (off); La overshoot 156 V at fanout 2, 168 V on a net with no grids |
 | Pa per triode | 0.9 W | 0.52 W (one triode on: 55 V × 9.5 mA) |
 | Ik | 14 mA | 9.5 mA |
-| Ug | ≥ −50 V | −38.8 V transient, −21 V static |
+| Ug | ≥ −50 V | −41.2 V transient, −21 V static |
 | Grid-circuit resistance | 1 MΩ | 140 kΩ (470k ‖ 200k) |
 | Pg | 0.1 W | 48 mW with a stiff +10 V source; microwatts from a divider |
 
@@ -168,6 +171,31 @@ tpLH is at fanout 10. C1 differed between runs, so compare the rows only within 
 | Ra 8.2 kΩ | 5.6 pF | 61 V | 262 ns | faster, but VOL drifts away from +50 V; Ik 10.9 mA, Pa 0.66 W |
 | Ra 10 kΩ + peaking L 1 mH in series | 6.8 pF | 56 V | 295 ns (tpHL 69 → 42 ns) | rejected: ringing pushes the LV net to −56 V |
 | Ra 10 kΩ + peaking L ≥ 2.2 mH | 6.8 pF | 120 V and more | — | rejected: the stage oscillates |
+| Ra 10 kΩ + La 0.68 mH, undamped (below) | 3.9 pF | 55 V | 244 ns | rings on a light (pentode g1) load and slows the latch behind it |
+| **Ra 10 kΩ + La 0.68 mH ‖ Rd 10 kΩ** (below) | **3.9 pF** | **55 V** | **254 ns** | **adopted 2026-11-01** (owner) |
+
+### Peaking inductor (2026-11-01)
+
+`tools/spice/nor2_peaking.py`, same chain as `nor2_sweep.py`, but the inductor sits only in the gate it is sized for: the DUT gets L for its fanout, the two drivers (one grid each) get 0.5 mH. Sized by the shunt-peaking rule La = p·Ra²·C, p ≈ 0.35 (Bonch-Bruevich p. 166, doc/bonch_bruevich_lamps_review.md §8), then tuned on LV → LV delay. Ra 10 kΩ, C1 3.9 pF per grid.
+
+| Grids | L | tpHL | tpLH | plate rise 10–90 % | LV → LV fall / rise | plate max | LV min | grid min |
+|---|---|---|---|---|---|---|---|---|
+| 2 | — | 73 | 105 | 268 | 60 / 84 | 148 V | −25.5 V | −38.6 V |
+| 2 | 0.5 mH | 42 | 82 | 145 | 26 / 66 | 149 V | −30.1 V | −41.3 V |
+| 6 | — | 83 | 199 | 553 | 70 / 163 | 148 V | −24.4 V | −38.8 V |
+| 6 | 1.5 mH | 49 | 145 | 256 | 31 / 125 | 157 V | −29.5 V | −40.6 V |
+| 10 | — | 90 | 290 | 836 | 75 / 247 | 147 V | −24.2 V | −38.8 V |
+| 10 | 1.5 mH | 56 | 220 | 463 | 39 / 185 | 149 V | −27.3 V | −40.1 V |
+
+Times in ns. tpHL and the LV fall gain come from the faster driver edge, i.e. they are the drivers' own rise gain seen one stage later.
+
+- **The plate edge is about 2× faster, as the book promises, but the next grid sees only −21…−25 %** on the rising LV edge: after the plate the edge still has to pass the divider and the grid clamp, which L does not touch.
+- **The old −56 V was C1 = 6.8 pF, not the inductor.** With 6.8 pF the input grid already reaches −72 V without any L (nor2_sweep.py, fanout 10). With 3.9 pF and L in every gate the worst grid is −42.4 V, inside the −50 V limit.
+- **The best L grows with fanout, but one value covers 2–10.** With the same L in every gate: 0.5 mH gives LV → LV rise 66…211 ns, 0.7 mH 65…203 ns, 1 mH 66…194 ns (fanout 2…10), with the lowest grid at −41.8, −42.9 and −43.9 V and the plate overshoot at fanout 2 at 149, 156 and 168 V. 0.68 mH (E6) is the chosen trade. 1.2 mH and more pulls the LV "1" below 0 V on small nets, and more than ≈ 2 mH at fanout 6 or 3 mH at fanout 10 makes the rising delay worse again.
+- **The damping resistor is needed for light loads.** On triode loads (above) Rd only costs speed. But a NOR2 that drives one pentode g1 (latch S/R input, 2.7 pF divider, no Miller) rings: the LV "1" swings +1.6 → −1.6 V, the pentode current drops and the latch's S→QN arc at fanout 10 grows from 392 to 470 ns (`tools/spice/latch_peaking.py` bench, driver with La). Rd across La fixes it: 47k → 445 ns, 22k → 414 ns, **10k → 364 ns** (faster than without La). With Rd 10 kΩ the NOR2 keeps about 80 % of the gain: LV → LV rise 71…221 ns against 64…217 undamped and 84…247 without La (fanout 2…10).
+- **Larger Ra plus L does not pay:** Ra 15 kΩ with 3.4 mH gives 302 ns LV → LV rise at fanout 10 against 247 ns for plain Ra 10 kΩ, and VOL moves to 45 V.
+- **Cost:** no tubes; one 0.68 mH choke and one 10 kΩ resistor per cell. Not checked: the choke's own capacitance and Q, tolerance spread.
+- **Timing:** vtube_timing.json fanout 6, to 118/92 V: [Y rise, Y fall] = [259, 65] ns (was [327, 99]); fanout ratios from threshold_delays.py at fanout 2 and 10 (126/404, 56/73 ns).
 
 ### Superseded attempts
 
@@ -209,6 +237,7 @@ The model sits inside the datasheet spread. The full comparison against the digi
 | `sch/libs/6N16B.sub` | model |
 | `tools/spice/sim_kicad.sh` | runs a KiCad testbench from the command line: exports the netlist and prints the `.meas` results |
 | `tools/spice/nor2_sweep.py` | fanout sweep; it also takes Ra, R1, R2, C1 and L as parameters |
+| `tools/spice/nor2_peaking.py` | peaking-inductor check: L per gate (DUT, drivers), damping Rd |
 | `tools/spice/nor2_plots.py` | rebuilds every figure on this page into `img/` (schematics, waveforms, transfer, fanout) |
 | `tools/spice/ngrun.py` | runs a deck through KiCad's `libngspice.so.0`; no ngspice binary needed |
 
@@ -223,10 +252,10 @@ The model sits inside the datasheet spread. The full comparison against the digi
 
 ## Timing in the liberty
 
-`vtube_timing.json` (2026-10-29), fanout 6, to the next stage's thresholds (falling output to 92 V, rising to 118 V; owner, 2026-10-29; `tools/spice/threshold_delays.py`), [Y rise, Y fall]: A→Y, B→Y [327, 99] ns.
+`vtube_timing.json` (2026-11-01, with La), fanout 6, to the next stage's thresholds (falling output to 92 V, rising to 118 V; owner, 2026-10-29; `tools/spice/threshold_delays.py`), [Y rise, Y fall]: A→Y, B→Y [259, 65] ns (without La [327, 99]).
 
 ## Open points
 
-- **Delays and the clock.** One gate plus its divider takes 60–250 ns, depending on fanout. At 1 MHz that leaves room for 3–4 levels with light fanout and 2 levels at fanout 10. The liberty has `max_fanout: 10` and no timing; this table is the first input for `vtube_timing.json` until hardware is measured (REQ-MOD-004, OPEN-014).
+- **Delays and the clock.** One gate plus its divider takes 35–220 ns with La ‖ Rd (60–250 ns without), depending on fanout. At 1 MHz that leaves room for 3–4 levels with light fanout and 2 levels at fanout 10. The liberty has `max_fanout: 10` and no timing; this table is the first input for `vtube_timing.json` until hardware is measured (REQ-MOD-004, OPEN-014).
 - **Dividers in the synthesis flow.** They are passive parts, not tubes, so they do not count against the tube budget, but each HV net that drives grids needs one. C1 depends on the fanout of the net, so the P&R / netlist flow has to size it per net.
 - **Nets that only drive other HV loads** (for example a plate driving a dekatron guide) need no divider. Those interfaces are not covered here.

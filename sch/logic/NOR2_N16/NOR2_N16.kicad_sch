@@ -1,5 +1,183 @@
-(kicad_sch (version 20260306) (generator "eeschema") (generator_version "10.0") (uuid "c1371559-a764-4cd4-a36e-a37de9e52477") (paper "A4") (title_block (title "NOR2_N16 - 2NOR on 6N16B") (company "DekatronPC") (comment 1 "Y = ~(A | B); A, B: LV (+10/-20 V); Y: HV (+150/+50 V)") (comment 2 "Ra 10k to +150 V"))
+(kicad_sch (version 20260306) (generator "eeschema") (generator_version "10.0") (uuid "e0e6dca0-b6d0-41f5-a1c1-f4f0f4fbe5b4") (paper "A4") (title_block (title "NOR2_N16 - 2NOR on 6N16B") (company "DekatronPC") (comment 1 "Y = ~(A | B); A, B: LV (+10/-20 V); Y: HV (+150/+50 V)") (comment 2 "Ra 10k + La 0.68 mH || 10k to +150 V"))
 (lib_symbols
+(symbol "Device:L"
+		(pin_numbers
+			(hide yes)
+		)
+		(pin_names
+			(offset 1.016)
+			(hide yes)
+		)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(duplicate_pin_numbers_are_jumpers no)
+		(property "Reference" "L"
+			(at -1.27 0 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "L"
+			(at 1.905 0 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Inductor"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_keywords" "inductor choke coil reactor magnetic"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "ki_fp_filters" "Choke_* *Coil* Inductor_* L_*"
+			(at 0 0 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(hide yes)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(symbol "L_0_1"
+			(arc
+				(start 0 2.54)
+				(mid 0.6323 1.905)
+				(end 0 1.27)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(arc
+				(start 0 1.27)
+				(mid 0.6323 0.635)
+				(end 0 0)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(arc
+				(start 0 0)
+				(mid 0.6323 -0.635)
+				(end 0 -1.27)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+			(arc
+				(start 0 -1.27)
+				(mid 0.6323 -1.905)
+				(end 0 -2.54)
+				(stroke
+					(width 0)
+					(type default)
+				)
+				(fill
+					(type none)
+				)
+			)
+		)
+		(symbol "L_1_1"
+			(pin passive line
+				(at 0 3.81 270)
+				(length 1.27)
+				(name "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "1"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+			(pin passive line
+				(at 0 -3.81 90)
+				(length 1.27)
+				(name "2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+				(number "2"
+					(effects
+						(font
+							(size 1.27 1.27)
+						)
+					)
+				)
+			)
+		)
+		(embedded_fonts no)
+	)
 (symbol "Device:R"
 		(pin_numbers
 			(hide yes)
@@ -908,36 +1086,45 @@
 			)
 		)
 	))
-(symbol (lib_id "vacuum_tube:6Н16Б") (at 101.6 101.6 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "7bc8a219-3332-418a-8343-f3b75530ec25") (property "Reference" "Л1" (at 105.41 95.25 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "6Н16Б" (at 105.41 107.95 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 101.6 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 101.6 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Library" "${KIPRJMOD}/../../libs/6N16B.sub" (at 101.6 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Name" "6N16B" (at 101.6 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "SUBCKT" (at 101.6 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb" (at 101.6 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "7bf6274d-2bf0-4625-b155-cf07ec775272")) (pin "7" (uuid "77ce9e3e-6fce-4d71-9366-b775d6dfa349")) (pin "6" (uuid "08c4dccc-4700-4ab7-8c7a-7fc8d69b5408")) (pin "4" (uuid "5c0065a0-9887-476c-9631-dad0a2d01eac")) (pin "8" (uuid "e9e92b86-6051-4fb4-a440-7d9523154cf4")) (instances (project "NOR2_N16_tb" (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/7d9277ad-81e3-4519-be85-bc245c403dd7" (reference "Л1") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/3409dca1-b5e6-40bf-89c6-62c15b859511" (reference "Л2") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/9681f00e-8d91-4b3e-93ca-77f8de027d69" (reference "Л3") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/c58416d0-58ac-4e83-a610-da0525d3362b" (reference "Л4") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/f1de0dfa-3f52-4018-91e3-f62465a785a3" (reference "Л5") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/f5289113-f323-4630-ab40-a8ea98c18221" (reference "Л6") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/4b8de4dd-b2ce-4d64-8e32-f80cb118c7aa" (reference "Л7") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/1af26ff6-34b1-487e-a08a-f0a82de86e98" (reference "Л8") (unit 1)))))
-(symbol (lib_id "vacuum_tube:6Н16Б") (at 152.4 101.6 0) (unit 2) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "3036794d-9d8b-4a57-a39b-c4a92edbd845") (property "Reference" "Л1" (at 156.21 95.25 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "6Н16Б" (at 156.21 107.95 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 152.4 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 152.4 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Library" "${KIPRJMOD}/../../libs/6N16B.sub" (at 152.4 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Name" "6N16B" (at 152.4 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "SUBCKT" (at 152.4 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb" (at 152.4 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "5" (uuid "4ff34e02-a194-4e74-9e56-a8aa175f7d2f")) (pin "3" (uuid "301649fd-e15c-4407-aeb4-d2aab7a910b6")) (pin "2" (uuid "28caa867-c1b4-449e-8db4-d9fafab55868")) (instances (project "NOR2_N16_tb" (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/7d9277ad-81e3-4519-be85-bc245c403dd7" (reference "Л1") (unit 2)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/3409dca1-b5e6-40bf-89c6-62c15b859511" (reference "Л2") (unit 2)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/9681f00e-8d91-4b3e-93ca-77f8de027d69" (reference "Л3") (unit 2)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/c58416d0-58ac-4e83-a610-da0525d3362b" (reference "Л4") (unit 2)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/f1de0dfa-3f52-4018-91e3-f62465a785a3" (reference "Л5") (unit 2)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/f5289113-f323-4630-ab40-a8ea98c18221" (reference "Л6") (unit 2)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/4b8de4dd-b2ce-4d64-8e32-f80cb118c7aa" (reference "Л7") (unit 2)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/1af26ff6-34b1-487e-a08a-f0a82de86e98" (reference "Л8") (unit 2)))))
-(wire (pts (xy 101.6 91.44) (xy 101.6 81.28)) (stroke (width 0) (type default)) (uuid "6222d833-3f9d-4312-a5c7-9b7999a8bb23"))
-(wire (pts (xy 152.4 91.44) (xy 152.4 81.28)) (stroke (width 0) (type default)) (uuid "964cc21c-59f1-4b7a-9877-42d1e3762b84"))
-(wire (pts (xy 101.6 81.28) (xy 124.46 81.28)) (stroke (width 0) (type default)) (uuid "024abfbc-d82a-4a71-9d8b-cd1087aa2ff7"))
-(wire (pts (xy 124.46 81.28) (xy 152.4 81.28)) (stroke (width 0) (type default)) (uuid "b51f1f65-5a39-4eae-9f46-0168d1e1aa43"))
-(wire (pts (xy 152.4 81.28) (xy 170.18 81.28)) (stroke (width 0) (type default)) (uuid "a812ff58-64e6-4d58-afa0-f88bbfcb6ee2"))
-(junction (at 124.46 81.28) (diameter 0) (color 0 0 0 0) (uuid "bc58c3c8-924c-495f-a7c8-1a932038757a"))
-(junction (at 152.4 81.28) (diameter 0) (color 0 0 0 0) (uuid "02265aef-5c1f-4aa1-a589-216dfeb33373"))
-(symbol (lib_id "Device:R") (at 124.46 73.66 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "80300fd5-f2c3-48e2-8833-8cdb4ef012d8") (property "Reference" "R11" (at 127 72.39 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "10k" (at 127 74.93 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 124.46 73.66 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 124.46 73.66 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "9663646f-8993-43ea-b2d2-b6c63e84a6d1")) (pin "2" (uuid "e23c588f-810b-47f6-8be3-abe6359ed26c")) (instances (project "NOR2_N16_tb" (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/7d9277ad-81e3-4519-be85-bc245c403dd7" (reference "R11") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/3409dca1-b5e6-40bf-89c6-62c15b859511" (reference "R21") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/9681f00e-8d91-4b3e-93ca-77f8de027d69" (reference "R31") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/c58416d0-58ac-4e83-a610-da0525d3362b" (reference "R41") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/f1de0dfa-3f52-4018-91e3-f62465a785a3" (reference "R51") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/f5289113-f323-4630-ab40-a8ea98c18221" (reference "R61") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/4b8de4dd-b2ce-4d64-8e32-f80cb118c7aa" (reference "R71") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/1af26ff6-34b1-487e-a08a-f0a82de86e98" (reference "R81") (unit 1)))))
-(wire (pts (xy 124.46 77.47) (xy 124.46 81.28)) (stroke (width 0) (type default)) (uuid "501f7af0-44c6-4344-99be-dae8e87bf143"))
-(wire (pts (xy 124.46 69.85) (xy 124.46 66.04)) (stroke (width 0) (type default)) (uuid "a3076321-f6e0-41d3-97ab-edd63cf2bfdc"))
-(symbol (lib_id "power:+150V") (at 124.46 66.04 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "02f74a14-6cb8-48ec-94dc-96ac70d83b62") (property "Reference" "#PWR101" (at 124.46 69.85 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+150V" (at 121.92 62.23 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 124.46 66.04 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 124.46 66.04 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "6341ea11-f23a-4b3e-b763-b3a7624533af")) (instances (project "NOR2_N16_tb" (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/7d9277ad-81e3-4519-be85-bc245c403dd7" (reference "#PWR101") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/3409dca1-b5e6-40bf-89c6-62c15b859511" (reference "#PWR201") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/9681f00e-8d91-4b3e-93ca-77f8de027d69" (reference "#PWR301") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/c58416d0-58ac-4e83-a610-da0525d3362b" (reference "#PWR401") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/f1de0dfa-3f52-4018-91e3-f62465a785a3" (reference "#PWR501") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/f5289113-f323-4630-ab40-a8ea98c18221" (reference "#PWR601") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/4b8de4dd-b2ce-4d64-8e32-f80cb118c7aa" (reference "#PWR701") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/1af26ff6-34b1-487e-a08a-f0a82de86e98" (reference "#PWR801") (unit 1)))))
-(hierarchical_label "Y" (shape output) (at 170.18 81.28 0) (effects (font (size 1.27 1.27)) (justify left)) (uuid "564a42b8-c99f-404e-9232-abf2a56f14f6"))
-(wire (pts (xy 81.28 101.6) (xy 93.98 101.6)) (stroke (width 0) (type default)) (uuid "39daa9be-2334-4168-8b0e-17c1a5ca3332"))
-(hierarchical_label "A" (shape input) (at 81.28 101.6 180) (effects (font (size 1.27 1.27)) (justify right)) (uuid "4ab4b958-62a4-424f-be15-ffd9c9399456"))
-(wire (pts (xy 99.06 111.76) (xy 99.06 114.3)) (stroke (width 0) (type default)) (uuid "2b07c57e-2dcc-4086-b468-a6a96feb0445"))
-(wire (pts (xy 99.06 114.3) (xy 93.98 114.3)) (stroke (width 0) (type default)) (uuid "671e9549-7bdd-4c05-9954-4aa3371b2bc4"))
-(wire (pts (xy 93.98 114.3) (xy 93.98 116.84)) (stroke (width 0) (type default)) (uuid "d30c4f48-b2a3-4178-a1bb-3e37e380c251"))
-(symbol (lib_id "power:GND") (at 93.98 116.84 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "7da5e495-b399-4c3b-9305-27157f7cfcf4") (property "Reference" "#PWR102" (at 93.98 123.19 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 92.71 121.92 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 93.98 116.84 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 93.98 116.84 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "d1df12d6-38ba-4995-9fcf-9ccc216c82fc")) (instances (project "NOR2_N16_tb" (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/7d9277ad-81e3-4519-be85-bc245c403dd7" (reference "#PWR102") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/3409dca1-b5e6-40bf-89c6-62c15b859511" (reference "#PWR202") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/9681f00e-8d91-4b3e-93ca-77f8de027d69" (reference "#PWR302") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/c58416d0-58ac-4e83-a610-da0525d3362b" (reference "#PWR402") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/f1de0dfa-3f52-4018-91e3-f62465a785a3" (reference "#PWR502") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/f5289113-f323-4630-ab40-a8ea98c18221" (reference "#PWR602") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/4b8de4dd-b2ce-4d64-8e32-f80cb118c7aa" (reference "#PWR702") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/1af26ff6-34b1-487e-a08a-f0a82de86e98" (reference "#PWR802") (unit 1)))))
-(wire (pts (xy 132.08 101.6) (xy 144.78 101.6)) (stroke (width 0) (type default)) (uuid "69d1eb09-4816-4e82-b6c5-e25ce17546ac"))
-(hierarchical_label "B" (shape input) (at 132.08 101.6 180) (effects (font (size 1.27 1.27)) (justify right)) (uuid "04b073cd-a54d-42de-a336-a79ea637ba16"))
-(wire (pts (xy 149.86 111.76) (xy 149.86 114.3)) (stroke (width 0) (type default)) (uuid "5207d830-64da-4b20-b26f-dbf94869da94"))
-(wire (pts (xy 149.86 114.3) (xy 144.78 114.3)) (stroke (width 0) (type default)) (uuid "9acc4cdb-a146-4e66-89c3-04f18be8d4c4"))
-(wire (pts (xy 144.78 114.3) (xy 144.78 116.84)) (stroke (width 0) (type default)) (uuid "3bef5f4e-cc3f-4d2e-a4ca-56336c457f34"))
-(symbol (lib_id "power:GND") (at 144.78 116.84 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "d33f66ef-8fe0-4bbb-a943-e4cb97bdaeae") (property "Reference" "#PWR103" (at 144.78 123.19 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 143.51 121.92 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 144.78 116.84 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 144.78 116.84 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "aafd4e6c-f517-45ea-8c37-d0e4dfccc747")) (instances (project "NOR2_N16_tb" (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/7d9277ad-81e3-4519-be85-bc245c403dd7" (reference "#PWR103") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/3409dca1-b5e6-40bf-89c6-62c15b859511" (reference "#PWR203") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/9681f00e-8d91-4b3e-93ca-77f8de027d69" (reference "#PWR303") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/c58416d0-58ac-4e83-a610-da0525d3362b" (reference "#PWR403") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/f1de0dfa-3f52-4018-91e3-f62465a785a3" (reference "#PWR503") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/f5289113-f323-4630-ab40-a8ea98c18221" (reference "#PWR603") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/4b8de4dd-b2ce-4d64-8e32-f80cb118c7aa" (reference "#PWR703") (unit 1)) (path "/1e012983-2f0c-4d29-b0ae-c5057216a746/1af26ff6-34b1-487e-a08a-f0a82de86e98" (reference "#PWR803") (unit 1)))))
-(wire (pts (xy 100.33 111.76) (xy 100.33 121.92)) (stroke (width 0) (type default)) (uuid "97db94f3-ebfa-4f51-9848-8c00b117ade7"))
-(hierarchical_label "H1" (shape passive) (at 100.33 121.92 270) (effects (font (size 1.27 1.27)) (justify right)) (uuid "06f012ec-e0ef-44a5-9e75-06b08a43e35b"))
-(wire (pts (xy 102.87 111.76) (xy 102.87 121.92)) (stroke (width 0) (type default)) (uuid "19749589-2961-45b6-9718-ae8e86776a85"))
-(hierarchical_label "H2" (shape passive) (at 102.87 121.92 270) (effects (font (size 1.27 1.27)) (justify right)) (uuid "d34f4427-7671-4778-aa0f-76dfba2cfa03"))
-(text "NOR2_N16: Y = ~(A | B). One 6N16B (6Н16Б): two triodes, plates in parallel on Ra.\nInputs A, B: LV level, straight to the grids (1 = +10 V, 0 = -20 V).\nOutput Y: HV level on the plates (1 = +150 V, 0 = +50 V).\nSimulated: Y = 147 / 55 V (one input high) / 39 V (both); switching point -2.2 V on the grid.\nEach HV net that drives grids needs a divider HV -> LV: 470k || C1 from Y to the LV net,\n200k from the LV net to -50 V, C1 = 3.9 pF per grid on that net (see NOR2_N16_tb).\nLV inputs must come from such a divider (grid current is limited by it), never from a stiff source.\nUnused input: tie it to the other input. Supplies: +150 V, -50 V (dividers only), heater 6.3 V 0.4 A on H1/H2.\nPage: sch/logic/NOR2_N16/README.md" (exclude_from_sim no) (at 50.8 147.32 0) (effects (font (size 1.27 1.27)) (justify left top)) (uuid "c802131d-4fc7-420d-acad-1e58d5fb817a"))
+(symbol (lib_id "vacuum_tube:6Н16Б") (at 101.6 101.6 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "7cff60d3-846b-4f3f-bd66-9a913f8d3461") (property "Reference" "Л1" (at 105.41 95.25 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "6Н16Б" (at 105.41 107.95 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 101.6 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 101.6 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Library" "${KIPRJMOD}/../../libs/6N16B.sub" (at 101.6 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Name" "6N16B" (at 101.6 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "SUBCKT" (at 101.6 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb" (at 101.6 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "d0aef699-897b-4b33-a40d-a1e48e914eb7")) (pin "7" (uuid "1c581f18-3397-4cfd-9b71-e79868005a23")) (pin "6" (uuid "f7f116ad-bb76-4284-b3b1-41b8c48143ee")) (pin "4" (uuid "49ef7afc-5cc3-4d4b-a260-e7401daaea2f")) (pin "8" (uuid "f23767ef-4bd3-4fdf-b719-00341702f01c")) (instances (project "NOR2_N16_tb" (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/64dc1fb6-6f57-491b-88f5-d7b6d7e0c5db" (reference "Л1") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/b3766878-8f3f-4072-b8e6-0cff199839b0" (reference "Л2") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/bf26e7f1-2e83-46be-a152-38588774835b" (reference "Л3") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/45432c06-f823-4ede-ac30-2d23b9f103f3" (reference "Л4") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/7869979b-b63e-4f0e-a01d-2a2030c688d1" (reference "Л5") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/e2416f87-c1f4-444e-8bc8-802284115ea6" (reference "Л6") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/1526da1c-a495-42cd-8cf0-de4f1fc9a419" (reference "Л7") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/49066788-7bf7-45b3-948b-fb26251f8571" (reference "Л8") (unit 1)))))
+(symbol (lib_id "vacuum_tube:6Н16Б") (at 152.4 101.6 0) (unit 2) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "2885b720-f083-47ce-9b30-d139ba5ac28b") (property "Reference" "Л1" (at 156.21 95.25 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "6Н16Б" (at 156.21 107.95 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 152.4 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 152.4 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Library" "${KIPRJMOD}/../../libs/6N16B.sub" (at 152.4 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Name" "6N16B" (at 152.4 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Device" "SUBCKT" (at 152.4 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Sim.Pins" "1=Pa 7=Ga 6=Ka 5=Pb 3=Gb 2=Kb" (at 152.4 101.6 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "5" (uuid "3299f930-1748-49bf-a578-466b543bc137")) (pin "3" (uuid "327dada2-88e0-4a74-bf64-a42c55a884d8")) (pin "2" (uuid "7f588dca-b13d-4df0-85ff-6c90a51c15e5")) (instances (project "NOR2_N16_tb" (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/64dc1fb6-6f57-491b-88f5-d7b6d7e0c5db" (reference "Л1") (unit 2)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/b3766878-8f3f-4072-b8e6-0cff199839b0" (reference "Л2") (unit 2)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/bf26e7f1-2e83-46be-a152-38588774835b" (reference "Л3") (unit 2)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/45432c06-f823-4ede-ac30-2d23b9f103f3" (reference "Л4") (unit 2)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/7869979b-b63e-4f0e-a01d-2a2030c688d1" (reference "Л5") (unit 2)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/e2416f87-c1f4-444e-8bc8-802284115ea6" (reference "Л6") (unit 2)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/1526da1c-a495-42cd-8cf0-de4f1fc9a419" (reference "Л7") (unit 2)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/49066788-7bf7-45b3-948b-fb26251f8571" (reference "Л8") (unit 2)))))
+(wire (pts (xy 101.6 91.44) (xy 101.6 81.28)) (stroke (width 0) (type default)) (uuid "4e8229bc-fa86-4256-9176-c6fcec4aaba7"))
+(wire (pts (xy 152.4 91.44) (xy 152.4 81.28)) (stroke (width 0) (type default)) (uuid "b35b752c-c9a4-48f2-96d6-c6998102a1a9"))
+(wire (pts (xy 101.6 81.28) (xy 124.46 81.28)) (stroke (width 0) (type default)) (uuid "c3962991-2502-4d31-acaf-adba92a717f3"))
+(wire (pts (xy 124.46 81.28) (xy 152.4 81.28)) (stroke (width 0) (type default)) (uuid "165f0c58-7017-4819-99fa-5806e209a807"))
+(wire (pts (xy 152.4 81.28) (xy 170.18 81.28)) (stroke (width 0) (type default)) (uuid "4546b593-2228-489e-a5e7-94fe018164e0"))
+(junction (at 124.46 81.28) (diameter 0) (color 0 0 0 0) (uuid "bdc382ab-6bfb-487b-94e0-9730af963fb7"))
+(junction (at 152.4 81.28) (diameter 0) (color 0 0 0 0) (uuid "9ca910e8-0df3-4593-ae36-f0a13d999e6e"))
+(symbol (lib_id "Device:L") (at 124.46 73.66 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "10b3ed6c-8370-409b-bb5d-fad98fd6f644") (property "Reference" "L11" (at 127 72.39 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "680u" (at 127 74.93 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 124.46 73.66 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 124.46 73.66 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "49264497-0a24-43a7-8b3f-72c24bc45510")) (pin "2" (uuid "9317e82d-07a8-42c5-a773-4f8938107688")) (instances (project "NOR2_N16_tb" (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/64dc1fb6-6f57-491b-88f5-d7b6d7e0c5db" (reference "L11") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/b3766878-8f3f-4072-b8e6-0cff199839b0" (reference "L21") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/bf26e7f1-2e83-46be-a152-38588774835b" (reference "L31") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/45432c06-f823-4ede-ac30-2d23b9f103f3" (reference "L41") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/7869979b-b63e-4f0e-a01d-2a2030c688d1" (reference "L51") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/e2416f87-c1f4-444e-8bc8-802284115ea6" (reference "L61") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/1526da1c-a495-42cd-8cf0-de4f1fc9a419" (reference "L71") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/49066788-7bf7-45b3-948b-fb26251f8571" (reference "L81") (unit 1)))))
+(wire (pts (xy 124.46 77.47) (xy 124.46 81.28)) (stroke (width 0) (type default)) (uuid "01f1f857-4087-4f54-823c-8737298af682"))
+(symbol (lib_id "Device:R") (at 134.62 73.66 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "59871496-8e4a-411e-8977-96c2483eb775") (property "Reference" "R12" (at 137.16 72.39 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "10k" (at 137.16 74.93 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 134.62 73.66 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 134.62 73.66 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "c1a58bf3-7bda-4bd8-9aea-d2d46ebc84f9")) (pin "2" (uuid "f0559870-c55e-4e77-9213-27576794a97a")) (instances (project "NOR2_N16_tb" (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/64dc1fb6-6f57-491b-88f5-d7b6d7e0c5db" (reference "R12") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/b3766878-8f3f-4072-b8e6-0cff199839b0" (reference "R22") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/bf26e7f1-2e83-46be-a152-38588774835b" (reference "R32") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/45432c06-f823-4ede-ac30-2d23b9f103f3" (reference "R42") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/7869979b-b63e-4f0e-a01d-2a2030c688d1" (reference "R52") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/e2416f87-c1f4-444e-8bc8-802284115ea6" (reference "R62") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/1526da1c-a495-42cd-8cf0-de4f1fc9a419" (reference "R72") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/49066788-7bf7-45b3-948b-fb26251f8571" (reference "R82") (unit 1)))))
+(wire (pts (xy 134.62 69.85) (xy 134.62 67.31)) (stroke (width 0) (type default)) (uuid "a21b2844-e6e0-477e-ad87-0005ceb611dc"))
+(wire (pts (xy 134.62 67.31) (xy 124.46 67.31)) (stroke (width 0) (type default)) (uuid "5b16bcd6-85be-47bb-b1ba-359d62a2bf87"))
+(junction (at 124.46 67.31) (diameter 0) (color 0 0 0 0) (uuid "44f0efd4-7577-4ba2-a360-d5c5fb626e1a"))
+(wire (pts (xy 134.62 77.47) (xy 134.62 80.01)) (stroke (width 0) (type default)) (uuid "7215507d-c55d-41ae-9ad6-9a960201aaf1"))
+(wire (pts (xy 134.62 80.01) (xy 124.46 80.01)) (stroke (width 0) (type default)) (uuid "cd4ed133-ead2-402e-a18a-9b90101554b9"))
+(junction (at 124.46 80.01) (diameter 0) (color 0 0 0 0) (uuid "d41e8994-3ab1-43c7-bf2f-16f1c2d66594"))
+(symbol (lib_id "Device:R") (at 124.46 63.5 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "3bba3061-74ba-424a-b08c-8c459c9c5242") (property "Reference" "R11" (at 127 62.23 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Value" "10k" (at 127 64.77 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 124.46 63.5 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 124.46 63.5 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "ba693e4c-809c-455b-9e01-eb4541d873d8")) (pin "2" (uuid "70bf9fb6-866f-43b0-87a3-19ba16c5be3e")) (instances (project "NOR2_N16_tb" (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/64dc1fb6-6f57-491b-88f5-d7b6d7e0c5db" (reference "R11") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/b3766878-8f3f-4072-b8e6-0cff199839b0" (reference "R21") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/bf26e7f1-2e83-46be-a152-38588774835b" (reference "R31") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/45432c06-f823-4ede-ac30-2d23b9f103f3" (reference "R41") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/7869979b-b63e-4f0e-a01d-2a2030c688d1" (reference "R51") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/e2416f87-c1f4-444e-8bc8-802284115ea6" (reference "R61") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/1526da1c-a495-42cd-8cf0-de4f1fc9a419" (reference "R71") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/49066788-7bf7-45b3-948b-fb26251f8571" (reference "R81") (unit 1)))))
+(wire (pts (xy 124.46 67.31) (xy 124.46 69.85)) (stroke (width 0) (type default)) (uuid "b7ce87dc-4e79-4509-abd5-c94ba9392bad"))
+(wire (pts (xy 124.46 59.69) (xy 124.46 55.88)) (stroke (width 0) (type default)) (uuid "79e180ab-5ad8-4387-8113-763799c24802"))
+(symbol (lib_id "power:+150V") (at 124.46 55.88 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "5db7d3cb-1f3c-4b04-a9f4-9f6b6cc8461a") (property "Reference" "#PWR101" (at 124.46 59.69 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "+150V" (at 121.92 52.07 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 124.46 55.88 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 124.46 55.88 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "01b495c8-a434-43d1-ada8-da3e9026b359")) (instances (project "NOR2_N16_tb" (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/64dc1fb6-6f57-491b-88f5-d7b6d7e0c5db" (reference "#PWR101") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/b3766878-8f3f-4072-b8e6-0cff199839b0" (reference "#PWR201") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/bf26e7f1-2e83-46be-a152-38588774835b" (reference "#PWR301") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/45432c06-f823-4ede-ac30-2d23b9f103f3" (reference "#PWR401") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/7869979b-b63e-4f0e-a01d-2a2030c688d1" (reference "#PWR501") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/e2416f87-c1f4-444e-8bc8-802284115ea6" (reference "#PWR601") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/1526da1c-a495-42cd-8cf0-de4f1fc9a419" (reference "#PWR701") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/49066788-7bf7-45b3-948b-fb26251f8571" (reference "#PWR801") (unit 1)))))
+(hierarchical_label "Y" (shape output) (at 170.18 81.28 0) (effects (font (size 1.27 1.27)) (justify left)) (uuid "43c7879d-aeaf-4ce2-a03b-4b77f7e9ec1b"))
+(wire (pts (xy 81.28 101.6) (xy 93.98 101.6)) (stroke (width 0) (type default)) (uuid "219d552b-bdbf-4777-bd17-147d51ed3559"))
+(hierarchical_label "A" (shape input) (at 81.28 101.6 180) (effects (font (size 1.27 1.27)) (justify right)) (uuid "decc7e44-f52e-456c-9dd7-ecf20bdb8ed0"))
+(wire (pts (xy 99.06 111.76) (xy 99.06 114.3)) (stroke (width 0) (type default)) (uuid "3166dda6-1366-4004-9765-86f1e5dcb0f5"))
+(wire (pts (xy 99.06 114.3) (xy 93.98 114.3)) (stroke (width 0) (type default)) (uuid "de284e92-a07b-4a04-9ebd-d2bbe1237920"))
+(wire (pts (xy 93.98 114.3) (xy 93.98 116.84)) (stroke (width 0) (type default)) (uuid "ffd5d421-f44f-4fea-bb56-efb11b20d5ff"))
+(symbol (lib_id "power:GND") (at 93.98 116.84 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "ba9df97a-a4d4-4bfe-b600-f48a09f5f6d5") (property "Reference" "#PWR102" (at 93.98 123.19 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 92.71 121.92 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 93.98 116.84 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 93.98 116.84 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "c1d37e34-8150-4da9-843d-33af3cb8e32f")) (instances (project "NOR2_N16_tb" (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/64dc1fb6-6f57-491b-88f5-d7b6d7e0c5db" (reference "#PWR102") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/b3766878-8f3f-4072-b8e6-0cff199839b0" (reference "#PWR202") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/bf26e7f1-2e83-46be-a152-38588774835b" (reference "#PWR302") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/45432c06-f823-4ede-ac30-2d23b9f103f3" (reference "#PWR402") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/7869979b-b63e-4f0e-a01d-2a2030c688d1" (reference "#PWR502") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/e2416f87-c1f4-444e-8bc8-802284115ea6" (reference "#PWR602") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/1526da1c-a495-42cd-8cf0-de4f1fc9a419" (reference "#PWR702") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/49066788-7bf7-45b3-948b-fb26251f8571" (reference "#PWR802") (unit 1)))))
+(wire (pts (xy 132.08 101.6) (xy 144.78 101.6)) (stroke (width 0) (type default)) (uuid "49c70de0-9177-4862-b264-74679472705b"))
+(hierarchical_label "B" (shape input) (at 132.08 101.6 180) (effects (font (size 1.27 1.27)) (justify right)) (uuid "46e9afa0-6230-4d4e-99e7-806e615273a1"))
+(wire (pts (xy 149.86 111.76) (xy 149.86 114.3)) (stroke (width 0) (type default)) (uuid "98e01a35-f22f-4ca1-b205-5f2623fdf573"))
+(wire (pts (xy 149.86 114.3) (xy 144.78 114.3)) (stroke (width 0) (type default)) (uuid "6ea30053-e960-4882-a178-a5e44ebd6790"))
+(wire (pts (xy 144.78 114.3) (xy 144.78 116.84)) (stroke (width 0) (type default)) (uuid "51eee9f4-4731-4994-9912-0ed9ef634b65"))
+(symbol (lib_id "power:GND") (at 144.78 116.84 0) (unit 1) (exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no) (uuid "cb7168b7-92d0-4c21-ac48-9a76f05c5599") (property "Reference" "#PWR103" (at 144.78 123.19 0) (effects (font (size 1.27 1.27)) (justify left) (hide yes))) (property "Value" "GND" (at 143.51 121.92 0) (effects (font (size 1.27 1.27)) (justify left))) (property "Footprint" "" (at 144.78 116.84 0) (effects (font (size 1.27 1.27)) (hide yes))) (property "Datasheet" "~" (at 144.78 116.84 0) (effects (font (size 1.27 1.27)) (hide yes))) (pin "1" (uuid "6989e090-afa6-45bd-931f-0383ed2f9ab8")) (instances (project "NOR2_N16_tb" (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/64dc1fb6-6f57-491b-88f5-d7b6d7e0c5db" (reference "#PWR103") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/b3766878-8f3f-4072-b8e6-0cff199839b0" (reference "#PWR203") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/bf26e7f1-2e83-46be-a152-38588774835b" (reference "#PWR303") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/45432c06-f823-4ede-ac30-2d23b9f103f3" (reference "#PWR403") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/7869979b-b63e-4f0e-a01d-2a2030c688d1" (reference "#PWR503") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/e2416f87-c1f4-444e-8bc8-802284115ea6" (reference "#PWR603") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/1526da1c-a495-42cd-8cf0-de4f1fc9a419" (reference "#PWR703") (unit 1)) (path "/d4f9c8f7-e47b-4364-a6b3-bbb48781693a/49066788-7bf7-45b3-948b-fb26251f8571" (reference "#PWR803") (unit 1)))))
+(wire (pts (xy 100.33 111.76) (xy 100.33 121.92)) (stroke (width 0) (type default)) (uuid "27767b97-e264-4319-83ce-b97edad7acfb"))
+(hierarchical_label "H1" (shape passive) (at 100.33 121.92 270) (effects (font (size 1.27 1.27)) (justify right)) (uuid "163086c8-e02e-4b8e-b7fa-7b13753ff609"))
+(wire (pts (xy 102.87 111.76) (xy 102.87 121.92)) (stroke (width 0) (type default)) (uuid "a9701c25-e8fc-4dae-a0a2-6203b660f3df"))
+(hierarchical_label "H2" (shape passive) (at 102.87 121.92 270) (effects (font (size 1.27 1.27)) (justify right)) (uuid "8d841cfa-bb10-47dd-8123-c8b28cb3e612"))
+(text "NOR2_N16: Y = ~(A | B). One 6N16B (6Н16Б): two triodes, plates in parallel on Ra + La (0.68 mH peaking choke, damped by 10k).\nInputs A, B: LV level, straight to the grids (1 = +10 V, 0 = -20 V).\nOutput Y: HV level on the plates (1 = +150 V, 0 = +50 V).\nSimulated: Y = 147 / 55 V (one input high) / 39 V (both); switching point -2.2 V on the grid.\nEach HV net that drives grids needs a divider HV -> LV: 470k || C1 from Y to the LV net,\n200k from the LV net to -50 V, C1 = 3.9 pF per grid on that net (see NOR2_N16_tb).\nLV inputs must come from such a divider (grid current is limited by it), never from a stiff source.\nUnused input: tie it to the other input. Supplies: +150 V, -50 V (dividers only), heater 6.3 V 0.4 A on H1/H2.\nPage: sch/logic/NOR2_N16/README.md" (exclude_from_sim no) (at 50.8 147.32 0) (effects (font (size 1.27 1.27)) (justify left top)) (uuid "47b110bc-33c7-48d7-a674-f4c04ef8c01c"))
 
 (embedded_fonts no))

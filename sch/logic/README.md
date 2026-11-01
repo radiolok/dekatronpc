@@ -6,7 +6,7 @@ This folder holds the logic cells of the tube machine (REQ-MOD-003/004/005), eac
 
 | Cell | Function | Tubes | In → out | Delay, fanout 2 … 10 | Liberty | Page |
 |---|---|---|---|---|---|---|
-| [NOR2_N16](NOR2_N16/README.md) | Y = ~(A \| B) | one 6N16B | LV → HV | tpHL 73 … 90 ns, tpLH 105 … 290 ns | `NOR2_N16` | NOR gate; the HV/LV levels and the divider rule were set here |
+| [NOR2_N16](NOR2_N16/README.md) | Y = ~(A \| B) | one 6N16B | LV → HV | tpHL 49 … 63 ns, tpLH 88 … 254 ns (La 0.68 mH ‖ 10k) | `NOR2_N16` | NOR gate; the HV/LV levels and the divider rule were set here |
 | [NOR3_N16](NOR3_N16/README.md) | Yi = ~(Ai \| Bi \| Ci) | three 6N16B per two cells (1.5 per cell, the middle tube shared) | LV → HV | Y falls 56 … 88 ns, rises 104 … 252 ns | `NOR3_N16` | two cells per sheet |
 | [NOR4_N16](NOR4_N16/README.md) | Y = ~(A \| B \| C \| D) | two 6N16B | LV → HV | Y falls 58 … 90 ns, rises 120 … 268 ns | `NOR4_N16` | |
 | [NAND2_J2](NAND2_J2/README.md) | Y = ~(A · B) | one 6Zh2B (A on g1, B on g3) | LV → HV | tpHL 166 … 396 ns, tpLH 122 … 466 ns | `NAND2_J2` | NAND gate, the 6Zh2B model |

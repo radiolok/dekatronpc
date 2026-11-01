@@ -55,6 +55,7 @@ def tube_lib():
 LIBS = {
     "Device:R": embed(f"{SYSLIB}/Device.kicad_sym", "R", "Device"),
     "Device:C": embed(f"{SYSLIB}/Device.kicad_sym", "C", "Device"),
+    "Device:L": embed(f"{SYSLIB}/Device.kicad_sym", "L", "Device"),
     "power:GND": embed(f"{SYSLIB}/power.kicad_sym", "GND", "power"),
     "power:PWR_FLAG": embed(f"{SYSLIB}/power.kicad_sym", "PWR_FLAG", "power"),
     "power:+150V": embed(f"{SYSLIB}/power.kicad_sym", "+12V", "power", "+150V"),
@@ -68,6 +69,7 @@ LIBS = {
 PINS = {  # lib-space pin coordinates
     "Device:R": {"1": (0, 3.81), "2": (0, -3.81)},
     "Device:C": {"1": (0, 3.81), "2": (0, -3.81)},
+    "Device:L": {"1": (0, 3.81), "2": (0, -3.81)},
     "Simulation_SPICE:VDC": {"1": (0, 5.08), "2": (0, -5.08)},
     "Simulation_SPICE:VPULSE": {"1": (0, 5.08), "2": (0, -5.08)},
     "vacuum_tube:6Н16Б": {1: {"1": (0, 10.16), "7": (-7.62, 0), "6": (-2.54, -10.16), "4": (1.27, -10.16), "8": (-1.27, -10.16)},
@@ -141,6 +143,7 @@ class Sheet:
 # Levels (owner, 2026-10-23): HV (plate) 1 = +150 V, 0 = +50 V; LV (grid) 1 = +10 V, 0 = -20 V.
 # HV -> LV: divider R1 || C1 / R2 to -50 V (ratio 0.3); LV -> HV: the gate itself.
 RA, R1, R2, C1G = "10k", "470k", "200k", 3.9      # C1 = 3.9 pF per grid on the LV net
+LA, RD = "680u", "10k"   # anode peaking choke in series with Ra and its damping resistor (README: "Peaking inductor")
 cell = Sheet()
 tb = Sheet()
 INST = [("DUT", "Y"), ("DRV_A", "IN_A"), ("DRV_B", "IN_B")] + [("LOAD%d" % i, None) for i in range(1, 6)]
@@ -167,9 +170,18 @@ cell.wire(pin_at(T, (XA, Y0), 0, "1", 1), (XA, YP))
 cell.wire(pin_at(T, (XB, Y0), 0, "5", 2), (XB, YP))
 cell.wire((XA, YP), (xr, YP)); cell.wire((xr, YP), (XB, YP)); cell.wire((XB, YP), (XY, YP))
 cell.junction((xr, YP)); cell.junction((XB, YP))
-ra = (xr, YP - 3*G)
+la = (xr, YP - 3*G)
+cell.symbol("Device:L", la, 0, refs("L{k}1"), LA)
+cell.wire(pin_at("Device:L", la, 0, "2"), (xr, YP))
+rd = (xr + 4*G, YP - 3*G)
+cell.symbol("Device:R", rd, 0, refs("R{k}2"), RD)
+for pin in ("1", "2"):
+    a, b = pin_at("Device:L", la, 0, pin), pin_at("Device:R", rd, 0, pin)
+    cell.wire(b, (b[0], b[1] + (-G if pin == "1" else G)), (a[0], b[1] + (-G if pin == "1" else G)))
+    cell.junction((a[0], b[1] + (-G if pin == "1" else G)))
+ra = (xr, YP - 7*G)
 cell.symbol("Device:R", ra, 0, refs("R{k}1"), RA)
-cell.wire(pin_at("Device:R", ra, 0, "2"), (xr, YP))
+cell.wire(pin_at("Device:R", ra, 0, "2"), pin_at("Device:L", la, 0, "1"))
 top = (xr, ra[1] - 3*G)
 cell.wire(pin_at("Device:R", ra, 0, "1"), top)
 cell.symbol("power:+150V", top, 0, pwr_refs(), "+150V", ref_off=(0, 3.81), val_off=(-2.54, -3.81), hide_ref=True, pins=["1"])
@@ -188,7 +200,7 @@ for pin, name in (("8", "H1"), ("4", "H2")):
     e = (p[0], p[1] + 4*G)
     cell.wire(p, e)
     cell.hlabel(name, "passive", e, 270)
-cell.text("NOR2_N16: Y = ~(A | B). One 6N16B (6Н16Б): two triodes, plates in parallel on Ra.\n"
+cell.text("NOR2_N16: Y = ~(A | B). One 6N16B (6Н16Б): two triodes, plates in parallel on Ra + La (0.68 mH peaking choke, damped by 10k).\n"
           "Inputs A, B: LV level, straight to the grids (1 = +10 V, 0 = -20 V).\n"
           "Output Y: HV level on the plates (1 = +150 V, 0 = +50 V).\n"
           "Simulated: Y = 147 / 55 V (one input high) / 39 V (both); switching point -2.2 V on the grid.\n"
@@ -198,7 +210,7 @@ cell.text("NOR2_N16: Y = ~(A | B). One 6N16B (6Н16Б): two triodes, plates in p
           "Unused input: tie it to the other input. Supplies: +150 V, -50 V (dividers only), heater 6.3 V 0.4 A on H1/H2.\n"
           "Page: sch/logic/NOR2_N16/README.md", (20*G, 58*G))
 cell.dump(os.path.join(OUT, "NOR2_N16", "NOR2_N16.kicad_sch"), "NOR2_N16 - 2NOR on 6N16B",
-          comments=["Y = ~(A | B); A, B: LV (+10/-20 V); Y: HV (+150/+50 V)", "Ra 10k to +150 V"])
+          comments=["Y = ~(A | B); A, B: LV (+10/-20 V); Y: HV (+150/+50 V)", "Ra 10k + La 0.68 mH || 10k to +150 V"])
 
 # ---------------------------------------------------------------- testbench
 ROOT = "/%s" % tb.uuid

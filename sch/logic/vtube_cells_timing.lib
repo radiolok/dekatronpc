@@ -877,17 +877,17 @@ library(vtube_cells_lib_timing) {
       timing() {
         related_pin : "A";
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("174, 327, 480"); }
+        cell_rise(fanout3) { values("125.9, 259, 404"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("88.7, 99, 109.3"); }
+        cell_fall(fanout3) { values("56.03, 65, 73"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
       timing() {
         related_pin : "B";
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("174, 327, 480"); }
+        cell_rise(fanout3) { values("125.9, 259, 404"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("88.7, 99, 109.3"); }
+        cell_fall(fanout3) { values("56.03, 65, 73"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
     }

@@ -202,6 +202,32 @@ Cg3a matters much less than in NAND2_J2 (+8 ns at 2.5 pF against +100 ns there).
 
 The D latch and flip-flop options are on their pages.
 
+## Speed-up options (2026-11-01, study, not applied)
+
+Owner, 2026-11-01: try anode chokes and anything else that speeds up the latches. `tools/spice/latch_peaking.py` reuses the `latch_sweep.py` bench (12 states, both outputs, all arcs). The 6N16B drivers carry the NOR2_N16 choke where noted. "Worst" is the slowest Q/QN arc of the sequence, input −5 V to output 100 V.
+
+| Option (drivers with La ‖ 10k unless noted) | Worst arc, fanout 2 / 6 / 10 | Lowest S / fb grid | Notes |
+|---|---|---|---|
+| cell as drawn, plain drivers | 195 / 286 / 392 ns | −34.3 / −24.5 V | reference |
+| cell as drawn | 154 / 246 / 364 ns | −35.0 / −24.5 V | only the inputs are faster |
+| cell as drawn, drivers with undamped La 0.68 mH | 150 / 311 / 470 ns | −36.0 / −24.4 V | the S net rings ±1.6 V and the pentode current drops (why NOR2_N16 has Rd) |
+| Rg2 12k (was 15k) | 149 / 240 / 328 ns | −34.3 / −25.0 V | more pentode current |
+| La 1 mH in each plate | 127 / 203 / 285 ns | −35.0 / −24.6 V | Ra·C edges faster |
+| **La 1 mH in each plate + Rg2 12k** | **118 / 197 / 277 ns** | **−34.3 / −24.9 V** | **best simple option: −20…−24 % against the same drivers, −29…−39 % against the cell today** |
+| La 1 mH + series Ls 0.68 mH ‖ 22k to the output pin + Rg2 12k | 143 / 212 / 268 ns | −34.3 / −25.2 V | Ls hides the outside load from the regenerative loop; slower at low fanout, two more chokes |
+| in-cell feedback C1 5.6 pF | 151 / 238 / 339 ns | −35.0 / −37.0 V | small gain for a 12 V deeper feedback-grid kick |
+
+Why the slowest arc is S→QN at large fanout: with E high, S turns the pentode on, and that pentode alone has to pull QN (and the outside divider C1 of 10 grids, 39 pF) down until the cross triode follows. The fall is a current slew, so a plate choke does not help it; more pentode current (Rg2) does. The rise arcs are Ra·C edges and take the choke.
+
+Checks of "La 1 mH + Rg2 12k" (fanout 6, static values at the end of each state):
+
+- 6Zh2B screen: Pg2 0.47 W (limit 0.6 W; 0.37 W with 15k). Rg2 10k gives 0.56 W and 6.8k 0.81 W, so both are out.
+- 6Zh2B cathode: Ik 12.0 mA static (limit 14 mA; 10.7 mA with 15k). Transient peaks reach 16.9 mA for < 100 ns (12.8 mA in the cell as drawn).
+- Tolerance: C1 +10 % → worst 120 / 206 / 294 ns, S grid −42.4 V; La 0.8 / 1.2 mH → 294 / 268 ns at fanout 10 (undamped drivers); with plain drivers → 146 / 219 / 301 ns.
+- Levels unchanged: VOH 143.9 V, VOL 34.7…55.1 V; no glitch beyond 55.7 V in the hold states.
+
+Not done: applying it to the cell, DLATCH2_J2N16, DFF_J2N16 and DFFRN/DFFSN (KiCad sheets, testbenches, timing), and a damping resistor across the plate chokes (the latch plates did not ring with 1 mH at fanout 2–10). That is the owner's call: two chokes per latch, 4 per DLATCH2, 4 per DFF.
+
 ## Proposed liberty entry (not applied)
 
 Waiting for the owner's review (owner, 2026-10-27: proposal only). Here "fanout_load" is in units of a triode grid (C1 3.9 pF): pentode g1 0.7, g3 1.75.
@@ -229,6 +255,7 @@ The applied `LATCH_J2N16` and `DFF_J2N16` entries are on the [DLATCH2_J2N16](../
 | `RSLATCH_J2N16_tb.kicad_sch/.kicad_pro` | testbench |
 | `tools/kicad/gen_latch_j2n16.py` | generator of all six sheets of the three cells (net labels at pin stubs; RSLATCH carries the instances of all three projects) |
 | `tools/spice/latch_sweep.py` | RS latch sweep (cell netlist `rslatch()`, options eg/fb/C1) |
+| `tools/spice/latch_peaking.py` | speed-up study: plate chokes, series chokes, Rg2, driver chokes |
 | `tools/spice/latch_static.py` | currents and dissipation per state |
 | `tools/spice/latch_timing.py` | shortest E pulse, setup, hold |
 | `tools/spice/latch_tb.py` | testbench definitions shared with KiCad, plain-SPICE reference |

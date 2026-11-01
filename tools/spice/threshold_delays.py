@@ -37,7 +37,7 @@ def gates(cell):
         p = dict(R1="470k", R2="200k", C1g=3.9, C1g3=6.8, Cb=15, Ra="15k", Rg2="15k")
         return NA.deck(p, FANOUT), {"tphl_a": ("A", "fall"), "tplh_a": ("A", "rise"), "tphl_b": ("B", "fall"), "tplh_b": ("B", "rise")}
     if cell == "NOR2_N16":
-        p = dict(R1="470k", R2="200k", C1g=3.9, Ra="10k")
+        p = dict(R1="470k", R2="200k", C1g=3.9, Ra="10k", L="680u", Rd="10k")
         return NO.deck(p, FANOUT), {"tphl": ("A", "fall"), "tplh": ("A", "rise")}
     if cell == "NOT_N16":
         p = dict(R1="470k", R2="200k", C1g=3.9, Ra="10k")

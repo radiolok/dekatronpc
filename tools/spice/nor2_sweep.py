@@ -3,7 +3,7 @@
 Gate: LV grid inputs (1 = +10, 0 = -20 V), HV plate output (1 = +150, 0 = +50 V); HV->LV divider R1 || C1 / R2 to -50 V.
 Chain: ideal HV pulse -> divider -> driver NOR (inputs tied) -> divider -> DUT A/B;
 DUT Y -> one divider (C1 = C1g x grids) -> N grids (N/2 load gates with both inputs tied).
-Optional parameters: L (peaking inductor in series with Ra)."""
+L: anode peaking choke in series with Ra (0.68 mH in the cell), Rd across it (10k), in every gate of the chain."""
 import subprocess, re, sys, os, tempfile
 from multiprocessing import Pool
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -12,6 +12,7 @@ MODEL = os.path.join(HERE, "..", "..", "sch", "libs", "6N16B.sub")
 def nor(t, a, b, p):
     s = f"X{t} p{t} {a} 0 p{t} {b} 0 6N16B\n"
     if p.get('L'): s += f"RA{t} vcc pl{t} {p['Ra']}\nLA{t} pl{t} p{t} {p['L']}\n"
+    if p.get('L') and p.get('Rd'): s += f"RD{t} pl{t} p{t} {p['Rd']}\n"
     else: s += f"RA{t} vcc p{t} {p['Ra']}\n"
     return s
 def div(t, hv, lv, p, ngrid):
@@ -69,7 +70,7 @@ def fmt(name, n, m):
             f" | tpHL={g('tphl',1e9):4.0f} tpLH={g('tplh',1e9):4.0f} LV->LV {g('lvd_hl',1e9):4.0f}/{g('lvd_lh',1e9):4.0f}ns")
 if __name__ == "__main__":
     # usage: nor2_sweep.py [cases.py]; a cases file defines CASES = [(name, params), ...] and optionally GRIDS
-    CASES = [("NOR2_N16", dict(R1="470k", R2="200k", C1g=3.9, Ra="10k"))]
+    CASES = [("NOR2_N16", dict(R1="470k", R2="200k", C1g=3.9, Ra="10k", L="680u", Rd="10k"))]
     GRIDS = (2, 4, 6, 8, 10)
     if len(sys.argv) > 1: exec(open(sys.argv[1]).read())
     grids = GRIDS

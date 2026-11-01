@@ -26,7 +26,7 @@ CELL_DIR = os.path.join(REPO, "sch", "logic", "NOR2_N16")
 CELL_SCH = os.path.join(CELL_DIR, "NOR2_N16_tb.kicad_sch")
 CELL_SHEET_SVG = "NOR2_N16_tb-DUT.svg"          # the DUT page of the testbench export = the cell sheet
 CELL_CROP_MM = (70, 50, 190, 145)               # area of the cell drawing on its A4 page
-PARAMS = dict(R1="470k", R2="200k", C1g=3.9, Ra="10k")
+PARAMS = dict(R1="470k", R2="200k", C1g=3.9, Ra="10k", L="680u", Rd="10k")
 GRIDS = (2, 4, 6, 8, 10)
 WAVES = [("IN_A (LV, DUT grid A)", "/IN_A", "lv"), ("IN_B (LV, DUT grid B)", "/IN_B", "lv"),
          ("OUT (HV, DUT plate)", "/OUT", "hv"), ("OUT_LV (after divider, 10 grids)", "/OUT_LV", "lv")]
