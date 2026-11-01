@@ -283,3 +283,13 @@ via the bus ≈ 981. The estimates add only roughly (ABC drift ±10, the options
 - `vtube_sdf.py`: latch checkers (closing edge), inputs tied to one net.
 - `vtube_sta.py`: latches (transparent window, setup to the closing edge, hold against the
   cathode readings).
+
+## 9. Final verification (branch head)
+
+- `run_tests.sh -d` (delay model: Dekatron, Counter ×2, IpLine, ApLine, MachineCtrl,
+  DekatronPC hello / program / **pi.bfk**): all PASS; pi.bfk runs 27 452 710 µs = **2.745 M
+  cycles**, the same as v0.24–v0.25, so the speed hasn't changed.
+- cocotb `test_dek_counter` (9/9) and `test_pulse_sender` (4/4) PASS.
+- `synth_sim.sh` 7/7, `synth_sim.sh -t` 4/4 with 0 setup / 0 hold violations; STA 8.0 µs.
+- Verilator lint of DekatronPC and Emulator clean. Not run: `run_tests.sh -t` (the
+  Verilator golden-model builds; the clocked model of the FPGA didn't change in behaviour).
