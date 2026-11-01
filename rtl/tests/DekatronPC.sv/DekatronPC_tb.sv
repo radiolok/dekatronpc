@@ -79,12 +79,12 @@ wire rx_rdy;
 // Период Clk в нс (synth_sim.sh -c): поиск частоты, на которой работает
 // нетлист с задержками ламп (doc/vtube_sdf_timing.md)
 `ifndef CLK_NS
-`define CLK_NS 1000
+`define CLK_NS CLK_PERIOD_NS
 `endif
 // Модель на задержках: hsClk машине не нужен и стоит в нуле — так
-// проверяется, что DekatronPC от него не зависит. Clk 1 МГц с той же
+// проверяется, что DekatronPC от него не зависит. Clk (HSCLK_DIV тактов hsClk) с той же
 // фазой, что дал бы делитель: rst_n снимается на фронте hsClk, первый
-// фронт Clk — на следующем, через 100 нс.
+// фронт Clk — на следующем.
 initial hsClk = 1'b0;
 initial begin
     Clk = 1'b0;
@@ -98,13 +98,13 @@ end
 `else
 initial begin
     hsClk = 1'b0;
-    // 10 MHz, as the dekatron timing estimates assume: DekatronTubeDelay
-    // works in absolute time (HS_NS = 100 ns), not in hsClk cycles
-    forever #0.5 hsClk = ~hsClk;
+    // hsClk = 10 x Clk (HSCLK_NS = CLK_PERIOD_NS / 10, TRS v0.24);
+    // timescale 100 ns
+    forever #(HSCLK_NS / 200.0) hsClk = ~hsClk;
 end
 
 ClockDivider #(
-    .DIVISOR(10)
+    .DIVISOR(HSCLK_DIV)
 ) clock_divider_ms(
     .Rst_n(rst_n),
     .clock_in(hsClk),

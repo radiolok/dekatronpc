@@ -8,10 +8,11 @@ Replaces the legacy Counter_tb.sv.
 DekatronCounter: multi-digit BCD counter with a Valid/Ready handshake:
 - Valid is a level that is held until the transfer is accepted (Valid & Ready)
 - Ready is independent of Valid (asserted in IDLE)
-- INC/DEC: single-cycle operations (Ready stays high, 1 op/cycle)
-- SET/SET_ZERO/SET_TOP: multi-cycle operations (Ready drops ~100 hsClk cycles)
-- Operands are not latched (saves tubes, TRS REQ-CNT-V2-004): dec/set/set_zero
-  are needed only until the handshake, in must stay until ready returns
+- Every operation (INC/DEC, SET, SET_ZERO, edge wrap) completes in the
+  accept cycle at the 100 kHz clock (TRS v0.24, REQ-CNT-V2-009): Ready drops
+  only on the physical reset lines, one op per cycle
+- Operands are not latched (saves tubes, TRS REQ-CNT-V2-004): dec/set/
+  set_zero/in are needed only in the handshake cycle
 - hsClk/Clk dual clock, carry chain across digits
 """
 
@@ -22,7 +23,9 @@ from cocotb.triggers import Timer, RisingEdge, FallingEdge, ClockCycles, ReadOnl
 import logging
 log = logging.getLogger(__name__)
 
-RESET_MIN_HS = 100      # DekatronCounter default
+HS_PER_CLK = 10         # rtl/parameters.sv HSCLK_DIV: hs_clk = 10 x clk
+CLK_NS = 10000          # DEKATRON_CLK_NS default: clk = 100 kHz (TRS v0.24)
+RESET_MIN_HS = HS_PER_CLK // 2   # DekatronCounter default
 
 
 # ============================================================
@@ -30,9 +33,9 @@ RESET_MIN_HS = 100      # DekatronCounter default
 # ============================================================
 
 async def start_clocks_and_reset(dut):
-    """Start hs_clk (10x) and clk, then perform a reset sequence."""
-    clock_hs = Clock(dut.hs_clk, 100, unit="ns")
-    clock_clk = Clock(dut.clk, 1000, unit="ns")
+    """Start clk and hs_clk (HS_PER_CLK x faster), then reset."""
+    clock_hs = Clock(dut.hs_clk, CLK_NS // HS_PER_CLK, unit="ns")
+    clock_clk = Clock(dut.clk, CLK_NS, unit="ns")
     cocotb.start_soon(clock_hs.start())
     cocotb.start_soon(clock_clk.start(start_high=False))
 
@@ -54,7 +57,7 @@ async def start_clocks_and_reset(dut):
 
     # rst_n resets the logic only and never moves a discharge (TRS 12.3).
     # The tubes are put to zero by the physical soft_rst line, which the
-    # external time relay holds for at least RESET_MIN_HS (100) hs_clk
+    # external time relay holds for at least RESET_MIN_HS hs_clk
     # cycles. Without it every test would start from wherever the
     # previous one left the counter.
     await FallingEdge(dut.clk)
@@ -95,13 +98,11 @@ async def handshake(dut, *, dec=0, set_=0, set_zero=0, in_val=0):
     dut.valid.value = 1
     await RisingEdge(dut.clk)   # accept edge: valid & ready
     dut.valid.value = 0
-    # Right after the edge cocotb still sees the pre-edge ready = 1; let the
-    # edge settle so a slow operation (set, set_zero) is seen as busy.
     await ReadOnly()
 
-    await wait_ready(dut)       # operation completes (ready rises again)
-    # The fast-path result settles within one clk cycle after the accept
-    # edge (hs_clk carry chain is < 10 hs_clk cycles).
+    # Every operation completes in the accept cycle (REQ-CNT-V2-009): the
+    # result is on the cathodes at the edge that ends it
+    await wait_ready(dut)
     await ClockCycles(dut.clk, 1)
 
 

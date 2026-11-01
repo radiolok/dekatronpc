@@ -51,7 +51,9 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from vtube_liberty import parse_liberty  # noqa: E402
 
-HS_NS = 100.0
+# hsClk period, ns: Clk / 10 at the 100 kHz machine (TRS v0.24; was 100 ns
+# while hsClk was a fixed 10 MHz)
+HS_NS = 1000.0
 DATA = ('data', 'tube')
 
 

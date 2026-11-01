@@ -34,8 +34,8 @@
 // подкатод B) отсчитывается заново, а не сливается с предыдущим.
 //
 // Время задаётся в нс: HS_NS — период временной базы, в которой
-// выражены параметры *_HS (по умолчанию 100 нс, то есть 10 МГц, как
-// hsClk). Параметры *_HS те же, что у DekatronTubeV2, поэтому
+// выражены параметры *_HS (по умолчанию HSCLK_NS = период Clk / 10,
+// 1 мкс при 100 кГц, как hsClk, TRS v0.24). Параметры *_HS те же, что у DekatronTubeV2, поэтому
 // DekatronModule и нетлист передают их без изменений.
 //
 // `define DEKATRON_RANDOM_INIT: после включения питания разряд стоит на
@@ -48,13 +48,11 @@
 `default_nettype none
 
 module DekatronTubeDelay #(
-    parameter unsigned HS_PER_CLK       = 10,
-    parameter unsigned WR_SYNC_HS       = HS_PER_CLK,
-    parameter unsigned GUIDE_STEP_HS    = 2,
-    parameter unsigned FALL_STEP_HS     = 3,
+    parameter unsigned GUIDE_STEP_HS    = 1,
+    parameter unsigned FALL_STEP_HS     = 1,
     parameter unsigned GUIDE_MAX_HS     = 20,
-    parameter unsigned WRITE_MIN_HS     = 100,
-    parameter unsigned RESET_MIN_HS     = 100,
+    parameter unsigned WRITE_MIN_HS     = 5,
+    parameter unsigned RESET_MIN_HS     = 5,
     parameter bit          EN_RESETN        = 1'b0,
     parameter unsigned RESET_N_POS      = 9,
     parameter logic [3:0]  INIT_DIGIT       = 4'd0,
@@ -63,7 +61,7 @@ module DekatronTubeDelay #(
     parameter bit          EN_DEBUG_OUTPUTS = 1'b1,
 
     // Период временной базы параметров *_HS, нс
-    parameter unsigned HS_NS            = 100
+    parameter unsigned HS_NS            = HSCLK_NS
 )(
     // Подкатодные линии
     input  wire         guide_a_i,
@@ -98,15 +96,12 @@ module DekatronTubeDelay #(
     timeunit 1ns;
     timeprecision 1ps;
 `endif
-    // Длительности переходов, нс. Запись и сброс короче на задержку
-    // квалификации запроса WR_SYNC_HS (см. DekatronTubeV2, wr_min_hs).
+    // Длительности переходов, нс
     localparam int unsigned GUIDE_NS = GUIDE_STEP_HS * HS_NS;
     localparam int unsigned FALL_NS  = FALL_STEP_HS  * HS_NS;
     localparam int unsigned GMAX_NS  = GUIDE_MAX_HS  * HS_NS;
-    localparam int unsigned WRITE_NS =
-        ((WRITE_MIN_HS > WR_SYNC_HS) ? (WRITE_MIN_HS - WR_SYNC_HS) : 1) * HS_NS;
-    localparam int unsigned RESET_NS =
-        ((RESET_MIN_HS > WR_SYNC_HS) ? (RESET_MIN_HS - WR_SYNC_HS) : 1) * HS_NS;
+    localparam int unsigned WRITE_NS = WRITE_MIN_HS  * HS_NS;
+    localparam int unsigned RESET_NS = RESET_MIN_HS  * HS_NS;
 
     localparam logic [29:0] MASK_MAIN = 30'b001001001001001001001001001001;
     localparam logic [29:0] MASK_GA   = 30'b010010010010010010010010010010;
@@ -270,10 +265,8 @@ module DekatronTubeDelay #(
     always_comb
         for (int i = 0; i < 10; i++) main_decoded[i] = cathodes_q[3*i];
 
-    wire settled_on_main = on_main && !wr_any_active &&
-                           !guide_a_i && !guide_b_i;
-
-    assign main_onehot_o = settled_on_main ? main_decoded : 10'b0;
+    // Линии чтения читаются всегда (см. DekatronTubeV2) [TRS v0.24]
+    assign main_onehot_o = on_main ? main_decoded : 10'b0;
 
     generate
         if (EN_DEBUG_OUTPUTS) begin : g_dbg_on
@@ -298,12 +291,6 @@ module DekatronTubeDelay #(
     endgenerate
 
     initial begin
-        if (WRITE_MIN_HS <= WR_SYNC_HS)
-            $error("DekatronTubeDelay: WRITE_MIN_HS (%0d) должен быть больше WR_SYNC_HS (%0d)",
-                   WRITE_MIN_HS, WR_SYNC_HS);
-        if (RESET_MIN_HS <= WR_SYNC_HS)
-            $error("DekatronTubeDelay: RESET_MIN_HS (%0d) должен быть больше WR_SYNC_HS (%0d)",
-                   RESET_MIN_HS, WR_SYNC_HS);
         if (!EN_RESETN && (RESET_N_POS > 9))
             $error("DekatronTubeDelay: RESET_N_POS (%0d) вне 0..9", RESET_N_POS);
     end

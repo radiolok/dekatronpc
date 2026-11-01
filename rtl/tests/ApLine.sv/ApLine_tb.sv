@@ -28,13 +28,13 @@ reg Clk;
 reg hsClk;
 initial begin
     hsClk = 1'b1;
-    forever #50 hsClk = ~hsClk;
+    forever #(HSCLK_NS / 2.0) hsClk = ~hsClk;   // Clk / HSCLK_DIV
 end
 
 parameter TEST_NUM = 20000;
 
 ClockDivider #(
-    .DIVISOR(10)
+    .DIVISOR(HSCLK_DIV)
 ) clock_divider_ms(
     .Rst_n(Rst_n),
     .clock_in(hsClk),

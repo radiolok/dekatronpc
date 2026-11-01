@@ -60,7 +60,7 @@
 module RstTimeRelay #(
     parameter unsigned HOLD_HS         = 104,   // тактов hs_clk
     parameter bit          RST_ON_POWERUP  = 1'b1,  // аппаратный сброс при включении
-    parameter unsigned HS_NS           = 100    // такт hs_clk в модели на задержках, нс
+    parameter unsigned HS_NS           = HSCLK_NS   // такт hs_clk в модели на задержках, нс
 )(
 /* verilator lint_off UNUSEDSIGNAL */
     input  wire  hs_clk,

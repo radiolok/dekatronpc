@@ -3,23 +3,13 @@
 //----------------------------------------------------------------------
 // Counter_tb — тест DekatronCounter (Valid/Ready)
 //
-// Интерфейс DUT обновлён под v0.7:
-//   Clk/hsClk/Rst_n/HardRst_n -> clk/hs_clk/rst_n/soft_rst/hard_rst
-//   Request/Ready/Set/SetZero/In/Out ->
-//   valid/ready/set/set_zero/in/out/zero/at_top (out_valid удалён)
-//
-// ШАГ 1 (исправлено в RTL): нуль-задержечная петля
-//   accept -> write_req -> write_start(Impulse) -> writing(OneShot)
-//          -> ready -> accept
-// устранена: ready больше не зависит от writing. iverilog больше не
-// подвисает, Verilator не выдаёт UNOPTFLAT на accept/write_req.
-//
-// ШАГ 2 (остаётся): операции записи всё ещё не срабатывают. wr_zero/wr_top
-// включаются состоянием ST_* на такт clk позже старта окна writing, а окно
-// равно max(WRITE_MIN_HS,RESET_MIN_HS)+4 = 104 hs. Фактически линия держится
-// 104 - HS_PER_CLK = 94 hs < RESET_MIN_HS = 100, и декатрон её игнорирует.
-// Поэтому rollover и set*/set_zero дают неверный результат (не зависание,
-// а молчаливое отсутствие операции). Тест это фиксирует: см. FAIL ниже.
+// [TRS v0.24] Такт 100 кГц (HS_PER_CLK = HSCLK_DIV): любая операция —
+// шаг, запись, сброс в нуль, переход через край — завершается в такте
+// рукопожатия, ready снимают только линии сброса. Тест «подряд» выдаёт
+// операции каждый такт без пауз и проверяет показание на каждом фронте:
+// после записи сразу шаг с переносом, после set_zero сразу декремент
+// через край — признаки nines_q/zeroes_q/zero_q/at_top_q обязаны быть
+// защёлкнуты с уже записанного значения.
 //
 // Второй счётчик ip_counter собран как IP (5 декад, без записи,
 // HARD_RST_D_CNT = 3): аппаратный сброс даёт 99900, программный — 0.
@@ -46,11 +36,11 @@ reg hsClk;
 // Период Clk в нс (synth_sim.sh -c): поиск частоты, на которой работает
 // нетлист с задержками ламп (doc/vtube_sdf_timing.md)
 `ifndef CLK_NS
-`define CLK_NS 1000
+`define CLK_NS CLK_PERIOD_NS
 `endif
 // Модель на задержках: hsClk не нужен и стоит в нуле — так проверяется,
-// что DUT от него не зависит. Clk 1 МГц с той же фазой, что дал бы
-// делитель: первый фронт через 50 нс после снятия Rst_n.
+// что DUT от него не зависит. Clk с той же фазой, что дал бы делитель:
+// первый фронт через 50 нс после снятия Rst_n.
 initial hsClk = 1'b0;
 initial begin
     Clk = 1'b0;
@@ -64,10 +54,10 @@ end
 `else
 initial begin
     hsClk = 1'b0;
-    forever #50 hsClk = ~hsClk;
+    forever #(HSCLK_NS / 2.0) hsClk = ~hsClk;   // Clk / HSCLK_DIV
 end
 ClockDivider #(
-    .DIVISOR(10)
+    .DIVISOR(HSCLK_DIV)
 ) clock_divider_ms(
     .Rst_n(Rst_n),
     .clock_in(hsClk),
@@ -159,8 +149,8 @@ task automatic do_op_full(input bit d, input bit s, input bit sz,
     valid   <= 1'b0;
     Set     <= 1'b0;
     SetZero <= 1'b0;
-    // Ждать завершения операции по ready: для шага он не снимается,
-    // для записи снят до конца окна writeTimer.
+    // Любая операция завершается к фронту после такта рукопожатия
+    // [TRS v0.24]; ready снимают только линии сброса
     @(posedge Clk);
     while (!Ready) @(posedge Clk);
     @(posedge Clk);          // дать признакам zero/at_top установиться
@@ -177,7 +167,7 @@ task automatic do_rst(input bit hard, input bit expected_top);
     @(posedge Clk);
     soft_rst <= ~hard;
     hard_rst <=  hard;
-    repeat (15) @(posedge Clk);       // 150 hs > RESET_MIN_HS = 100
+    repeat (3) @(posedge Clk);        // реле времени: 3 такта > RESET_MIN_HS
     soft_rst <= 1'b0;
     hard_rst <= 1'b0;
     @(posedge Clk);
@@ -190,6 +180,61 @@ endfunction
 
 int errors = 0;
 int exp_val;
+
+//----------------------------------------------------------------------
+// Операции подряд, по одной на такт: valid не снимается между ними.
+// Показание проверяется на фронте, завершающем такт операции.
+//----------------------------------------------------------------------
+localparam int B2B_N = 14;
+
+// Шаг i: {код операции, аргумент записи, ожидаемое показание}.
+// Код: 0 — инкремент, 1 — декремент, 2 — запись, 3 — set_zero
+task automatic b2b(input int i, output int op, output int arg,
+                   output int exp_v);
+    case (i)
+        0:  begin op = 2; arg = 199; exp_v = 199; end  // запись
+        1:  begin op = 0; arg = 0;   exp_v = 200; end  // перенос через две декады
+        2:  begin op = 1; arg = 0;   exp_v = 199; end  // заём через две декады
+        3:  begin op = 3; arg = 0;   exp_v = 0;   end  // set_zero
+        4:  begin op = 1; arg = 0;   exp_v = 255; end  // 0 - 1 -> TOP сразу после set_zero
+        5:  begin op = 0; arg = 0;   exp_v = 0;   end  // TOP + 1 -> 0 сразу после перехода
+        6:  begin op = 0; arg = 0;   exp_v = 1;   end
+        7:  begin op = 2; arg = 9;   exp_v = 9;   end
+        8:  begin op = 0; arg = 0;   exp_v = 10;  end
+        9:  begin op = 1; arg = 0;   exp_v = 9;   end
+        10: begin op = 2; arg = 100; exp_v = 100; end
+        11: begin op = 1; arg = 0;   exp_v = 99;  end
+        12: begin op = 0; arg = 0;   exp_v = 100; end
+        default: begin op = 0; arg = 0; exp_v = 101; end
+    endcase
+endtask
+
+task automatic back_to_back();
+    int op, arg, exp_v;
+    while (!Ready) @(posedge Clk);
+    for (int i = 0; i < B2B_N; i++) begin
+        b2b(i, op, arg, exp_v);
+        valid   <= 1'b1;
+        Dec     <= (op == 1);
+        Set     <= (op == 2);
+        SetZero <= (op == 3);
+        In      <= exp_to_bcd(arg);
+        @(posedge Clk);
+        if (!Ready) begin
+            errors++;
+            $display("FAIL: ready dropped in back-to-back op %0d at %0t", i, $time);
+        end
+        if (Out !== exp_to_bcd(exp_v)) begin
+            errors++;
+            $display("FAIL: back-to-back op %0d (code %0d): Out=%h expected=%h at %0t",
+                     i, op, Out, exp_to_bcd(exp_v), $time);
+        end
+    end
+    valid   <= 1'b0;
+    Set     <= 1'b0;
+    SetZero <= 1'b0;
+    @(posedge Clk);
+endtask
 
 task automatic check_ip(input [IP_WIDTH-1:0] v);
 `ifndef NETLIST_SIM
@@ -269,6 +314,9 @@ initial begin
     $display("Set zero test");
     do_op_full(1'b0, 1'b0, 1'b1, {WIDTH{1'b0}});
     check_out(0);
+
+    $display("Back-to-back test (one operation per clock)");
+    back_to_back();
 
     $display("Soft reset test");
     do_op(1'b0);

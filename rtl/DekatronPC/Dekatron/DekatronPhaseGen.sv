@@ -66,7 +66,7 @@ module DekatronPhaseGen #(
     parameter unsigned PHASE2_HS      = 3,  // длительность второй фазы
     parameter unsigned PHASE_DELAY_HS = 0   // задержка начала фаз от фронта Clk
 )(
-    input  wire hsClk,    // временная база модели (10 МГц)
+    input  wire hsClk,    // временная база модели (10 × Clk)
     input  wire Clk,      // такт счёта (1 МГц)
     input  wire Rst_n,    // модельный сброс элементов задержки
 

@@ -31,10 +31,10 @@ reg Rst_n;
 // Период Clk в нс (synth_sim.sh -c): поиск частоты, на которой работает
 // нетлист с задержками ламп (doc/vtube_sdf_timing.md)
 `ifndef CLK_NS
-`define CLK_NS 1000
+`define CLK_NS CLK_PERIOD_NS
 `endif
 // Модель на задержках: hsClk не нужен и стоит в нуле — так проверяется,
-// что DUT от него не зависит. Clk 1 МГц с той же фазой, что дал бы
+// что DUT от него не зависит. Clk (HSCLK_DIV тактов hsClk) с той же фазой, что дал бы
 // делитель: первый фронт через 50 нс после снятия Rst_n.
 initial hsClk = 1'b0;
 initial begin
@@ -49,11 +49,11 @@ end
 `else
 initial begin
     hsClk = 1'b0;
-    forever #50 hsClk = ~hsClk;
+    forever #(HSCLK_NS / 2.0) hsClk = ~hsClk;   // Clk / HSCLK_DIV
 end
 
 ClockDivider #(
-    .DIVISOR(10)
+    .DIVISOR(HSCLK_DIV)
 ) clock_divider_ms(
     .Rst_n(Rst_n),
     .clock_in(hsClk),
@@ -136,7 +136,7 @@ task automatic write_value(input [WIDTH-1:0] v);
     @(posedge Clk);
     In      <= v;
     SetData <= 1'b1;
-    repeat (15) @(posedge Clk);     // 150 hs > WRITE_MIN_HS = 100
+    repeat (15) @(posedge Clk);     // 15 тактов Clk > WRITE_MIN_HS
     SetData <= 1'b0;
     In      <= '0;
     @(negedge Clk);
@@ -146,7 +146,7 @@ task automatic set_position(input bit top, input bit zero);
     @(posedge Clk);
     SetTop  <= top;
     SetZero <= zero;
-    repeat (15) @(posedge Clk);     // 150 hs > RESET_MIN_HS = 100
+    repeat (15) @(posedge Clk);     // 15 тактов Clk > RESET_MIN_HS
     SetTop  <= 1'b0;
     SetZero <= 1'b0;
     @(negedge Clk);

@@ -110,14 +110,14 @@ reg hsClk;
 
 initial begin
     hsClk = 1'b0;
-    forever #50 hsClk = ~hsClk;
+    forever #(HSCLK_NS / 2.0) hsClk = ~hsClk;   // Clk / HSCLK_DIV
 end
 
 parameter TEST_NUM = 2000;
 parameter RAND_NUM = 400;     // выборок в части 2
 
 ClockDivider #(
-    .DIVISOR(10)
+    .DIVISOR(HSCLK_DIV)
 ) clock_divider_ms(
     .Rst_n(Rst_n),
     .clock_in(hsClk),
@@ -317,7 +317,7 @@ endtask
 task automatic pulse_rst(input bit hard);
     @(negedge Clk);
     if (hard) HardRst = 1'b1; else SoftRst = 1'b1;
-    repeat (15) @(posedge Clk);    // 150 hs > RESET_MIN_HS = 100
+    repeat (15) @(posedge Clk);    // реле времени: много тактов > RESET_MIN_HS
     @(negedge Clk);
     HardRst = 1'b0;
     SoftRst = 1'b0;

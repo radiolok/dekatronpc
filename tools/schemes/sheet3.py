@@ -4,8 +4,8 @@ from lib import Fig
 
 def fig_counter():
     f = Fig("cnt", 1180, 670,
-            "Декатронный счётчик на трёх декадах: разбор операции по Valid/Ready, окно записи, "
-            "автомат, разводка линий установки и физических сбросов по декадам, общие генератор "
+            "Декатронный счётчик на трёх декадах: разбор операции по Valid/Ready, готовность "
+            "без автомата, разводка линий установки и физических сбросов по декадам, общие генератор "
             "фаз и формирователь импульсов, цепочка разрешений декад на защёлкнутых признаках "
             "девятки и нуля.")
     # входы протокола
@@ -15,13 +15,11 @@ def fig_counter():
           ["accept = valid · ready", "set_any = set | set_zero |", "автопереходы предела",
            "step_f = accept·¬set_any·¬dec", "step_r = accept·¬set_any·dec"])
 
-    # окно записи и автомат
-    f.box(440, 40, 170, 60, "Окно записи", ["OneShot, WR_WINDOW_HS", "пуск: wr_state | rst"])
-    f.wire([(490, 100), (490, 130)], label="writing", lx=444, ly=120)
-    f.wire([(575, 130), (575, 100)], label="wr_state", lx=581, ly=120)
+    # готовность и линии записи: без автомата и окна (TRS v0.24)
     f.wire([(360, 152), (440, 152)], label="accept, вид", lx=368, ly=145)
-    f.box(440, 130, 170, 86, "Автомат", ["IDLE·SET·ZERO·TOP·RST", "ready = IDLE · ¬rst_active",
-                                          "ZERO_ONLY: один busy_q"])
+    f.box(440, 110, 225, 106, "Готовность", ["ready = ¬(soft_rst | hard_rst)", "wr_set = accept · set",
+                                             "wr_zero, wr_top =", "accept · вид операции",
+                                             "автомата и окна нет"])
 
     # ready
     f.wire([(440, 195), (16, 195)], label="ready", lx=20, ly=188, lcls="tp")
@@ -33,11 +31,11 @@ def fig_counter():
     f.text(850, 16, "hard_rst", "tp", "middle")
     f.wire([(702, 22), (702, 40)])
     f.wire([(850, 22), (850, 40)])
-    f.wire([(610, 170), (680, 170)], label="wr_*", lx=626, ly=163)
+    f.wire([(665, 170), (680, 170)])
     f.box(680, 40, 240, 170, "Линии установки декад",
           ["wr_set  → SetData", "wr_zero → SetZero", "wr_top  → SetTop",
            "soft_rst → SetZero всех декад", "hard_rst → SetTop старших",
-           "HARD_RST_D_CNT, SetZero прочих", "in держит мастер до ready"],
+           "HARD_RST_D_CNT, SetZero прочих", "in держит мастер такт accept"],
           align="start", bcls="tm")
 
     # генератор фаз и формирователь импульсов
@@ -101,30 +99,16 @@ def fig_counter():
     return f.render()
 
 
-def fig_counter_fsm():
-    f = Fig("cntfsm", 760, 390,
-            "Автомат счётчика: шаг выполняется в состоянии IDLE без снятия ready, операции "
-            "записи уходят в SET, ZERO или TOP на время окна записи, линии сброса — в RST "
-            "до снятия линии и конца окна.")
-    f.state("IDLE", 130, 145, "ST_IDLE", cls="st-acc")
-    f.state("SET", 470, 55, "ST_SET")
-    f.state("ZERO", 470, 145, "ST_ZERO")
-    f.state("TOP", 470, 235, "ST_TOP")
-    f.selfloop("IDLE", "t", "wacc", "шаг ±1, ready = 1", 130, 82)
-    f.edge("IDLE", "r", "SET", "l", oa=-10, label="set", lx=300, ly=88)
-    f.edge("IDLE", "r", "ZERO", "l", label="set_zero или TOP+1→0", lx=300, ly=139)
-    f.edge("IDLE", "r", "TOP", "l", oa=10, label="0−1 → TOP_VALUE", lx=300, ly=240)
-    for k in ("SET", "ZERO", "TOP"):
-        cx, cy, w, h = f.states[k]
-        f.wire([(cx + w / 2, cy), (640, cy)], arrow=False)
-    f.wire([(640, 55), (640, 275), (130, 275), (130, 162)])
-    f.text(646, 160, "writing", "tl")
-    f.text(646, 174, "снят", "tl")
-    f.text(380, 270, "окно записи закончилось", "tl", "middle")
-    f.state("RST", 330, 315, "ST_RST")
-    f.edge("RST", "l", "IDLE", "b", ob=-30, via=[(100, 315)],
-           label="линия снята · окно истекло", lx=176, ly=309)
-    f.selfloop("RST", "b", "w", "rst_active | writing", 330, 382)
-    f.text(16, 24, "soft_rst | hard_rst → ST_RST из любого состояния, запуск окна записи; rst_n → ST_RST", "tl")
-    f.text(16, 40, "ZERO_ONLY (без записи, предела и сброса в 9 — вложенность, AP): ZERO и RST слиты в busy_q, SET и TOP нет", "tl")
+def fig_counter_cycle():
+    f = Fig("cntcyc", 760, 250,
+            "Такт операции счётчика: шаг и запись подаются уровнем весь такт accept и "
+            "завершены к следующему фронту clk; там же защёлкиваются признаки до следующей операции.")
+    f.text(16, 24, "Clk = 100 кГц, hsClk = 10 × Clk (1 мкс), любая операция — один такт, ready = 1", "tl")
+    f.box(20, 50, 220, 150, "Шаг ±1", ["step_f/step_r = accept · ¬set_any", "фазы: [D, D+P1), [D+P1, D+P1+P2)",
+                                       "затем сваливание", "показание — на фронте"], top=24)
+    f.box(270, 50, 220, 150, "Запись", ["set, set_zero, 0−1→TOP, TOP+1→0", "линия = accept, весь такт",
+                                        "WRITE_MIN_HS + PHASE_DELAY_HS", "< HS_PER_CLK"], top=24)
+    f.box(520, 50, 220, 150, "Признаки на фронте", ["nines_q, zeroes_q — перенос", "zero_q, at_top_q — край",
+                                                    "катоды читаются всегда,", "верны на фронте"], top=24)
+    f.text(16, 228, "soft_rst | hard_rst: ready снят, пока поднята линия; длительность держит внешнее реле", "tl")
     return f.render()

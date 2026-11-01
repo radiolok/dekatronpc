@@ -63,10 +63,6 @@ module DekatronTubeV2_tb_core #(
     logic        in_write_reset_dbg, settled_dbg, invalid_dbg;
 
     DekatronTubeV2 #(
-        .HS_PER_CLK       (10),
-        // Чистая физическая модель: без компенсации цифровой задержки
-        // квалификации запроса (она добавляется на уровне счётчика)
-        .WR_SYNC_HS       (0),
         .GUIDE_STEP_HS    (GUIDE_STEP_HS),
         .FALL_STEP_HS     (FALL_STEP_HS),
         .GUIDE_MAX_HS     (GUIDE_MAX_HS),
@@ -111,7 +107,8 @@ module DekatronTubeV2_tb_core #(
         if (mon_arm) begin
             if (invalid_dbg)                              saw_invalid <= 1'b1;
             if (settled_dbg)                              saw_settled <= 1'b1;
-            if (in_write_reset_dbg && (main_onehot != 0)) main_leaked <= 1'b1;
+            // Катоды читаются и под записью [TRS v0.24], но разряд один
+            if (in_write_reset_dbg && ($countones(main_onehot) > 1)) main_leaked <= 1'b1;
             if ($countones(cathodes_dbg) != 1)            ring_broken <= 1'b1;
         end
     end
@@ -492,7 +489,7 @@ module DekatronTubeV2_tb_core #(
         idle_all(SETTLE+10);
         chk(saw_invalid, "UT-WR-009 guide во время записи -> invalid_dbg_o == 1");
         chk_digit(5, "UT-ISO-001 запись завершилась в целевой катод");
-        chk(!main_leaked, "UT-ISO-004 main_onehot_o невалиден в течение записи");
+        chk(!main_leaked, "UT-ISO-004 под записью main_onehot_o показывает не больше одного катода");
         chk(!ring_broken, "инвариант: кольцо остаётся one-hot");
     endtask
 
@@ -527,7 +524,7 @@ module DekatronTubeV2_tb_core #(
         idle_all(SETTLE+10);
         chk(saw_invalid, "UT-RST0-006 guide во время сброса -> invalid_dbg_o == 1");
         chk_digit(0, "UT-ISO-002 сброс завершился в 0, утечки на катод 1 нет");
-        chk(!main_leaked, "UT-ISO-002 main_onehot_o невалиден во время сброса");
+        chk(!main_leaked, "UT-ISO-002 под сбросом main_onehot_o показывает не больше одного катода");
 
         neg_banner("UT-RST0-007 одновременные reset0 и write_en");
         set_digit(5); mon_reset();

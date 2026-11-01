@@ -3,10 +3,16 @@
 // фронте; так DekatronPhaseGen запускает вторую фазу концом первой).
 //
 // `DEKATRON_DELAY_MODEL: модель без тактовой базы. Clk не используется,
-// длительность импульса — HS_NS нс (один такт hsClk 10 МГц, который
-// заменяет модель). Только для Icarus; в нетлисте Impulse — чёрный ящик.
+// длительность импульса — HS_NS нс (один такт hsClk, который заменяет
+// модель). Только для Icarus; в нетлисте Impulse — чёрный ящик.
+// Период hsClk в модели на задержках, нс: Clk / 10 (rtl/parameters.sv,
+// DEKATRON_CLK_NS, TRS v0.24). Запасное умолчание — для сборок без
+// parameters.sv (cocotb)
+`ifndef DEKATRON_HS_NS
+`define DEKATRON_HS_NS 1000
+`endif
 module Impulse #(
-    parameter HS_NS = 100,  // длительность импульса в модели на задержках, нс
+    parameter HS_NS = `DEKATRON_HS_NS,  // длительность импульса в модели на задержках, нс
     parameter bit FALL = 1'b0  // 1: импульс по спаду En
 )(
 /* verilator lint_off UNUSEDSIGNAL */

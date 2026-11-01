@@ -39,8 +39,8 @@ if [ ${do_synth} -ne 0 ]; then
 	echo "  synth DekatronPC"
 	(cd "${work_dir}" && echo "tcl ${script_dir}/synt_dpc.tcl ${work_dir}/DPC.files DekatronPC \
 		-bb DekatronTubeDelay -bb OneShot -bb Impulse -bb Ram -bb IpMemory -bb RstTimeRelay \
-		-D DEKATRON_DELAY_MODEL -D DEKATRON_PHASE_DELAY_HS=33 \
-		-D DEKATRON_PHASE1_HS=6 -D DEKATRON_PHASE2_HS=6 -p EN_EMULATOR 0 -flat" \
+		-D DEKATRON_DELAY_MODEL -D DEKATRON_PHASE_DELAY_HS=4 \
+		-D DEKATRON_PHASE1_HS=2 -D DEKATRON_PHASE2_HS=2 -p EN_EMULATOR 0 -flat" \
 		| yosys > synth.log 2>&1) || { tail -n 20 "${work_dir}/synth.log"; exit 1; }
 fi
 python3 "${script_dir}/vtube_liberty.py"

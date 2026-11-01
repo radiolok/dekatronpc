@@ -14,17 +14,20 @@
 #           trigger a setup/hold checker; a run
 #           with violations fails. Default tests: Dekatron Counter
 #           DekatronPC. Output in synth_sim_timing/ (doc/vtube_sdf_timing.md)
-#     -o HS phase start delay after the Clk edge, hsClk periods of 100 ns
-#           (DEKATRON_PHASE_DELAY_HS, REQ-PULSE-009): at least the worst
-#           step command path. Default 0 (RTL), 33 under -t: the longest
-#           step command with the SPICE cell delays settles at 3.24 us
+#     -o HS phase start delay after the Clk edge, hsClk periods (Clk / 10,
+#           1 us at 100 kHz; DEKATRON_PHASE_DELAY_HS, REQ-PULSE-009): at
+#           least the worst step command path. Default 0 (RTL), 4 under -t:
+#           the longest step command with the SPICE cell delays settles at
+#           3.24 us
 #           (vtube_sta.sh fits it, doc/vtube_sta.md §3)
-#     -w HS width of each guide phase, hsClk periods of 100 ns
+#     -w HS width of each guide phase, hsClk periods
 #           (DEKATRON_PHASE1_HS / DEKATRON_PHASE2_HS). Default 3 (the
-#           1 MHz RTL), 6 under -t: a tube gate of DekatronPulseSender does
+#           RTL), 2 under -t: a tube gate of DekatronPulseSender does
 #           not pass a pulse shorter than its own delay (doc/vtube_sta.md §6)
 #     -c NS Clk period in ns for Dekatron, Counter and DekatronPC under -d
-#           (default 1000); the other testbenches keep their own clock
+#           (default CLK_PERIOD_NS = 10000, the 100 kHz Clk of TRS v0.24);
+#           only the Clk period changes, the hsClk time base of the models
+#           stays DEKATRON_CLK_NS / 10; the other testbenches keep their clock
 #     test  Dekatron Counter IpLine ApLine MachineCtrl DekatronPC Pi
 #           (default: all but Pi; DekatronPC runs helloworld and program.bfk
 #           on one netlist, Pi runs pi.bfk on the same DekatronPC netlist,
@@ -35,7 +38,7 @@
 # that are not tube logic are empty or stubbed under SYNTH; they stay black
 # boxes (-bb) and come back from RTL in simulation:
 #   DekatronTubeV2   the tube itself (DekatronTubeDelay with -d)
-#   OneShot, Impulse hs_clk pulse timing (phase generator, write window)
+#   OneShot, Impulse hs_clk pulse timing (phase generator)
 #   RstTimeRelay     time relay in the reset lines (extracted from DekatronPC.sv)
 #   Ram, IpMemory    memory (ferrite)
 # Library cells are simulated with sch/logic/vtube_cells.v.
@@ -75,8 +78,8 @@ while getopts "ndtc:o:w:h" opt; do
 done
 shift $((OPTIND - 1))
 tests=("$@")
-[ ${timing} -ne 0 ] && [ -z "${phase_delay}" ] && phase_delay=33
-[ ${timing} -ne 0 ] && [ -z "${phase_width}" ] && phase_width=6
+[ ${timing} -ne 0 ] && [ -z "${phase_delay}" ] && phase_delay=4
+[ ${timing} -ne 0 ] && [ -z "${phase_width}" ] && phase_width=2
 if [ ${#tests[@]} -eq 0 ]; then
 	tests=("${all_tests[@]}")
 	[ ${timing} -ne 0 ] && tests=(Dekatron Counter DekatronPC)

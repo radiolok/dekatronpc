@@ -4,16 +4,22 @@
 // не продлевает; если En держится до конца окна, окно начинается снова.
 //
 // `DEKATRON_DELAY_MODEL: модель без тактовой базы. Clk не используется,
-// окно — DELAY * HS_NS нс от фронта En (HS_NS = период hsClk 10 МГц,
-// который заменяет модель). Иголки нулевой длительности на En (дельта-
+// окно — DELAY * HS_NS нс от фронта En (HS_NS = период hsClk, который
+// заменяет модель). Иголки нулевой длительности на En (дельта-
 // циклы нетлиста) окно не запускают: в тактовой модели их не видит
 // фронт Clk, здесь их отсекает инерционная задержка 1 пс. Только для
 // Icarus; в нетлисте OneShot — чёрный ящик.
+// Период hsClk в модели на задержках, нс: Clk / 10 (rtl/parameters.sv,
+// DEKATRON_CLK_NS, TRS v0.24). Запасное умолчание — для сборок без
+// parameters.sv (cocotb)
+`ifndef DEKATRON_HS_NS
+`define DEKATRON_HS_NS 1000
+`endif
 module OneShot #(
     parameter DELAY=1'b1,
     parameter WIDTH=$clog2(DELAY),
     parameter IMP_ON_EN = 1'b1,
-    parameter HS_NS = 100   // такт Clk в модели на задержках, нс
+    parameter HS_NS = `DEKATRON_HS_NS   // такт hsClk в модели на задержках, нс
 )(
 /* verilator lint_off UNUSEDSIGNAL */
     input Clk,
