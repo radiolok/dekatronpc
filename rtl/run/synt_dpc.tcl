@@ -68,6 +68,8 @@ foreach def $defines {
 }
 
 set cell_lib "$script_dir/../../sch/logic/vtube_cells.lib"
+# experiments: another liberty (hypothetical cells, doc/tube_count_1000.md)
+if {[info exists ::env(DPC_CELL_LIB)]} { set cell_lib $::env(DPC_CELL_LIB) }
 
 set fp [open [lindex $argv 0] r]
 set file_data [read $fp]

@@ -27,7 +27,7 @@ keep=1
 if [ -z "$out" ]; then out=$(mktemp -d); keep=0; fi
 mkdir -p "$out"
 py=${script_dir}/.venv/bin/python
-lib=${script_dir}/../../sch/logic/vtube_cells.lib
+lib=${DPC_CELL_LIB:-${script_dir}/../../sch/logic/vtube_cells.lib}
 for s in $seeds; do
   for b in "${blocks[@]}"; do
     d=$out/$b.s$s; mkdir -p "$d"
