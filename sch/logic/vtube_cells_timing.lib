@@ -1163,6 +1163,18 @@ library(vtube_cells_lib_timing) {
       direction : input;
       fanout_load : 1.7;
       capacitance : 1.7;
+      timing() {
+        related_pin : "C";
+        timing_type : setup_falling;
+        rise_constraint(fanout3) { values("307, 307, 307"); }
+        fall_constraint(fanout3) { values("307, 307, 307"); }
+      }
+      timing() {
+        related_pin : "C";
+        timing_type : hold_falling;
+        rise_constraint(fanout3) { values("0, 0, 0"); }
+        fall_constraint(fanout3) { values("0, 0, 0"); }
+      }
     }
     pin(Q) {
       vtube_level : "HV";

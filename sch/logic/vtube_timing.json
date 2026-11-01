@@ -36,7 +36,8 @@
     "NOR2_N16X7": {"iopath": {"A->Y": 150, "B->Y": 150}},
     "NOR4_N16X7": {"iopath": {"A->Y": 150, "B->Y": 150, "C->Y": 150, "D->Y": 150}},
     "NOR10_N16X7": {"iopath": {"A->Y": 150, "B->Y": 150, "C->Y": 150, "D->Y": 150, "E->Y": 150, "F->Y": 150, "G->Y": 150, "H->Y": 150, "K->Y": 150, "L->Y": 150}},
-    "LATCH_J2N16": {"iopath": {"D->Q": [480, 374], "D->QN": [374, 480], "posedge C->Q": [442, 353], "posedge C->QN": [353, 442]}},
+    "LATCH_J2N16": {"iopath": {"D->Q": [480, 374], "D->QN": [374, 480], "posedge C->Q": [442, 353], "posedge C->QN": [353, 442]},
+      "setuphold": {"D": [307, 0]}},
     "DFF_J2N16": {"iopath": {"negedge C->Q": [665, 592], "negedge C->QN": [592, 665]},
       "setuphold": {"D": [310, 0]}},
     "DFFRN_J2N16X7": {"iopath": {"negedge C->Q": [665, 592], "negedge C->QN": [592, 665], "RN->Q": 80, "RN->QN": 450},
@@ -49,7 +50,7 @@
   },
   "masked": [
     {"module": "DekatronCounter",
-     "q": "^(zeroes_q|nines_q)(\\[\\d+\\])?$|^g_top_limit\\.(zero_q|at_top_q)$",
+     "q": "^g_top_limit\\.(zero_q|at_top_q)$",
      "used_when": "valid & ready",
      "why": "Cathode readings latched every Clk. A write or a reset line ends at any moment, so they change asynchronously; only the cycle that accepts an operation reads them (DekatronCounter, doc/vtube_sdf_timing.md §3.5)."}
   ]

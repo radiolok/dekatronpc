@@ -92,7 +92,8 @@ module DekatronPulseSender #(
                 .Clk    (Clk),
                 .Rst_n  (Rst_n),
                 .Phase1 (Phase1),
-                .Phase2 (Phase2)
+                .Phase2 (Phase2),
+                .CmdWin ()
             );
         end
     endgenerate

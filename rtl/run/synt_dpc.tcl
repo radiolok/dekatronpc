@@ -108,9 +108,19 @@ yosys design -load mapped
 # equiv_opt runs the mapping on a copy, proves it against the pre-ABC
 # netlist of the top module (-async2sync: the triggers have asynchronous
 # set/reset) and restores the design, so the mapping is then run for real.
+# DPC_ABC_SEED=<n> in the environment picks the &deepsyn seed (ABC drifts by
+# about +-10 tubes between seeds: compare small changes over several seeds,
+# rtl/run/synth_seeds.sh)
+set abc_script $script_dir/abc_area.abc
+if {[info exists ::env(DPC_ABC_SEED)]} {
+  set abc_script [file normalize ${top}_seed.abc]
+  set fs [open $abc_script w]
+  puts $fs "strash\n&get -n\n&deepsyn -J 50 -T 30 -S $::env(DPC_ABC_SEED)\n&put\ndch -f\nmap -a\ntopo"
+  close $fs
+}
 yosys equiv_opt -assert -async2sync -map ${top}_cells_sim.v \
-    abc -liberty $cell_lib -script $script_dir/abc_area.abc
-yosys abc -liberty $cell_lib -script $script_dir/abc_area.abc
+    abc -liberty $cell_lib -script $abc_script
+yosys abc -liberty $cell_lib -script $abc_script
 yosys opt
 yosys clean
 

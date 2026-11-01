@@ -45,7 +45,9 @@ KEYWORDS = {"module", "input", "output", "inout", "wire", "reg", "assign",
             "parameter", "localparam", "initial", "always", "endmodule",
             "if", "begin", "end"}
 # trigger cell -> (vtube_setuphold ASYNC mode, set pin, reset pin); 3: clear while RN = 0, 4: preset while SN = 0
-ASYNC = {"DFF_J2N16": (0, None, None), "DFFRN_J2N16X7": (3, None, "RN"), "DFFSN_J2N16X7": (4, "SN", None)}
+# A latch is checked at its closing edge, the fall of C (LATCH = closes on negedge).
+LATCH = {"LATCH_J2N16"}
+ASYNC = {"LATCH_J2N16": (0, None, None), "DFF_J2N16": (0, None, None), "DFFRN_J2N16X7": (3, None, "RN"), "DFFSN_J2N16X7": (4, "SN", None)}
 
 
 def vname(name):
@@ -275,7 +277,7 @@ def main():
                     n_masked += q
                     checks.append(
                         f"vtube_setuphold #(.SETUP({sh[0]}), .HOLD({sh[1]}), .ASYNC({mode}),"
-                        f" .NEGEDGE({int(clock_edge(paths[t]) == 'negedge')}),"
+                        f" .NEGEDGE({int(t in LATCH or clock_edge(paths[t]) == 'negedge')}),"
                         f" .QUALIFY({q})) c{len(checks)} (.C({ref}.C), .D({ref}.D),"
                         f" .S({s}), .R({r}), .EN({en}));")
 

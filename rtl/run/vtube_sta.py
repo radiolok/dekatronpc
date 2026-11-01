@@ -91,7 +91,8 @@ def load_lib(path):
     cells = {}
     for cell in lib.groups('cell'):
         c = {'pins': {}, 'arcs': [], 'setup': {}, 'hold': {},
-             'seq': bool(cell.groups('ff') or cell.groups('latch'))}
+             'seq': bool(cell.groups('ff') or cell.groups('latch')),
+             'latch': bool(cell.groups('latch'))}
         for pin in cell.groups('pin'):
             pn = pin.args[0]
             c['pins'][pn] = {'dir': pin.attr('direction'), 'cap': float(pin.attr('capacitance', 1.0))}
@@ -215,7 +216,27 @@ class Sta:
     # ---- cells
     def eval_seq(self, cn, conn, lc):
         for arc in lc['arcs']:
+            if arc.dst not in conn:
+                continue     # output left open (QN of an enable latch)
             if arc.kind not in ('falling_edge', 'rising_edge'):
+                # A latch is transparent while C is high: data that arrives
+                # in the window passes D->Q (a cathode reading arrives after
+                # the latch has closed and does not pass; checks() holds it)
+                if lc['latch']:
+                    ib, ob = conn[arc.src][0], conn[arc.dst][0]
+                    a = self.get(ib, 'data')
+                    if a is None:
+                        continue
+                    for e_out in 'rf':
+                        d = self.delay(arc, e_out, ob)
+                        if d is None:
+                            continue
+                        e_ins = {'positive_unate': [e_out],
+                                 'negative_unate': ['f' if e_out == 'r' else 'r']}.get(arc.sense, ['r', 'f'])
+                        for e_in in e_ins:
+                            if a.late[e_in] is not None:
+                                self.put(ob, 'data', e_out, a.late[e_in] + d, a.early[e_in] + d,
+                                         (ib, 'data', e_in, cn), cn)
                 continue
             cb = conn[arc.src][0]
             ca = self.get(cb, 'clk')
@@ -355,7 +376,8 @@ class Sta:
         t, conn = c['type'], c['connections']
         lc = self.lib.get(t)
         if lc:
-            arcs = [a for a in lc['arcs'] if not lc['seq'] or a.kind in ('falling_edge', 'rising_edge')]
+            arcs = [a for a in lc['arcs']
+                    if not lc['seq'] or lc['latch'] or a.kind in ('falling_edge', 'rising_edge')]
             return [conn[a.src][0] for a in arcs]
         if t in ('OneShot', 'Impulse'):
             return [conn['En'][0]]
@@ -425,6 +447,16 @@ class Sta:
                     ho = lc['hold'].get(pin, (None, None, 0.0))[2] * self.derate
                     for cls, a in self.arr.get(db, {}).items():
                         late, e = a.max_late()
+                        if lc['latch'] and cls == 'data':
+                            # Same cycle: D settles before C falls (setup), and the
+                            # next cycle's D changes after it (T + early >= close):
+                            # the gating check, with the closing edge as the pulse
+                            gating.append({'cell': cn, 'type': c['type'], 'pin': pin, 'bit': db,
+                                           'cls': cls, 'edge': e, 'late': late, 'early': a.min_early(),
+                                           'lead': cap_e - su, 'trail': cap_l + ho, 'start': a.start,
+                                           'slack': cap_e - su - late,
+                                           'need': cap_l + ho - a.min_early()})
+                            continue
                         setup.append({'need': late + su - cap_e, 'cell': cn, 'pin': pin, 'bit': db,
                                       'cls': cls, 'edge': e, 'start': a.start})
                         hold.append({'slack': a.min_early() - cap_l - ho, 'cell': cn, 'pin': pin,

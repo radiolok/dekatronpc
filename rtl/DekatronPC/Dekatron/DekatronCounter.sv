@@ -86,6 +86,23 @@
 
 `default_nettype none
 
+`ifndef SYNTH
+`ifdef DEKATRON_DELAY_MODEL
+// Модель ячейки LATCH_J2N16 (sch/logic/DLATCH2_J2N16) для симуляции RTL;
+// в синтезе — ячейка liberty, в нетлисте — sch/logic/vtube_cells.v
+module LATCH_J2N16 (
+    input  wire C,
+    input  wire D,
+    output reg  Q,
+    output wire QN
+);
+    assign QN = ~Q;
+    always @*
+        if (C) Q = D;
+endmodule
+`endif
+`endif
+
 // Задержка начала фаз от фронта Clk, такты hsClk (REQ-PULSE-009): не
 // короче худшего пути команды шага. В RTL вентили без задержки — 0;
 // нетлист с задержками ламп задаёт её через synth_sim.sh -t
@@ -208,6 +225,7 @@ module DekatronCounter #(
     //------------------------------------------------------------------
     localparam unsigned CW = (D_NUM > 1) ? D_NUM - 1 : 1;
 
+`ifndef DEKATRON_DELAY_MODEL
     logic [CW-1:0] zeroes_q;
     logic [CW-1:0] nines_q;
 
@@ -215,6 +233,7 @@ module DekatronCounter #(
         zeroes_q <= dek_zero[CW-1:0];
         nines_q  <= dek_nine[CW-1:0];
     end
+`endif
 
     //------------------------------------------------------------------
     // Готовность и приём операции
@@ -286,6 +305,7 @@ module DekatronCounter #(
     //------------------------------------------------------------------
     wire phase1;
     wire phase2;
+    wire cmd_win;   // от фронта Clk до начала фаз
 
     DekatronPhaseGen #(
         .PHASE1_HS      (PHASE1_HS),
@@ -298,7 +318,8 @@ module DekatronCounter #(
         .Clk    (clk),
         .Rst_n  (rst_n),
         .Phase1 (phase1),
-        .Phase2 (phase2)
+        .Phase2 (phase2),
+        .CmdWin (cmd_win)
     );
 
     //------------------------------------------------------------------
@@ -356,6 +377,49 @@ module DekatronCounter #(
     //------------------------------------------------------------------
     logic [D_NUM-1:0] en_chain;
 
+`ifdef DEKATRON_DELAY_MODEL
+    //------------------------------------------------------------------
+    // Ламповая машина: защёлка разрешения на декаду (doc/
+    // tube_count_1000.md §3). Цепочка считается с живых катодов и dec;
+    // защёлка прозрачна в окне команды cmd_win (от фронта Clk до начала
+    // фаз, задержка фаз REQ-PULSE-009), когда разряды стоят на главных
+    // катодах прошлой операции, и закрыта на обе фазы и сваливание, пока
+    // младшие декады уходят с 0/9. Так же, как прежние триггеры nines_q/
+    // zeroes_q, она держит состояние «до шага», но одна защёлка (3,5
+    // лампы) на декаду вместо двух триггеров (2 × 7). Декады в окне
+    // команды может двигать только запись, а записи разрешения не нужны.
+    // dec держится мастером весь такт (valid до рукопожатия) и успевает
+    // к концу окна, как и сама команда шага.
+    //------------------------------------------------------------------
+    logic [D_NUM-1:0] carry_live;
+
+    always_comb begin
+        logic carry;
+
+        carry = 1'b1;
+        carry_live[0] = carry;
+
+        for (int i = 1; i < int'(D_NUM); i++) begin
+            carry = carry & (dec ? dek_zero[i-1] : dek_nine[i-1]);
+            carry_live[i] = carry;
+        end
+    end
+
+    assign en_chain[0] = 1'b1;
+
+    generate
+        genvar e;
+        for (e = 1; e < int'(D_NUM); e++) begin : enLatch
+            LATCH_J2N16 enLatch (
+                .C  (cmd_win),
+                .D  (carry_live[e]),
+                .Q  (en_chain[e]),
+                .QN ()
+            );
+        end
+    endgenerate
+`else
+
     always_comb begin
         logic carry;
 
@@ -367,6 +431,7 @@ module DekatronCounter #(
             en_chain[i] = carry;
         end
     end
+`endif
 
     generate
         genvar d;
