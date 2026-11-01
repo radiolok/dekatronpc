@@ -53,5 +53,10 @@
      "q": "^g_top_limit\\.(zero_q|at_top_q)$",
      "used_when": "valid & ready",
      "why": "Cathode readings latched every Clk. A write or a reset line ends at any moment, so they change asynchronously; only the cycle that accepts an operation reads them (DekatronCounter, doc/vtube_sdf_timing.md §3.5)."}
+  ,
+    {"module": "ApLine",
+     "q": "^data_counter\\.g_top_limit\\.(zero_q|at_top_q)$",
+     "used_when": "data_valid",
+     "why": "The same triggers of the Data counter, flattened into ApLine (synt_dpc.tcl keeps only the boards, doc/tube_count_1000.md §4); data_valid is the counter's accept (its ready is only the reset lines)."}
   ]
 }

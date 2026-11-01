@@ -98,3 +98,53 @@ Verification:
 - STA (`vtube_sta.sh`): minimum period **8.47 µs** (was 8.92), 100 kHz meets with 1.5 µs.
   The latches: D settles 1.07–1.69 µs before the window closes; the cathodes change
   1.0–1.4 µs after it closed.
+
+## 4. Done: counters flattened into their blocks; partition experiments (−58)
+
+The owner allowed a different partition, or one block if it synthesizes better. Four
+variants of the same RTL (after §3), mean of seeds 0–3:
+
+| Variant (`synt_dpc.tcl`) | Seeds 0 / 1 / 2 / 3 | Mean |
+|---|---|---|
+| `run_tests.sh -s` set, hierarchical (§3) | 1240 / 1219 / 1233 / 1247.5 | 1234.9 |
+| DekatronPC as one run, hierarchical | 1250.5 / 1234.5 / 1234.5 / 1242.5 | 1240.5 |
+| DekatronPC, the three blocks flattened together, counters kept | – | 1236.3 |
+| **three blocks kept, counters flattened into them** | 1175.5 / 1186.5 / 1168 / 1176.5 | **1176.6** |
+| DekatronPC, the same in one run | 1174 / 1190 / 1187 / 1170 | 1180.3 |
+| DekatronPC as **one block** (everything but the boards flattened) | 1142 / 1171 / 1162.5 / 1159.5 | 1158.8 |
+
+The gain is in the counter boundary, not in the block boundaries. A counter has no FSM
+since v0.24: its control is a few gates on `accept`, `dec`, `set`, `set_zero`, and the
+block computes the same terms from its own state; across the boundary ABC can merge
+them. Merging the three blocks into one adds only −21 (two ABC spreads), so the
+partition into three boxes stays: IpLine 393, ApLine 448, MachineCtrl 335 is uneven,
+but moving logic between boxes doesn't change the count, and the boxes follow the
+function (REQ-PR-012). The one-block variant is kept as an option (`-oneblock`).
+
+REQ-PR-011 allows it: only a submodule with a board type is placed as one module, the
+rest is expanded to base cells. `DekatronCounter` was never a board.
+
+Flow: `synt_dpc.tcl` now keeps only the boards and boxes — `DekatronModule`, the relay
+modules, IpLine / ApLine / MachineCtrl, the black boxes and the SYNTH stubs of the tube
+and its RC elements (flattened, their constant outputs would fold the read-out away) —
+and runs `synth -flatten` (an explicit `proc; flatten` before `synth` cost MachineCtrl
++12 for nothing). `-hier` gives the old flow, `-oneblock` the one-block variant.
+
+Side effects:
+- Internal strobes of the flattened counters are merged away in the netlist. The
+  checker qualifier of the Data wrap triggers (`vtube_timing.json` "masked") now uses
+  ApLine's `data_valid`, marked `(* keep *)` (cost within noise: +1.4); the IpLine_tb
+  monitor of `ip_valid & loop_valid` runs on RTL only (`ifndef NETLIST_SIM`).
+- The hierarchy report no longer shows counters as rows.
+
+| Block | Seed 0 | 1 | 2 | 3 | Mean |
+|---|---|---|---|---|---|
+| IpLine | 391.5 | 402 | 387.5 | 395.5 | 394.1 |
+| ApLine (with `keep`) | 447 | 451.5 | 450.5 | 449 | 449.5 |
+| MachineCtrl | 338 | 335.5 | 332.5 | 331.5 | 334.4 |
+| **Total** | 1176.5 | 1189 | 1170.5 | 1176 | **1178** |
+
+Verification: `synth_sim.sh` (all default tests, netlists without delays) PASS;
+`synth_sim.sh -t` (Dekatron, Counter, DekatronPC hello/program with tube delays at
+10 µs) PASS with 0 setup / 0 hold violations (the known asynchronous `soft_rst` path is
+not fixed, it just doesn't hit in this netlist). STA: 8.55 µs, 100 kHz with 1.45 µs.

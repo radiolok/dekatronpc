@@ -11,6 +11,17 @@
 # DekatronTubeDelay is read after the list, so the netlist has no hsClk at
 # all (hsClk drives only the clocked dekatron model of the FPGA emulator and
 # of the simulations without delays, TRS v0.25).
+# The netlist keeps only the boards (REQ-PR-011): DekatronModule, the relay
+# modules, the three blocks IpLine / ApLine / MachineCtrl (one box each,
+# REQ-PR-012), the black boxes and the stubs of the tube and its RC timing
+# elements. Everything else (DekatronCounter, its pulse sender and phase
+# generator, the loop detector) is flattened into its block, so ABC optimizes
+# the counter control together with the block's FSM (-58 tubes,
+# doc/tube_count_1000.md §4).
+#   -keep <module>      keep <module> a separate module as well
+#   -oneblock           do not keep IpLine / ApLine / MachineCtrl: the whole
+#                       machine as one block (partition experiment, §4)
+#   -hier               no flattening at all (the flow before 2026-11-01)
 #   -flat               also write <top>_flat.json: the written netlist read
 #                       back and flattened through the board boundaries, with
 #                       the cell names of <top>_synth.v (vtube_sta.py loads,
@@ -30,6 +41,8 @@ set top_params {}
 set defines {}
 set div 0
 set flat 0
+set flatglue 1
+set keeps {IpLine ApLine MachineCtrl}
 for {set i 2} {$i < $argc} {incr i} {
   switch -- [lindex $argv $i] {
     -bb { lappend blackboxes [lindex $argv [incr i]] }
@@ -37,6 +50,9 @@ for {set i 2} {$i < $argc} {incr i} {
     -D  { lappend defines [lindex $argv [incr i]] }
     -div { set div 1 }
     -flat { set flat 1 }
+    -hier { set flatglue 0 }
+    -oneblock { set keeps [lsearch -all -inline -not -regexp $keeps {^(IpLine|ApLine|MachineCtrl)$}] }
+    -keep { lappend keeps [lindex $argv [incr i]] }
     default { puts "unknown option [lindex $argv $i]"; exit 1 }
   }
 }
@@ -80,12 +96,29 @@ foreach bb $blackboxes {
 foreach {name value} $top_params {
   yosys chparam -set $name $value $top
 }
+if {$flatglue} {
+  # The tube and the RC timing elements are stubs under SYNTH: flattened,
+  # their constant outputs would fold the read-out logic away
+  foreach k [concat $keeps {DekatronModule DekatronTubeDelay OneShot Impulse}] {
+    yosys setattr -mod -set keep_hierarchy 1 $k
+  }
+}
 hierarchy -check
+if {$flatglue} {
+  # and on their parameterized copies made by hierarchy
+  foreach k [concat $keeps {DekatronModule DekatronTubeDelay OneShot Impulse}] {
+    yosys setattr -mod -set keep_hierarchy 1 *$k*
+  }
+}
 # FSM extraction and recoding happen inside synth; a separate fsm pass after
 # it is a no-op. The encoding is set in RTL with (* fsm_encoding = "binary" *)
 # on the state register: one-hot costs about 219 tubes more on 7-tube
 # triggers (doc/tube_count_reduction.md §17.2).
-yosys synth -top $top
+if {$flatglue} {
+  yosys synth -top $top -flatten
+} else {
+  yosys synth -top $top
+}
 yosys proc
 
 yosys dfflibmap -liberty $cell_lib

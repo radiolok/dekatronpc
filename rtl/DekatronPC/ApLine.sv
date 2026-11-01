@@ -187,7 +187,9 @@ module ApLine #(
     //------------------------------------------------------------------
     // Счётчик данных
     //------------------------------------------------------------------
-    wire               data_valid;
+    // keep: the netlist checker of the Data wrap triggers is qualified by it
+    // (sch/logic/vtube_timing.json "masked"; the counter is flattened)
+    (* keep *) wire    data_valid;
     wire               data_ready;
     wire               data_set;
     wire               data_set_zero;

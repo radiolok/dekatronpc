@@ -260,10 +260,14 @@ always @(posedge Clk) begin
         errors++;
         $display("FAIL: mem_valid without mem_ready");
     end
+`ifndef NETLIST_SIM
+    // Internal strobes: on the netlist the counters are flattened into IpLine
+    // and these nets are merged away (synt_dpc.tcl, doc/tube_count_1000.md §4)
     if (Rst_n && ipLine.ip_valid && ipLine.loop_valid) begin
         errors++;
         $display("FAIL: ip_valid and loop_valid together");
     end
+`endif
     if (Rst_n && ip_ready && InsnValid && ^Insn === 1'bx) begin
         errors++;
         $display("FAIL: insn is X at ready");

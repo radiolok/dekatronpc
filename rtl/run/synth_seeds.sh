@@ -1,20 +1,23 @@
 #!/bin/bash
 # Tube count of the given blocks over several &deepsyn seeds, in parallel.
-# usage: synth_seeds.sh [-f <file list>] [-o <out dir>] [-s "<seeds>"] <block>...
+# usage: synth_seeds.sh [-f <file list>] [-o <out dir>] [-s "<seeds>"] [-a "<synt_dpc.tcl options>"] <block>...
 #   -f  RTL file list (default ../DekatronPC/DPC.files)
 #   -o  directory for the runs (default a temporary one, removed at the end)
 #   -s  seeds (default "0 1 2")
+#   -a  extra synt_dpc.tcl options, e.g. "-flatglue"
 # Prints tubes per block and seed, the per-seed total and the mean.
 set -Eeuo pipefail
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
 files=${script_dir}/../DekatronPC/DPC.files
 out=""
 seeds="0 1 2"
-while getopts "f:o:s:" o; do
+extra=""
+while getopts "f:o:s:a:" o; do
   case $o in
     f) files=$(realpath "$OPTARG") ;;
     o) out=$OPTARG ;;
     s) seeds=$OPTARG ;;
+    a) extra=$OPTARG ;;
     *) exit 1 ;;
   esac
 done
@@ -28,7 +31,7 @@ lib=${script_dir}/../../sch/logic/vtube_cells.lib
 for s in $seeds; do
   for b in "${blocks[@]}"; do
     d=$out/$b.s$s; mkdir -p "$d"
-    ( cd "$d" && echo "tcl ${script_dir}/synt_dpc.tcl $files $b" | DPC_ABC_SEED=$s yosys > yosys.log 2>&1 \
+    ( cd "$d" && echo "tcl ${script_dir}/synt_dpc.tcl $files $b $extra" | DPC_ABC_SEED=$s yosys > yosys.log 2>&1 \
         || echo "FAIL $b seed $s (see $d/yosys.log)" ) &
   done
 done
