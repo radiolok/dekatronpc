@@ -83,3 +83,8 @@ rtl/run/.venv/
 rtl/run/dpcrun
 rtl/tests/*/*_tb.svh
 rtl/programs/firmware.sv
+
+# Books and scans of reference literature stay out of the repository
+# (the ones committed earlier stay tracked)
+doc/**/*.pdf
+doc/**/*.djvu
