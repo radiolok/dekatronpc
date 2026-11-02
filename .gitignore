@@ -54,3 +54,32 @@ rtl/run/delay/
 
 # Quartus CLI build (rtl/run/build_fpga.sh)
 rtl/quartus_build/
+
+# Local tools and side projects (not part of DekatronPC)
+.kilo/
+.vscode/
+webui/
+witch_dev/
+
+# Windows download marks and draw.io backups
+*:Zone.Identifier
+*.drawio.bkp
+
+# KiCad: local window state, autosave, locks, backups
+*.kicad_prl
+_autosave-*
+~*.lck
+*-backups/
+# sch/stand plot / BOM outputs (Gerber and drill files are ignored above)
+sch/stand/*.pdf
+sch/stand/*.gbrjob
+sch/stand/out/
+sch/stand/bom/
+
+# Run artifacts: the golden model is rebuilt from bfutils by run_tests.sh,
+# ./emul copies a DekatronPC_tb_cfg_*.svh into <test>_tb.svh before each run,
+# the firmware is generated
+rtl/run/.venv/
+rtl/run/dpcrun
+rtl/tests/*/*_tb.svh
+rtl/programs/firmware.sv
