@@ -31,12 +31,12 @@ def fig_apline():
           ["3 декады, 0…255", "READ + WRITE", "255+1 → 0, 0−1 → 255"])
 
     # память данных (снаружи)
-    f.wire([(720, 90), (1000, 90), (1000, 150)], label="mem_addr = AP", lx=740, ly=83)
+    f.wire([(720, 90), (1000, 90), (1000, 150)], label="mem_addr = AP (инв.)", lx=740, ly=83)
     f.wire([(285, 40), (285, 20), (1060, 20), (1060, 150)],
            label="mem_valid · mem_wr", lx=670, ly=14, anchor="middle")
     f.wire([(1080, 150), (1080, 34), (1110, 34)], start_arrow=True, arrow=False)
     f.text(1114, 38, "ready", "tpi")
-    f.wire([(720, 230), (900, 230)], label="mem_wr_data = out", lx=730, ly=223)
+    f.wire([(720, 230), (900, 230)], label="mem_wr_data = out_n", lx=730, ly=223)
     f.box(900, 150, 200, 150, "Ram · данные", ["вне ApLine", "100 000 × 10 бит", "",
                                                 "rd_data — выходной", "регистр, держит", "последнюю ячейку"],
           cls="blk-opt")
@@ -51,12 +51,12 @@ def fig_apline():
     # rx_data_bcd держит терминал до rx_vld & rx_rdy: входного регистра нет
     f.pin_in(12, 385, 420, "rx_data_bcd (держит терминал)")
     f.box(420, 360, 80, 50, "MUX", ["CIN ? rx"], top=20, bcls="tpi")
-    f.wire([(500, 385), (610, 385), (610, 300)], label="data_in", lx=520, ly=378)
+    f.wire([(500, 385), (610, 385), (610, 300)], label="data_in_n", lx=520, ly=378)
 
     # выходы
-    f.wire([(720, 270), (790, 270), (790, 370)], label="data_out · zero", lx=730, ly=263)
+    f.wire([(720, 270), (790, 270), (790, 370)], label="data_out_n · zero", lx=730, ly=263)
     f.box(740, 370, 240, 92, None, [], cls="blk")
-    f.lines(752, 390, ["tx  = data_out (всегда)", "zero = lock ? zero : rd_data = 0",
+    f.lines(752, 390, ["tx  = data_out_n (всегда)", "zero = lock ? zero : &rd_data (инв.)",
                        "zero_valid = lock | mem_here"], "tm", lh=20)
     f.wire([(390, 250), (390, 484), (860, 484), (860, 462)], "wd",
            label="lock_q · mem_here_q", lx=520, ly=478)

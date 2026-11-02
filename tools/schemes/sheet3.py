@@ -4,24 +4,22 @@ from lib import Fig
 
 def fig_counter():
     f = Fig("cnt", 1180, 670,
-            "Декатронный счётчик на трёх декадах: разбор операции по Valid/Ready, окно записи, "
-            "автомат, разводка линий установки и физических сбросов по декадам, общие генератор "
-            "фаз и формирователь импульсов, цепочка разрешений декад на защёлкнутых признаках "
-            "девятки и нуля.")
+            "Декатронный счётчик на трёх декадах: разбор операции по Valid/Ready, готовность "
+            "без автомата, разводка линий установки и физических сбросов по декадам, общие генератор "
+            "фаз и формирователь импульсов, цепочка разрешений декад с катодов, по защёлке на "
+            "декаду, прозрачной в окне команды CmdWin.")
     # входы протокола
-    for y, n in ((62, "valid"), (84, "dec"), (106, "set"), (128, "set_zero"), (150, "in[W-1:0]")):
+    for y, n in ((62, "valid"), (84, "dec"), (106, "set"), (128, "set_zero"), (150, "in_n[W-1:0]")):
         f.pin_in(12, y, 150, n)
     f.box(150, 40, 210, 130, "Разбор операции",
           ["accept = valid · ready", "set_any = set | set_zero |", "автопереходы предела",
            "step_f = accept·¬set_any·¬dec", "step_r = accept·¬set_any·dec"])
 
-    # окно записи и автомат
-    f.box(440, 40, 170, 60, "Окно записи", ["OneShot, WR_WINDOW_HS", "пуск: wr_state | rst"])
-    f.wire([(490, 100), (490, 130)], label="writing", lx=444, ly=120)
-    f.wire([(575, 130), (575, 100)], label="wr_state", lx=581, ly=120)
+    # готовность и линии записи: без автомата и окна (TRS v0.24)
     f.wire([(360, 152), (440, 152)], label="accept, вид", lx=368, ly=145)
-    f.box(440, 130, 170, 86, "Автомат", ["IDLE·SET·ZERO·TOP·RST", "ready = IDLE · ¬rst_active",
-                                          "ZERO_ONLY: один busy_q"])
+    f.box(440, 110, 225, 106, "Готовность", ["ready = ¬(soft_rst | hard_rst)", "wr_set = accept · set",
+                                             "wr_zero, wr_top =", "accept · вид операции",
+                                             "автомата и окна нет"])
 
     # ready
     f.wire([(440, 195), (16, 195)], label="ready", lx=20, ly=188, lcls="tp")
@@ -33,15 +31,20 @@ def fig_counter():
     f.text(850, 16, "hard_rst", "tp", "middle")
     f.wire([(702, 22), (702, 40)])
     f.wire([(850, 22), (850, 40)])
-    f.wire([(610, 170), (680, 170)], label="wr_*", lx=626, ly=163)
+    f.wire([(665, 170), (680, 170)])
     f.box(680, 40, 240, 170, "Линии установки декад",
           ["wr_set  → SetData", "wr_zero → SetZero", "wr_top  → SetTop",
            "soft_rst → SetZero всех декад", "hard_rst → SetTop старших",
-           "HARD_RST_D_CNT, SetZero прочих", "in держит мастер до ready"],
+           "HARD_RST_D_CNT, SetZero прочих", "in_n держит мастер такт accept"],
           align="start", bcls="tm")
 
+    # подъём подкатодов на время записи и сброса (TRS v0.40)
+    f.box(960, 120, 200, 70, "GLIFT_N16", ["шина S ключей: +50 / +150 В", "ИЛИ записи и сбросов"],
+          top=18)
+    f.wire([(920, 160), (960, 160)])
+
     # генератор фаз и формирователь импульсов
-    f.box(150, 250, 150, 60, "DekatronPhaseGen", ["один на счётчик", "пуск: PHASE_DELAY_HS"])
+    f.box(150, 250, 150, 60, "DekatronPhaseGen", ["один на счётчик", "CmdWin: фронт → фазы"])
     f.wire([(300, 280), (350, 280)], label="Phase1·2", lx=304, ly=273)
     f.box(350, 240, 160, 70, "DekatronPulseSender", ["один на счётчик", "4 × И, 2 × ИЛИ"])
     f.wire([(345, 170), (345, 225), (430, 225), (430, 240)], "wacc", label="step_f · step_r",
@@ -53,7 +56,7 @@ def fig_counter():
     f.wire([(800, 210), (800, 268)], "wbus", arrow=False)
     f.dot(800, 268)
     f.wire([(530, 268), (990, 268)], "wbus", arrow=False)
-    f.text(820, 262, "SetData · SetZero · SetTop · in", "tn")
+    f.text(820, 262, "SetData · SetZero · SetTop · in_n", "tn")
 
     D = [(400, "декада 0", "единицы"), (620, "декада 1", "десятки"), (840, "декада 2", "сотни")]
     for x, n1, n2 in D:
@@ -80,8 +83,8 @@ def fig_counter():
     f.wire([(787, 600), (787, 409), (795, 409)], "wacc")
     f.text(792, 436, "sel[1]", "tn")
     f.wire([(829, 401), (860, 401), (860, 450)], "wacc")
-    f.text(150, 404, "sel[i] = dec ? zeroes_q[i]", "tl")
-    f.text(150, 418, "         : nines_q[i]", "tl")
+    f.text(150, 404, "sel[i] = dec ? Zero[i] : Nine[i]", "tl")
+    f.text(150, 418, "En[1..] — LATCH_J2N16, C = CmdWin", "tl")
 
     # выходы декад
     f.wire([(540, 575), (1060, 575)], "wbus", arrow=False)
@@ -89,42 +92,28 @@ def fig_counter():
         f.wire([(x + 140, 560), (x + 140, 575)], arrow=False)
         f.dot(x + 140, 575)
         f.wire([(x + 60, 560), (x + 60, 600)])
-    f.text(1066, 579, "out", "tp")
+    f.text(1066, 579, "out_n", "tp")
     f.text(470, 590, "Zero · Nine · TopPin", "tn", "middle")
 
     # регистры состояния
     f.box(400, 600, 600, 50, "Регистры состояния",
-          ["nines_q, zeroes_q [D−2:0] — перенос; zero_q · at_top_q — только TOP_LIMIT_MODE; без сброса"], top=19)
+          ["защёлки En[1..D−1] в CmdWin (тактовая модель: nines_q, zeroes_q); zero_q · at_top_q — TOP_LIMIT_MODE"], top=19)
     f.pin_out(1000, 625, 1030, "zero, at_top ← катоды")
     f.wire([(400, 625), (130, 625), (130, 182), (170, 182), (170, 170)])
     f.text(136, 500, "zero_q · at_top_q", "tn")
     return f.render()
 
 
-def fig_counter_fsm():
-    f = Fig("cntfsm", 760, 390,
-            "Автомат счётчика: шаг выполняется в состоянии IDLE без снятия ready, операции "
-            "записи уходят в SET, ZERO или TOP на время окна записи, линии сброса — в RST "
-            "до снятия линии и конца окна.")
-    f.state("IDLE", 130, 145, "ST_IDLE", cls="st-acc")
-    f.state("SET", 470, 55, "ST_SET")
-    f.state("ZERO", 470, 145, "ST_ZERO")
-    f.state("TOP", 470, 235, "ST_TOP")
-    f.selfloop("IDLE", "t", "wacc", "шаг ±1, ready = 1", 130, 82)
-    f.edge("IDLE", "r", "SET", "l", oa=-10, label="set", lx=300, ly=88)
-    f.edge("IDLE", "r", "ZERO", "l", label="set_zero или TOP+1→0", lx=300, ly=139)
-    f.edge("IDLE", "r", "TOP", "l", oa=10, label="0−1 → TOP_VALUE", lx=300, ly=240)
-    for k in ("SET", "ZERO", "TOP"):
-        cx, cy, w, h = f.states[k]
-        f.wire([(cx + w / 2, cy), (640, cy)], arrow=False)
-    f.wire([(640, 55), (640, 275), (130, 275), (130, 162)])
-    f.text(646, 160, "writing", "tl")
-    f.text(646, 174, "снят", "tl")
-    f.text(380, 270, "окно записи закончилось", "tl", "middle")
-    f.state("RST", 330, 315, "ST_RST")
-    f.edge("RST", "l", "IDLE", "b", ob=-30, via=[(100, 315)],
-           label="линия снята · окно истекло", lx=176, ly=309)
-    f.selfloop("RST", "b", "w", "rst_active | writing", 330, 382)
-    f.text(16, 24, "soft_rst | hard_rst → ST_RST из любого состояния, запуск окна записи; rst_n → ST_RST", "tl")
-    f.text(16, 40, "ZERO_ONLY (без записи, предела и сброса в 9 — вложенность, AP): ZERO и RST слиты в busy_q, SET и TOP нет", "tl")
+def fig_counter_cycle():
+    f = Fig("cntcyc", 760, 250,
+            "Такт операции счётчика: шаг и запись подаются уровнем весь такт accept и "
+            "завершены к следующему фронту clk; разрешения декад держат защёлки, закрытые на фазы и сваливание.")
+    f.text(16, 24, "Clk = 100 кГц, hsClk = 10 × Clk (1 мкс), любая операция — один такт, ready = 1", "tl")
+    f.box(20, 50, 220, 150, "Шаг ±1", ["step_f/step_r = accept · ¬set_any", "фазы: [D, D+P1), [D+P1, D+P1+P2)",
+                                       "затем сваливание", "показание — на фронте"], top=24)
+    f.box(270, 50, 220, 150, "Запись", ["set, set_zero, 0−1→TOP, TOP+1→0", "линия = accept, весь такт",
+                                        "WRITE_MIN_HS + PHASE_DELAY_HS", "< HS_PER_CLK"], top=24)
+    f.box(520, 50, 220, 150, "Признаки на фронте", ["En: защёлка в CmdWin", "zero_q, at_top_q — край",
+                                                    "катоды читаются всегда,", "верны на фронте"], top=24)
+    f.text(16, 228, "soft_rst | hard_rst: ready снят, пока поднята линия; длительность держит внешнее реле", "tl")
     return f.render()

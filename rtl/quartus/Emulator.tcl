@@ -106,7 +106,7 @@ if {$make_assignments} {
 	set_global_assignment -name SYSTEMVERILOG_FILE ../DekatronPC/Dekatron/DekatronCounter.sv
 	set_global_assignment -name SYSTEMVERILOG_FILE ../DekatronPC/Dekatron/DekatronCarrySignal.sv
 	set_global_assignment -name SYSTEMVERILOG_FILE ../DekatronPC/Dekatron/Dekatron.sv
-	set_global_assignment -name VERILOG_FILE ../DekatronPC/Dekatron/BinToBcd.v
+	set_global_assignment -name VERILOG_FILE ../DekatronPC/Dekatron/BinToBcdN.v
 	set_global_assignment -name VERILOG_FILE ../DekatronPC/Dekatron/BcdToBin.v
 	set_global_assignment -name VERILOG_MACRO "CONSUL=False"
 	set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[0]

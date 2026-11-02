@@ -2,23 +2,31 @@
 # Gate-level simulation: the Icarus tests of run_tests.sh -t, run against the
 # Yosys netlist of the DUT instead of its RTL.
 #
-#   synth_sim.sh [-n] [-d] [-t] [-c NS] [test ...]
+#   synth_sim.sh [-n] [-t] [-c NS] [-o NS] [-w NS] [test ...]
 #     -n    skip synthesis, reuse the netlists in synth_sim/<test>/
-#     -d    delay-based dekatron model: DekatronTubeDelay (no hsClk, #N
-#           delays) instead of DekatronTubeV2, defined DEKATRON_DELAY_MODEL
-#           in synthesis and simulation; output in synth_sim_delay/
-#     -t    tube delays (implies -d): the cells get the delays of
-#           rtl/vtube/vtube_timing.json through SDF (iverilog -gspecify,
-#           vtube_sdf.py) and every trigger a setup/hold checker; a run
+#     -d    accepted for compatibility: the netlist is always the tube
+#           machine with the delay-based dekatron model DekatronTubeDelay
+#           (DEKATRON_DELAY_MODEL, #N delays in ns) and has no hsClk at all
+#           (TRS v0.25); hsClk exists only for the clocked model of the FPGA
+#           emulator and the RTL simulations without delays
+#     -t    tube delays: every cell gets the delays of the
+#           liberty tables (vtube_cells_timing.lib, from vtube_timing.json)
+#           at the load of its output net, through SDF (iverilog -gspecify,
+#           vtube_sdf.py -l -j, the same delays as vtube_sta.py), and every
+#           trigger a setup/hold checker; a run
 #           with violations fails. Default tests: Dekatron Counter
 #           DekatronPC. Output in synth_sim_timing/ (doc/vtube_sdf_timing.md)
-#     -o HS phase start delay after the Clk edge, hsClk periods of 100 ns
-#           (DEKATRON_PHASE_DELAY_HS, REQ-PULSE-009): at least the worst
-#           step command path. Default 0 (RTL), 22 under -t: the longest
-#           path, ready -> valid -> step_f after a write, is about 2 us
-#           with 150 ns gates (doc/vtube_sdf_timing.md §3.3)
-#     -c NS Clk period in ns for Dekatron, Counter and DekatronPC under -d
-#           (default 1000); the other testbenches keep their own clock
+#     -o NS phase start delay after the Clk edge, ns (DEKATRON_PHASE_DELAY_NS,
+#           REQ-PULSE-009): at least the worst step command path. Default
+#           0 (RTL), 3300 under -t: the longest step command with the SPICE
+#           cell delays settles at 3.24 us (vtube_sta.sh fits it,
+#           doc/vtube_sta.md §3)
+#     -w NS width of each guide phase, ns (DEKATRON_PHASE1_NS /
+#           DEKATRON_PHASE2_NS). Default 3000 (RTL), 600 under -t: a tube
+#           gate of DekatronPulseSender does not pass a pulse shorter than
+#           its own delay (doc/vtube_sta.md §6)
+#     -c NS Clk period in ns of the testbenches (default CLK_PERIOD_NS =
+#           10000, the 100 kHz Clk of TRS v0.24)
 #     test  Dekatron Counter IpLine ApLine MachineCtrl DekatronPC Pi
 #           (default: all but Pi; DekatronPC runs helloworld and program.bfk
 #           on one netlist, Pi runs pi.bfk on the same DekatronPC netlist,
@@ -28,11 +36,11 @@
 # with the parameters its testbench uses (-p). Behavioural models of parts
 # that are not tube logic are empty or stubbed under SYNTH; they stay black
 # boxes (-bb) and come back from RTL in simulation:
-#   DekatronTubeV2   the tube itself (DekatronTubeDelay with -d)
-#   OneShot, Impulse hs_clk pulse timing (phase generator, write window)
+#   DekatronTubeDelay the tube itself
+#   OneShot, Impulse RC pulse timing of the phase generator, in ns
 #   RstTimeRelay     time relay in the reset lines (extracted from DekatronPC.sv)
 #   Ram, IpMemory    memory (ferrite)
-# Library cells are simulated with rtl/vtube/vtube_cells.v.
+# Library cells are simulated with sch/logic/vtube_cells.v.
 #
 # Output goes to rtl/run/synth_sim/: one directory per test with the netlist,
 # synthesis log, simulation log and VCD. The exit code is the number of
@@ -42,65 +50,64 @@ set -uo pipefail
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" &>/dev/null && pwd -P)
 root_dir=$(cd "${script_dir}/.." && pwd -P)
 work_dir=${script_dir}/synth_sim
-cell_lib=${root_dir}/vtube/vtube_cells.lib
-cell_models=${root_dir}/vtube/vtube_cells.v
-cell_timing=${root_dir}/vtube/vtube_timing.json
+cell_dir=$(cd "${root_dir}/../sch/logic" && pwd -P)
+cell_lib=${cell_dir}/vtube_cells.lib
+cell_models=${cell_dir}/vtube_cells.v
+cell_timing=${cell_dir}/vtube_timing.json
 dpc_files=${root_dir}/DekatronPC/DPC.files
 
 do_synth=1
-delay=0
 timing=0
 clk_ns=""
 all_tests=(Dekatron Counter IpLine ApLine MachineCtrl DekatronPC)
 
 phase_delay=""
-while getopts "ndtc:o:h" opt; do
+phase_width=""
+while getopts "ndtc:o:w:h" opt; do
 	case ${opt} in
 	n) do_synth=0 ;;
-	d) delay=1 ;;
-	t) timing=1; delay=1 ;;
+	d) ;;
+	t) timing=1 ;;
 	c) clk_ns=${OPTARG} ;;
 	o) phase_delay=${OPTARG} ;;
-	*) sed -n '2,39p' "$0"; exit 1 ;;
+	w) phase_width=${OPTARG} ;;
+	*) sed -n '2,45p' "$0"; exit 1 ;;
 	esac
 done
 shift $((OPTIND - 1))
 tests=("$@")
-[ ${timing} -ne 0 ] && [ -z "${phase_delay}" ] && phase_delay=22
+[ ${timing} -ne 0 ] && [ -z "${phase_delay}" ] && phase_delay=3300
+[ ${timing} -ne 0 ] && [ -z "${phase_width}" ] && phase_width=600
 if [ ${#tests[@]} -eq 0 ]; then
 	tests=("${all_tests[@]}")
 	[ ${timing} -ne 0 ] && tests=(Dekatron Counter DekatronPC)
 fi
 
-# Dekatron model: the clocked DekatronTubeV2 or the delay-based
-# DekatronTubeDelay. The delay model is not in DPC.files (Verilator and
-# Quartus never see it), so synthesis gets a list with it appended.
-tube=DekatronTubeV2
-tube_rtl=(${root_dir}/DekatronPC/Dekatron/DekatronTubeV2.sv
-          ${root_dir}/DekatronPC/Dekatron/DekatronTubeV2_assertions.sv)
+# Dekatron model: always the delay-based DekatronTubeDelay, no hsClk. It is
+# not in DPC.files (Verilator and Quartus never see it); synt_dpc.tcl adds
+# it to synthesis, and the simulation list gets it here.
+tube=DekatronTubeDelay
+tube_rtl=(${root_dir}/DekatronPC/Dekatron/DekatronTubeDelay.sv)
 synth_defs=()
 # NETLIST_SIM: the testbench runs on a netlist (one parameter set per
 # synthesized module, e.g. Counter_tb drops its second, IP-like counter)
-sim_defs="-DNETLIST_SIM"
-if [ ${delay} -ne 0 ]; then
-	work_dir=${script_dir}/synth_sim_delay
-	tube=DekatronTubeDelay
-	tube_rtl=(${root_dir}/DekatronPC/Dekatron/DekatronTubeDelay.sv)
-	synth_defs=(-D DEKATRON_DELAY_MODEL)
-	sim_defs+=" -DDEKATRON_DELAY_MODEL"
-	[ -n "${clk_ns}" ] && sim_defs+=" -DCLK_NS=${clk_ns}"
-	if [ ${timing} -ne 0 ]; then
-		work_dir=${script_dir}/synth_sim_timing
-		sim_defs+=" -gspecify"
-	fi
-	mkdir -p "${work_dir}"
-	sed "s|^\.\./|${root_dir}/|" "${dpc_files}" > "${work_dir}/DPC.files"
-	echo "${tube_rtl[0]}" >> "${work_dir}/DPC.files"
-	dpc_files=${work_dir}/DPC.files
+sim_defs="-DNETLIST_SIM -DDEKATRON_DELAY_MODEL"
+[ -n "${clk_ns}" ] && sim_defs+=" -DCLK_NS=${clk_ns}"
+if [ ${timing} -ne 0 ]; then
+	work_dir=${script_dir}/synth_sim_timing
+	sim_defs+=" -gspecify"
+	# delays at the load of each net: flat netlist + table liberty
+	synth_defs+=(-flat)
+	python3 "${script_dir}/vtube_liberty.py" > /dev/null
 fi
-# Phase start delay: a parameter default of DekatronCounter, so a define at
-# synthesis reaches every counter of the netlist (the OneShot black box keeps it)
-[ -n "${phase_delay}" ] && synth_defs+=(-D DEKATRON_PHASE_DELAY_HS=${phase_delay})
+mkdir -p "${work_dir}"
+# Phase timing of the tube build, ns: macros read by DekatronPhaseGen (the
+# OneShot black boxes keep them as DELAY_NS), the same in synthesis and
+# in the simulation of the black boxes
+[ -n "${phase_delay}" ] && synth_defs+=(-D DEKATRON_PHASE_DELAY_NS=${phase_delay}) \
+	&& sim_defs+=" -DDEKATRON_PHASE_DELAY_NS=${phase_delay}"
+[ -n "${phase_width}" ] && synth_defs+=(-D DEKATRON_PHASE1_NS=${phase_width} -D DEKATRON_PHASE2_NS=${phase_width}) \
+	&& sim_defs+=" -DDEKATRON_PHASE1_NS=${phase_width} -DDEKATRON_PHASE2_NS=${phase_width}"
 
 # Per-test setup: synthesized top, its parameters (must match the testbench
 # instantiation), black boxes, RTL put back in simulation, simulation runs.
@@ -195,8 +202,9 @@ simulate() {
 	local sdf=()
 	if [ ${timing} -ne 0 ]; then
 		python3 "${script_dir}/vtube_sdf.py" -c "${cell_models}" -T "${cell_timing}" \
-			-n "${dir}/${top}_synth.v" -t "${top}" -s "${dut}" -o "${dir}/sdf" || return 2
-		sdf=(-s vtube_sdf "${dir}/sdf/vtube_sdf.sv" "${root_dir}/vtube/vtube_timing_check.v")
+			-n "${dir}/${top}_synth.v" -t "${top}" -s "${dut}" -o "${dir}/sdf" \
+			-l "${cell_dir}/vtube_cells_timing.lib" -j "${dir}/${top}_flat.json" || return 2
+		sdf=(-s vtube_sdf "${dir}/sdf/vtube_sdf.sv" "${cell_dir}/vtube_timing_check.v")
 	fi
 	echo "  sim   ${name}${clk_ns:+ (Clk ${clk_ns} ns)}"
 	iverilog -g2012 -o "${dir}/${name}_netlist" -DIPMEMFILE -DSIMPLEBOOT ${sim_defs} ${defines} \

@@ -402,12 +402,16 @@ task automatic expect_only(input string what, input int ipop, input int apop, in
         fail($sformatf("%s: prefetch %0d times", what, n_pf));
 endtask
 
-// Холодный старт: rst_n, сброс реле при включении не моделируется
+// Холодный старт: rst_n, затем аппаратный сброс реле при включении
+// (RST_ON_POWERUP). Автомат rst_n не получает, его сбрасывают линии
+// сброса (REQ-REF-011, TC-O5)
 task automatic power_up();
     rst_n = 1'b0;
     prog.delete();
     tick(3);
     rst_n = 1'b1;
+    panel_hard = 1'b1; tick(); panel_hard = 1'b0;
+    while (rst_busy) tick();
     tick(2);
     if (state != S_HALT) fail("after rst_n: not in S_HALT");
     if (insn_mode !== 1'b0) fail("after rst_n: not Debug ISA");

@@ -12,7 +12,7 @@
 //
 // RelayMux and RelayEn are kept as separate modules (keep_hierarchy): the
 // synthesis flow must not flatten them, the RELAY_2CO cells stay where RTL
-// put them and are counted as relays, not tubes (rtl/vtube/vtube_cells.lib).
+// put them and are counted as relays, not tubes (sch/logic/vtube_cells.lib).
 
 `ifndef SYNTH
 // Model of the relay. In synthesis the cell comes from vtube_cells.lib.

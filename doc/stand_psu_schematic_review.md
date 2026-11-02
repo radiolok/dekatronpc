@@ -397,3 +397,375 @@ rails, so this is harmless. The LM317/LM337 rails cover REQ-PWR-007
 **Still open (minor):** a 10k gate–source resistor at each MOSFET; R22 2 W in the 200v version;
 the `User:EL33` footprint link (file is `EL33_1Prx2+1S`); the wire stub
 at (234.95, 81.28) in psu.kicad_sch; the REQ-PWR-006 bias source.
+
+## 9. Bench fault: converter halted, FB ≈ 4 V (2026-10-25)
+
+Symptom (owner): the channels worked on the first power-up. Now FB (TL494 pin 3)
+sits at about 4 V, so duty is zero and there is no output. The PC817 transistor
+does not ring out as shorted; R13 (FB → GND) is in place.
+
+What the netlist says (channel 1; OC2/U6 and OC3/U9 are the same):
+
+- FB is high only if something sources ≈ 0.85 mA (4 V / 4.7k) into it: the
+  opto transistor (OC1.4 at REF → OC1.3 at FB), or the TL494 error amplifiers
+  (their outputs are wired to pin 3; inputs 1/16 at GND, 2/15 at REF, so they
+  should sit low), or a leak to the neighbouring pin 2 (1IN−, tied to REF).
+  4 V from 5 V over 4.7k fits ≈ 1.2 kΩ to REF.
+- The opto LED is fed only from the output: +Vout (C14+) → R9 18k → LED →
+  TL431 / Q1 → C14−. With no voltage on C14 the LED cannot light, so the
+  opto cannot be the source. A diode-mode or continuity test does not show
+  a PC817 fault either way; check it under power.
+
+Split the problem with two measurements under power:
+
+1. Voltage across the opto LED (OC1 pin 1 → pin 2). About 1.0–1.2 V means the
+   LED is lit and the cause is on the secondary side; about 0 V means it is on
+   the TL494 side.
+2. Vout across C14 itself (D10-K to D11-A), not at J2: J2.1 sits behind the
+   R24 1 Ω shunt.
+
+LED lit, secondary-side candidates:
+- **R24 open** (1 Ω shunt). With a load on J2, J2.1 is pulled to +Vout through
+  the load, Q1 gets base current through R51 and saturates, the LED is fully on,
+  and the converter halts. J2 then shows 0 V. An inrush into a capacitive load or
+  a short on the first run can open it. Check R24 with power off.
+- **Q1 C–E or U2 TL431 K–A shorted**: the LED lights as soon as Vout passes
+  ≈ 1–2 V, so the output stays at a few volts.
+- **Pot J4 open** (unplugged, broken wire or wiper): the lower divider leg is
+  only R8, the setpoint drops to ≈ 2.5 V and the output stays near zero.
+  Measure R between J4.1 and J4.3.
+
+LED dark, TL494-side candidates:
+- A bridge, flux residue or leak between pins 2 and 3 (they are adjacent).
+- A damaged error amplifier: check pins 1/16 = 0 V, 2/15/14 = 5 V, VCC (pin 12) = 12 V.
+- Final check: lift OC1 pin 3 (or pin 4). If FB stays at 4 V, the TL494 or the
+  board is at fault. If FB falls and the converter starts, the loop is open, so the
+  output goes to the turns-ratio maximum (≈ 211 V on the 200v version). Run it only
+  briefly, with a load or a reduced input.
+
+## 10. Bench fault: "cricket" mid-range, ringing, one MOSFET at 100 °C (2026-11-01)
+
+Owner's bench report: 120v channel, Vout set to 100 V, load 3 × 2.2k in
+parallel (733 Ω, ≈ 136 mA, ≈ 14 W). Regulation works, but in the middle of the
+pot range the converter chirps ("cricket"), the primaries ring hard, and one of
+the two IRFBE30 reaches about 100 °C. The transformer was rewound bifilar, so the
+two primary halves match. There are two scope shots of the two drains (50 V/div, 10 µs/div).
+
+### What the shots show
+
+- **Each pulse has three phases.** A short on-pulse comes first: one drain is at 0, the
+  other is at 2·Vbus, with a turn-on spike to −20 / +281 V. Next, the drains cross over within 4–5 µs
+  into a **flat plateau with the opposite polarity**: the drain that was on sits
+  above Vbus and the other sits below it. Last, once the plateau ends, a sine ring at
+  41–80 kHz decays over several periods. This is the waveform of a DCM flyback: during the plateau the
+  magnetizing current dumps into C14 through the other bridge diagonal, so
+  the plateau is the reflected output (half-primary ≈ (Vout + 2·Vf)·Np_half/Ns).
+  When the current reaches zero, Lm rings with the drain, winding and diode
+  capacitances. There is no output choke (C14 sits straight on the bridge), so
+  the converter is not a forward push-pull. The plant is a
+  peak-charge/flyback hybrid whose duty → Vout gain is very high and nonlinear.
+  The ring itself is lossless. The trouble is that the next turn-on lands at a random
+  phase of it.
+- **Pulses are skipped, and the ones that remain land on the same transistor.** In both
+  shots, every pulse pulls the **CH2 (cyan)** drain to 0. The spacing is about
+  20 µs (shot 1) and about 37 µs (shot 2). By formula, RT = 10k and CT = 1.1 nF give
+  an oscillator period of ≈ 10 µs, so that would be 2 and ≈ 4 periods. The 10.1 shot
+  points to ≈ 18.5 µs (≈ 54 kHz) instead, so it is 1 and 2 periods; pin 5 still
+  has to be measured. Either way, shot 2 has the same output firing every 2nd period. The TL494 steering flip-flop toggles
+  on every oscillator period whether or not a pulse comes out. So when the
+  loop lets a pulse through only every even period, all pulses go to
+  one output. The core then sees unipolar volt-seconds, which the ring only partly resets. The flux
+  walks toward saturation, the current in that MOSFET grows, and it heats up. **Prediction
+  to check: the hot MOSFET is the one probed by CH2.**
+- The audible chirp is the envelope of this pulse skipping: bursts at a
+  kHz rate, and the loop is limit-cycling, not regulating.
+
+### Why the loop limit-cycles (from the netlist)
+
+- The opto LED (OC1.1 → OC1.2) sits between the D38 18 V zener node and the
+  TL431 cathode **with no series resistor**. The anode is held stiff, so the LED
+  current is set by V_K across the LED dynamic resistance alone (≈ 50–100 Ω at
+  0.5–1 mA). About 60 mV of swing at K covers the whole FB range. As a result:
+  - The opto stage gain is CTR·R13/r_LED ≈ 4.7k/100 ≈ 50 instead of the
+    usual 2–5.
+  - C15 (10 nF) + R25 (100 Ω) from K to REF barely acts as an integrator, because
+    K hardly moves.
+- Rough loop gain: integrator 1/(2π·R7·C15) ≈ 310 Hz (R7 = 51k) × opto
+  ≈ 50 × PWM ≈ 0.15 /V × divider 2.5/100 × plant ≈ 300…1000 V per unit duty
+  (peak charge, no choke). That puts crossover at ≈ 15…55 kHz, at or above the
+  switching frequency. The PC817 pole (a few kHz with 4.7k) adds phase lag.
+  The result is a limit cycle, and its frequency moves with the operating point,
+  which explains why it appears only in part of the pot range.
+
+### Fixes, in order
+
+1. **Now, to protect the MOSFETs:** don't leave it running in the chirp region, and confirm
+   which drain is on which MOSFET (see the prediction above).
+2. **Make the loop slower** (no PCB change needed; can be soldered on):
+   - Put a resistor **R_LED ≈ 1.5k in series with the LED** (between the D38/R9
+     node and OC1.1). Gain falls to CTR·4.7k/1.5k ≈ 3 (×15 lower), and K now
+     swings by volts, so C15 works. Headroom: 18 − 1.1 − 1.5 ≈ 15 V at K ≥ 2.5 V.
+   - Put ≈ 1k across the LED (also in §6 C3b), for the TL431's 1 mA bias.
+   - Add **10 nF from FB to GND** (across R13): this sets the opto pole on purpose at
+     ≈ 3.4 kHz instead of leaving it to the PC817 parasitics.
+   - After that, check the transient on the scope with a load step (for example, switching
+     one of the 2.2k resistors). If it still chirps, raise C15 to 47–100 nF and R25 to
+     4.7–10k (type II).
+3. **Add an output choke** (the proper fix for the topology): an L between the bridge and C14.
+   The bridge then works as the freewheel path, Vout ≈ 2·D·Vbus·Ns/Np_half
+   becomes linear in D, and the plateau and ring go away in CCM.
+   I_crit = Vout·(1 − Vout/Vpk)·T_osc/(2L). For the 120v version (Vpk ≈ 127 V)
+   with L = 2 mH: ≈ 53 mA at 100 V and ≈ 76 mA at 50 V. So 2–3 mH / ≥ 0.3 A on a
+   gapped core, plus a bleeder of 10–20 mA so that idle stays out of deep pulse skipping.
+4. Optional: a small gap in the EL33 (0.1–0.2 mm) makes the core more tolerant of
+   residual volt-second imbalance. The TL494 has no flux balancing of its own
+   (current-mode controllers such as the UC3846 do).
+
+### What to measure next
+
+- At 1–5 ms/div, both drains in the chirp mode, to see the burst envelope.
+- At 100 V, the plateau level ΔV = |V_drainA − V_drainB|/2. With
+  Ns/Np_half = 34/30 it should be ≈ (100 + 2)/1.13 ≈ 90 V. If it is much lower,
+  the rewound turns ratio does not match the note (shot 1 gives ≈ 43 V, but
+  the Vout at which it was taken is not known).
+- Vbus (C1) under load. Expected ≈ 112 V from 80 V RMS. The 2·Vbus level in the shots
+  reads about 240–256 V.
+
+### 10.1 After the LED series resistor (2026-11-01)
+
+The owner added 1.6k in series with the opto LED. The chirp and the hard ringing
+are gone, and the MOSFET runs cooler. The 1k across the LED and the 10 nF on FB have not
+been added yet. There is a new shot: CH2 is a drain at 50 V/div. CH1 is the other drain at 20 V/div,
+clipped above ≈ 126 V, so only its lower part can be read.
+
+- The pulses now **alternate** between the two MOSFETs, about 18.5 µs apart. The full
+  cycle is 37 µs (26.9 kHz). Pulse skipping and the flux walk have stopped.
+- With RT = 10k and CT = 1.1 nF the oscillator should run at 91–100 kHz. Alternating
+  pulses 18.5 µs apart mean either an oscillator at ≈ 54 kHz with every period
+  used, or regular skipping by an odd number of periods. The note in §10 has been corrected for this.
+  To be measured: the sawtooth on pin 5 (CT).
+- Each cycle has the same structure. The on-time is very short: a near-vertical drop to 0
+  (ON) on the CH2 drain. The drain then ramps up to the plateau over ≈ 6 µs. That fits a small magnetizing current
+  charging ≈ 1 nF of node capacitance (Coss + winding + diodes). Next comes a plateau at
+  ≈ 156 V. Both drains together average ≈ Vbus ≈ 114 V there, so the half-winding sits at ≈ 42 V. That is below the
+  reflected output (≈ 90 V), so the plateau is most likely the **RCD clamp**
+  (C3 sits at ≈ 40–45 V above Vbus), not the output. The drain then rings down
+  as Lm·C at ≈ 55 kHz. The next turn-on on CH2 lands close to the valley (−17 V,
+  the body diode conducts), which is soft switching.
+- This is the normal DCM waveform of a push-pull **without an output choke**.
+  It cannot turn into a square wave. Energy goes out as short current
+  spikes, limited only by the leakage inductance. 13.6 W at 18.5 µs per pulse needs
+  ≈ 2.8 µC primary charge per pulse, so a pulse of about 1 µs carries several amperes peak. Those amperes
+  flow through R_DS(on) ≈ 3 Ω (hot ≈ 5 Ω) of the IRFBE30, which is the remaining heat source.
+- **With a choke** the drains become a square wave: the ON drain at 0, the other at
+  2·Vbus, and both at Vbus during the dead time. The primary current is then ≈ n·I_out
+  ≈ 0.15 A flat-topped. Trade-off: Vout,max ≈ 2·D_max·n·Vbus ≈ 0.9 · 127 ≈ 114 V
+  at nominal mains for the 120v version. To keep 120 V, raise Ns from 34 to ≈ 38 turns.
+  The 200v (56/50) and 80v (23/20) versions need the same ≈ +10 %.
+
+Next measurements: CT pin 5 frequency; the gate of one MOSFET (CH1, 5 V/div)
+against its drain, to read t_on; and both drains at 50 V/div.
+
+### 10.2 Owner changes and the R17 floor (2026-11-01)
+
+Facts from the owner:
+- CT is 2.2 nF on the board, not 1.1 nF, so f_osc ≈ 50 kHz and each output runs at ≈ 25 kHz.
+  The owner will go back to 1.1 nF. That halves the volt-seconds per pulse at a given duty,
+  so the core has twice the margin against saturation. The choke sizing in §10 already
+  assumes T_osc = 10 µs.
+- R17 (the 120v copy of R9: +Vout → D47 18 V zener → opto LED) was doubled to fight heat at
+  high Vout. Note value 11k, now 22k: at 118 V the dissipation falls from 0.9 W to 0.45 W.
+- The on-time really is tiny at 733 Ω. Without a choke the duty scales with load. With a choke
+  it is ≈ Vout/(n·Vbus) whatever the load is (in CCM).
+
+**The R17 floor.** The R17 branch has to feed the LED and the TL431 bias. To cut the
+duty, FB needs ≈ 3 V over R13 4.7k, so I_C ≈ 0.65 mA. At CTR ≈ 0.5–1 for low currents that takes
+I_LED ≈ 1 mA, plus about 1 mA for the bias resistor across the LED, so ≈ 2 mA in total. Regulation
+therefore holds only above Vout ≈ 18 V + 2 mA·R17:
+
+| R17 | Lowest regulated Vout (≈) | P(R17) at 118 V |
+|---|---|---|
+| 11k | 40 V | 0.9 W |
+| 22k | 62 V | 0.45 W |
+
+Below that floor the loop cannot pull FB up. The duty grows until Vout rises far enough to supply
+the R17 current. In other words, a low setpoint gives an overvoltage, not a lower output.
+Options: keep 22k only if the 120v channel is never set below ≈ 60 V. Otherwise use 11–12k
+rated 2 W. A constant-current source (e.g. a DN2540 depletion MOSFET at ≈ 2.5 mA) keeps both the
+floor and the heat low across the whole range. The series LED resistor (1.6k) sets only the loop gain,
+not the current budget, so it does not need to follow R17. With 22k, use ≈ 2.2k (≈ 0.5 mA) as the bias
+resistor across the LED, not 1k.
+
+**Fitting the choke on the existing PCB.** Lift the + leg of C14 (C25 in the 120v
+copy) and put the choke between the pad and the leg. The rectifier side stays on the pad, while
+C14+, R7/R33, R9/R17 and J2/J6 stay on the leg. The bridge still provides the freewheel path.
+
+**Choke from a salvaged ring (owner's core).** The core is a grey toroid with one white face, probably a
+powdered-iron ATX choke core. About 15 bifilar turns measure 8.8 µH at 1 kHz. That gives A_L ≈ 39 nH/N² with
+the strands in parallel (15 turns), or ≈ 10 nH/N² with them in series (30 turns). L = A_L·N², so
+1 mH needs ≈ 160 turns (or ≈ 320 turns at 10 nH/N²), and 2.2 mH needs ≈ 240 (≈ 470).
+L ≈ 0.5–1 mH is already usable. At 100 V it stays in DCM below ≈ 0.1–0.2 A, but
+a DCM buck is still well behaved, and the primary peak current falls by an order of magnitude against
+the choke-less case. Bias at 160 turns × 0.15 A = 24 A·turns, which is a few Oe on a T80-size
+ring, so powdered iron keeps its µ. Use wire of 0.25–0.3 mm.
+
+Corrected owner data: 21 bifilar turns, ring 15.5 × 8 × 6 mm (≈ T60 size: Ae ≈ 22.5 mm²,
+le ≈ 35.6 mm, so A_L ≈ 0.79·µ nH/N²). With the strands in parallel this gives A_L ≈ 20 nH/N² (µ ≈ 25);
+in series it gives ≈ 5 nH/N² (µ ≈ 6, an RF mix such as -2/-6). 8.8 µH at 1 kHz is only ≈ 55 mΩ of reactance, so
+re-measure at 10–100 kHz. Turns for 1 mH: ≈ 225 (µ 25) or ≈ 450 (µ 6). The window (≈ 50 mm²,
+≈ 40 % fill) takes ≈ 230 turns of 0.25 mm or ≈ 380 turns of 0.2 mm. So the target is ≈ 1 mH with
+0.2–0.25 mm wire if µ ≈ 25, or ≈ 0.5 mH (≈ 320 turns of 0.2 mm) if µ ≈ 6. The flux swing does not depend on L:
+ΔB ≈ (n·Vbus − Vout)·t_on/(N·Ae) ≈ 40 mT at 225 turns in CCM. Check the ring temperature
+after 10 minutes.
+
+### 10.3 With the output choke (2026-11-01)
+
+Owner measurement (120v copy, choke fitted; CT was already 1 nF, see the correction below): 120 V in, 164 mA in
+(19.7 W). At the top pot setting the output is only 80 V at 110 mA (8.8 W), η ≈ 45 %. The MOSFETs are at ≈ 50 °C,
+the transformer windings show an almost clean square wave, and the transformer runs hot. Only a 1 nF CT
+part is on hand.
+
+- **Expected maximum** with the choke: Vout ≈ 2·D_max·n·Vbus − drops. The DTC rest level of 0.45 V gives
+  D_max ≈ 0.4 per output, so ≈ 0.8 · 1.13 · 120 ≈ 109 V. The choke (≈ 2 Ω), the diodes and R_DS(on)
+  reflected to the secondary together drop only ≈ 2–3 V at 0.11 A. The missing ≈ 25 V and the hot transformer
+  point to **core saturation**. With the choke the duty is now near the maximum (no longer short
+  spikes), and at f_osc ≈ 54 kHz one half-period can last up to t_on ≈ 0.8·T_osc ≈ 15 µs:
+  ΔB = Vbus·t_on/(Np_half·Ae) = 120·15 µs/(30·Ae). For an Ae of 100 mm² that is ≈ 0.6 T peak-to-peak,
+  i.e. Bpk ≈ 0.3 T, at the ferrite's saturation level when hot. The core saturates late in each
+  half-period, the winding voltage collapses (the volt-seconds per half-period hit their cap,
+  so Vout tops out), and the magnetizing current spikes heat the core, the copper and the MOSFETs.
+- **Fix: CT = 1 nF.** That gives f_osc ≈ 1.1/(10k·1 nF) ≈ 110 kHz, 55 kHz per output, and ΔB halves to
+  Bpk ≈ 0.15 T. The same reasoning applies to the other copies (Vbus·Np_half: 200v
+  ≈ 190 V / 50 turns, which is the same ratio). The choke I_crit halves as well.
+- Saturation check: put 0.47–1 Ω in the centre-tap (or bus) lead and look at the current. The
+  current ramp turns sharply upward at the end of each half-period when the core saturates.
+  Equivalently, the drain of the ON MOSFET lifts off 0 before turn-off.
+- **Fixed overhead**: R1 (4.7k) from 120 V draws ≈ 22 mA, ≈ 2.6 W for the 12 V
+  supply, i.e. 13 % of the input at this load. The R7/R8, R17 and clamp bleeders add ≈ 0.3–0.5 W.
+  So even with an ideal power stage η stays ≤ 85 % at 9 W. The auxiliary winding for VCC (§6)
+  would remove the R1 loss.
+- Open: the Ae of the "EL33" core. The owner should check it against the core datasheet or measure it.
+
+**Correction (owner, same day).** CT was already 1 nF during that measurement, and the choke is ≈ 100
+turns of 0.48 mm on the T60 ring (≈ 0.2 mH at A_L ≈ 20 nH/N²; I_crit ≈ 0.7 A at 80 V, so at 110 mA it runs in DCM). The transformer
+still heats strongly. So "saturation because of the 2.2 nF CT" is withdrawn. At 1 nF:
+t_on ≤ 0.8·T_osc ≈ 7.3 µs and ΔB = 120·7.3 µs/(30·Ae). That is near saturation (Bpk ≥ 0.25 T) only
+if Ae ≲ 60 mm². The Ae of the "EL33" core is unknown (the footprint only gives a body of ≈ 37 × 30 mm).
+A DCM choke would push Vout up toward n·Vbus at light load, not cap it at 80 V,
+so the choke does not explain the 80 V ceiling.
+
+Candidates and the measurement that separates them:
+
+| Candidate | Signature |
+|---|---|
+| Core saturation (small Ae, or Vbus above 120 V) | Current in the centre tap hooks upward at the end of each half-period; the core, not the copper, is hot |
+| DC flux walk (voltage-mode push-pull, unequal halves) | The two halves of the centre-tap current differ; one MOSFET runs warmer |
+| Unsuitable or lossy core material (salvaged ferrite, powdered iron) | Hot core at no load, no hook in the current |
+| Damaged insulation or a shorted turn after the bifilar rewind (adjacent wires of the two halves are ≈ Vbus apart, 2·Vbus p-p) | High no-load input current, a local hot spot in the winding, low Vout at all settings |
+| 12 V auxiliary supply sagging at full duty (R1 4.7k gives ≈ 22 mA against a ≈ 30 mA budget, §8) | VCC (pin 12) < 12 V and a slow gate edge at the top setting; caps duty and Vout |
+
+First tests: Vbus on C1 and VCC on pin 12 at the top setting under load; input current and
+transformer temperature with **no load** (only the bleeders); the centre-tap current through 0.47–1 Ω;
+core vs winding temperature; centre-leg dimensions → Ae.
+
+### 10.4 Owner data: real winding, no-load test (2026-11-01)
+
+The owner reports:
+- Vbus = 120 V DC; VCC at pin 12 = 12 V.
+- No load: 70 mA in (8.4 W); the transformer is barely warm and the MOSFETs are as warm as under load.
+- Under load the winding (not the core) seems to be what gets warm.
+- Centre leg 10 × 12 mm, so Ae ≈ 120 mm².
+- Actual winding: primary 2 × 48 bifilar, secondary 50 (not the 30/34 of the sheet note).
+
+- **Saturation is ruled out.** ΔB = 120 V · 7.3 µs/(48 · 120 mm²) ≈ 0.15 T, Bpk ≈ 0.08 T.
+  Core loss at 55 kHz is a fraction of a watt.
+- **Turns ratio** 50/48 = 1.04, so n·Vbus ≈ 125 V. With the choke in CCM,
+  Vout,max ≈ 0.8 · 125 − drops ≈ 95–100 V. The measured 80 V at 110 mA is therefore not a
+  turns or saturation limit. Next check: the no-load Vout at the top pot setting. If it is also
+  ≈ 80 V, the limit is the divider (R33/R34 values actually fitted). If it is higher, something
+  in series drops ≈ 15–20 V at 0.11 A.
+- **Load-independent loss ≈ 5.8 W** (8.4 W minus R1 ≈ 2.6 W), and it lands in the MOSFETs. The most likely source
+  is the **bifilar primary**. Corresponding turns of the two halves carry the same EMF but sit
+  at the two drain potentials, so the wires are ±Vbus apart (240 V p-p) along their whole length.
+  ≈ 2 × 2.9 m of touching enamel wire gives C_bf ≈ 1–2 nF. Each turn-on discharges it
+  through the MOSFET: P ≈ ½·C·(2·Vbus)²·f_turn-on,total ≈ ½ · 1.8 nF · 240² · 110 kHz ≈ 5.7 W, which matches.
+  Bifilar push-pull primaries are a low-voltage (12–48 V) technique. Check: separate the
+  two halves at the centre tap and measure the capacitance between them with the LCR meter.
+  Fix: wind the halves separately. Either half A / secondary / half B (the secondary between them
+  also cuts the leakage to it), or the two halves side by side in a split bobbin. The halves stay
+  equal by turn count. Bifilar is not needed for that. The higher leakage between the halves goes into the RCD clamp (watch R22).
+- The load-dependent part is ≈ 2.6 W. With a 0.2 mH choke the converter runs in DCM, so the current is peaky. Copper
+  loss at these currents is ≤ 0.1 W, so a warm winding more likely gets its heat from the
+  dielectric loss of the bifilar insulation or from the MOSFETs and the board next to it. The centre-tap current
+  measurement (§10.3) is still pending.
+
+### 10.5 The 80 V under load is a duty limit (2026-11-01)
+
+No-load Vout at the top pot setting is 114 V. That is the setpoint ceiling, 2.5·(1 + R7/R8) with tolerances.
+So the divider does not cause the 80 V seen under load.
+With L ≈ 0.2 mH, R = 733 Ω and T_osc ≈ 9 µs: K = 2L/(R·T) ≈ 0.06 < 1 − D, so the stage runs in DCM, and
+M = 2/(1 + √(1 + 4K/D²)). At D = 0.8 this gives M ≈ 0.92, i.e. Vout ≈ 115 V under load. Getting 80 V (M = 0.64)
+needs D ≈ 0.26. Something holds the duty down at ≈ 1/3 of its maximum. The candidates, in order:
+1. The bench supply is in current limit (≈ 164 mA in): Vbus sags. Measure Vbus on C1 under load and look at the
+   CC lamp.
+2. The current limit (Q1, R24 = 1 Ω on the return after C14 trips at ≈ 0.6 A): measure the voltage across
+   R24 and Q1's V_BE. At 0.11 A it should show 0.11 V. If R24 was changed to ≈ 5–6.8 Ω, the limit trips at ≈ 0.1 A
+   (80 V/733 Ω = 109 mA).
+3. VCC or gate drive sagging under load at full duty (pin 12 was read at 12 V, but the operating point is not known).
+
+Capacitive-loss test without rewinding: the no-load input power minus the R1 share scales as Vbus²
+if the bifilar capacitance is the cause. Compare the no-load currents at 60 V and 120 V on the bus.
+
+On the bifilar choice: a push-pull is sensitive to **volt-second** imbalance between the halves
+(flux walk). Equal turn counts settle the winding side of that, and the larger sources are the
+MOSFETs and the drive timing. Bifilar also cuts the leakage between the halves, which is the right trade-off at
+12–48 V. At 120 V the inter-half capacitance costs more. Here Bpk ≈ 0.08 T, so the
+core has a large margin against walk. Sectioned halves with equal turns, plus an optional
+0.1 mm gap, are enough.
+
+**Old transformer (owner).** The first transformer had the primary halves wound one after the other
+(sectioned). With it, one MOSFET overheated badly. Rewinding bifilar did not change that. The overheating
+dates from before the LED series resistor, when the loop was skipping pulses and all of them landed on one
+MOSFET (§10). So it was a loop effect, not winding asymmetry. Refitting the old transformer now
+is a direct A/B test of the bifilar capacitance. Compare the no-load input current at the same Vbus and
+setpoint, and the temperatures of both MOSFETs. The old one is 50 + 50 / 56 turns (all transformers follow the 200v note): Bpk ≈ 120·7.3 µs/(2·50·120 mm²)
+≈ 0.07 T and n·Vbus ≈ 134 V. Expect larger turn-off spikes (more leakage between halves).
+Watch the clamp R22.
+
+### 10.6 The 80v channel with a sectioned primary (2026-11-01)
+
+Owner measurement: 80 V DC in at 0.175 A (14 W); 80 V out at 110 mA (8.8 W), η ≈ 63 %. After 30 min
+the MOSFETs are at 35–40 °C and the transformer is warm. Turns: 50 + 50 / 56, the 200v winding (all transformers were wound to the 200v note), so n·Vbus ≈ 90 V.
+
+- Loss budget, 5.2 W in total. R1 (3k) from 80 V takes ≈ 21 mA, ≈ 1.7 W. The bleeders take ≈ 0.2 W. Diodes
+  ≈ 0.3 W. That leaves ≈ 3 W for the MOSFETs, the transformer, the clamp and the choke (if fitted).
+  On the 120v channel the same split gave ≈ 8 W of converter loss with only ≈ 5.8 W at no load. That is consistent
+  with the bifilar-capacitance explanation (§10.4).
+- Transformer: copper loss at 0.11 A is ≤ 0.1 W even with peaky (choke-less) current and a proximity factor
+  of a few. Core: ΔB ≤ 80 V · 7.3 µs/(50 · 120 mm²) ≈ 0.1 T, so Bpk ≤ 0.05 T at 55 kHz, with
+  negligible core loss. The warmth comes mostly from copper (≈ 3 + 3 + 3.4 m of 0.42 mm, several layers, peaky current) and from heat
+  conducted from the board. An EE33-size
+  part at 1–2 W settles at ≈ +25–40 K. "Warm" is expected. A reading above 80–90 °C would point to a poor core material.
+- Asked: whether this channel has an output choke, the transformer temperature, and the no-load input current
+  (expected ≈ 25–30 mA, mostly R1).
+
+Answers: no output choke on the 80v channel; the transformer is at ≈ 45 °C after 30 min; no-load input is 36 mA
+(2.9 W). Without R1 (≈ 1.7 W) that leaves ≈ 1.2 W of no-load converter loss. Scaled by Vbus² to 120 V this would be
+≈ 2.7 W, against 5.8 W measured on the bifilar 120v channel. The excess, ≈ 3 W, fits the bifilar inter-half
+capacitance. The turn counts are nearly the same (48 vs 50 per half), so the comparison is fair.
+The load-dependent loss is ≈ 2.3 W at 8.8 W out. Verdict: the sectioned transformer is fine. Refit the old one in
+the 120v channel. Apply the loop fix (LED series resistor, 10 nF on FB) and CT = 1 nF to the 80v and
+200v channels as well. The 80v channel works without a choke because Vout/(n·Vbus) ≈ 0.89, so the pulses
+are not very short.
+
+**Winding layout of the sectioned transformers (owner).** About 25 turns per layer, wound in the order
+P1 (2 layers), P2 (2 layers), S (≈ 2.3 layers). P1 is separated from S by P2, so the
+**P1–S leakage is larger than the P2–S leakage**. The two halves then get unequal turn-off spikes
+and unequal commutation losses. That is the real winding asymmetry a push-pull is sensitive to (the turn
+counts themselves are equal). The difference in mean turn length (P1 inner, P2 outer) adds a small copper-R
+imbalance. The bifilar rewind removed the leakage asymmetry but added ≈ 3 W of capacitive
+loss at 120 V. The middle ground is a **P1 – S – P2 sandwich**: each half has one interface with S, so the
+leakage is symmetric and lower overall, the proximity loss is lower, and the halves stay ≈ 2·Vbus apart
+only through the secondary layers and tape, not wire to wire. Check before rewinding: compare the turn-off spike heights on
+the two drains (scope, both channels at the same V/div). If they differ by more than ≈ 20–30 %, or one MOSFET still runs
+warmer with the loop fixed, rewind as P1–S–P2 with insulating tape between primary and secondary.

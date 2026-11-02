@@ -1,0 +1,124 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='1200' height='700' viewBox='0 0 1200 700'>
+<title>Плата декатрона: структурная схема</title>
+<rect x='0' y='0' width='1200' height='700' fill='white'/>
+<text x='20.0' y='26.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='15' text-anchor='start' fill='#111' font-weight='bold'>Рис. 0. Плата декатрона и соседние платы (одна плата — один декатрон)</text>
+<rect x='20.0' y='50.0' width='700' height='560' fill='none' stroke='#555' stroke-width='1.2' stroke-dasharray='6,4'/>
+<text x='30.0' y='70.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='13' text-anchor='start' fill='#555' font-weight='bold'>Плата декатрона: А110 (2 места) + обвязка ≤ 14 мест</text>
+<rect x='50.0' y='90.0' width='200' height='110' fill='#fafafa' stroke='#111' stroke-width='1.5'/>
+<text x='150.0' y='110.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='13' text-anchor='middle' fill='#111' font-weight='bold'>А110 + Rа</text>
+<text x='150.0' y='130.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>декатрон, 13 выводов</text>
+<text x='150.0' y='147.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>Rа 200k на плате</text>
+<text x='150.0' y='164.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>(REQ-PR-020)</text>
+<rect x='50.0' y='240.0' width='200' height='120' fill='#fafafa' stroke='#111' stroke-width='1.5'/>
+<text x='150.0' y='260.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='13' text-anchor='middle' fill='#111' font-weight='bold'>Rк × 10</text>
+<text x='150.0' y='280.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>33k на катод</text>
+<text x='150.0' y='297.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>перемычки: запись /</text>
+<text x='150.0' y='314.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>сброс 0 / сброс 0–9</text>
+<text x='150.0' y='331.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>(общая шина Bобщ)</text>
+<rect x='290.0' y='90.0' width='200' height='110' fill='#fafafa' stroke='#111' stroke-width='1.5'/>
+<text x='390.0' y='110.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='13' text-anchor='middle' fill='#111' font-weight='bold'>Цепи подкатодов</text>
+<text x='390.0' y='130.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>Cп 220 пФ × 2</text>
+<text x='390.0' y='147.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>Rсм 100k × 2 → Uсм</text>
+<text x='390.0' y='164.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>[½ 6Х7Б × 2, если нужен]</text>
+<rect x='290.0' y='240.0' width='200' height='120' fill='#fafafa' stroke='#111' stroke-width='1.5'/>
+<text x='390.0' y='260.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='13' text-anchor='middle' fill='#111' font-weight='bold'>Диоды чтения</text>
+<text x='390.0' y='280.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>5 × 6Х7Б (10 линий)</text>
+<text x='390.0' y='297.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>подтяжка 100k → +5 В</text>
+<text x='390.0' y='314.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>развязка линий</text>
+<text x='390.0' y='331.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>на время записи</text>
+<rect x='520.0' y='240.0' width='180' height='120' fill='#fafafa' stroke='#111' stroke-width='1.5'/>
+<text x='610.0' y='260.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='13' text-anchor='middle' fill='#111' font-weight='bold'>BinToBcdN</text>
+<text x='610.0' y='280.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>≈ 7,5 ламп</text>
+<text x='610.0' y='297.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>4 × ИЛИ-НЕ</text>
+<text x='610.0' y='314.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>выход — активный ноль</text>
+<text x='610.0' y='331.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>(TC-O3)</text>
+<rect x='520.0' y='400.0' width='180' height='90' fill='none' stroke='#111' stroke-width='1.5' stroke-dasharray='6,4'/>
+<text x='610.0' y='420.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='13' text-anchor='middle' fill='#111' font-weight='bold'>Буфер признаков</text>
+<text x='610.0' y='440.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>½ 6Н16Б на линию,</text>
+<text x='610.0' y='457.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>если понадобится</text>
+<text x='370.0' y='560.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='12' text-anchor='middle' fill='#555'>Обвязка: 5 (6Х7Б) + 7,5 (BinToBcdN) = 12,5 из 14 мест; +1 — буфер Zero/Nine</text>
+<text x='370.0' y='580.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='12' text-anchor='middle' fill='#555'>Питание: +350 В (анод), +150 / −50 В (вентили), +5 В, Uсм, накал 6,3 В</text>
+<polyline points='150.0,200.0 150.0,240.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='146.5,231.7 150.0,240.0 153.5,231.7' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='150.0' y='235.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>K0…K9</text>
+<polyline points='250.0,300.0 290.0,300.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='281.7,303.5 290.0,300.0 281.7,296.5' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='270.0' y='294.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>K</text>
+<polyline points='490.0,300.0 520.0,300.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='511.7,303.5 520.0,300.0 511.7,296.5' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='505.0' y='290.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>чт</text>
+<polyline points='250.0,145.0 290.0,145.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='281.7,148.5 290.0,145.0 281.7,141.5' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='258.3,141.5 250.0,145.0 258.3,148.5' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='270.0' y='139.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>ПК1, ПК2</text>
+<polyline points='390.0,360.0 390.0,445.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='390.0,445.0 520.0,445.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='511.7,448.5 520.0,445.0 511.7,441.5' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='395.0' y='420.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='start' fill='#111'>K0, K9, TOP</text>
+<rect x='740.0' y='80.0' width='40' height='510' fill='#eee' stroke='#111' stroke-width='1.5'/>
+<text x='760.0' y='72.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='12' text-anchor='middle' fill='#111' font-weight='bold'>HD-68</text>
+<polyline points='490.0,145.0 740.0,145.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='731.7,148.5 740.0,145.0 731.7,141.5' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='498.3,141.5 490.0,145.0 498.3,148.5' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='615.0' y='139.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>анод ключа → Cп</text>
+<polyline points='150.0,360.0 150.0,378.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='150.0,378.0 740.0,378.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='731.7,381.5 740.0,378.0 731.7,374.5' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='158.3,374.5 150.0,378.0 158.3,381.5' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='445.0' y='372.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>B0…B9 (низ Rк) → каналы записи</text>
+<polyline points='700.0,290.0 740.0,290.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='731.7,293.5 740.0,290.0 731.7,286.5' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='705.0' y='280.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='start' fill='#111'>Out_n</text>
+<polyline points='700.0,445.0 740.0,445.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='731.7,448.5 740.0,445.0 731.7,441.5' fill='none' stroke='#111' stroke-width='1.5'/>
+<rect x='830.0' y='80.0' width='350' height='330' fill='#fafafa' stroke='#111' stroke-width='1.5'/>
+<text x='1005.0' y='100.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='13' text-anchor='middle' fill='#111' font-weight='bold'>Плата счётчика (1–2 на счётчик)</text>
+<text x='1005.0' y='120.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>стоит в блоке своего счётчика:</text>
+<text x='1005.0' y='137.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>IP, Loop — IpLine; AP, Data — ApLine</text>
+<text x='1005.0' y='154.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'></text>
+<text x='1005.0' y='171.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>ключи подкатодов GUIDE_EN_J2:</text>
+<text x='1005.0' y='188.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>2 × 6Ж2Б на декаду, Ra 10k → шина S</text>
+<text x='1005.0' y='205.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>каналы записи WRCH_N16: ½ 6Н16Б,</text>
+<text x='1005.0' y='222.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>Rп 62k → +150 В, Cс 100 пФ, Rс 1M, −Eк</text>
+<text x='1005.0' y='239.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>повторитель шины S GLIFT_N16:</text>
+<text x='1005.0' y='256.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>+50 / +150 В при записи, 1 на счётчик</text>
+<text x='1005.0' y='273.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'></text>
+<text x='880.0' y='300.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111' font-weight='bold'></text>
+<text x='955.0' y='300.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111' font-weight='bold'>6Ж2Б</text>
+<text x='1030.0' y='300.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111' font-weight='bold'>6Н16Б</text>
+<text x='1105.0' y='300.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111' font-weight='bold'>плат</text>
+<text x='880.0' y='318.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>IP</text>
+<text x='955.0' y='318.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>10</text>
+<text x='1030.0' y='318.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>7+1</text>
+<text x='1105.0' y='318.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>2</text>
+<text x='880.0' y='336.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>Loop</text>
+<text x='955.0' y='336.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>4</text>
+<text x='1030.0' y='336.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>2+1</text>
+<text x='1105.0' y='336.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>1</text>
+<text x='880.0' y='354.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>AP</text>
+<text x='955.0' y='354.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>10</text>
+<text x='1030.0' y='354.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>5+1</text>
+<text x='1105.0' y='354.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>1–2</text>
+<text x='880.0' y='372.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>Data</text>
+<text x='955.0' y='372.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>6</text>
+<text x='1030.0' y='372.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>15+1</text>
+<text x='1105.0' y='372.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>2</text>
+<rect x='830.0' y='440.0' width='350' height='130' fill='#fafafa' stroke='#111' stroke-width='1.5'/>
+<text x='1005.0' y='460.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='13' text-anchor='middle' fill='#111' font-weight='bold'>Логика счётчика и память</text>
+<text x='1005.0' y='480.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>Out_n → шины адреса / данных</text>
+<text x='1005.0' y='497.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>(активный ноль; память инвертирует сама)</text>
+<text x='1005.0' y='514.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>Zero, Nine → перенос (защёлки En)</text>
+<text x='1005.0' y='531.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='11' text-anchor='middle' fill='#111'>BcdToBinEn (запись) — вне платы</text>
+<polyline points='780.0,145.0 830.0,145.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='821.7,148.5 830.0,145.0 821.7,141.5' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='788.3,141.5 780.0,145.0 788.3,148.5' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='780.0,378.0 805.0,378.0 805.0,330.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='805.0,330.0 830.0,330.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='821.7,333.5 830.0,330.0 821.7,326.5' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='780.0,300.0 830.0,480.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='824.4,473.0 830.0,480.0 831.2,471.1' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='780.0,445.0 830.0,510.0' fill='none' stroke='#111' stroke-width='1.5'/>
+<polyline points='822.2,505.6 830.0,510.0 827.7,501.3' fill='none' stroke='#111' stroke-width='1.5'/>
+<text x='20.0' y='640.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='12' text-anchor='start' fill='#111'>Узел B под Rк держит открытая лампа записи: кабель до платы счётчика висит на низкоомном узле. Катодная линия, диоды и BinToBcdN — рядом,</text>
+<text x='20.0' y='658.0' font-family='DejaVu Sans, Arial, sans-serif' font-size='12' text-anchor='start' fill='#111'>без кабеля (SPICE §9.7–9.8). Ключ подкатода — на плате счётчика: кабель между анодом ключа и Cп (CKA 30 пФ в SPICE). 6Н16Б: каналы + GLIFT.</text>
+</svg>

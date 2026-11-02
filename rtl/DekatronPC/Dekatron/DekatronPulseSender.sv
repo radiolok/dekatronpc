@@ -49,7 +49,9 @@ module DekatronPulseSender #(
     parameter unsigned PHASE1_HS  = 3,
     parameter unsigned PHASE2_HS  = 3
 )(
-    input  wire hsClk,      // временная база модели
+`ifndef DEKATRON_DELAY_MODEL
+    input  wire hsClk,      // временная база тактовой модели
+`endif
     input  wire Clk,        // такт счёта
     input  wire Rst_n,      // модельный сброс элементов задержки
 
@@ -84,11 +86,14 @@ module DekatronPulseSender #(
                 .PHASE1_HS (PHASE1_HS),
                 .PHASE2_HS (PHASE2_HS)
             ) phaseGen (
+`ifndef DEKATRON_DELAY_MODEL
                 .hsClk  (hsClk),
+`endif
                 .Clk    (Clk),
                 .Rst_n  (Rst_n),
                 .Phase1 (Phase1),
-                .Phase2 (Phase2)
+                .Phase2 (Phase2),
+                .CmdWin ()
             );
         end
     endgenerate

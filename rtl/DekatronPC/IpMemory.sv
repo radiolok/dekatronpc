@@ -19,6 +19,9 @@ module IpMemory #(
     parameter           EN_BOOTLOADER = 1'b1,
     parameter           INIT_ZERO     = 1'b1,
     parameter           EN_DBG_PORT   = 1'b0,
+    // Адрес активным нулём (TC-O3, TRS v0.38): IP идёт с инверсных выходов
+    // BinToBcd; дешифратор памяти берёт любую полярность
+    parameter bit       ADDR_ACTIVE_LOW = 1'b0,
     parameter unsigned ADDR_WIDTH    = 4 * D_NUM
 )(
     input  wire                     clk,
@@ -49,11 +52,15 @@ module IpMemory #(
 
     localparam logic [TOP_AW-1:0] TOP_ALL_NINES = {TOP_DIGITS{4'h9}};
 
+    // Истинные адреса
+    wire [ADDR_WIDTH-1:0] addr_t     = ADDR_ACTIVE_LOW ? ~addr     : addr;
+    wire [ADDR_WIDTH-1:0] dbg_addr_t = ADDR_ACTIVE_LOW ? ~dbg_addr : dbg_addr;
+
     // Попадание в загрузчик: девятки во всех старших тетрадах
     wire is_boot     = EN_BOOTLOADER &
-                       (addr    [ADDR_WIDTH-1 -: TOP_AW] == TOP_ALL_NINES);
+                       (addr_t    [ADDR_WIDTH-1 -: TOP_AW] == TOP_ALL_NINES);
     wire is_boot_dbg = EN_BOOTLOADER &
-                       (dbg_addr[ADDR_WIDTH-1 -: TOP_AW] == TOP_ALL_NINES);
+                       (dbg_addr_t[ADDR_WIDTH-1 -: TOP_AW] == TOP_ALL_NINES);
 
     assign is_bootloader = is_boot;
 
@@ -69,7 +76,7 @@ module IpMemory #(
             bootloader #(
                 .portSize (ROM_AW)
             ) storage (
-                .Address (addr[ROM_AW-1:0]),
+                .Address (addr_t[ROM_AW-1:0]),
                 .Data    (rom_data)
             );
 
@@ -77,7 +84,7 @@ module IpMemory #(
                 bootloader #(
                     .portSize (ROM_AW)
                 ) storage_dbg (
-                    .Address (dbg_addr[ROM_AW-1:0]),
+                    .Address (dbg_addr_t[ROM_AW-1:0]),
                     .Data    (rom_data_dbg)
                 );
             end
@@ -111,14 +118,14 @@ module IpMemory #(
         .valid    (valid),
         .ready    (ready),
         .wr       (wr),
-        .addr     (addr),
+        .addr     (addr_t),
         .wr_data  (wr_data),
         .rd_data  (rd_data),
         .rd_valid (rd_valid),
         .err      (err),
         .ovl_hit  (is_boot),
         .ovl_data (rom_data),
-        .dbg_addr (dbg_addr),
+        .dbg_addr (dbg_addr_t),
         .dbg_data (ram_dbg)
     );
 
@@ -136,7 +143,7 @@ module IpMemory #(
     always @(posedge clk) begin
         // Область загрузчика доступна только на чтение
         if (rst_n && valid && ready && wr && is_boot)
-            $error("IpMemory: попытка записи в область загрузчика по адресу %h", addr);
+            $error("IpMemory: попытка записи в область загрузчика по адресу %h", addr_t);
     end
 `endif
 `endif

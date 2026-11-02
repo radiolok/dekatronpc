@@ -1,7 +1,7 @@
 // Simulation speed report for the Verilator testbenches: how many hsClk and
 // Clk cycles were simulated, how long it took in wall time, and the
-// resulting simulated clock rate against the real machine (hsClk = 10 MHz,
-// Clk = 1 MHz).
+// resulting simulated clock rate against the real machine (Clk period
+// DEKATRON_CLK_NS, 100 kHz by default, hsClk = 10 x Clk; TRS v0.24).
 //
 // Call hsClkEdge()/clkEdge() on every rising edge the testbench drives (or
 // sees), then report() once at the end of the run.
@@ -13,10 +13,14 @@
 #include <cstdint>
 #include <cstdio>
 
+#ifndef DEKATRON_CLK_NS
+#define DEKATRON_CLK_NS 10000
+#endif
+
 class SimClockStats {
 public:
-    static constexpr double HS_CLK_REAL_HZ = 10e6;
-    static constexpr double CLK_REAL_HZ = 1e6;
+    static constexpr double CLK_REAL_HZ = 1e9 / DEKATRON_CLK_NS;
+    static constexpr double HS_CLK_REAL_HZ = 10 * CLK_REAL_HZ;
 
     SimClockStats() : hsClkCycles(0), clkCycles(0), started(false) {}
 
@@ -51,7 +55,7 @@ public:
 private:
     static void line(FILE* out, const char* name, uint64_t cycles, double s, double realHz) {
         double hz = s > 0 ? cycles / s : 0.0;
-        fprintf(out, "  %-5s %12llu cycles, %10.3f kHz simulated (%.4f%% of real %.0f MHz, slowdown %.1fx)\n",
+        fprintf(out, "  %-5s %12llu cycles, %10.3f kHz simulated (%.4f%% of real %.3g MHz, slowdown %.1fx)\n",
                 name, static_cast<unsigned long long>(cycles), hz / 1e3,
                 100.0 * hz / realHz, realHz / 1e6, hz > 0 ? realHz / hz : 0.0);
     }

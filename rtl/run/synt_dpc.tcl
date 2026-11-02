@@ -3,9 +3,29 @@
 #                       netlist with their parameters (netlist simulation puts
 #                       the RTL model back, see synth_sim.sh)
 #   -p <name> <value>   override a parameter of the top module
-#   -D <name>[=<value>] define a preprocessor macro, e.g. DEKATRON_DELAY_MODEL
-#                       (the netlist instantiates DekatronTubeDelay); without
-#                       a value it is 1
+#   -div                insert the HV -> LV dividers (DIV_HL cells) after mapping
+#                       and check the signal levels (div_insert.py, doc/hv_lv_dividers.md)
+#   -D <name>[=<value>] define a preprocessor macro, e.g. DEKATRON_PHASE1_NS;
+#                       without a value it is 1
+# Synthesis is always the tube machine: DEKATRON_DELAY_MODEL is defined and
+# DekatronTubeDelay is read after the list, so the netlist has no hsClk at
+# all (hsClk drives only the clocked dekatron model of the FPGA emulator and
+# of the simulations without delays, TRS v0.25).
+# The netlist keeps only the boards (REQ-PR-011): DekatronModule, the relay
+# modules, the three blocks IpLine / ApLine / MachineCtrl (one box each,
+# REQ-PR-012), the black boxes and the stubs of the tube and its RC timing
+# elements. Everything else (DekatronCounter, its pulse sender and phase
+# generator, the loop detector) is flattened into its block, so ABC optimizes
+# the counter control together with the block's FSM (-58 tubes,
+# doc/tube_count_1000.md §4).
+#   -keep <module>      keep <module> a separate module as well
+#   -oneblock           do not keep IpLine / ApLine / MachineCtrl: the whole
+#                       machine as one block (partition experiment, §4)
+#   -hier               no flattening at all (the flow before 2026-11-01)
+#   -flat               also write <top>_flat.json: the written netlist read
+#                       back and flattened through the board boundaries, with
+#                       the cell names of <top>_synth.v (vtube_sta.py loads,
+#                       vtube_sdf.py -j)
 # Without options the flow is the tube-count flow used by run_tests.sh -s.
 if { $argc < 2 } {
   puts "call script <file_with_v_list> <top_level_module> \[-bb <module>\] \[-p <name> <value>\]"
@@ -19,16 +39,26 @@ set top        [lindex $argv 1]
 set blackboxes {}
 set top_params {}
 set defines {}
+set div 0
+set flat 0
+set flatglue 1
+set keeps {IpLine ApLine MachineCtrl}
 for {set i 2} {$i < $argc} {incr i} {
   switch -- [lindex $argv $i] {
     -bb { lappend blackboxes [lindex $argv [incr i]] }
     -p  { lappend top_params [lindex $argv [incr i]] [lindex $argv [incr i]] }
     -D  { lappend defines [lindex $argv [incr i]] }
+    -div { set div 1 }
+    -flat { set flat 1 }
+    -hier { set flatglue 0 }
+    -oneblock { set keeps [lsearch -all -inline -not -regexp $keeps {^(IpLine|ApLine|MachineCtrl)$}] }
+    -keep { lappend keeps [lindex $argv [incr i]] }
     default { puts "unknown option [lindex $argv $i]"; exit 1 }
   }
 }
 
 yosys read -define SYNTH=1
+yosys read -define DEKATRON_DELAY_MODEL=1
 foreach def $defines {
   if {[string first "=" $def] >= 0} {
     yosys read -define $def
@@ -37,7 +67,9 @@ foreach def $defines {
   }
 }
 
-set cell_lib "$script_dir/../vtube/vtube_cells.lib"
+set cell_lib "$script_dir/../../sch/logic/vtube_cells.lib"
+# experiments: another liberty (hypothetical cells, doc/tube_count_1000.md)
+if {[info exists ::env(DPC_CELL_LIB)]} { set cell_lib $::env(DPC_CELL_LIB) }
 
 set fp [open [lindex $argv 0] r]
 set file_data [read $fp]
@@ -46,6 +78,10 @@ close $fp
 set list_dir [file dirname [file normalize [lindex $argv 0]]]
 
 set data [split $file_data "\n"]
+# The delay-based dekatron model is not in DPC.files (Verilator and Quartus
+# never see it): add it unless the list already has it
+set tube_delay [file normalize [file join $script_dir ../DekatronPC/Dekatron/DekatronTubeDelay.sv]]
+if {[lsearch -glob $data *DekatronTubeDelay.sv] < 0} { lappend data $tube_delay }
 set tb_suffix "_tb"
 foreach line $data {
   if {[string first $tb_suffix $line] == -1} {
@@ -62,15 +98,37 @@ foreach bb $blackboxes {
 foreach {name value} $top_params {
   yosys chparam -set $name $value $top
 }
+if {$flatglue} {
+  # The tube and the RC timing elements are stubs under SYNTH: flattened,
+  # their constant outputs would fold the read-out logic away
+  foreach k [concat $keeps {DekatronModule DekatronTubeDelay OneShot Impulse}] {
+    yosys setattr -mod -set keep_hierarchy 1 $k
+  }
+}
 hierarchy -check
+if {$flatglue} {
+  # and on their parameterized copies made by hierarchy
+  foreach k [concat $keeps {DekatronModule DekatronTubeDelay OneShot Impulse}] {
+    yosys setattr -mod -set keep_hierarchy 1 *$k*
+  }
+}
 # FSM extraction and recoding happen inside synth; a separate fsm pass after
 # it is a no-op. The encoding is set in RTL with (* fsm_encoding = "binary" *)
 # on the state register: one-hot costs about 219 tubes more on 7-tube
 # triggers (doc/tube_count_reduction.md §17.2).
-yosys synth -top $top
+if {$flatglue} {
+  yosys synth -top $top -flatten
+} else {
+  yosys synth -top $top
+}
 yosys proc
 
 yosys dfflibmap -liberty $cell_lib
+# DFF_J2N16 takes the falling edge: dfflibmap puts a $_NOT_ before every such
+# trigger. Merge them into one inverter per clock net, or ABC keeps one output
+# per trigger and drives each through a BUF_N16. In the machine the clock is
+# inverted once at the generator (sch/logic/DFF_J2N16/README.md).
+yosys opt_merge
 
 # Simulation models of the library cells, for the equivalence check below
 yosys design -save mapped
@@ -85,22 +143,75 @@ yosys design -load mapped
 # equiv_opt runs the mapping on a copy, proves it against the pre-ABC
 # netlist of the top module (-async2sync: the triggers have asynchronous
 # set/reset) and restores the design, so the mapping is then run for real.
+# DPC_ABC_SEED=<n> in the environment picks the &deepsyn seed (ABC drifts by
+# about +-10 tubes between seeds: compare small changes over several seeds,
+# rtl/run/synth_seeds.sh)
+set abc_script $script_dir/abc_area.abc
+if {[info exists ::env(DPC_ABC_SCRIPT)]} {
+  # experiments: a whole ABC script, "SEED" in it replaced by DPC_ABC_SEED
+  set fs [open $::env(DPC_ABC_SCRIPT) r]
+  set txt [read $fs]
+  close $fs
+  set seed [expr {[info exists ::env(DPC_ABC_SEED)] ? $::env(DPC_ABC_SEED) : 0}]
+  set abc_script [file normalize ${top}_seed.abc]
+  set fs [open $abc_script w]
+  puts $fs [string map [list SEED $seed] $txt]
+  close $fs
+} elseif {[info exists ::env(DPC_ABC_SEED)]} {
+  set abc_script [file normalize ${top}_seed.abc]
+  set fs [open $abc_script w]
+  puts $fs "strash\n&get -n\n&deepsyn -J 50 -T 30 -S $::env(DPC_ABC_SEED)\n&put\ndch -f\namap -F 4 -A 20\ntopo"
+  close $fs
+}
 yosys equiv_opt -assert -async2sync -map ${top}_cells_sim.v \
-    abc -liberty $cell_lib -script $script_dir/abc_area.abc
-yosys abc -liberty $cell_lib -script $script_dir/abc_area.abc
+    abc -liberty $cell_lib -script $abc_script
+yosys abc -liberty $cell_lib -script $abc_script
 yosys opt
 yosys clean
 
 # A tube trigger has the inverted output for free: inverters on Q go to QN
 yosys write_json ${top}_premap.json
 exec python3 $script_dir/qn_absorb.py -l $cell_lib -i ${top}_premap.json -o ${top}_qn.json >@ stdout
+set netlist_json ${top}_qn.json
+# HV -> LV dividers as DIV_HL cells, one per HV net and grid class; P&R places them
+if {$div} {
+  exec python3 $script_dir/div_insert.py -l $cell_lib -i ${top}_qn.json -o ${top}_div.json >@ stdout
+  set netlist_json ${top}_div.json
+}
 yosys design -reset
 yosys read_liberty -lib $cell_lib
-yosys read_json ${top}_qn.json
+yosys read_json $netlist_json
 yosys hierarchy -top $top
 file delete ${top}_premap.json ${top}_qn.json ${top}_cells_sim.v
+if {$div} { file delete ${top}_div.json }
 
 yosys write_verilog ${top}_synth.v
+
+# Flat netlist with the names of the file above (write_verilog renames the
+# $-names, so it is read back): the sources only as headers, for the port
+# directions of the black boxes
+if {$flat} {
+  yosys design -save final
+  yosys design -reset
+  yosys read -define SYNTH=1
+  yosys read -define DEKATRON_DELAY_MODEL=1
+  foreach def $defines {
+    if {[string first "=" $def] >= 0} { yosys read -define $def } else { yosys read -define $def=1 }
+  }
+  yosys read_liberty -lib $cell_lib
+  foreach line $data {
+    if {[string first $tb_suffix $line] == -1 && $line ne ""} {
+      yosys read_verilog -sv -lib [file join $list_dir $line]
+    }
+  }
+  yosys read_verilog -overwrite ${top}_synth.v
+  yosys hierarchy -top $top
+  yosys setattr -mod -unset keep_hierarchy *
+  yosys flatten
+  yosys opt_clean -purge
+  yosys write_json ${top}_flat.json
+  yosys design -load final
+}
 #
 # # show
 yosys show -format dot -lib ${top}_synth.v -prefix $top
