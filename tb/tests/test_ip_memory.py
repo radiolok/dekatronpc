@@ -1,8 +1,8 @@
 """
 Tests for IpMemory — program memory: banked Ram with 4-bit opcodes and
-the bootloader ROM overlaid on the top bank (TRS 5.1, 5.3).
+the bootloader ROM overlaid on the top decade (TRS 5.1, 5.3, doc/isa16.md).
 
-Default parameters: D_NUM = 5, EN_BOOTLOADER = 1. Addresses 99900..99999
+Default parameters: D_NUM = 5, EN_BOOTLOADER = 1. Addresses 99990..99999
 read the bootloader ROM (rtl/programs/bootloader/bootloader.sv); writes
 there are refused with err.
 
@@ -23,11 +23,10 @@ BOOT_SV = os.path.join(os.path.dirname(__file__), "..", "..", "rtl",
 
 
 def boot_rom():
-    """Opcodes of the regular (non-SIMPLEBOOT) bootloader, by low address byte."""
+    """Opcodes of the regular (non-SIMPLEBOOT) bootloader, by low address tetrad."""
     text = open(BOOT_SV).read()
-    body = text.split("`else", 1)[1]
     rom = {}
-    for addr, data in re.findall(r"8'h([0-9a-fA-F]{2}):\s*Data\s*=\s*4'h([0-9a-fA-F])", body):
+    for addr, data in re.findall(r"4'h([0-9])\s*:\s*Data\s*=\s*4'h([0-9a-fA-F])", text):
         rom[int(addr, 16)] = int(data, 16)
     return rom
 
@@ -86,8 +85,8 @@ async def test_program_write_read(dut):
     """Opcodes written below the bootloader read back unchanged."""
     await setup(dut)
     rng = random.Random(4)
-    addrs = [0, 1, 99, 100, 12345, 50000, 99899]
-    addrs += [rng.randrange(99900) for _ in range(10)]
+    addrs = [0, 1, 99, 100, 12345, 50000, 99899, 99900, 99989]
+    addrs += [rng.randrange(99990) for _ in range(10)]
     addrs = list(dict.fromkeys(addrs))
     ref = {}
     for a in addrs:
@@ -102,12 +101,12 @@ async def test_program_write_read(dut):
 
 @cocotb.test()
 async def test_bootloader_read(dut):
-    """99900..99999 read the bootloader ROM; is_bootloader marks the area."""
+    """99990..99999 read the bootloader ROM; is_bootloader marks the area."""
     await setup(dut)
     rom = boot_rom()
     assert rom, "could not parse bootloader.sv"
-    for low in sorted(set(rom) | {0x13, 0x50}):
-        addr = 0x99900 | low                     # low byte is two BCD tetrads
+    for low in range(10):
+        addr = 0x99990 | low                     # low tetrad
         await FallingEdge(dut.clk)
         dut.addr.value = addr
         await ReadOnly()
@@ -117,9 +116,9 @@ async def test_bootloader_read(dut):
         assert data == rom.get(low, 0), \
             f"ROM {addr:05x}: expected {rom.get(low, 0):x}, got {data:x}"
     await FallingEdge(dut.clk)
-    dut.addr.value = bcd(99899)
+    dut.addr.value = bcd(99989)
     await ReadOnly()
-    assert int(dut.is_bootloader.value) == 0, "99899 marked as bootloader"
+    assert int(dut.is_bootloader.value) == 0, "99989 marked as bootloader"
 
 
 @cocotb.test()
@@ -127,7 +126,7 @@ async def test_bootloader_write_protected(dut):
     """A write into the bootloader area raises err and changes nothing."""
     await setup(dut)
     rom = boot_rom()
-    addr = 0x99900
+    addr = 0x99990
     _, rv, err = await access(dut, addr, wr=1, data=(rom.get(0, 0) ^ 0xF))
     assert (rv, err) == (0, 1), f"write to ROM: rd_valid={rv} err={err}"
     data, rv, err = await access(dut, addr)

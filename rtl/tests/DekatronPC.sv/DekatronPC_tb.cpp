@@ -182,10 +182,10 @@ static void tick(VerilogMachine &state)
 
 // Program memory is the bank tree and has no preload, so the program is
 // loaded the way the panel does it. Power-on: rst_n pulse, the time relay
-// gives a Hard Reset, the machine halts. Soft Reset (IP = 0, BF ISA), then
+// gives a Hard Reset, the machine halts. Soft Reset (IP = 0), then
 // the InsnLoadingStart key and the opcodes over InsnIn/InsnInValid/
-// InsnInReady. The program ends with HALT, ISA0, EOT (generate_rom.py and
-// dpc::assemble() both append them); with SoftRstOnEOT and RunOnSoftRst the
+// InsnInReady. The program file ends with HALT and LD (EOT, ISA16 code 0xB,
+// doc/isa16.md); with SoftRstOnEOT and RunOnSoftRst the
 // EOT gives a Soft Reset and the program starts from 0, which is what the
 // model does with softReset() + run().
 static bool waitHalted(VerilogMachine &state)
@@ -397,7 +397,7 @@ int main(int argc, char** argv, char** env) {
                 cppMachine.ip(),
                 DPC_LOOP(state.dut),
                 cppMachine.loopCount(),
-                dpc::mnemonic(state.dut->Insn, cppMachine.insnMode()),
+                dpc::mnemonic(state.dut->Insn),
                 DPC_AP(state.dut),
                 cppMachine.ap(),
                 DPC_TX(state.dut),

@@ -190,7 +190,7 @@ always_comb begin
                     stdioNextData = ":";
                 end
                 default: begin
-                    stdioNextData = OpcodeToSymbol({1'b1, insnRam[ms6205Pos]});
+                    stdioNextData = OpcodeToSymbol(insnRam[ms6205Pos]);
                 end
             endcase
         end

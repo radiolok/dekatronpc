@@ -4,10 +4,9 @@ BinaryToHex, OpcodeToSymbol, SymbolToOpcode, In12CathodeToPin.
 All modules are combinational. Each test checks for the expected ports
 and skips silently if the wrong TOPLEVEL is instantiated.
 
-NOTE: Test adjusted for rtl/ RTL version — OpcodeToSymbol now uses 5-bit
-opcodes with casez: 5'h?0 and 5'h10 both map to space " " (0x20), not 'N'.
-SymbolToOpcode was updated accordingly: " " maps to {isa, 4'h0}.
-KeyToSymbol test adjusted to match.
+OpcodeToSymbol and SymbolToOpcode use the 4-bit ISA16 (doc/isa16.md), the
+same table as rtl/run/generate_rom.py: opcode 0 prints as space " ", LD (0xB)
+as "S"; "S" and "E" both read as LD.
 
 AsciiToBcd converts an 8-bit binary value (0-255) to its 12-bit packed BCD
 representation. BcdToAscii does the reverse.
@@ -255,187 +254,65 @@ async def test_binary_to_hex_default(dut):
 
 
 # ============================================================
-# OpcodeToSymbol
+# OpcodeToSymbol / SymbolToOpcode (ISA16)
 # ============================================================
+
+# ISA16 opcode -> printed symbol
+ISA16_SYMBOLS = " H+-><[].,0SAP{}"
+
 
 @cocotb.test()
 async def test_opcode_to_symbol_all(dut):
-    """OpcodeToSymbol: test all 32 opcodes produce expected symbols."""
-    if not _has_ports(dut, "Opcode", "Symbol") or hasattr(dut, "isa"):
+    """OpcodeToSymbol: all 16 opcodes produce the ISA16 symbols."""
+    if not _has_ports(dut, "Opcode", "Symbol") or dut._name != "OpcodeToSymbol_wrapper":
         return
-    # Expected mapping from source (casez with wildcards)
-    # Format: opcode → ASCII char, byte value
-    expected = {
-        0x00: (ord(' '), " "),
-        0x01: (ord('H'), "H"),
-        0x02: (0x07, "\\a"),
-        0x03: (0x00, "\\0"),
-        0x04: (ord('E'), "E"),
-        0x05: (ord('S'), "S"),
-        0x06: (ord('{'), "{"),
-        0x07: (ord('}'), "}"),
-        0x08: (ord('L'), "L"),
-        0x09: (ord('I'), "I"),
-        0x0A: (ord('0'), "0"),
-        0x0B: (ord('A'), "A"),
-        0x0C: (ord('R'), "R"),
-        0x0D: (ord('r'), "r"),
-        0x0E: (ord('D'), "D"),
-        0x0F: (ord('B'), "B"),
-        0x10: (ord(' '), " "),  # ?0 wildcard
-        0x11: (ord('H'), "H"),  # ?1 wildcard
-        0x12: (ord('+'), "+"),
-        0x13: (ord('-'), "-"),
-        0x14: (ord('>'), ">"),
-        0x15: (ord('<'), "<"),
-        0x16: (ord('['), "["),
-        0x17: (ord(']'), "]"),
-        0x18: (ord('.'), "."),
-        0x19: (ord(','), ","),
-        0x1A: (ord('0'), "0"),  # ?A wildcard
-        0x1B: (ord('M'), "M"),
-        0x1C: (ord('G'), "G"),
-        0x1D: (ord('P'), "P"),
-        0x1E: (ord('D'), "D"),  # ?E wildcard
-        0x1F: (ord('B'), "B"),  # ?F wildcard
-    }
-
-    for opcode in range(32):
+    for opcode in range(16):
         dut.Opcode.value = opcode
         await Timer(1, unit="ns")
         result = int(dut.Symbol.value)
-        exp_byte, exp_char = expected[opcode]
-        assert result == exp_byte, (
-            f"OpcodeToSymbol: opcode=0x{opcode:02X} expected '{exp_char}' (0x{exp_byte:02X}), got 0x{result:02X}"
+        exp = ord(ISA16_SYMBOLS[opcode])
+        assert result == exp, (
+            f"OpcodeToSymbol: opcode=0x{opcode:X} expected {chr(exp)!r}, got 0x{result:02X}"
         )
 
 
-# ============================================================
-# SymbolToOpcode
-# ============================================================
-
 @cocotb.test()
-async def test_symbol_to_opcode_roundtrip_isa0(dut):
-    """SymbolToOpcode: round-trip SymbolToOpcode(OpcodeToSymbol(op), isa=0) == op for most opcodes.
-
-    Opcode 0x03 (→ \"\\0\" = 0x00) is excluded because SymbolToOpcode has no
-    explicit case for 0x00 and its default produces {isa, 4'h0}, which does
-    not round-trip back to 0x03.
-    """
-    if not _has_ports(dut, "Symbol", "Opcode", "isa"):
+async def test_symbol_to_opcode_roundtrip(dut):
+    """SymbolToOpcode(OpcodeToSymbol(op)) == op for all 16 opcodes."""
+    if not _has_ports(dut, "Symbol", "Opcode") or dut._name != "SymbolToOpcode_wrapper":
         return
-
-    opcode_to_symbol_map = {
-        0x00: ord(' '), 0x01: ord('H'), 0x02: 0x07,
-        0x04: ord('E'), 0x05: ord('S'), 0x06: ord('{'), 0x07: ord('}'),
-        0x08: ord('L'), 0x09: ord('I'), 0x0A: ord('0'), 0x0B: ord('A'),
-        0x0C: ord('R'), 0x0D: ord('r'), 0x0E: ord('D'), 0x0F: ord('B'),
-    }
-
-    for opcode, symbol_byte in opcode_to_symbol_map.items():
-        dut.Symbol.value = symbol_byte
-        dut.isa.value = 0
+    for opcode, ch in enumerate(ISA16_SYMBOLS):
+        dut.Symbol.value = ord(ch)
         await Timer(1, unit="ns")
         result = int(dut.Opcode.value)
         assert result == opcode, (
-            f"SymbolToOpcode roundtrip isa=0: opcode=0x{opcode:02X} "
-            f"symbol=0x{symbol_byte:02X} expected opcode=0x{opcode:02X}, got 0x{result:02X}"
+            f"SymbolToOpcode roundtrip: {ch!r} expected 0x{opcode:X}, got 0x{result:X}"
         )
 
 
 @cocotb.test()
-async def test_symbol_to_opcode_roundtrip_isa1(dut):
-    """SymbolToOpcode: round-trip with isa=1 for wildcard opcodes."""
-    if not _has_ports(dut, "Symbol", "Opcode", "isa"):
+async def test_symbol_to_opcode_aliases(dut):
+    """SymbolToOpcode: 'N' is NOP and 'E' is LD (EOT), as in generate_rom.py."""
+    if not _has_ports(dut, "Symbol", "Opcode") or dut._name != "SymbolToOpcode_wrapper":
         return
-    wildcard_isa1 = [
-        (0x10, ord(' ')),  # 0x10 → space → {1, 4'h0} = 0x10
-        (0x11, ord('H')),  # 0x11 → H → {1, 4'h1} = 0x11
-        (0x1A, ord('0')),  # 0x1A → 0 → {1, 4'hA} = 0x1A
-        (0x1E, ord('D')),  # 0x1E → D → {1, 4'hE} = 0x1E
-        (0x1F, ord('B')),  # 0x1F → B → {1, 4'hF} = 0x1F
-    ]
-
-    for opcode, symbol_byte in wildcard_isa1:
-        dut.Symbol.value = symbol_byte
-        dut.isa.value = 1
+    for ch, opcode in (("N", 0x0), ("E", 0xB)):
+        dut.Symbol.value = ord(ch)
         await Timer(1, unit="ns")
         result = int(dut.Opcode.value)
-        assert result == opcode, (
-            f"SymbolToOpcode roundtrip isa=1: opcode=0x{opcode:02X} "
-            f"symbol=0x{symbol_byte:02X} expected opcode=0x{opcode:02X}, got 0x{result:02X}"
-        )
-
-
-@cocotb.test()
-async def test_symbol_to_opcode_all_defined(dut):
-    """SymbolToOpcode: verify all defined symbol mappings."""
-    if not _has_ports(dut, "Symbol", "Opcode", "isa"):
-        return
-
-    # All defined symbols and their expected opcodes for isa=0
-    defined = [
-        (ord(' '), 0x00),
-        (ord('H'), 0x01),
-        (0x07, 0x02),        # \a
-        (ord('E'), 0x04),
-        (ord('S'), 0x05),
-        (ord('{'), 0x06),
-        (ord('}'), 0x07),
-        (ord('L'), 0x08),
-        (ord('I'), 0x09),
-        (ord('0'), 0x0A),
-        (ord('A'), 0x0B),
-        (ord('R'), 0x0C),
-        (ord('r'), 0x0D),
-        (ord('D'), 0x0E),
-        (ord('B'), 0x0F),
-        (ord('+'), 0x12),
-        (ord('-'), 0x13),
-        (ord('>'), 0x14),
-        (ord('<'), 0x15),
-        (ord('['), 0x16),
-        (ord(']'), 0x17),
-        (ord('.'), 0x18),
-        (ord(','), 0x19),
-        (ord('M'), 0x1B),
-        (ord('G'), 0x1C),
-        (ord('P'), 0x1D),
-    ]
-
-    for symbol_byte, expected_opcode in defined:
-        dut.Symbol.value = symbol_byte
-        dut.isa.value = 0
-        await Timer(1, unit="ns")
-        result = int(dut.Opcode.value)
-        assert result == expected_opcode, (
-            f"SymbolToOpcode: symbol=0x{symbol_byte:02X} "
-            f"expected opcode=0x{expected_opcode:02X}, got 0x{result:02X}"
-        )
+        assert result == opcode, f"SymbolToOpcode: {ch!r} expected 0x{opcode:X}, got 0x{result:X}"
 
 
 @cocotb.test()
 async def test_symbol_to_opcode_unknown_default(dut):
-    """SymbolToOpcode: unknown symbols default to {isa, 4'h0}."""
-    if not _has_ports(dut, "Symbol", "Opcode", "isa"):
+    """SymbolToOpcode: unknown symbols and the old two-mode codes give NOP."""
+    if not _has_ports(dut, "Symbol", "Opcode") or dut._name != "SymbolToOpcode_wrapper":
         return
-
-    unknown_symbols = [0x00, 0x01, 0x20, 0x40, 0x60, 0x7F, 0xFF]
-    for sym in unknown_symbols:
+    unknown = [0x00, 0x01, 0x07, 0x40, 0x60, 0x7F, 0xFF] + [ord(c) for c in "DBMGLIRr"]
+    for sym in unknown:
         dut.Symbol.value = sym
-        dut.isa.value = 0
         await Timer(1, unit="ns")
         result = int(dut.Opcode.value)
-        assert result == 0x00, (
-            f"SymbolToOpcode unknown: symbol=0x{sym:02X} isa=0 expected 0x00, got 0x{result:02X}"
-        )
-
-        dut.isa.value = 1
-        await Timer(1, unit="ns")
-        result = int(dut.Opcode.value)
-        assert result == 0x10, (
-            f"SymbolToOpcode unknown: symbol=0x{sym:02X} isa=1 expected 0x10, got 0x{result:02X}"
-        )
+        assert result == 0x0, f"SymbolToOpcode unknown: symbol=0x{sym:02X} expected 0, got 0x{result:X}"
 
 
 # ============================================================

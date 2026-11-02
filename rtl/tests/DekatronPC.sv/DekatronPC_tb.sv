@@ -129,10 +129,10 @@ ClockDivider #(
 reg [INSN_WIDTH-1:0] InsnMem [0:4095];
 reg [11:0] InsnInputAddr;
 
-// generate_rom.py не ставит ISA1 в начало, а загрузка начинается в Debug ISA,
-// где первая '>' (0x4) — это EOT. Поэтому загрузчик сначала выдаёт ISA1.
+// ISA16: режима нет, первым загрузчик выдаёт NOP (адрес 0), затем
+// программу; она кончается на LD (EOT)
 initial begin
-    InsnMem[0] = 4'hF;
+    InsnMem[0] = 4'h0;
     $readmemh(`PROGRAM_PATH, InsnMem, 1);
 end
 
@@ -360,8 +360,7 @@ task automatic check_bootloader();
     $display("  bootloader: loading started"); $fflush;
     @(negedge InsnInLoading);
     $display("  bootloader: loading finished"); $fflush;
-    $display("  state=%0d IP=%h Insn=%h mode=%b", state, IpAddress, Insn,
-             dekatronPC.machineCtrl.insn_mode); $fflush;
+    $display("  state=%0d IP=%h Insn=%h", state, IpAddress, Insn); $fflush;
     wait_halted();
     $display("  bootloader: halted"); $fflush;
     $display("  state=%0d IP=%h Insn=%h", state, IpAddress, Insn); $fflush;
@@ -426,10 +425,10 @@ initial begin
     wait_relay();
     wait_halted();
 
-    // После включения реле времени даёт аппаратный сброс: IP = 99900
-    if (IpAddress !== 20'h99900) begin
+    // После включения реле времени даёт аппаратный сброс: IP = 99990
+    if (IpAddress !== 20'h99990) begin
         errors++;
-        $display("FAIL: IP after power-up = %h, expected 99900", IpAddress);
+        $display("FAIL: IP after power-up = %h, expected 99990", IpAddress);
     end
 
 `ifdef TRY_PROGRAM
