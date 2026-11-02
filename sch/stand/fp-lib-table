@@ -1,0 +1,6 @@
+(fp_lib_table
+	(version 7)
+	(lib (name "libs") (type "KiCad") (uri "D:/radiolok@oc.urlnn.ru/Projects/20180271-DekatronPC/sch/libs.pretty") (options "") (descr ""))
+	(lib (name "DekatronPC") (type "KiCad") (uri "${KIPRJMOD}/DekatronPC.pretty") (options "") (descr ""))
+	(lib (name "User") (type "KiCad") (uri "${KIPRJMOD}/User.pretty") (options "") (descr ""))
+)
