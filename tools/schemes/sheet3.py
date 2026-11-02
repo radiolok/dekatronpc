@@ -9,7 +9,7 @@ def fig_counter():
             "фаз и формирователь импульсов, цепочка разрешений декад с катодов, по защёлке на "
             "декаду, прозрачной в окне команды CmdWin.")
     # входы протокола
-    for y, n in ((62, "valid"), (84, "dec"), (106, "set"), (128, "set_zero"), (150, "in[W-1:0]")):
+    for y, n in ((62, "valid"), (84, "dec"), (106, "set"), (128, "set_zero"), (150, "in_n[W-1:0]")):
         f.pin_in(12, y, 150, n)
     f.box(150, 40, 210, 130, "Разбор операции",
           ["accept = valid · ready", "set_any = set | set_zero |", "автопереходы предела",
@@ -35,8 +35,13 @@ def fig_counter():
     f.box(680, 40, 240, 170, "Линии установки декад",
           ["wr_set  → SetData", "wr_zero → SetZero", "wr_top  → SetTop",
            "soft_rst → SetZero всех декад", "hard_rst → SetTop старших",
-           "HARD_RST_D_CNT, SetZero прочих", "in держит мастер такт accept"],
+           "HARD_RST_D_CNT, SetZero прочих", "in_n держит мастер такт accept"],
           align="start", bcls="tm")
+
+    # подъём подкатодов на время записи и сброса (TRS v0.40)
+    f.box(960, 120, 200, 70, "GLIFT_N16", ["шина S ключей: +50 / +150 В", "ИЛИ записи и сбросов"],
+          top=18)
+    f.wire([(920, 160), (960, 160)])
 
     # генератор фаз и формирователь импульсов
     f.box(150, 250, 150, 60, "DekatronPhaseGen", ["один на счётчик", "CmdWin: фронт → фазы"])
@@ -51,7 +56,7 @@ def fig_counter():
     f.wire([(800, 210), (800, 268)], "wbus", arrow=False)
     f.dot(800, 268)
     f.wire([(530, 268), (990, 268)], "wbus", arrow=False)
-    f.text(820, 262, "SetData · SetZero · SetTop · in", "tn")
+    f.text(820, 262, "SetData · SetZero · SetTop · in_n", "tn")
 
     D = [(400, "декада 0", "единицы"), (620, "декада 1", "десятки"), (840, "декада 2", "сотни")]
     for x, n1, n2 in D:
@@ -87,7 +92,7 @@ def fig_counter():
         f.wire([(x + 140, 560), (x + 140, 575)], arrow=False)
         f.dot(x + 140, 575)
         f.wire([(x + 60, 560), (x + 60, 600)])
-    f.text(1066, 579, "out", "tp")
+    f.text(1066, 579, "out_n", "tp")
     f.text(470, 590, "Zero · Nine · TopPin", "tn", "middle")
 
     # регистры состояния
