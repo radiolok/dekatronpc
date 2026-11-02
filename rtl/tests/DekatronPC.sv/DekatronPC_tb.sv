@@ -71,6 +71,18 @@ wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApData1;
 wire [31:0]                                 IRET;
 
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd;
+// Шины значений DekatronPC — активным нулём (TC-O3, Приложение B);
+// тестбенч, как и эмулятор, работает с прямым кодом
+wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0]   IpAddress_n;
+wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0]   ApAddress_n;
+wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount_n;
+wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd_n;
+wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApData1_n;
+assign IpAddress   = ~IpAddress_n;
+assign ApAddress   = ~ApAddress_n;
+assign LoopCount   = ~LoopCount_n;
+assign tx_data_bcd = ~tx_data_bcd_n;
+assign ApData1     = ~ApData1_n;
 wire tx_vld;
 reg  tx_rdy;
 reg  [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] rx_data_bcd;
@@ -208,10 +220,10 @@ DekatronPC #(
     .BellOnHALT      (BellOnHALT),
     .BellOnError     (BellOnError),
 
-    .tx_data_bcd     (tx_data_bcd),
+    .tx_data_bcd     (tx_data_bcd_n),
     .tx_vld          (tx_vld),
     .tx_rdy          (tx_rdy),
-    .rx_data_bcd     (rx_data_bcd),
+    .rx_data_bcd     (~rx_data_bcd),
     .rx_vld          (rx_vld),
     .rx_rdy          (rx_rdy),
 
@@ -220,9 +232,9 @@ DekatronPC #(
     .InsnInReady     (InsnInReady),
     .InsnInLoading   (InsnInLoading),
 
-    .IpAddress       (IpAddress),
-    .ApAddress       (ApAddress),
-    .LoopCount       (LoopCount),
+    .IpAddress       (IpAddress_n),
+    .ApAddress       (ApAddress_n),
+    .LoopCount       (LoopCount_n),
     .Insn            (Insn),
     .state           (state),
     .IsHalted        (IsHalted),
@@ -232,7 +244,7 @@ DekatronPC #(
     .IpAddress1      (IpAddress1),
     .ApAddress1      (ApAddress1),
     .RomData1        (RomData1),
-    .ApData1         (ApData1),
+    .ApData1         (ApData1_n),
     .IRET            (IRET)
 );
 

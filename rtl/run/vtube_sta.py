@@ -251,6 +251,8 @@ class Sta:
                     self.put(ob, 'data', e, cl + d, ce + d, (cb, 'clk', e_in, cn), cn)
 
     def eval_comb(self, cn, conn, lc):
+        # an open pin (WRCH_N16 / GLIFT_N16 drive analog nodes the netlist leaves open)
+        lc = dict(lc, arcs=[a for a in lc['arcs'] if conn.get(a.src) and conn.get(a.dst)])
         classes = {}
         for arc in lc['arcs']:
             b = conn[arc.src][0]

@@ -1765,6 +1765,85 @@ library(vtube_cells_lib_timing) {
       }
     }
   }
+  cell(WRCH_N16) {
+    area : 0.5;
+    current_unit : "1mA";
+    heat_current : 200;
+    tubes(names) {
+      N16B : 0.5;
+    }
+    pin(A) {
+      direction : input;
+      fanout_load : 1.0;
+      vtube_level : "COUPLED";
+      capacitance : 1;
+    }
+    pin(Y) {
+      direction : output;
+      vtube_level : "LINE";
+      timing() {
+        related_pin : "A";
+        timing_sense : non_unate;
+        cell_rise(fanout3) { values("0, 0, 0"); }
+        rise_transition(fanout3) { values("0, 0, 0"); }
+        cell_fall(fanout3) { values("0, 0, 0"); }
+        fall_transition(fanout3) { values("0, 0, 0"); }
+      }
+    }
+  }
+  cell(RDD_X7) {
+    area : 0.5;
+    current_unit : "1mA";
+    heat_current : 150;
+    tubes(names) {
+      X7B : 0.5;
+    }
+    pin(A) {
+      direction : input;
+      fanout_load : 1.0;
+      vtube_level : "LINE";
+      capacitance : 1;
+    }
+    pin(Y) {
+      direction : output;
+      vtube_level : "LV";
+      max_fanout : 10;
+      timing() {
+        related_pin : "A";
+        timing_sense : non_unate;
+        cell_rise(fanout3) { values("0, 0, 0"); }
+        rise_transition(fanout3) { values("0, 0, 0"); }
+        cell_fall(fanout3) { values("0, 0, 0"); }
+        fall_transition(fanout3) { values("0, 0, 0"); }
+      }
+    }
+  }
+  cell(GLIFT_N16) {
+    area : 1;
+    current_unit : "1mA";
+    heat_current : 400;
+    tubes(names) {
+      N16B : 1;
+    }
+    pin(A) {
+      direction : input;
+      fanout_load : 1.0;
+      vtube_level : "COUPLED";
+      capacitance : 1;
+    }
+    pin(Y) {
+      direction : output;
+      vtube_level : "LINE";
+      timing() {
+        related_pin : "A";
+        timing_sense : non_unate;
+        cell_rise(fanout3) { values("0, 0, 0"); }
+        rise_transition(fanout3) { values("0, 0, 0"); }
+        cell_fall(fanout3) { values("0, 0, 0"); }
+        fall_transition(fanout3) { values("0, 0, 0"); }
+      }
+    }
+  }
   cell(TIEHI) {
     area : 0.0;
     tubes(names) {

@@ -10,7 +10,9 @@
 //                        сетками, на одной импульс шины GuideA/GuideB
 //                        счётчика, на другой En
 //   BcdToOneHotEn      — преобразователь 8-4-2-1 -> позиционный, по WRITE
-//   BinToBcd           — преобразователь позиционный -> 8-4-2-1, по READ
+//                        (вход In_n — тетрады активным нулём, TC-O3)
+//   BinToBcdN          — преобразователь позиционный -> 8-4-2-1 активным
+//                        нулём (ИЛИ-НЕ без инверторов, TC-O3), по READ
 //
 //----------------------------------------------------------------------
 // ЧТО ИЗМЕНИЛОСЬ ОТНОСИТЕЛЬНО ПРЕЖНЕЙ ВЕРСИИ
@@ -67,7 +69,7 @@
 //   * En переключается по фронту Clk и держится весь такт. Снятие En в
 //     середине такта оставит разряд на подкатоде.
 //   * Линии чтения главных катодов отдельные и читаются всегда, но
-//     показание Out достоверно только на фронте Clk, завершающем такт
+//     показание Out_n достоверно только на фронте Clk, завершающем такт
 //     операции. Пока разряд идёт по подкатодам, позиционный код нулевой.
 //   * SetData/SetZero/SetTop удерживаются не менее WRITE_MIN_HS /
 //     RESET_MIN_HS тактов hsClk, иначе операция не состоится. Запись
@@ -79,6 +81,34 @@
 `default_nettype none
 
 `ifndef SYNTH
+// Ячейки декатронного модуля (TRS v0.40, sch/logic/DEKATRON_A110/README.md).
+// В синтезе берутся из vtube_cells.lib: функции у них нет, ABC их не
+// использует, они стоят только здесь и в DekatronCounter и считают лампы.
+// Аналоговая часть (узел записи, шина ключей) — в SPICE.
+//   WRCH_N16  — канал записи: ½ 6Н16Б в цепи катода (или общей шины катодов)
+//   RDD_X7    — диод чтения: ½ 6Х7Б от сетки вентиля к катодной линии
+//   GLIFT_N16 — повторитель анодной шины ключей подкатодов счётчика
+module WRCH_N16 (
+    input  wire A,
+    output wire Y
+);
+    assign Y = A;
+endmodule
+
+module RDD_X7 (
+    input  wire A,
+    output wire Y
+);
+    assign Y = A;
+endmodule
+
+module GLIFT_N16 (
+    input  wire A,
+    output wire Y
+);
+    assign Y = A;
+endmodule
+
 // Модель ключа подкатодов. В синтезе ячейка берётся из vtube_cells.lib:
 // у её выходов нет функции, ABC её не использует, она стоит только здесь.
 module GUIDE_EN_J2 (
@@ -133,14 +163,14 @@ module DekatronModule #(
 
     // Установка значения
 /* verilator lint_off UNUSEDSIGNAL */
-    input  wire [3:0] In,        // записываемое число, 8-4-2-1
-    input  wire       SetData,   // запись числа со входа In (только при WRITE)
+    input  wire [3:0] In_n,      // записываемое число, 8-4-2-1 активным нулём
+    input  wire       SetData,   // запись числа со входа In_n (только при WRITE)
     input  wire       SetTop,    // сброс в позицию TOP_PIN_OUT (при TOP_LIMIT_MODE)
 /* verilator lint_on UNUSEDSIGNAL */
     input  wire       SetZero,   // сброс в нуль
 
     // Чтение
-    output wire [3:0] Out,       // текущее число, 8-4-2-1 (только при READ)
+    output wire [3:0] Out_n,     // текущее число, 8-4-2-1 активным нулём (только при READ)
 
     // Признаки позиций для схемы переноса
     output wire       Zero,      // разряд на нулевом катоде
@@ -151,7 +181,8 @@ module DekatronModule #(
     //------------------------------------------------------------------
     // Внутренние связи
     //------------------------------------------------------------------
-    wire [9:0] MainOneHot;      // позиционный код с главных катодов
+    wire [9:0] MainOneHotLine;  // катодные линии декатрона
+    wire [9:0] MainOneHot;      // позиционный код за диодами чтения
     wire [9:0] WritePos;        // позиционный код на усилители записи
     wire       GuideA_d;        // импульсы на подкатоды этой декады
     wire       GuideB_d;
@@ -180,8 +211,10 @@ module DekatronModule #(
 
     generate
         if (WRITE) begin : g_write
+            // Дешифратор берёт инверсные тетрады: литералы те же, полярность
+            // меняет только разводку входов
             BcdToBinEn bcdToOneHot (
-                .In  (In),
+                .In  (~In_n),
                 .En  (SetData),
                 .Out (WritePos)
             );
@@ -247,7 +280,7 @@ module DekatronModule #(
         .resetN_i              (ResetTop),
         .sim_preset_en_i       (1'b0),
         .sim_preset_cathodes_i (30'b0),
-        .main_onehot_o         (MainOneHot),
+        .main_onehot_o         (MainOneHotLine),
         //verilator lint_off PINCONNECTEMPTY
         .cathodes_dbg_o        (),
         .on_guide_dbg_o        (),
@@ -259,17 +292,65 @@ module DekatronModule #(
     );
 
     //------------------------------------------------------------------
+    // Диоды чтения (RDD_X7, ½ 6Х7Б на линию): все десять линий при READ,
+    // иначе только линии признаков — K0, K9 и катод TOP_PIN_OUT
+    //------------------------------------------------------------------
+    localparam logic [9:0] READ_LINES =
+        READ ? 10'h3FF :
+        (10'b10_0000_0001 | (TOP_LIMIT_MODE ? (10'b1 << TOP_PIN_OUT) : 10'b0));
+
+    generate
+        genvar k;
+        for (k = 0; k < 10; k++) begin : g_rdd
+            if (READ_LINES[k]) begin : g_on
+                RDD_X7 rdd (
+                    .A (MainOneHotLine[k]),
+                    .Y (MainOneHot[k])
+                );
+            end
+            else begin : g_off
+                assign MainOneHot[k] = MainOneHotLine[k];   // линия не читается
+            end
+        end
+    endgenerate
+
+    //------------------------------------------------------------------
+    // Каналы записи (WRCH_N16, ½ 6Н16Б), по перемычкам платы:
+    // полная запись — 10; сброс в 0 и 9 — K0, K9, общая шина K1..K8;
+    // сброс в 0 — K0 и общая шина K1..K9. Выход — аналоговый узел записи,
+    // в нетлисте не подключён
+    //------------------------------------------------------------------
+    generate
+        if (WRITE) begin : g_wrch_full
+            for (k = 0; k < 10; k++) begin : g_ch
+                /* verilator lint_off PINCONNECTEMPTY */
+                (* keep *) WRCH_N16 wrch (.A (WritePos[k]), .Y ());
+                /* verilator lint_on PINCONNECTEMPTY */
+            end
+        end
+        else begin : g_wrch_reset
+            /* verilator lint_off PINCONNECTEMPTY */
+            (* keep *) WRCH_N16 wrch_k0     (.A (ResetTop), .Y ());   // K0: закрыт при сбросе в TOP
+            (* keep *) WRCH_N16 wrch_common (.A (SetZero),  .Y ());   // общая шина
+            if (TOP_LIMIT_MODE) begin : g_k_top
+                (* keep *) WRCH_N16 wrch_top (.A (SetZero), .Y ());   // катод TOP_PIN_OUT
+            end
+            /* verilator lint_on PINCONNECTEMPTY */
+        end
+    endgenerate
+
+    //------------------------------------------------------------------
     // Схема чтения — только при READ
     //------------------------------------------------------------------
     generate
         if (READ) begin : g_read
-            BinToBcd binToBcd (
-                .In  (MainOneHot),
-                .Out (Out)
+            BinToBcdN binToBcd (
+                .In    (MainOneHot),
+                .Out_n (Out_n)
             );
         end
         else begin : g_no_read
-            assign Out = 4'b0;
+            assign Out_n = 4'b1111;   // как показание 0
         end
     endgenerate
 

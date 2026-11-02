@@ -69,6 +69,8 @@ reg             SetTop   = 1'b0;
 reg [WIDTH-1:0] In       = '0;
 
 wire [WIDTH-1:0] Out;
+wire [WIDTH-1:0] Out_n;          // активным нулём (BinToBcdN, TC-O3)
+assign Out = ~Out_n;
 wire             Zero;
 wire             Nine;
 wire             TopPin;
@@ -106,11 +108,11 @@ DekatronModule #(
     .GuideA  (GuideA),
     .GuideB  (GuideB),
     .En      (1'b1),
-    .In      (In),
+    .In_n    (~In),
     .SetData (SetData),
     .SetZero (SetZero),
     .SetTop  (SetTop),
-    .Out     (Out),
+    .Out_n   (Out_n),
     .Zero    (Zero),
     .Nine    (Nine),
     .TopPin  (TopPin)

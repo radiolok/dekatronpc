@@ -125,7 +125,7 @@ test_dekatron_module:  sim
 
 test_dek_counter:      MODULE = tests.test_dekatron_counter
 test_dek_counter:      TOPLEVEL = DekatronCounter
-test_dek_counter:      VERILOG_SOURCES = $(VHDL_ROOT)/parameters.sv $(LOGIC_PATH)/Impulse.sv $(LOGIC_PATH)/OneShot.sv $(DEKATRON_PATH)/DekatronPhaseGen.sv $(DEKATRON_PATH)/DekatronPulseSender.sv $(DEKATRON_PATH)/DekatronTubeV2.sv $(DEKATRON_PATH)/BcdToBinEn.sv $(DEKATRON_PATH)/BinToBcd.v $(DEKATRON_PATH)/DekatronModule.sv $(DEKATRON_PATH)/DekatronCounter.sv $(CURDIR)/tests/DekatronCounter_vcd_dump.sv
+test_dek_counter:      VERILOG_SOURCES = $(VHDL_ROOT)/parameters.sv $(LOGIC_PATH)/Impulse.sv $(LOGIC_PATH)/OneShot.sv $(DEKATRON_PATH)/DekatronPhaseGen.sv $(DEKATRON_PATH)/DekatronPulseSender.sv $(DEKATRON_PATH)/DekatronTubeV2.sv $(DEKATRON_PATH)/BcdToBinEn.sv $(DEKATRON_PATH)/BinToBcdN.v $(DEKATRON_PATH)/DekatronModule.sv $(DEKATRON_PATH)/DekatronCounter.sv $(CURDIR)/tests/DekatronCounter_vcd_dump.sv
 test_dek_counter:      COMPILE_ARGS = -f sim_build/cmds.f -s DekatronCounter_vcd_dump
 test_dek_counter:      sim
 

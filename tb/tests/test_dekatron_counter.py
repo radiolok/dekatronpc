@@ -32,6 +32,16 @@ RESET_MIN_HS = HS_PER_CLK // 2   # DekatronCounter default
 # Helpers: clocks, reset, Valid/Ready handshake driver
 # ============================================================
 
+def read_out(dut):
+    """Counter value in the direct code: out_n is BCD active-low (TC-O3)."""
+    return (~int(dut.out_n.value)) & ((1 << len(dut.out_n)) - 1)
+
+
+def drive_in(dut, value):
+    """in_n takes BCD active-low (TC-O3)."""
+    dut.in_n.value = (~value) & ((1 << len(dut.in_n)) - 1)
+
+
 async def start_clocks_and_reset(dut):
     """Start clk and hs_clk (HS_PER_CLK x faster), then reset."""
     clock_hs = Clock(dut.hs_clk, CLK_NS // HS_PER_CLK, unit="ns")
@@ -44,7 +54,7 @@ async def start_clocks_and_reset(dut):
     dut.dec.value = 0
     dut.set.value = 0
     dut.set_zero.value = 0
-    getattr(dut, "in").value = 0
+    drive_in(dut, 0)
     # Physical reset lines (held by the external time relay): idle
     dut.soft_rst.value = 0
     dut.hard_rst.value = 0
@@ -68,8 +78,8 @@ async def start_clocks_and_reset(dut):
     dut.soft_rst.value = 0
     await wait_ready(dut)
     await ClockCycles(dut.clk, 2)
-    assert int(dut.out.value) == 0, \
-        f"counter must be 0 after soft_rst, got {int(dut.out.value):#x}"
+    assert read_out(dut) == 0, \
+        f"counter must be 0 after soft_rst, got {read_out(dut):#x}"
 
 
 async def wait_ready(dut, timeout=1000):
@@ -91,7 +101,7 @@ async def handshake(dut, *, dec=0, set_=0, set_zero=0, in_val=0):
     dut.dec.value = dec
     dut.set.value = set_
     dut.set_zero.value = set_zero
-    getattr(dut, "in").value = in_val
+    drive_in(dut, in_val)
 
     await wait_ready(dut)
 
@@ -157,7 +167,7 @@ async def test_dcounter_increment(dut):
 
     for expected in range(1, 6):
         await increment(dut)
-        out_val = int(dut.out.value)
+        out_val = read_out(dut)
         out_bcd_low = bcd_digit(out_val, 0)
         log.info(f"After {expected} increments: out={out_val:#x}, low digit={out_bcd_low}")
         assert out_bcd_low == expected, \
@@ -170,13 +180,13 @@ async def test_dcounter_decrement(dut):
     await start_clocks_and_reset(dut)
 
     await increment(dut, 3)
-    out_after_inc = int(dut.out.value)
+    out_after_inc = read_out(dut)
     log.info(f"After 3 increments: out={out_after_inc:#x}")
     assert bcd_digit(out_after_inc, 0) == 3, \
         f"Low digit should be 3, got {bcd_digit(out_after_inc, 0)}"
 
     await decrement(dut)
-    out_after_dec = int(dut.out.value)
+    out_after_dec = read_out(dut)
     log.info(f"After decrement: out={out_after_dec:#x}")
     assert bcd_digit(out_after_dec, 0) == 2, \
         f"Low digit should be 2, got {bcd_digit(out_after_dec, 0)}"
@@ -188,12 +198,12 @@ async def test_dcounter_set_zero(dut):
     await start_clocks_and_reset(dut)
 
     await increment(dut, 7)
-    out_before = int(dut.out.value)
+    out_before = read_out(dut)
     log.info(f"Before set_zero: {out_before:#x}")
     assert bcd_digit(out_before, 0) == 7
 
     await set_zero(dut)
-    out_after = int(dut.out.value)
+    out_after = read_out(dut)
     log.info(f"After set_zero: {out_after:#x}")
     assert out_after == 0, f"set_zero should set out to 0, got {out_after:#x}"
 
@@ -204,7 +214,7 @@ async def test_dcounter_set_value(dut):
     await start_clocks_and_reset(dut)
 
     await set_value(dut, 0x123)
-    out_val = int(dut.out.value)
+    out_val = read_out(dut)
     log.info(f"After set 0x123: out={out_val:#x}")
     assert out_val == 0x123, f"set should write 0x123, got {out_val:#x}"
 
@@ -253,7 +263,7 @@ async def test_dcounter_back_to_back(dut):
     dut.valid.value = 0
     await ClockCycles(dut.clk, 1)
 
-    out_val = int(dut.out.value)
+    out_val = read_out(dut)
     log.info(f"After {n} back-to-back cycles: out={out_val:#x}")
     assert bcd_digit(out_val, 0) == n % 10, \
         f"Low digit should be {n % 10} after {n} back-to-back cycles, " \
@@ -269,7 +279,7 @@ async def test_dcounter_multi_digit_carry(dut):
 
     await increment(dut, 10)
 
-    out_val = int(dut.out.value)
+    out_val = read_out(dut)
     low = bcd_digit(out_val, 0)
     high = bcd_digit(out_val, 1)
     log.info(f"After 10 increments: {out_val:#x}, low={low}, high={high}")
@@ -282,11 +292,11 @@ async def test_dcounter_no_pulse_without_valid(dut):
     """Verify that no changes occur without valid."""
     await start_clocks_and_reset(dut)
 
-    initial = int(dut.out.value)
+    initial = read_out(dut)
 
     for _ in range(100):
         await RisingEdge(dut.clk)
 
-    final = int(dut.out.value)
+    final = read_out(dut)
     assert final == initial, \
         f"Counter should not change without valid: {initial:#x}→{final:#x}"

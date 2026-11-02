@@ -168,6 +168,14 @@ wire       InsnInReady;
 
 wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0]   Address;
 wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount;
+// IpLine выдаёт IP, счётчик циклов и адрес памяти активным нулём (TC-O3);
+// тестбенч сравнивает прямые значения, модель памяти берёт прямой адрес
+wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0]   Address_n;
+wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount_n;
+wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0]   MemAddr_n;
+assign Address   = ~Address_n;
+assign LoopCount = ~LoopCount_n;
+assign MemAddr   = ~MemAddr_n;
 wire       LoopOverflow;
 
 wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] MemAddr;
@@ -211,10 +219,10 @@ IpLine #(
     .insn_in      (InsnIn),
     .insn_in_valid(InsnInValid),
     .insn_in_ready(InsnInReady),
-    .ip_addr      (Address),
-    .loop_count   (LoopCount),
+    .ip_addr      (Address_n),
+    .loop_count   (LoopCount_n),
     .loop_overflow(LoopOverflow),
-    .mem_addr     (MemAddr),
+    .mem_addr     (MemAddr_n),
     .mem_wr_data  (MemWrData),
     .mem_rd_data  (MemRdData),
     .mem_valid    (MemValid),

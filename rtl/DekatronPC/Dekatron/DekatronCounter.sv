@@ -31,12 +31,12 @@
 //   фронта. Декатрону её хватает, если WRITE_MIN_HS и RESET_MIN_HS
 //   укладываются в такт за вычетом пути команды (проверка ниже).
 //
-//   Показания катодов (out, zero, at_top) идут другими линиями и
+//   Показания катодов (out_n, zero, at_top) идут другими линиями и
 //   читаются всегда, но достоверны только на фронте clk, завершающем
 //   такт операции: внутри такта шага разряд идёт по подкатодам, внутри
 //   такта записи — переходит на новый катод.
 //
-//   Операнды не защёлкиваются: признаки dec, set, set_zero и число in
+//   Операнды не защёлкиваются: признаки dec, set, set_zero и число in_n
 //   держатся мастером весь такт accept (valid не снимается до
 //   рукопожатия, а рукопожатие и есть такт операции).
 //
@@ -180,14 +180,14 @@ module DekatronCounter #(
 
     // Признаки операции, квалифицируются valid
     input  wire             dec,        // 1 — декремент, 0 — инкремент
-    input  wire             set,        // записать in
+    input  wire             set,        // записать in_n
     input  wire             set_zero,   // сбросить в нуль
 /* verilator lint_off UNUSEDSIGNAL */
-    input  wire [WIDTH-1:0] in,
+    input  wire [WIDTH-1:0] in_n,       // записываемое число, тетрады активным нулём (TC-O3)
 /* verilator lint_on UNUSEDSIGNAL */
 
     // Результат: катоды читаются всегда, достоверны на фронте clk
-    output wire [WIDTH-1:0] out,
+    output wire [WIDTH-1:0] out_n,      // показание, тетрады активным нулём (BinToBcdN, TC-O3)
     output wire             zero,       // счётчик равен нулю
     output wire             at_top      // счётчик равен TOP_VALUE
 );
@@ -201,7 +201,7 @@ module DekatronCounter #(
     logic [D_NUM-1:0] dek_nine;
     logic [D_NUM-1:0] dek_top;
 
-    // Выходные признаки берутся прямо с катодов, как и out. В режиме без
+    // Выходные признаки берутся прямо с катодов, как и out_n. В режиме без
     // верхнего предела at_top — «все декады на девятке»; он нужен только
     // счётчику вложенности для ошибки переполнения.
     assign zero   = &dek_zero;
@@ -294,6 +294,14 @@ module DekatronCounter #(
     // Сброс: в старшие декады девятка, если сброс аппаратный
     wire rst_to_nine = hard_rst;
     wire rst_to_zero = soft_rst & ~hard_rst;
+
+    // Подъём подкатодов на время записи и сброса (sch/logic/DEKATRON_A110,
+    // §9.3): повторитель анодной шины ключей, один на счётчик (GLIFT_N16).
+    // Выход — аналоговая шина ключей, в нетлисте не подключён
+    wire guide_lift = wr_set | wr_zero | wr_top | soft_rst | hard_rst;
+    /* verilator lint_off PINCONNECTEMPTY */
+    (* keep *) GLIFT_N16 guideLift (.A (guide_lift), .Y ());
+    /* verilator lint_on PINCONNECTEMPTY */
 
     // hs_clk — временная база только тактовой модели (FPGA, симуляция
     // без задержек). В модели на задержках (`DEKATRON_DELAY_MODEL: синтез
@@ -482,11 +490,11 @@ module DekatronCounter #(
                 .GuideA   (guide_a),
                 .GuideB   (guide_b),
                 .En       (en_chain[d]),
-                .In       (in[(d+1)*DW-1 -: DW]),
+                .In_n     (in_n[(d+1)*DW-1 -: DW]),
                 .SetData  (wr_set),
                 .SetZero  (dek_set_zero),
                 .SetTop   (dek_set_top),
-                .Out      (out[(d+1)*DW-1 -: DW]),
+                .Out_n    (out_n[(d+1)*DW-1 -: DW]),
                 .Zero     (dek_zero[d]),
                 .Nine     (dek_nine[d]),
                 .TopPin   (dek_top[d])

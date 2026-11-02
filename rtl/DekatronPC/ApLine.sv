@@ -87,12 +87,13 @@ module ApLine #(
     //------------------------------------------------------------------
     // Терминал
     //------------------------------------------------------------------
-    input  wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] rx_data_bcd,
-    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd,
+    input  wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] rx_data_bcd,   // активным нулём (TC-O3)
+    output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd,   // активным нулём (TC-O3)
 
     //------------------------------------------------------------------
     // Память данных, Valid/Ready
     //------------------------------------------------------------------
+    // Шины памяти активным нулём (TC-O3): память инвертирует сама
     output wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] mem_addr,
     output wire [MEM_DATA_WIDTH-1:0]                 mem_wr_data,
     input  wire [MEM_DATA_WIDTH-1:0]                 mem_rd_data,
@@ -155,7 +156,7 @@ module ApLine #(
     wire            ap_valid;
     wire            ap_ready;
     wire            ap_set_zero;
-    wire [AP_W-1:0] ap_out;
+    wire [AP_W-1:0] ap_out_n;     // тетрады активным нулём (TC-O3)
 
     DekatronCounter #(
         .D_NUM          (AP_DEKATRON_NUM),
@@ -176,13 +177,13 @@ module ApLine #(
         .dec       (dec),
         .set       (1'b0),
         .set_zero  (ap_set_zero),
-        .in        ({AP_W{1'b0}}),
-        .out       (ap_out),
+        .in_n      ({AP_W{1'b1}}),
+        .out_n     (ap_out_n),
         .zero      (ap_zero),
         .at_top    ()
     );
 
-    assign mem_addr = ap_out;
+    assign mem_addr = ap_out_n;
 
     //------------------------------------------------------------------
     // Счётчик данных
@@ -193,8 +194,8 @@ module ApLine #(
     wire               data_ready;
     wire               data_set;
     wire               data_set_zero;
-    wire  [DATA_W-1:0] data_in;
-    wire [DATA_W-1:0]  data_out;
+    wire  [DATA_W-1:0] data_in_n;     // тетрады активным нулём (TC-O3)
+    wire [DATA_W-1:0]  data_out_n;
     wire               data_ctr_zero;
 
     DekatronCounter #(
@@ -217,32 +218,34 @@ module ApLine #(
         .dec       (dec),
         .set       (data_set),
         .set_zero  (data_set_zero),
-        .in        (data_in),
-        .out       (data_out),
+        .in_n      (data_in_n),
+        .out_n     (data_out_n),
         .zero      (data_ctr_zero),
         .at_top    ()
     );
 
     // Значение ячейки берётся прямо из выходного регистра памяти.
-    // Старшие два бита сотен восстанавливаются нулями: диапазон 0..255.
-    wire [DATA_W-1:0] cell_from_mem =
-        {{(DATA_W-MEM_DATA_WIDTH){1'b0}}, mem_rd_data};
+    // Шины памяти активным нулём (TC-O3): старшие два бита сотен
+    // восстанавливаются единицами (инверсный ноль), диапазон 0..255.
+    wire [DATA_W-1:0] cell_from_mem_n =
+        {{(DATA_W-MEM_DATA_WIDTH){1'b1}}, mem_rd_data};
 
     // Символ терминала не защёлкивается: передающая сторона держит
     // rx_data_bcd до рукопожатия rx_vld & rx_rdy, а rx_rdy верхний автомат
     // выдаёт только по завершении CIN, когда запись в счётчик окончена
     // (REQ-UART-008). op мастер держит до ready.
-    assign data_in = op_cin ? rx_data_bcd : cell_from_mem;
+    assign data_in_n = op_cin ? rx_data_bcd : cell_from_mem_n;
 
     //------------------------------------------------------------------
     // Наблюдаемое состояние
     //------------------------------------------------------------------
     assign mem_lock        = lock_q;
-    assign mem_wr_data     = data_out[MEM_DATA_WIDTH-1:0];
+    assign mem_wr_data     = data_out_n[MEM_DATA_WIDTH-1:0];
     // Вывод всегда со счётчика данных: COUT при снятом MemLock
     // сначала загружает в него ячейку (OPEN-017)
-    assign tx_data_bcd     = data_out;
-    assign data_zero       = lock_q ? data_ctr_zero : ~(|cell_from_mem);
+    assign tx_data_bcd     = data_out_n;
+    // Ноль ячейки в инверсном коде — все единицы
+    assign data_zero       = lock_q ? data_ctr_zero : (&cell_from_mem_n);
     assign data_zero_valid = lock_q | mem_here_q;
 
     //------------------------------------------------------------------

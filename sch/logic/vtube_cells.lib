@@ -528,6 +528,44 @@ library(vtube_cells_lib) {
     pin(G) { direction: input; fanout_load: 1.0; }
     pin(Y) { direction: output; }
   }
+  /* Dekatron module (sch/logic/DEKATRON_A110/README.md, TRS v0.40): cells that the RTL places
+     itself, without a function, so ABC never uses them; they exist to count the tubes. */
+  cell(WRCH_N16) {
+    /* write channel: the 6N16B triode in one cathode return (or the common return) of a
+       dekatron, closed by a falling HV edge through Cc; on the write-channel board */
+    area: 0.5;
+    current_unit : "1mA";
+    heat_current: 200;
+    tubes(names) {
+      N16B: 0.5;
+    }
+    pin(A) { direction: input; fanout_load: 1.0; vtube_level : "COUPLED"; }
+    pin(Y) { direction: output; vtube_level : "LINE"; }
+  }
+  cell(RDD_X7) {
+    /* read diode: half a 6Kh7B from the gate grid (pulled up to +5 V by 100k) to the
+       cathode line; isolates the line from the grids during a write; on the dekatron board */
+    area: 0.5;
+    current_unit : "1mA";
+    heat_current: 150;
+    tubes(names) {
+      X7B: 0.5;
+    }
+    pin(A) { direction: input; fanout_load: 1.0; vtube_level : "LINE"; }
+    pin(Y) { direction: output; vtube_level : "LV"; max_fanout : 10; }
+  }
+  cell(GLIFT_N16) {
+    /* guide lift: the follower that drives the plate rail of the guide keys of one counter
+       (+50 V idle, +150 V during a write or reset), one per counter */
+    area: 1;
+    current_unit : "1mA";
+    heat_current: 400;
+    tubes(names) {
+      N16B: 1;
+    }
+    pin(A) { direction: input; fanout_load: 1.0; vtube_level : "COUPLED"; }
+    pin(Y) { direction: output; vtube_level : "LINE"; }
+  }
     cell (TIEHI) {
     area : 0.0;
     tubes(names) {

@@ -255,10 +255,25 @@ logic [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApData1;
 logic [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] IpAddress1;
 logic [INSN_WIDTH-1:0] RomData1;
 
+// Шины значений DekatronPC — BCD активным нулём (TC-O3, TRS v0.38,
+// Приложение B): инверсные выходы BinToBcdN идут на память, терминал и
+// индикацию без инверторов. Эмулятор переводит их в прямой код здесь,
+// на границе: индикация, клавиатура и терминал работают как прежде.
+logic [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0]   IpAddress_n;
+logic [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0]   ApAddress_n;
+logic [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount_n;
+logic [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd_n;
+logic [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApData1_n;
+assign IpAddress   = ~IpAddress_n;
+assign ApAddress   = ~ApAddress_n;
+assign LoopCount   = ~LoopCount_n;
+assign tx_data_bcd = ~tx_data_bcd_n;
+assign ApData1     = ~ApData1_n;
+
 DekatronPC dekatronPC(
-    .IpAddress(IpAddress),
-    .ApAddress(ApAddress),
-    .LoopCount(LoopCount),
+    .IpAddress(IpAddress_n),
+    .ApAddress(ApAddress_n),
+    .LoopCount(LoopCount_n),
     .hsClk(Clock_10MHz),
     .Clk(Clock_1MHz),
     .rst_n(Rst_n),
@@ -277,10 +292,10 @@ DekatronPC dekatronPC(
     .BellOnCIN(1'b0),
     .BellOnHALT(1'b0),
     .BellOnError(1'b0),
-    .tx_data_bcd(tx_data_bcd),
+    .tx_data_bcd(tx_data_bcd_n),
     .tx_vld(tx_vld),
     .tx_rdy(tx_rdy),
-    .rx_data_bcd(rx_data_bcd),
+    .rx_data_bcd(~rx_data_bcd),
     .rx_vld(rx_vld),
     .rx_rdy(rx_rdy),
     .Step(keyStep),
@@ -290,9 +305,9 @@ DekatronPC dekatronPC(
     .InsnLoadingStop(InsnLoadingStopInternal),
     .key_next_app_i(keyNextApp),
     .IRET(IRET),
-    .IpAddress1(IpAddress1),
-    .ApAddress1(ApAddress1),
-    .ApData1(ApData1),
+    .IpAddress1(~IpAddress1),
+    .ApAddress1(~ApAddress1),
+    .ApData1(ApData1_n),
     .RomData1(RomData1),
     .state(DPC_currentState),
     .IsHalted(),

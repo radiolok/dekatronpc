@@ -28,7 +28,7 @@ total tube count of IpLine + ApLine + MachineCtrl, mean of four `&deepsyn` seeds
 | TC-X5 | Overflow halt from an IpLine strobe | +5.7 | rejected | §6 |
 | TC-O1 | Cell `NOR3_N16` (3 triodes, 1.5 tubes) | −17.3 | **done** (`sch/logic/NOR3_N16`, TRS v0.27): measured 1128.8 → 1111.5 | §6 |
 | TC-O2 | Cells `AOI211_J2N16` (+ `AOI221`, `AOI222`), on top of TC-O1 | −6.2 (−11.4) | `AOI211_J2N16` **done** (`sch/logic/AOI211_J2N16`, TRS v0.28): measured 1111.5 → 1105.3; `AOI221`/`AOI222` open | §6 |
-| TC-O3 | BinToBcd with inverted outputs, memory buses active-low | −19.5 | **accepted by the owner** (2026-11-01, TRS v0.38: it has to fit on the dekatron board), not implemented | §6 |
+| TC-O3 | BinToBcd with inverted outputs, memory buses active-low | −19.5 | **done** (TRS v0.39): measured 1072.3 → 1052.2 (−20.1) | §6 |
 | TC-O4 | CIN through the memory read bus, no rx/memory mux | −25 | open: REQ-UART-008; bf100: speed neutral, variant A recommended | §6, §6.1 |
 | TC-O5 | No `rst_n` on the 32 glue triggers; low `rst_n` holds `hard_rst`; `tx_vld` gated by the reset line | −33.0 | **done** (TRS v0.33): measured 1105.3 → 1072.3 | §6, §6.2 |
 | TC-O6 | ±IP panel keys dropped | −25 | open: Appendix B | §6 |
@@ -502,7 +502,8 @@ requirement is small: the library cells (−17…−29, after design work) and o
 | TC-O7 | ~~Program loading by an external loader writing program memory directly~~ | ≈ −79 | **rejected by the owner** (2026-11-01) |
 | TC-O8 | No prefetch | −26 | REQ-PERF-003 (speed) |
 
-Done so far: TC-O1 + O2 + O5 give **1072.3** (§6.2). From there TC-O3 (−19.5) and TC-O4 (−25) give ≈ 1028;
+Done so far: TC-O1 + O2 + O5 give **1072.3** (§6.2); with TC-O3 (TRS v0.39) **1052.2** (seeds 0–3: 1055.0, 1053.0, 1055.5, 1045.5).
+From TRS v0.40 the count includes the dekatron module (57 write channels `WRCH_N16`, 134 read diodes `RDD_X7`, 4 guide-lift followers `GLIFT_N16`, the lift OR): **1150.1** (seeds 0–3: 1150.5, 1151.5, 1153.0, 1145.5) plus 15 A110 dekatrons on a line of their own; the numbers above are without the module. From there TC-O3 (−19.5) and TC-O4 (−25) give ≈ 1028;
 with TC-O6 as well ≈ 1003. TC-O7 is **rejected by the owner** (2026-11-01): program loading (SOT/EOT over the `insn_in` channel) stays in the machine, because with the panel switches (RunOnHardRst, SoftRstOnEOT, RunOnSoftRst) the computer starts up by itself. Without it, below 1000 needs TC-O3 + O4 + O6 (≈ 1003) and a little more. The estimates add only roughly (ABC drift ±10, the options overlap).
 
 ## 8. Flow changes (for whoever runs synthesis next)

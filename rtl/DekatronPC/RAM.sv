@@ -305,6 +305,12 @@ module Ram #(
     parameter bit          INIT_ZERO     = 1'b1,
     parameter bit          EN_DBG_PORT   = 1'b0,
     parameter bit          EN_OVERLAY    = 1'b0,
+    // Активный ноль на портах (TC-O3, TRS v0.38): BinToBcd счётчиков
+    // выдаёт инверсные тетрады. Память справляется сама: дешифратор адреса
+    // берёт любую полярность, данные инвертируются на портах. Внутри —
+    // истинные значения (обнуление, проверка тетрад, наложение ПЗУ)
+    parameter bit          ADDR_ACTIVE_LOW = 1'b0,   // addr, dbg_addr
+    parameter bit          DATA_ACTIVE_LOW = 1'b0,   // wr_data, rd_data, dbg_data
     parameter unsigned ADDR_WIDTH    = 4 * D_NUM
 )(
     input  wire                     clk,
@@ -314,7 +320,7 @@ module Ram #(
     input  wire                     valid,
     output wire                     ready,
     input  wire                     wr,
-    input  wire [ADDR_WIDTH-1:0]    addr,        // BCD
+    input  wire [ADDR_WIDTH-1:0]    addr,        // BCD (инверсный при ADDR_ACTIVE_LOW)
     input  wire [DATA_WIDTH-1:0]    wr_data,
 
     output wire  [DATA_WIDTH-1:0]   rd_data,
@@ -345,12 +351,17 @@ module Ram #(
 
     wire accept = valid & ready;
 
+    // Истинные адрес и данные записи
+    wire [ADDR_WIDTH-1:0] addr_t    = ADDR_ACTIVE_LOW ? ~addr    : addr;
+    wire [ADDR_WIDTH-1:0] dbg_addr_t = ADDR_ACTIVE_LOW ? ~dbg_addr : dbg_addr;
+    wire [DATA_WIDTH-1:0] wr_data_t = DATA_ACTIVE_LOW ? ~wr_data : wr_data;
+
     // Недопустимые тетрады адреса
     logic bcd_err;
     always_comb begin
         bcd_err = 1'b0;
         for (int d = 0; d < int'(D_NUM); d++)
-            if (addr[4*d +: 4] > 4'd9)
+            if (addr_t[4*d +: 4] > 4'd9)
                 bcd_err = 1'b1;
     end
 
@@ -405,6 +416,7 @@ module Ram #(
     // Дерево банков
     //------------------------------------------------------------------
     wire [DATA_WIDTH-1:0] bank_rd;
+    wire [DATA_WIDTH-1:0] dbg_data_t;
 
     RamGroup #(
         .DATA_WIDTH  (DATA_WIDTH),
@@ -415,16 +427,21 @@ module Ram #(
         .EN_DBG_PORT (EN_DBG_PORT)
     ) top (
         .clk        (clk),
-        .addr_i     (addr),
+        .addr_i     (addr_t),
         .en_i       (bank_en),
         .wr_i       (wr),
-        .wr_data_i  (wr_data),
+        .wr_data_i  (wr_data_t),
         .rd_data_o  (bank_rd),
-        .dbg_addr_i (dbg_addr),
-        .dbg_data_o (dbg_data)
+        .dbg_addr_i (dbg_addr_t),
+        .dbg_data_o (dbg_data_t)
     );
 
-    // Данные ПЗУ подменяют выход банка на время обращения
+    assign dbg_data = DATA_ACTIVE_LOW ? ~dbg_data_t : dbg_data_t;
+
+    // Данные ПЗУ (истинные) подменяют выход банка на время обращения
+    wire [DATA_WIDTH-1:0] rd_t   = ovl_hit_q ? ovl_data_q : bank_rd;
+    wire [DATA_WIDTH-1:0] rd_out = DATA_ACTIVE_LOW ? ~rd_t : rd_t;
+
 `ifdef DEKATRON_DELAY_MODEL
     // Модель на задержках: выходной регистр памяти — ламповый триггер,
     // выход меняется через C→Q (665 нс) после фронта, а не на самом
@@ -432,9 +449,9 @@ module Ram #(
     // который приходит через тактовый инвертор на 280 нс позже
     // (doc/vtube_sta.md §3.5, §7). Требование к памяти: выход не раньше
     // ~300 нс после фронта Clk.
-    assign #(665ns) rd_data = ovl_hit_q ? ovl_data_q : bank_rd;
+    assign #(665ns) rd_data = rd_out;
 `else
-    assign rd_data = ovl_hit_q ? ovl_data_q : bank_rd;
+    assign rd_data = rd_out;
 `endif
 
 `ifndef SYNTH
@@ -456,7 +473,7 @@ module Ram #(
 `ifdef ASSERTIONS
     always @(posedge clk) begin
         if (rst_n && err)
-            $error("Ram: недопустимое обращение по адресу %h", addr);
+            $error("Ram: недопустимое обращение по адресу %h", addr_t);
 
         // Адрес и признак операции не должны меняться до приёма запроса
         if (rst_n && $past(valid) && !$past(ready) && valid) begin
@@ -497,6 +514,12 @@ module Ram #(
     parameter bit          INIT_ZERO     = 1'b1,
     parameter bit          EN_DBG_PORT   = 1'b0,
     parameter bit          EN_OVERLAY    = 1'b0,
+    // Активный ноль на портах (TC-O3, TRS v0.38): BinToBcd счётчиков
+    // выдаёт инверсные тетрады. Память справляется сама: дешифратор адреса
+    // берёт любую полярность, данные инвертируются на портах. Внутри —
+    // истинные значения (обнуление, проверка тетрад, наложение ПЗУ)
+    parameter bit          ADDR_ACTIVE_LOW = 1'b0,   // addr, dbg_addr
+    parameter bit          DATA_ACTIVE_LOW = 1'b0,   // wr_data, rd_data, dbg_data
     parameter unsigned ADDR_WIDTH    = 4 * D_NUM
 )(
     input  wire                     clk,

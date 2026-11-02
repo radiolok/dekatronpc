@@ -130,14 +130,14 @@ module IpLine #(
     //------------------------------------------------------------------
     // Состояние для блока управления и индикации
     //------------------------------------------------------------------
-    output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0]   ip_addr,
-    output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] loop_count,
+    output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0]   ip_addr,      // тетрады активным нулём (TC-O3)
+    output wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] loop_count,   // тетрады активным нулём (TC-O3)
     output wire                                        loop_overflow,
 
     //------------------------------------------------------------------
     // Память программ, Valid/Ready
     //------------------------------------------------------------------
-    output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] mem_addr,
+    output wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] mem_addr,   // активным нулём, память инвертирует сама
     output wire [INSN_WIDTH-1:0]                     mem_wr_data,
     input  wire [INSN_WIDTH-1:0]                     mem_rd_data,
     output wire                                      mem_valid,
@@ -194,7 +194,7 @@ module IpLine #(
     wire            ip_valid;
     wire            ip_ready;
     wire            ip_set_zero;
-    wire [IP_W-1:0] ip_out;
+    wire [IP_W-1:0] ip_out_n;     // тетрады активным нулём (TC-O3)
 
     DekatronCounter #(
         .D_NUM          (IP_DEKATRON_NUM),
@@ -215,14 +215,14 @@ module IpLine #(
         .dec       (dir_q),
         .set       (1'b0),
         .set_zero  (ip_set_zero),
-        .in        ({IP_W{1'b0}}),
-        .out       (ip_out),
+        .in_n      ({IP_W{1'b1}}),
+        .out_n     (ip_out_n),
         .zero      (),
         .at_top    ()
     );
 
-    assign ip_addr  = ip_out;
-    assign mem_addr = ip_out;
+    assign ip_addr  = ip_out_n;
+    assign mem_addr = ip_out_n;
 
     //------------------------------------------------------------------
     // Счётчик глубины вложенности циклов
@@ -231,7 +231,7 @@ module IpLine #(
     wire              loop_ready;
     wire              loop_dec;
     wire              loop_set_zero;
-    wire [LOOP_W-1:0] loop_out;
+    wire [LOOP_W-1:0] loop_out_n;  // тетрады активным нулём (TC-O3)
     wire              loop_is_zero;
     wire              loop_at_top;    // 99: следующий инкремент — переполнение
 
@@ -254,13 +254,13 @@ module IpLine #(
         .dec       (loop_dec),
         .set       (1'b0),
         .set_zero  (loop_set_zero),
-        .in        ({LOOP_W{1'b0}}),
-        .out       (loop_out),
+        .in_n      ({LOOP_W{1'b1}}),
+        .out_n     (loop_out_n),
         .zero      (loop_is_zero),
         .at_top    (loop_at_top)
     );
 
-    assign loop_count    = loop_out;
+    assign loop_count    = loop_out_n;
     assign loop_overflow = overflow_q;
 
     //------------------------------------------------------------------

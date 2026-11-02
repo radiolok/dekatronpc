@@ -75,6 +75,8 @@ reg [WIDTH-1:0] In      = '0;
 
 wire             Ready;
 wire [WIDTH-1:0] Out;
+wire [WIDTH-1:0] Out_n;          // тетрады счётчика — активным нулём (TC-O3)
+assign Out = ~Out_n;
 wire             Zero;
 wire             AtTop;
 
@@ -94,8 +96,8 @@ DekatronCounter  #(.D_NUM(DEKATRON_NUM),
     .dec      (Dec),
     .set      (Set),
     .set_zero (SetZero),
-    .in       (In),
-    .out      (Out),
+    .in_n     (~In),
+    .out_n    (Out_n),
     .zero     (Zero),
     .at_top   (AtTop)
 );
@@ -111,6 +113,8 @@ wire [IP_WIDTH-1:0] IpOut;
 assign IpReady = 1'b1;
 assign IpOut   = '0;
 `else
+wire [IP_WIDTH-1:0] IpOut_n;
+assign IpOut = ~IpOut_n;
 DekatronCounter  #(.D_NUM(IP_NUM),
                     .WRITE(1'b0),
                     .TOP_LIMIT_MODE(1'b0),
@@ -128,8 +132,8 @@ DekatronCounter  #(.D_NUM(IP_NUM),
     .dec      (1'b0),
     .set      (1'b0),
     .set_zero (1'b0),
-    .in       ({IP_WIDTH{1'b0}}),
-    .out      (IpOut),
+    .in_n     ({IP_WIDTH{1'b1}}),
+    .out_n    (IpOut_n),
     .zero     (),
     .at_top   ()
 );

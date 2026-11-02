@@ -226,7 +226,9 @@ module DekatronPC #(
     input  wire BellOnError,
 
     //------------------------------------------------------------------
-    // Терминал
+    // Терминал. Все шины значений счётчиков — BCD активным нулём (TC-O3,
+    // TRS v0.38, Приложение B): tx/rx_data_bcd, IpAddress, ApAddress,
+    // LoopCount, IpAddress1, ApAddress1, ApData1
     //------------------------------------------------------------------
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd,
     output wire                                        tx_vld,
@@ -363,7 +365,8 @@ module DekatronPC #(
         .READ_CYCLES   (MEM_READ_CYCLES),
         .WRITE_CYCLES  (MEM_WRITE_CYCLES),
         .EN_BOOTLOADER (1'b1),
-        .EN_DBG_PORT   (EN_EMULATOR)
+        .EN_DBG_PORT   (EN_EMULATOR),
+        .ADDR_ACTIVE_LOW (1'b1)       // IP с инверсных выходов BinToBcdN (TC-O3)
     ) ipMemory (
         .clk           (Clk),
         .rst_n         (rst_n),
@@ -437,7 +440,9 @@ module DekatronPC #(
         .DATA_WIDTH    (MEM_DATA_WIDTH),
         .READ_CYCLES   (MEM_READ_CYCLES),
         .WRITE_CYCLES  (MEM_WRITE_CYCLES),
-        .EN_DBG_PORT   (EN_EMULATOR)
+        .EN_DBG_PORT   (EN_EMULATOR),
+        .ADDR_ACTIVE_LOW (1'b1),      // AP и данные — активным нулём (TC-O3)
+        .DATA_ACTIVE_LOW (1'b1)
     ) ram (
         .clk      (Clk),
         .rst_n    (rst_n),
@@ -456,8 +461,9 @@ module DekatronPC #(
     );
 
     // Ячейка памяти уже 10 бит, счётчик данных 12: старшие два бита
-    // сотен восстанавливаются нулями, диапазон значений 0..255
-    assign ApData1 = {{(DATA_W-MEM_DATA_WIDTH){1'b0}}, ap_dbg_data};
+    // сотен восстанавливаются единицами (инверсный ноль, TC-O3),
+    // диапазон значений 0..255
+    assign ApData1 = {{(DATA_W-MEM_DATA_WIDTH){1'b1}}, ap_dbg_data};
 
     //------------------------------------------------------------------
     // Верхний автомат

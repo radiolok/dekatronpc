@@ -365,6 +365,36 @@ specify
 endspecify
 endmodule
 
+// Dekatron module cells (TRS v0.40): tube counting; the analog part is in SPICE
+// (tools/spice/dek_module_tb.py). WRCH_N16 / GLIFT_N16 outputs are analog nodes
+// (write node, key plate rail) that the netlist leaves open.
+module WRCH_N16(A, Y);
+input A;
+output Y;
+assign Y = A;
+specify
+	(A => Y) = 0;
+endspecify
+endmodule
+
+module RDD_X7(A, Y);
+input A;
+output Y;
+assign Y = A;
+specify
+	(A => Y) = 0;
+endspecify
+endmodule
+
+module GLIFT_N16(A, Y);
+input A;
+output Y;
+assign Y = A;
+specify
+	(A => Y) = 0;
+endspecify
+endmodule
+
 module GUIDE_EN_J2(EN, G, Y);
 input EN, G;
 output Y;

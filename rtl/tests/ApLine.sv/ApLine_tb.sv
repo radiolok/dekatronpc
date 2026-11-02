@@ -75,6 +75,10 @@ wire            data_zero_valid;
 wire            ap_zero;
 wire            mem_lock;
 wire [11:0]     tx_data_bcd;
+// Терминальные шины ApLine — активным нулём (TC-O3); тестбенч работает
+// с прямым кодом
+wire [11:0]     tx_data_bcd_n;
+assign tx_data_bcd = ~tx_data_bcd_n;
 wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] MemAddr;
 wire [9:0]      MemWrData;
 wire [9:0]      MemRdData;
@@ -112,8 +116,8 @@ ApLine apLine (
     .data_zero_valid(data_zero_valid),
     .ap_zero        (ap_zero),
     .mem_lock       (mem_lock),
-    .rx_data_bcd    (rx_data),
-    .tx_data_bcd    (tx_data_bcd),
+    .rx_data_bcd    (~rx_data),
+    .tx_data_bcd    (tx_data_bcd_n),
     .mem_addr       (MemAddr),
     .mem_wr_data    (MemWrData),
     .mem_rd_data    (MemRdData),
@@ -131,7 +135,9 @@ Ram #(
     .WRITE_CYCLES  (1),
     .INIT_ZERO     (1'b1),
     .EN_DBG_PORT   (1'b0),
-    .EN_OVERLAY    (1'b0)
+    .EN_OVERLAY    (1'b0),
+    .ADDR_ACTIVE_LOW (1'b1),   // как в DekatronPC (TC-O3)
+    .DATA_ACTIVE_LOW (1'b1)
 ) ram (
     .clk      (Clk),
     .rst_n    (Rst_n),
@@ -263,18 +269,18 @@ initial begin
     $display("AP increment test");
     for (int i = 1; i <= 20; i++) begin
         do_op(OP_AP_STEP, 1'b0, 12'd0);
-        if (MemAddr !== ap_bcd(i)) begin
+        if (~MemAddr !== ap_bcd(i)) begin
             errors++;
-            $display("FAIL: AP=%h expected=%h", MemAddr, ap_bcd(i));
+            $display("FAIL: AP=%h expected=%h", ~MemAddr, ap_bcd(i));
         end
     end
 
     $display("AP decrement test");
     for (int i = 19; i >= 0; i--) begin
         do_op(OP_AP_STEP, 1'b1, 12'd0);
-        if (MemAddr !== ap_bcd(i)) begin
+        if (~MemAddr !== ap_bcd(i)) begin
             errors++;
-            $display("FAIL: AP=%h expected=%h", MemAddr, ap_bcd(i));
+            $display("FAIL: AP=%h expected=%h", ~MemAddr, ap_bcd(i));
         end
     end
     if (!ap_zero) begin
@@ -404,9 +410,9 @@ initial begin
     mem_rd_cnt = 0; mem_wr_cnt = 0;
     do_op(OP_AP_ZERO, 1'b0, 12'd0);
     check_mem("CLRA", 0, 1);
-    if (!ap_zero || MemAddr !== AP_ZERO_BCD) begin
+    if (!ap_zero || ~MemAddr !== AP_ZERO_BCD) begin
         errors++;
-        $display("FAIL: CLRA -> AP=%h", MemAddr);
+        $display("FAIL: CLRA -> AP=%h", ~MemAddr);
     end
     do_op(OP_LOAD, 1'b0, 12'd0);
     check_data("cell0 after CLRA", 124);

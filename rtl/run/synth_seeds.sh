@@ -27,6 +27,8 @@ keep=1
 if [ -z "$out" ]; then out=$(mktemp -d); keep=0; fi
 mkdir -p "$out"
 py=${script_dir}/.venv/bin/python
+# dpc_stat.py needs the liberty parser: rtl/run/.venv locally, /var/venv in CI
+[ -x "$py" ] || py=$( [ -x /var/venv/bin/python ] && echo /var/venv/bin/python || echo python3 )
 lib=${DPC_CELL_LIB:-${script_dir}/../../sch/logic/vtube_cells.lib}
 for s in $seeds; do
   for b in "${blocks[@]}"; do

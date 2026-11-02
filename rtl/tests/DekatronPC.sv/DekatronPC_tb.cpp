@@ -94,6 +94,13 @@ public:
     }
 };
 
+// Value buses of DekatronPC are BCD active-low (TC-O3, TRS v0.38, Appendix B):
+// the testbench, like the emulator, takes them back to the direct code here.
+#define DPC_IP(d)   ((~(d)->IpAddress)   & 0xFFFFFu)
+#define DPC_AP(d)   ((~(d)->ApAddress)   & 0xFFFFFu)
+#define DPC_LOOP(d) ((~(d)->LoopCount)   & 0xFFu)
+#define DPC_TX(d)   ((~(d)->tx_data_bcd) & 0xFFFu)
+
 static int BcdToInt(int bcd, int groups)
 {
     int result = 0;
@@ -111,7 +118,7 @@ static uint8_t Cout(VerilogMachine& state)
     bool vld = state.dut->tx_vld;
     uint8_t update = 0;
     if (!CoutOld && vld){
-        char symbol = static_cast<char>(BcdToInt(state.dut->tx_data_bcd, 3));
+        char symbol = static_cast<char>(BcdToInt(DPC_TX(state.dut), 3));
         state.output.push_back(symbol);
         putchar(symbol);
         fflush(stdout);
@@ -134,7 +141,7 @@ static uint8_t Cin(VerilogMachine& state)
         uint8_t high = c / 100;
         uint8_t med = (c % 100) / 10;
         uint8_t low = c % 10;
-        state.dut->rx_data_bcd = (high << 8) + (med << 4) + low;
+        state.dut->rx_data_bcd = (~((high << 8) + (med << 4) + low)) & 0xFFFu;
         update = 1;
     }
     CinOld = waiting;
@@ -275,20 +282,20 @@ static int compareStates(const VerilogMachine& state, const dpc::Machine& cpp, b
     // After a prefetch IP is one ahead of the model, which points at the
     // retired instruction
     uint32_t ipExpected = cpp.ip() + (ipAhead ? 1 : 0);
-    if (!halted && static_cast<uint32_t>(BcdToInt(state.dut->IpAddress, 5)) != ipExpected){
-        printf("FATAL: IpAddress %d != model %u\n", BcdToInt(state.dut->IpAddress, 5), ipExpected);
+    if (!halted && static_cast<uint32_t>(BcdToInt(DPC_IP(state.dut), 5)) != ipExpected){
+        printf("FATAL: IpAddress %d != model %u\n", BcdToInt(DPC_IP(state.dut), 5), ipExpected);
         err = -1;
     }
-    if (static_cast<uint32_t>(BcdToInt(state.dut->ApAddress, 5)) != cpp.ap()){
-        printf("FATAL: ApAddress %d != model %u\n", BcdToInt(state.dut->ApAddress, 5), cpp.ap());
+    if (static_cast<uint32_t>(BcdToInt(DPC_AP(state.dut), 5)) != cpp.ap()){
+        printf("FATAL: ApAddress %d != model %u\n", BcdToInt(DPC_AP(state.dut), 5), cpp.ap());
         err = -1;
     }
-    if (BcdToInt(state.dut->tx_data_bcd, 3) != cpp.txData()){
-        printf("FATAL: tx_data_bcd %d != model %u\n", BcdToInt(state.dut->tx_data_bcd, 3), cpp.txData());
+    if (BcdToInt(DPC_TX(state.dut), 3) != cpp.txData()){
+        printf("FATAL: tx_data_bcd %d != model %u\n", BcdToInt(DPC_TX(state.dut), 3), cpp.txData());
         err = -1;
     }
-    if (static_cast<uint32_t>(BcdToInt(state.dut->LoopCount, 3)) != cpp.loopCount()){
-        printf("FATAL: LoopCount %d != model %u\n", BcdToInt(state.dut->LoopCount, 3), cpp.loopCount());
+    if (static_cast<uint32_t>(BcdToInt(DPC_LOOP(state.dut), 3)) != cpp.loopCount()){
+        printf("FATAL: LoopCount %d != model %u\n", BcdToInt(DPC_LOOP(state.dut), 3), cpp.loopCount());
         err = -1;
     }
     if (state.output != cpp.output()){
@@ -386,14 +393,14 @@ int main(int argc, char** argv, char** env) {
             fprintf(stderr, "IRET:%d(%llu) IP:%x(%u) LOOP:%x(%u) INSN:%s AP:%x(%u) DATA:%x(%u) %s\n",
                 state.iret(),
                 static_cast<unsigned long long>(cppMachine.iret()),
-                state.dut->IpAddress,
+                DPC_IP(state.dut),
                 cppMachine.ip(),
-                state.dut->LoopCount,
+                DPC_LOOP(state.dut),
                 cppMachine.loopCount(),
                 dpc::mnemonic(state.dut->Insn, cppMachine.insnMode()),
-                state.dut->ApAddress,
+                DPC_AP(state.dut),
                 cppMachine.ap(),
-                state.dut->tx_data_bcd,
+                DPC_TX(state.dut),
                 cppMachine.txData(),
                 dpc::statusName(s)
                 );

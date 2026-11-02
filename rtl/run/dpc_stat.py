@@ -12,6 +12,10 @@ DPC_MODULES = {}
 STATS_MODULES = ['\\\\IpLine', '\\\\ApLine', '\\\\DekatronPC']
 
 KNOWN_TUBES = ('N16B', 'J2B', 'X7B')
+TUBE_NAMES = {'N16B': '6N16B', 'J2B': '6Zh2B', 'X7B': '6Kh7B'}
+# The dekatron is a black box in synthesis (DekatronTubeDelay, DekatronTubeV2):
+# its instances are counted as A110, in a line of their own, not in the tubes
+DEKATRON_MODULES = ('DekatronTubeDelay', 'DekatronTubeV2')
 # Relays are not tubes: area 0, counted separately (rtl/Logic/Relay.sv)
 KNOWN_RELAYS = ('RELAY_2CO',)
 VTUBE_RELAYS = {}
@@ -75,6 +79,8 @@ def get_flat_cells(_modules, _module_name, _acc, _mult=1):
     for _cell, _count in _modules[found]['num_cells_by_type'].items():
         if _cell in VTUBE_CELLS:
             _acc[_cell] = _acc.get(_cell, 0) + _mult * _count
+        elif any(_d in _cell for _d in DEKATRON_MODULES):
+            _acc['A110'] = _acc.get('A110', 0) + _mult * _count
         elif _cell not in KNOWN_MODULES:
             get_flat_cells(_modules, _cell, _acc, _mult * _count)
     return _acc
@@ -107,6 +113,7 @@ if __name__ == "__main__":
     CMDARGS.json = list(CMDARGS.json.split(','))
 
     BLOCKS = {}
+    BLOCK_CELLS = {}
     for _file in CMDARGS.json:
         print(_file)
         top_module = _file.replace('.json', '')
@@ -121,6 +128,7 @@ if __name__ == "__main__":
                         if CMDARGS.top and CMDARGS.top in module:
                             top_module = module
         BLOCKS[top_module] = get_module_area(modules, top_module, CMDARGS)
+        BLOCK_CELLS[top_module] = get_flat_cells(modules, top_module, {})
         get_flat_cells(modules, top_module, CELLS_TOTAL)
 
     TUBES_TOTAL = {}
@@ -142,7 +150,7 @@ if __name__ == "__main__":
     
     print(f"=======================================================================")
     for tube in KNOWN_TUBES:
-        print(f"{tube}: {TUBES_TOTAL[tube]} - TBD")
+        print(f"{TUBE_NAMES[tube]}: {TUBES_TOTAL[tube]}")
 
     print(f"=======================================================================")
     print(f"Design\t\t\tTubes\tRelays\tPCB\tHeatCurrent(HeatPower)")
@@ -166,3 +174,25 @@ if __name__ == "__main__":
     print(f"Total\t\t\t{AREA}\t{RELAYS}\t"\
           f"{math.ceil(AREA/16)}\t{HEAT_CURRENT:.02f}A ({(HEAT_CURRENT*6.3/1000):.02f}kW)")
     print(f"Relays are {', '.join(KNOWN_RELAYS)} (2 changeover contacts), not counted as tubes")
+
+    # Tubes by type per block, and the dekatrons (A110) in a line of their own
+    print(f"=======================================================================")
+    _hdr = "".join(f"{TUBE_NAMES[_t]:>8}" for _t in KNOWN_TUBES)
+    print(f"By type		{_hdr}   Tubes    A110")
+    _sum = {_t: 0.0 for _t in KNOWN_TUBES}
+    _dek = 0
+    for _item in BLOCK_CELLS:
+        _bc = BLOCK_CELLS[_item]
+        _row = {_t: sum(VTUBE_CELLS_DATA[_c][_t] * _n for _c, _n in _bc.items() if _c in VTUBE_CELLS_DATA)
+                for _t in KNOWN_TUBES}
+        _a = _bc.get('A110', 0)
+        for _t in KNOWN_TUBES:
+            _sum[_t] += _row[_t]
+        _dek += _a
+        _name = re.sub(r'\\', '', _item)
+        print(f"{_name:<16}" + "".join(f"{_row[_t]:8.1f}" for _t in KNOWN_TUBES)
+              + f"{sum(_row.values()):8.1f}{_a:8d}")
+    print(f"{'Sum':<16}" + "".join(f"{_sum[_t]:8.1f}" for _t in KNOWN_TUBES)
+          + f"{sum(_sum.values()):8.1f}{_dek:8d}")
+    print(f"Dekatrons A110		{_dek}")
+    print(f"With dekatrons		{AREA + _dek}")

@@ -200,7 +200,14 @@ if [ ${synt} -ne 0 ]; then
 	./synth IpLine
 	./synth ApLine
 	./synth MachineCtrl
-	python3 dpc_stat.py -j IpLine.json,ApLine.json,MachineCtrl.json -l ../../sch/logic/vtube_cells.lib
+	# dpc_stat.py needs the liberty parser: rtl/run/.venv locally, /var/venv in CI
+	stat_py=python3
+	if [ -x ${script_dir}/.venv/bin/python ]; then
+		stat_py=${script_dir}/.venv/bin/python
+	elif [ -x /var/venv/bin/python ]; then
+		stat_py=/var/venv/bin/python
+	fi
+	${stat_py} dpc_stat.py -j IpLine.json,ApLine.json,MachineCtrl.json -l ../../sch/logic/vtube_cells.lib
 fi
 
 if [ ${gate} -ne 0 ]; then
