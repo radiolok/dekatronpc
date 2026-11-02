@@ -728,22 +728,44 @@ core has a large margin against walk. Sectioned halves with equal turns, plus an
 dates from before the LED series resistor, when the loop was skipping pulses and all of them landed on one
 MOSFET (§10). So it was a loop effect, not winding asymmetry. Refitting the old transformer now
 is a direct A/B test of the bifilar capacitance. Compare the no-load input current at the same Vbus and
-setpoint, and the temperatures of both MOSFETs. If the old one has 30 + 30 / 34 turns: Bpk ≈ 120·7.3 µs/(2·30·120 mm²)
-≈ 0.12 T (fine) and n·Vbus ≈ 136 V. Expect larger turn-off spikes (more leakage between halves).
+setpoint, and the temperatures of both MOSFETs. The old one is 50 + 50 / 56 turns (all transformers follow the 200v note): Bpk ≈ 120·7.3 µs/(2·50·120 mm²)
+≈ 0.07 T and n·Vbus ≈ 134 V. Expect larger turn-off spikes (more leakage between halves).
 Watch the clamp R22.
 
 ### 10.6 The 80v channel with a sectioned primary (2026-11-01)
 
 Owner measurement: 80 V DC in at 0.175 A (14 W); 80 V out at 110 mA (8.8 W), η ≈ 63 %. After 30 min
-the MOSFETs are at 35–40 °C and the transformer is warm. Turns per the note: 20 + 20 / 23, so n·Vbus ≈ 92 V.
+the MOSFETs are at 35–40 °C and the transformer is warm. Turns: 50 + 50 / 56, the 200v winding (all transformers were wound to the 200v note), so n·Vbus ≈ 90 V.
 
 - Loss budget, 5.2 W in total. R1 (3k) from 80 V takes ≈ 21 mA, ≈ 1.7 W. The bleeders take ≈ 0.2 W. Diodes
   ≈ 0.3 W. That leaves ≈ 3 W for the MOSFETs, the transformer, the clamp and the choke (if fitted).
   On the 120v channel the same split gave ≈ 8 W of converter loss with only ≈ 5.8 W at no load. That is consistent
   with the bifilar-capacitance explanation (§10.4).
 - Transformer: copper loss at 0.11 A is ≤ 0.1 W even with peaky (choke-less) current and a proximity factor
-  of a few. Core: ΔB ≤ 80 V · 7.3 µs/(20 · 120 mm²) ≈ 0.24 T, so Bpk ≤ 0.12 T at 55 kHz. For a
-  PC40/N87-class ferrite that is a fraction of a watt, more for an unknown or low-frequency ferrite. An EE33-size
+  of a few. Core: ΔB ≤ 80 V · 7.3 µs/(50 · 120 mm²) ≈ 0.1 T, so Bpk ≤ 0.05 T at 55 kHz, with
+  negligible core loss. The warmth comes mostly from copper (≈ 3 + 3 + 3.4 m of 0.42 mm, several layers, peaky current) and from heat
+  conducted from the board. An EE33-size
   part at 1–2 W settles at ≈ +25–40 K. "Warm" is expected. A reading above 80–90 °C would point to a poor core material.
 - Asked: whether this channel has an output choke, the transformer temperature, and the no-load input current
   (expected ≈ 25–30 mA, mostly R1).
+
+Answers: no output choke on the 80v channel; the transformer is at ≈ 45 °C after 30 min; no-load input is 36 mA
+(2.9 W). Without R1 (≈ 1.7 W) that leaves ≈ 1.2 W of no-load converter loss. Scaled by Vbus² to 120 V this would be
+≈ 2.7 W, against 5.8 W measured on the bifilar 120v channel. The excess, ≈ 3 W, fits the bifilar inter-half
+capacitance. The turn counts are nearly the same (48 vs 50 per half), so the comparison is fair.
+The load-dependent loss is ≈ 2.3 W at 8.8 W out. Verdict: the sectioned transformer is fine. Refit the old one in
+the 120v channel. Apply the loop fix (LED series resistor, 10 nF on FB) and CT = 1 nF to the 80v and
+200v channels as well. The 80v channel works without a choke because Vout/(n·Vbus) ≈ 0.89, so the pulses
+are not very short.
+
+**Winding layout of the sectioned transformers (owner).** About 25 turns per layer, wound in the order
+P1 (2 layers), P2 (2 layers), S (≈ 2.3 layers). P1 is separated from S by P2, so the
+**P1–S leakage is larger than the P2–S leakage**. The two halves then get unequal turn-off spikes
+and unequal commutation losses. That is the real winding asymmetry a push-pull is sensitive to (the turn
+counts themselves are equal). The difference in mean turn length (P1 inner, P2 outer) adds a small copper-R
+imbalance. The bifilar rewind removed the leakage asymmetry but added ≈ 3 W of capacitive
+loss at 120 V. The middle ground is a **P1 – S – P2 sandwich**: each half has one interface with S, so the
+leakage is symmetric and lower overall, the proximity loss is lower, and the halves stay ≈ 2·Vbus apart
+only through the secondary layers and tape, not wire to wire. Check before rewinding: compare the turn-off spike heights on
+the two drains (scope, both channels at the same V/div). If they differ by more than ≈ 20–30 %, or one MOSFET still runs
+warmer with the loop fixed, rewind as P1–S–P2 with insulating tape between primary and secondary.
