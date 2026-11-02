@@ -7,8 +7,8 @@ def fig_ipline():
             "Линия выборки: автомат управляет счётчиком инструкций и счётчиком вложенности "
             "циклов, читает опкоды из памяти программ (опкод держит её выходной регистр) и по "
             "детектору скобок решает, нужна ли промотка тела цикла.")
-    pins_in = [(62, "valid, clr"), (88, "loop_val_zero"), (148, "halt_rq, ip_ahead, key_±ip"),
-               (196, "insn_loading, mode"), (218, "insn_in, valid")]
+    pins_in = [(62, "valid"), (88, "loop_val_zero"), (148, "halt_rq, ip_ahead, key_±ip"),
+               (196, "insn_loading"), (218, "insn_in, valid")]
     for y, n in pins_in:
         f.pin_in(12, y, 200, n)
     f.wire([(200, 118), (16, 118)], label="ready", lx=20, ly=111, lcls="tp")
@@ -26,10 +26,10 @@ def fig_ipline():
     f.wire([(420, 70), (560, 70)], label="valid · dec", lx=428, ly=63)
     f.wire([(560, 108), (420, 108)], label="ready", lx=428, ly=101)
     f.box(560, 40, 210, 100, "DekatronCounter · IP",
-          ["5 декад, 0…99999", "HARD_RST_D_CNT = 3", "hard_rst → 99900", "soft_rst → 00000"])
+          ["5 декад, 0…99999", "HARD_RST_D_CNT = 4", "hard_rst → 99990", "soft_rst → 00000"])
 
     # счётчик циклов
-    f.wire([(420, 186), (560, 186)], label="valid · dec · set_zero", lx=428, ly=179)
+    f.wire([(420, 186), (560, 186)], label="valid · dec", lx=428, ly=179)
     f.wire([(560, 224), (420, 224)], label="zero", lx=428, ly=217)
     f.box(560, 168, 210, 80, "DekatronCounter · Loop",
           ["2 декады, 0…99", "LOOP_DEKATRON_NUM = 2", "переход через 0 = переполнение"])
@@ -119,9 +119,9 @@ def fig_ipline_fsm():
     f.text(16, 382, "выдана в такте рукопожатия; EOT не пишется → insn_eot", "tl")
     f.text(16, 400, "S_INSN_IN → S_IDLE: загрузка снята", "tl")
 
-    # сброс счётчиков по команде
+    # ISA16: команд сброса счётчиков нет
     f.box(560, 372, 420, 52, None, [], cls="blk-opt")
-    f.text(574, 393, "CLRI, CLRL: IDLE → S_CLR_IP | S_CLR_LOOP → IDLE", "tm")
-    f.text(574, 409, "set_zero выдаётся по go, сброс окончен — ready в S_IDLE", "tl")
+    f.text(574, 393, "ISA16: CLRI/CLRL нет — IP и Loop обнуляют только линии сброса", "tm")
+    f.text(574, 409, "скобки x11x: [ ] и { } считаются вместе", "tl")
     f.text(16, 432, "soft_rst | hard_rst → S_IDLE из любого состояния", "tl")
     return f.render()

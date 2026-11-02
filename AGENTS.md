@@ -27,33 +27,27 @@ A Brainfuck computer built from A110 dekatrons and vacuum tubes, plus an FPGA em
   - Loop: 2 dekatrons, 0–99. Overflow is a hardware error that must abort the scan and halt the machine (REQ-CNT-007).
   - AP: 5 dekatrons. The RTL wraps 0 ↔ 99999 (no top limit); the 29999 option is OPEN-001.
   - Data: 3 dekatrons, 0–255.
-- **Memory**: program memory is 100k × 4-bit opcodes; data memory is 100k × 10-bit cells {hundreds[1:0], tens, ones}. It is a recursive bank tree with BANK_DIGITS = 2 for the real machine and 4 for the FPGA. Addresses are BCD tetrads compared directly, with no binary arithmetic; tetrads A..F raise err. **Value buses are BCD active-low** (TC-O3): counter outputs come from BinToBcdN (NOR, no output inverters), so memory addresses and data, the terminal buses and the emulator status ports carry inverted tetrads (zero = 4'hF). The memories invert on their ports (ADDR_ACTIVE_LOW / DATA_ACTIVE_LOW) and keep the direct code inside; the emulator inverts at the DekatronPC instance in Emulator.sv; testbenches compare in the direct code. The bootloader is the top bank, 99900–99999: write-protected, with the ovl_hit/ovl_data overlay.
+- **Memory**: program memory is 100k × 4-bit opcodes; data memory is 100k × 10-bit cells {hundreds[1:0], tens, ones}. It is a recursive bank tree with BANK_DIGITS = 2 for the real machine and 4 for the FPGA. Addresses are BCD tetrads compared directly, with no binary arithmetic; tetrads A..F raise err. **Value buses are BCD active-low** (TC-O3): counter outputs come from BinToBcdN (NOR, no output inverters), so memory addresses and data, the terminal buses and the emulator status ports carry inverted tetrads (zero = 4'hF). The memories invert on their ports (ADDR_ACTIVE_LOW / DATA_ACTIVE_LOW) and keep the direct code inside; the emulator inverts at the DekatronPC instance in Emulator.sv; testbenches compare in the direct code. The bootloader is the top decade, 99990–99999: write-protected, with the ovl_hit/ovl_data overlay.
 - **Clocks**: hsClk exists only for the clocked dekatron model (DekatronTubeV2), so that the complex model runs without delays on the FPGA and in Verilator/Icarus RTL runs. It is always 10 × Clk (HSCLK_DIV = 10; one *_HS unit = Clk/10). Clk = 100 kHz by default (build macro DEKATRON_CLK_NS in rtl/parameters.sv → CLK_PERIOD_NS, HSCLK_NS for testbench clocks). Synthesis and every delay simulation have no hsClk signal at all (TRS v0.25).
 
-### ISA (never renumber existing codes)
+### ISA16 (TRS v0.42, doc/isa16.md; never renumber these codes)
 
-Decode on the pair {insn_mode, insn}. All 32 combinations must be covered. Undefined or reserved opcodes act as NOP and never raise an error. MachineCtrl.sv is the reference; rtl/DekatronPC/insnValues.sv is stale (only the old InsnDecoder uses it).
+One 4-bit instruction set: there is no insn_mode and no ISA switch. Decode on the opcode alone; all 16 codes are defined. MachineCtrl.sv is the reference; rtl/DekatronPC/insnValues.sv is stale (only the old InsnDecoder uses it).
 
-| Op | Debug (mode 0) | Brainfuck (mode 1) |
-|---|---|---|
-| 0x0 | NOP | NOP |
-| 0x1 | HALT | HALT |
-| 0x2 | BELL | INC + |
-| 0x3 | reserved (NOP) | DEC - |
-| 0x4 | EOT (NOP outside load) | AINC > |
-| 0x5 | SOT | ADEC < |
-| 0x6 | LABEG { (skip if AP==0) | LBEG [ (skip if data==0) |
-| 0x7 | LAEND } (repeat if AP!=0) | LEND ] (repeat if data!=0) |
-| 0x8 | CLRL | COUT . |
-| 0x9 | CLRI (IP + MemLock) | CIN , |
-| 0xA | CLRD | CLRD [-] (sets MemLock) |
-| 0xB | CLRA (AP + MemLock) | CLRML (flush, clear MemLock) |
-| 0xC | HRST | LOAD |
-| 0xD | SRST | STORE |
-| 0xE | ISA0 | ISA0 |
-| 0xF | ISA1 | ISA1 |
+| Op | Instruction | Op | Instruction |
+|---|---|---|---|
+| 0x0 | NOP | 0x8 | COUT . |
+| 0x1 | HALT | 0x9 | CIN , |
+| 0x2 | INC + | 0xA | CLRD [-] (sets MemLock) |
+| 0x3 | DEC - | 0xB | LD: SOT; in the load stream EOT (not stored) |
+| 0x4 | AINC > | 0xC | CLRA (AP; a locked cell is flushed first) |
+| 0x5 | ADEC < | 0xD | STORE (sets MemLock without a load: cell := data counter) |
+| 0x6 | LBEG [ (skip if data==0) | 0xE | LABEG { (skip if AP==0) |
+| 0x7 | LEND ] (repeat if data!=0) | 0xF | LAEND } (repeat if AP!=0) |
 
-- **Hard Reset**: IP = 99900; AP, Data and Loop = 0; MemLock cleared; Debug ISA. **Soft Reset**: all counters 0, MemLock cleared, BF ISA. SoftRstOnEOT: EOT triggers a Soft Reset.
+- Brackets are x11x: bit 0 open/close, bit 3 what is tested (0 the cell, 1 AP). The scan counts [ ] and { } together, so the two kinds must nest properly with each other; { } exist for the bootloader.
+- **Hard Reset**: IP = 99990; AP, Data and Loop = 0; MemLock cleared. **Soft Reset**: all counters 0, MemLock cleared. Resets come only from the panel and SoftRstOnEOT (EOT triggers a Soft Reset); the Loop overflow is cleared only by a reset.
+- **Bootloader** (programs/bootloader.bfk): `0<{0<}` clears the data memory, LD at 99999 loads from address 0. Program files end with `HE` (HALT, LD as EOT).
 - **IpLine sees only opcodes**, never ASCII. Conversion belongs to the loader, and verification models follow the same rule (REQ-IPV2-005).
 - **The loop scan** runs entirely inside IpLine and stops on the matching bracket, not after it.
 
@@ -62,15 +56,15 @@ Decode on the pair {insn_mode, insn}. All 32 combinations must be covered. Undef
 - **Handshake**: Valid/Ready everywhere above the dekatron, and ready must not depend on valid. No APB and no single-cycle Request/Ready pulses.
 - **Dekatron physics (REQ-DEK-\*)**: the tube has no valid/ready/busy and no Valid signal. DekatronCounter derives ready from known durations, and all timing discipline lives there. Every counter operation (step, write, set_zero, edge wrap) completes in its accept cycle: no FSM, no write window, ready drops only on the reset lines (REQ-CNT-V2-009). The cathode read lines are readable at all times but valid only on the Clk edge that ends the operation. A discharge can't rest on a guide cathode. Guide A and guide B pulses must touch or overlap, never leave a gap (REQ-PULSE-008): Phase2 is started by the fall of Phase1, not by gates. Dekatrons light at random on power-up (sim: `define DEKATRON_RANDOM_INIT`), and only the reset lines fix that (REQ-DEK-017). Timing parameters (GUIDE_STEP_HS, FALL_STEP_HS, GUIDE_MAX_HS, WRITE_MIN_HS, RESET_MIN_HS, phase split 3/3/4) are explicit and checked at compile time. They stay estimates until calibrated on hardware (OPEN-013/014). Design notes: rtl/DekatronPC/Dekatron/DekatronCounter.md. In the tube machine (delay model) the carry enables are one LATCH_J2N16 per decade, open in the command window CmdWin (Clk edge → phase start) and closed through the phases and the fall; only a write may move a discharge inside CmdWin (doc/tube_count_1000.md §3).
 - **Board boundaries**: codecs and gate cells stay separate instances so P&R can swap them for tube cells. GUIDE_EN_J2 and RELAY_2CO are liberty cells with no function, so ABC never uses them.
-- **Reset lines**: soft_rst/hard_rst are physical lines held by an external time relay, so add no stretch logic. rst_n is not a reset of its own: low rst_n holds hard_rst in RstTimeRelay (as power-on), so rst_n = hard_rst | soft_rst. No glue trigger of IpLine/ApLine/MachineCtrl has rst_n; each is reset by soft_rst/hard_rst synchronously or written before it is read. rst_n stays only as the model reset of the RC delay elements and the emulator's iret; block testbenches pulse a reset line after rst_n (REQ-REF-011, TC-O5). MachineCtrl reacts to the panel reset lines, not only to its own HRST/SRST.
+- **Reset lines**: soft_rst/hard_rst are physical lines held by an external time relay, so add no stretch logic. rst_n is not a reset of its own: low rst_n holds hard_rst in RstTimeRelay (as power-on), so rst_n = hard_rst | soft_rst. No glue trigger of IpLine/ApLine/MachineCtrl has rst_n; each is reset by soft_rst/hard_rst synchronously or written before it is read. rst_n stays only as the model reset of the RC delay elements and the emulator's iret; block testbenches pulse a reset line after rst_n (REQ-REF-011, TC-O5). MachineCtrl reacts to the reset lines themselves (panel or its own SoftRstOnEOT request).
 - **MemLock** (lock_q) is ApLine's only ownership flag (doc/memlock_single_flag.md):
   - Data can't change without lock: load first.
-  - The address can't change, and CLRML can't finish, with lock set unless the cell is flushed first; the flush clears lock.
+  - The address can't change with lock set unless the cell is flushed first; the flush clears lock.
   - CLRD sets lock.
-  - STORE writes and keeps lock.
+  - STORE only sets lock: the counter takes the current cell with its old value, and the next address change writes it there (copy).
   - The memory's rd_data holds the last touched cell, so ApLine never keeps its own copy.
-- **Decode once**: ApLine gets the opcode itself; IpLine gets one clr bit and picks CLRI/CLRL from insn[0]. IpLine has no opcode register (insn is the memory's rd_data). EOT is never written to memory and is reported as insn_eot.
-- **Prefetch** (doc/prefetch_p3.md): MachineCtrl fetches the next opcode during an ApLine op, so all decode after the fetch uses op_q. CIN, CLRL/CLRI and brackets must not prefetch. On halt, ip_ahead suppresses the halt step. In BF mode MachineCtrl issues TEST before [ and ]; in Debug mode it doesn't.
+- **Decode once**: ApLine gets the opcode itself; IpLine gets only "next instruction" requests (no clr). IpLine has no opcode register (insn is the memory's rd_data). EOT is never written to memory and is reported as insn_eot.
+- **Prefetch** (doc/prefetch_p3.md): MachineCtrl fetches the next opcode during an ApLine op, so all decode after the fetch uses op_q. CIN and brackets must not prefetch. On halt, ip_ahead suppresses the halt step. MachineCtrl issues TEST before [ and ], never before { }.
 - **Terminal RX (REQ-UART-008)**: the sender holds rx_data_bcd until rx_vld & rx_rdy, and ApLine loads Data straight from it.
 - **Relays (REQ-MOD-011)**: logic driven only by panel switches may use RelayMux/RelayEn (rtl/Logic/Relay.sv). A coil is never driven by fast or clocked logic. Use a relay only where it measurably removes tubes.
 - **Yosys FSMs**: state registers carry (\* fsm_encoding = "binary" \*).
@@ -117,10 +111,7 @@ Gotchas:
 
 The full list is in TRS §18. The ones most often hit:
 - OPEN-001: AP limit.
-- OPEN-003: does SOT switch ISA?
-- OPEN-004: how the bootloader ends.
-- OPEN-007: BELL behaviour.
-- OPEN-009: HRST/SRST opcode cross-check.
+- OPEN-007: BELL behaviour (only the automatic bells; there is no BELL opcode since v0.42).
 - OPEN-011: hardcoded panel switches.
 - OPEN-012: TOP_LIMIT_MODE vs HARD_RST_D_CNT.
 - OPEN-013/014: dekatron timing and whether 1 MHz is achievable.
