@@ -1,0 +1,827 @@
+{
+ "part": "КП128/17-М70",
+ "passport": "Г63.061.021 ПС",
+ "source": [
+  "memory_cube_pasp.pdf",
+  "kp128_17_m70_pasp_v2.pdf"
+ ],
+ "note": "N1/K1 = Н′/К′, N2/K2 = Н″/К″. Primes in the bottom row are inferred by symmetry; verify by continuity. Y and P have one winding.",
+ "electrical": [
+  {
+   "name": "R X1-X8",
+   "value": 2.3,
+   "tol": 0.5,
+   "unit": "Ohm"
+  },
+  {
+   "name": "R Y1-Y16",
+   "value": 1.1,
+   "tol": 0.3,
+   "unit": "Ohm"
+  },
+  {
+   "name": "R P1-P17",
+   "value": 1.7,
+   "tol": 0.4,
+   "unit": "Ohm"
+  },
+  {
+   "name": "R CM",
+   "value": 2.3,
+   "tol": 0.5,
+   "unit": "Ohm"
+  },
+  {
+   "name": "access frequency",
+   "max": 150,
+   "unit": "kHz"
+  },
+  {
+   "name": "read signal",
+   "min": 7,
+   "unit": "mV",
+   "cond": "load >= 95 Ohm, driver supply 10+-2 V, write current 50+-10 mA"
+  },
+  {
+   "name": "operating temperature",
+   "min": -5,
+   "max": 50,
+   "unit": "C"
+  },
+  {
+   "name": "mass",
+   "max": 75,
+   "unit": "g"
+  }
+ ],
+ "window": [
+  {
+   "T_C": 50,
+   "bias_mA": 320,
+   "lower_edge_max_mA": 141,
+   "upper_edge_min_mA": 165
+  },
+  {
+   "T_C": 50,
+   "bias_mA": 520,
+   "lower_edge_max_mA": 187,
+   "upper_edge_min_mA": 215
+  },
+  {
+   "T_C": -5,
+   "bias_mA": 370,
+   "lower_edge_max_mA": 165,
+   "upper_edge_min_mA": 193
+  },
+  {
+   "T_C": -5,
+   "bias_mA": 550,
+   "lower_edge_max_mA": 209,
+   "upper_edge_min_mA": 237
+  }
+ ],
+ "pinout": [
+  {
+   "pin": 1,
+   "circuit": "Y16",
+   "end": "K",
+   "side": "left",
+   "confidence": "high"
+  },
+  {
+   "pin": 2,
+   "circuit": "Y15",
+   "end": "N",
+   "side": "left",
+   "confidence": "high"
+  },
+  {
+   "pin": 3,
+   "circuit": "Y14",
+   "end": "K",
+   "side": "left",
+   "confidence": "high"
+  },
+  {
+   "pin": 4,
+   "circuit": "Y13",
+   "end": "N",
+   "side": "left",
+   "confidence": "high"
+  },
+  {
+   "pin": 5,
+   "circuit": "Y12",
+   "end": "K",
+   "side": "left",
+   "confidence": "high"
+  },
+  {
+   "pin": 6,
+   "circuit": "Y11",
+   "end": "N",
+   "side": "left",
+   "confidence": "high"
+  },
+  {
+   "pin": 7,
+   "circuit": "Y10",
+   "end": "K",
+   "side": "left",
+   "confidence": "high"
+  },
+  {
+   "pin": 8,
+   "circuit": "Y9",
+   "end": "N",
+   "side": "left",
+   "confidence": "high"
+  },
+  {
+   "pin": 9,
+   "circuit": "Y8",
+   "end": "K",
+   "side": "left",
+   "confidence": "high"
+  },
+  {
+   "pin": 10,
+   "circuit": "Y7",
+   "end": "N",
+   "side": "left",
+   "confidence": "high"
+  },
+  {
+   "pin": 11,
+   "circuit": "Y6",
+   "end": "K",
+   "side": "left",
+   "confidence": "high"
+  },
+  {
+   "pin": 12,
+   "circuit": "Y5",
+   "end": "N",
+   "side": "left",
+   "confidence": "high"
+  },
+  {
+   "pin": 13,
+   "circuit": "Y4",
+   "end": "K",
+   "side": "left",
+   "confidence": "high"
+  },
+  {
+   "pin": 14,
+   "circuit": "Y3",
+   "end": "N",
+   "side": "left",
+   "confidence": "high"
+  },
+  {
+   "pin": 15,
+   "circuit": "Y2",
+   "end": "K",
+   "side": "left",
+   "confidence": "high"
+  },
+  {
+   "pin": 16,
+   "circuit": "Y1",
+   "end": "N",
+   "side": "left",
+   "confidence": "high"
+  },
+  {
+   "pin": 17,
+   "circuit": "Z1",
+   "end": null,
+   "side": "corner",
+   "confidence": "medium"
+  },
+  {
+   "pin": 18,
+   "circuit": "CM",
+   "end": "N2",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 19,
+   "circuit": "X1",
+   "end": "N2",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 20,
+   "circuit": "X1",
+   "end": "K2",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 21,
+   "circuit": "X2",
+   "end": "N2",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 22,
+   "circuit": "X2",
+   "end": "K2",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 23,
+   "circuit": "X3",
+   "end": "N2",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 24,
+   "circuit": "X3",
+   "end": "K2",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 25,
+   "circuit": "X4",
+   "end": "N2",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 26,
+   "circuit": "X4",
+   "end": "K2",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 27,
+   "circuit": "P2",
+   "end": "N",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 28,
+   "circuit": "P4",
+   "end": "N",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 29,
+   "circuit": "P6",
+   "end": "N",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 30,
+   "circuit": "P8",
+   "end": "N",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 31,
+   "circuit": "P10",
+   "end": "N",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 32,
+   "circuit": "P12",
+   "end": "N",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 33,
+   "circuit": "P14",
+   "end": "N",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 34,
+   "circuit": "P16",
+   "end": "N",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 35,
+   "circuit": "P17",
+   "end": "N",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 36,
+   "circuit": "P15",
+   "end": "N",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 37,
+   "circuit": "P13",
+   "end": "N",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 38,
+   "circuit": "P11",
+   "end": "N",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 39,
+   "circuit": "P9",
+   "end": "N",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 40,
+   "circuit": "P7",
+   "end": "N",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 41,
+   "circuit": "P5",
+   "end": "N",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 42,
+   "circuit": "P3",
+   "end": "N",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 43,
+   "circuit": "P1",
+   "end": "N",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 44,
+   "circuit": "X5",
+   "end": "N2",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 45,
+   "circuit": "X5",
+   "end": "K2",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 46,
+   "circuit": "X6",
+   "end": "N2",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 47,
+   "circuit": "X6",
+   "end": "K2",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 48,
+   "circuit": "X7",
+   "end": "N2",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 49,
+   "circuit": "X7",
+   "end": "K2",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 50,
+   "circuit": "X8",
+   "end": "N2",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 51,
+   "circuit": "X8",
+   "end": "K2",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 52,
+   "circuit": "CM",
+   "end": "K2",
+   "side": "bottom",
+   "confidence": "medium"
+  },
+  {
+   "pin": 53,
+   "circuit": "Z2",
+   "end": null,
+   "side": "corner",
+   "confidence": "medium"
+  },
+  {
+   "pin": 54,
+   "circuit": "Y1",
+   "end": "K",
+   "side": "right",
+   "confidence": "high"
+  },
+  {
+   "pin": 55,
+   "circuit": "Y2",
+   "end": "N",
+   "side": "right",
+   "confidence": "high"
+  },
+  {
+   "pin": 56,
+   "circuit": "Y3",
+   "end": "K",
+   "side": "right",
+   "confidence": "high"
+  },
+  {
+   "pin": 57,
+   "circuit": "Y4",
+   "end": "N",
+   "side": "right",
+   "confidence": "high"
+  },
+  {
+   "pin": 58,
+   "circuit": "Y5",
+   "end": "K",
+   "side": "right",
+   "confidence": "high"
+  },
+  {
+   "pin": 59,
+   "circuit": "Y6",
+   "end": "N",
+   "side": "right",
+   "confidence": "high"
+  },
+  {
+   "pin": 60,
+   "circuit": "Y7",
+   "end": "K",
+   "side": "right",
+   "confidence": "high"
+  },
+  {
+   "pin": 61,
+   "circuit": "Y8",
+   "end": "N",
+   "side": "right",
+   "confidence": "high"
+  },
+  {
+   "pin": 62,
+   "circuit": "Y9",
+   "end": "K",
+   "side": "right",
+   "confidence": "high"
+  },
+  {
+   "pin": 63,
+   "circuit": "Y10",
+   "end": "N",
+   "side": "right",
+   "confidence": "high"
+  },
+  {
+   "pin": 64,
+   "circuit": "Y11",
+   "end": "K",
+   "side": "right",
+   "confidence": "high"
+  },
+  {
+   "pin": 65,
+   "circuit": "Y12",
+   "end": "N",
+   "side": "right",
+   "confidence": "high"
+  },
+  {
+   "pin": 66,
+   "circuit": "Y13",
+   "end": "K",
+   "side": "right",
+   "confidence": "high"
+  },
+  {
+   "pin": 67,
+   "circuit": "Y14",
+   "end": "N",
+   "side": "right",
+   "confidence": "high"
+  },
+  {
+   "pin": 68,
+   "circuit": "Y15",
+   "end": "K",
+   "side": "right",
+   "confidence": "high"
+  },
+  {
+   "pin": 69,
+   "circuit": "Y16",
+   "end": "N",
+   "side": "right",
+   "confidence": "high"
+  },
+  {
+   "pin": 70,
+   "circuit": "Z3",
+   "end": null,
+   "side": "corner",
+   "confidence": "high"
+  },
+  {
+   "pin": 71,
+   "circuit": "CM",
+   "end": "N1",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 72,
+   "circuit": "X8",
+   "end": "N1",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 73,
+   "circuit": "X8",
+   "end": "K1",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 74,
+   "circuit": "X7",
+   "end": "N1",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 75,
+   "circuit": "X7",
+   "end": "K1",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 76,
+   "circuit": "X6",
+   "end": "N1",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 77,
+   "circuit": "X6",
+   "end": "K1",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 78,
+   "circuit": "X5",
+   "end": "N1",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 79,
+   "circuit": "X5",
+   "end": "K1",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 80,
+   "circuit": "P1",
+   "end": "K",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 81,
+   "circuit": "P3",
+   "end": "K",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 82,
+   "circuit": "P5",
+   "end": "K",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 83,
+   "circuit": "P7",
+   "end": "K",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 84,
+   "circuit": "P9",
+   "end": "K",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 85,
+   "circuit": "P11",
+   "end": "K",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 86,
+   "circuit": "P13",
+   "end": "K",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 87,
+   "circuit": "P15",
+   "end": "K",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 88,
+   "circuit": "P17",
+   "end": "K",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 89,
+   "circuit": "P16",
+   "end": "K",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 90,
+   "circuit": "P14",
+   "end": "K",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 91,
+   "circuit": "P12",
+   "end": "K",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 92,
+   "circuit": "P10",
+   "end": "K",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 93,
+   "circuit": "P8",
+   "end": "K",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 94,
+   "circuit": "P6",
+   "end": "K",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 95,
+   "circuit": "P4",
+   "end": "K",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 96,
+   "circuit": "P2",
+   "end": "K",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 97,
+   "circuit": "X4",
+   "end": "N1",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 98,
+   "circuit": "X4",
+   "end": "K1",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 99,
+   "circuit": "X3",
+   "end": "N1",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 100,
+   "circuit": "X3",
+   "end": "K1",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 101,
+   "circuit": "X2",
+   "end": "N1",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 102,
+   "circuit": "X2",
+   "end": "K1",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 103,
+   "circuit": "X1",
+   "end": "N1",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 104,
+   "circuit": "X1",
+   "end": "K1",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 105,
+   "circuit": "CM",
+   "end": "K1",
+   "side": "top",
+   "confidence": "high"
+  },
+  {
+   "pin": 106,
+   "circuit": "Z4",
+   "end": null,
+   "side": "corner",
+   "confidence": "medium"
+  }
+ ]
+}
