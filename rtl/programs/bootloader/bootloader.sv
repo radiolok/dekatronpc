@@ -1,6 +1,8 @@
 module bootloader #(
-///mnt/d/radiolok@oc.urlnn.ru/Projects/20180271-DekatronPC/vhdl/programs/bootloader/bootloader.bfk
-parameter portSize = 8,
+// programs/bootloader.bfk, ISA16 (doc/isa16.md): one decade, 99990..99999.
+// After a Hard Reset AP = Data = 0: 0<{0<} clears all data memory (the first
+// '<' wraps AP 0 -> 99999), then LD on 99999 starts loading (IP wraps to 0)
+parameter portSize = 4,
 parameter dataSize = 4)(
 /* verilator lint_off UNUSEDSIGNAL */
 input wire [portSize-1:0] Address,
@@ -8,37 +10,20 @@ input wire [portSize-1:0] Address,
 output reg [dataSize-1:0] Data
 );
 
-`ifdef SIMPLEBOOT
 always_comb
 /* verilator lint_off WIDTHEXPAND */
-  case(Address)
-    8'h98: Data = 4'he; // D
-    8'h99: Data = 4'h5; // S
-    default: Data = {dataSize{1'b0}};
-  endcase
-/* verilator lint_on WIDTHEXPAND */
-`else
-always_comb
-/* verilator lint_off WIDTHEXPAND */
-  case(Address)
-    8'h00: Data = 4'he; //D 
-    8'h01: Data = 4'hb; //A 
-    8'h02: Data = 4'ha; //0
-    8'h03: Data = 4'hF; //B
-    8'h04: Data = 4'h5; //< 
-    8'h05: Data = 4'he; //D 
-    8'h06: Data = 4'h6; //{ 
-    8'h07: Data = 4'ha; //0 
-    8'h08: Data = 4'hF; //B
-    8'h09: Data = 4'h5; //< 
-    8'h10: Data = 4'he; //D 
-    8'h11: Data = 4'h7; //}
-    8'h12: Data = 4'hF; //B 
-    8'h98: Data = 4'he; //D
-    8'h99: Data = 4'h5; //S
-    default: Data = {dataSize{1'b0}};
-  endcase
-/* verilator lint_on WIDTHEXPAND */
+  case(Address[3:0])
+`ifndef SIMPLEBOOT
+    4'h0: Data = 4'ha; //0 [-]
+    4'h1: Data = 4'h5; //<
+    4'h2: Data = 4'he; //{
+    4'h3: Data = 4'ha; //0 [-]
+    4'h4: Data = 4'h5; //<
+    4'h5: Data = 4'hf; //}
 `endif
+    4'h9: Data = 4'hb; //S LD
+    default: Data = {dataSize{1'b0}};
+  endcase
+/* verilator lint_on WIDTHEXPAND */
 
 endmodule

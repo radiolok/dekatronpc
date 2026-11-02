@@ -46,12 +46,12 @@
 // Собственного регистра опкода у блока нет (REQ-IPV2-008). Выходной
 // регистр памяти программ меняется только при обращении и держит
 // последнюю прочитанную или записанную (сквозная запись) инструкцию.
-// Шаг IP, CLRI и останов к памяти не обращаются, а следующее обращение
+// Шаг IP и останов к памяти не обращаются, а следующее обращение
 // бывает лишь после того, как блок управления закончил с текущей
 // инструкцией. Поэтому insn — это прямо mem_rd_data.
 //
-// Единственный опкод, которого в памяти нет, — EOT. О нём сообщает
-// отдельный триггер insn_eot.
+// Единственный опкод, которого в памяти нет, — EOT (код LD, 0xB, в
+// потоке загрузки). О нём сообщает отдельный триггер insn_eot.
 //
 // При упреждающей выборке (P3) следующее обращение выдаётся вместе с
 // операцией над ApLine. Опкод текущей инструкции к этому моменту
@@ -67,14 +67,12 @@
 // ip_counted_q, и после пуска та же инструкция читается заново.
 //======================================================================
 
-`include "../DekatronPC/insnValues.sv"
-
 `default_nettype none
 
 module IpLine #(
     // Сколько старших декад аппаратный сброс ставит в девятку.
-    // Для пяти декатронов это даёт 99900 — начало загрузчика.
-    parameter unsigned HARD_RST_D_CNT    = IP_DEKATRON_NUM - 2,
+    // Для пяти декатронов это даёт 99990 — начало загрузчика.
+    parameter unsigned HARD_RST_D_CNT    = IP_DEKATRON_NUM - 1,
 
     // Чтение счётчика циклов нужно только для индикации в эмуляторе
     parameter bit          LOOP_READ         = 1'b0
@@ -92,14 +90,11 @@ module IpLine #(
     //------------------------------------------------------------------
     // Командный интерфейс
     //------------------------------------------------------------------
-    input  wire       valid,
+    input  wire       valid,      // следующая инструкция
     output wire       ready,
-    // 0 — следующая инструкция; 1 — исполнить текущую: CLRI (0x9) или
-    // CLRL (0x8), различаются младшим битом опкода
-    input  wire       clr,
 
-    // Состояние проверяемой циклом величины. В Brainfuck ISA это признак
-    // нуля текущей ячейки, в Debug ISA — признак нуля счётчика адреса.
+    // Состояние проверяемой циклом величины: для [ ] — признак нуля
+    // текущей ячейки, для { } — признак нуля счётчика адреса.
     // Выбор делает блок управления, сюда приходит уже готовый признак.
     input  wire       loop_val_zero,
 
@@ -122,7 +117,6 @@ module IpLine #(
     // Загрузка программы
     //------------------------------------------------------------------
     input  wire                  insn_loading,
-    input  wire                  insn_mode,
     input  wire [INSN_WIDTH-1:0] insn_in,
     input  wire                  insn_in_valid,
     output wire                  insn_in_ready,
@@ -171,8 +165,6 @@ module IpLine #(
         S_SCAN_EVAL = 4'd4,   // разбор прочитанной скобки
         S_LOOP      = 4'd5,   // шаг счётчика вложенности
         S_INSN_IN   = 4'd6,   // приём опкода при загрузке и его запись
-        S_CLR_IP    = 4'd8,   // CLRI
-        S_CLR_LOOP  = 4'd9,   // CLRL
         S_HALT      = 4'd10;
 
     // Двоичное кодирование: Yosys иначе перекодирует автомат в one-hot,
@@ -193,7 +185,6 @@ module IpLine #(
     //------------------------------------------------------------------
     wire            ip_valid;
     wire            ip_ready;
-    wire            ip_set_zero;
     wire [IP_W-1:0] ip_out_n;     // тетрады активным нулём (TC-O3)
 
     DekatronCounter #(
@@ -214,7 +205,7 @@ module IpLine #(
         .ready     (ip_ready),
         .dec       (dir_q),
         .set       (1'b0),
-        .set_zero  (ip_set_zero),
+        .set_zero  (1'b0),
         .in_n      ({IP_W{1'b1}}),
         .out_n     (ip_out_n),
         .zero      (),
@@ -230,7 +221,6 @@ module IpLine #(
     wire              loop_valid;
     wire              loop_ready;
     wire              loop_dec;
-    wire              loop_set_zero;
     wire [LOOP_W-1:0] loop_out_n;  // тетрады активным нулём (TC-O3)
     wire              loop_is_zero;
     wire              loop_at_top;    // 99: следующий инкремент — переполнение
@@ -253,7 +243,7 @@ module IpLine #(
         .ready     (loop_ready),
         .dec       (loop_dec),
         .set       (1'b0),
-        .set_zero  (loop_set_zero),
+        .set_zero  (1'b0),
         .in_n      ({LOOP_W{1'b1}}),
         .out_n     (loop_out_n),
         .zero      (loop_is_zero),
@@ -268,8 +258,9 @@ module IpLine #(
     //
     // Детектор один: он разбирает выходной регистр памяти, а тот в разные
     // моменты держит либо текущую инструкцию (решение о начале промотки),
-    // либо только что прочитанную в ходе промотки. Опкоды скобок одинаковы в
-    // обоих наборах команд, поэтому режим ISA здесь не нужен.
+    // либо только что прочитанную в ходе промотки. Скобки [ ] и { } —
+    // x11x, и промотка считает их вместе: вкладывать один вид в другой
+    // нельзя ({ } нужны только загрузчику).
     //------------------------------------------------------------------
     wire insn_loop_open, insn_loop_close;
 
@@ -314,7 +305,7 @@ module IpLine #(
 
     wire insn_in_accept = insn_in_valid & insn_in_ready;
 
-    wire end_of_transmission = ({insn_mode, insn_in} == INSN_EOT);
+    wire end_of_transmission = (insn_in == 4'hB);   // LD
 
     // Ручной шаг по программе: одна кнопка, один шаг до отпускания
     wire key_step    = (key_prev_ip | key_next_ip) & ~key_moved_q;
@@ -346,14 +337,10 @@ module IpLine #(
     wire in_ip       = (state == S_IP);
     wire in_fetch    = (state == S_FETCH);
     wire in_loop     = (state == S_LOOP);
-    wire in_clr_ip   = (state == S_CLR_IP);
-    wire in_clr_loop = (state == S_CLR_LOOP);
 
-    assign ip_valid      = ((in_ip & ~scan_done) | in_clr_ip) & go;
-    assign ip_set_zero   = in_clr_ip;
-    assign loop_valid    = (in_loop | in_clr_loop) & go;
+    assign ip_valid      = in_ip & ~scan_done & go;
+    assign loop_valid    = in_loop & go;
     assign loop_dec      = dir_q ? insn_loop_open : insn_loop_close;
-    assign loop_set_zero = in_clr_loop;
     assign mem_valid     = (in_fetch & go) | (insn_in_accept & ~end_of_transmission);
     assign mem_wr        = in_insn_in;
     assign mem_wr_data   = insn_in;
@@ -398,38 +385,27 @@ module IpLine #(
                 else if (accept) begin
                     eot_q <= 1'b0;
 
-                    if (clr & insn[0]) begin            // CLRI
-                        ip_counted_q <= 1'b0;
-                        insn_valid_q <= 1'b0;
-                        state        <= S_CLR_IP;
+                    if (~ip_counted_q) begin
+                        // Первая выборка после сброса: читаем по
+                        // текущему адресу, счётчик не двигаем
+                        ip_counted_q <= 1'b1;
+                        state <= insn_loading ? S_INSN_IN : S_FETCH;
                     end
-                    else if (clr) begin                 // CLRL
-                        overflow_q <= 1'b0;
-                        state      <= S_CLR_LOOP;
+                    else if (~insn_loading & scan_req & loop_at_top) begin
+                        // Счётчик остался на 99 после прежнего
+                        // переполнения: инкремент снова переполнит
+                        overflow_q <= 1'b1;
                     end
-                    else begin                          // следующая инструкция
-                        if (~ip_counted_q) begin
-                            // Первая выборка после сброса: читаем по
-                            // текущему адресу, счётчик не двигаем
-                            ip_counted_q <= 1'b1;
-                            state <= insn_loading ? S_INSN_IN : S_FETCH;
-                        end
-                        else if (~insn_loading & scan_req & loop_at_top) begin
-                            // Счётчик остался на 99 после прежнего
-                            // переполнения: инкремент снова переполнит
-                            overflow_q <= 1'b1;
-                        end
-                        else if (~insn_loading & scan_req) begin
-                            // Начало промотки: своя скобка учитывается
-                            // в счётчике вложенности
-                            scanning_q <= 1'b1;
-                            dir_q      <= scan_back_req;
-                            state      <= S_LOOP;
-                        end
-                        else begin
-                            dir_q <= 1'b0;
-                            state <= S_IP;
-                        end
+                    else if (~insn_loading & scan_req) begin
+                        // Начало промотки: своя скобка учитывается
+                        // в счётчике вложенности
+                        scanning_q <= 1'b1;
+                        dir_q      <= scan_back_req;
+                        state      <= S_LOOP;
+                    end
+                    else begin
+                        dir_q <= 1'b0;
+                        state <= S_IP;
                     end
                 end
             end
@@ -527,13 +503,6 @@ module IpLine #(
             end
 
             //----------------------------------------------------------
-            // Сброс счётчика по команде
-            //----------------------------------------------------------
-            S_CLR_IP, S_CLR_LOOP: begin
-                if (go) state <= S_IDLE;
-            end
-
-            //----------------------------------------------------------
             // Останов с возможностью ручного перемещения
             //----------------------------------------------------------
             S_HALT: begin
@@ -560,8 +529,6 @@ module IpLine #(
 `ifndef SYNTH
 `ifdef ASSERTIONS
     always @(posedge clk) begin
-        if (rst_n && valid && clr && (insn[3:1] != 3'b100))
-            $error("IpLine: clr при опкоде %h — не CLRL/CLRI", insn);
         if (rst_n && $past(valid) && !$past(ready) && !valid)
             $error("IpLine: valid снят до handshake");
         if (rst_n && mem_err)
