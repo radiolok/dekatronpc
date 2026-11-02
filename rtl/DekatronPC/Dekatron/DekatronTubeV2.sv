@@ -59,41 +59,34 @@
 //
 // Модуль НЕ реализует valid/ready/busy. Декатрон только реагирует на
 // внешние воздействия заданной длительности, в любом своём внутреннем
-// состоянии. Дисциплину операций обеспечивает DekatronCounterV2.
-// main_onehot_o валиден только когда разряд стоит на главном катоде
-// и внешних воздействий нет.
+// состоянии. Дисциплину операций обеспечивает DekatronCounter.
+// main_onehot_o показывает главный катод, на котором стоит разряд, при
+// любых воздействиях (линии чтения отдельные, TRS v0.24), и ноль, пока
+// разряд на подкатоде.
 //======================================================================
 
 `default_nettype none
 
 module DekatronTubeV2 #(
-    // Отношение временных баз: тактов hsClk на один такт clk. Нужно, чтобы
-    // учесть цифровую задержку квалификации внешнего запроса (см. wr_min_hs).
-    parameter unsigned HS_PER_CLK       = 10,
-
-    // Компенсация задержки квалификации запроса, тактов hsClk. Внешний
-    // формирователь окна (DekatronCounter) выставляет окно на такт clk
-    // позже его старта, поэтому до катодной линии доходит на столько
-    // тактов меньше. Чистая физическая модель тестируется с WR_SYNC_HS=0.
-    parameter unsigned WR_SYNC_HS       = HS_PER_CLK,
-
     // Время перехода между соседними электродами при активном подкатоде.
     // Играет роль GUIDE_MIN_HS из TRS v0.1: импульс короче не даёт шага.
-    parameter unsigned GUIDE_STEP_HS    = 2,
+    parameter unsigned GUIDE_STEP_HS    = 1,
 
     // Время сваливания с подкатода на соседний главный катод
     // при снятии подкатодных сигналов.
-    parameter unsigned FALL_STEP_HS     = 3,
+    parameter unsigned FALL_STEP_HS     = 1,
 
     // Предельная длительность подкатодного импульса (только для assertion)
     parameter unsigned GUIDE_MAX_HS     = 20,
 
-    // Запись числа по катоду
-    parameter unsigned WRITE_MIN_HS     = 100,
+    // Запись числа по катоду, такты hsClk (1 мкс при Clk 100 кГц). Оценка
+    // до измерений (OPEN-013): запись по handshake держится один такт Clk
+    // [TRS v0.24]
+    parameter unsigned WRITE_MIN_HS     = 5,
     //parameter unsigned WRITE_MAX_HS     = 200,
 
     // Сброс импульсом по катоду
-    parameter unsigned RESET_MIN_HS     = 100,
+    parameter unsigned RESET_MIN_HS     = 5,
     //parameter unsigned RESET_MAX_HS     = 200,
 
     // Сброс в произвольный «верхний» катод.
@@ -246,21 +239,13 @@ module DekatronTubeV2 #(
     end
 
     //------------------------------------------------------------------
-    // Действующая минимальная длительность воздействия.
-    //
-    // Запрос приходит из домена clk и выставляется на катодную линию на
-    // один такт clk позже старта окна: DekatronCounter держит окно
-    // max(WRITE_MIN_HS, RESET_MIN_HS) + 4 тактов hsClk, но линия
-    // стробируется состоянием автомата и потому короче на HS_PER_CLK
-    // тактов. Это цифровая задержка квалификации, а не часть физического
-    // воздействия, поэтому физическая модель вычитает её из минимума.
-    // Запас +4 в формирователе окна остаётся допуском на фазу clk/hsClk.
+    // Минимальная длительность воздействия. Прежде из неё вычиталась
+    // задержка квалификации запроса (WR_SYNC_HS): окно записи счётчика
+    // выставлялось на такт Clk позже. С TRS v0.24 линия записи — это сам
+    // такт accept, и модель считает чистую физическую длительность.
     //------------------------------------------------------------------
-    wire [CNT_W-1:0] wr_min_raw = write_en_i ? CNT_W'(WRITE_MIN_HS)
-                                             : CNT_W'(RESET_MIN_HS);
-    wire [CNT_W-1:0] wr_min_hs  = (wr_min_raw > CNT_W'(WR_SYNC_HS))
-                                  ? (wr_min_raw - CNT_W'(WR_SYNC_HS))
-                                  : CNT_W'(1);
+    wire [CNT_W-1:0] wr_min_hs = write_en_i ? CNT_W'(WRITE_MIN_HS)
+                                            : CNT_W'(RESET_MIN_HS);
 
     //------------------------------------------------------------------
     // Требуемое перемещение разряда
@@ -444,11 +429,12 @@ module DekatronTubeV2 #(
             main_decoded[i] = cathodes_q[3*i];
     end
 
-    // Разряд стоит на главном катоде и внешних воздействий нет
-    wire settled_on_main = on_main && !wr_any_active &&
-                           !guide_a_i && !guide_b_i;
-
-    assign main_onehot_o = settled_on_main ? main_decoded : 10'b0;
+    // Линии чтения главных катодов отдельные и читаются всегда, в том
+    // числе под записью и при поднятом подкатоде [TRS v0.24]: показывают
+    // катод, на котором стоит разряд, и ноль, пока он на подкатоде.
+    // Достоверно показание только на фронте Clk после операции — это
+    // дисциплина счётчика, а не модели.
+    assign main_onehot_o = on_main ? main_decoded : 10'b0;
 
     generate
         if (EN_DEBUG_OUTPUTS) begin : g_dbg_on
@@ -488,18 +474,6 @@ module DekatronTubeV2 #(
     );
 `endif
 
-`ifndef SYNTH
-    initial begin
-        // Минимум должен превышать задержку квалификации запроса,
-        // иначе вычитание в wr_min_hs не имеет физического смысла
-        if (WRITE_MIN_HS <= WR_SYNC_HS)
-            $error("DekatronTubeV2: WRITE_MIN_HS (%0d) должен быть больше WR_SYNC_HS (%0d)",
-                   WRITE_MIN_HS, WR_SYNC_HS);
-        if (RESET_MIN_HS <= WR_SYNC_HS)
-            $error("DekatronTubeV2: RESET_MIN_HS (%0d) должен быть больше WR_SYNC_HS (%0d)",
-                   RESET_MIN_HS, WR_SYNC_HS);
-    end
-`endif
 
 endmodule
 

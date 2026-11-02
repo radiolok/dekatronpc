@@ -25,23 +25,47 @@ module ApLine_tb (
 );
 reg Rst_n;
 reg Clk;
+`ifndef DEKATRON_DELAY_MODEL
 reg hsClk;
-initial begin
-    hsClk = 1'b1;
-    forever #50 hsClk = ~hsClk;
-end
-
+`endif
 parameter TEST_NUM = 20000;
 
+`ifdef DEKATRON_DELAY_MODEL
+// Модель на задержках: hsClk нет вовсе [TRS v0.25]; Clk напрямую с
+// периодом CLK_NS, первый фронт через 50 нс после снятия Rst_n
+`ifndef CLK_NS
+`define CLK_NS CLK_PERIOD_NS
+`endif
+initial begin
+    Clk = 1'b0;
+    wait (Rst_n === 1'b1);
+    #50;
+    forever begin
+        Clk = 1'b1; #(`CLK_NS / 2.0);
+        Clk = 1'b0; #(`CLK_NS / 2.0);
+    end
+end
+`else
+initial begin
+    hsClk = 1'b1;
+    forever #(HSCLK_NS / 2.0) hsClk = ~hsClk;   // Clk / HSCLK_DIV
+end
+
+
 ClockDivider #(
-    .DIVISOR(10)
+    .DIVISOR(HSCLK_DIV)
 ) clock_divider_ms(
     .Rst_n(Rst_n),
     .clock_in(hsClk),
     .clock_out(Clk)
 );
+`endif
 
 reg             valid    = 1'b0;
+// Линия аппаратного сброса: держится при включении, как реле времени
+// (RST_ON_POWERUP). Триггеры клея rst_n не получают
+// (REQ-REF-011, TC-O5)
+reg             HardRst  = 1'b0;
 reg  [4:0]      op       = 5'h10;   // BF NOP
 reg  [11:0]     rx_data  = 12'd0;
 
@@ -51,6 +75,10 @@ wire            data_zero_valid;
 wire            ap_zero;
 wire            mem_lock;
 wire [11:0]     tx_data_bcd;
+// Терминальные шины ApLine — активным нулём (TC-O3); тестбенч работает
+// с прямым кодом
+wire [11:0]     tx_data_bcd_n;
+assign tx_data_bcd = ~tx_data_bcd_n;
 wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] MemAddr;
 wire [9:0]      MemWrData;
 wire [9:0]      MemRdData;
@@ -76,9 +104,11 @@ localparam [3:0]
 ApLine apLine (
     .rst_n          (Rst_n),
     .clk            (Clk),
+`ifndef DEKATRON_DELAY_MODEL
     .hs_clk         (hsClk),
+`endif
     .soft_rst       (1'b0),
-    .hard_rst       (1'b0),
+    .hard_rst       (HardRst),
     .valid          (valid),
     .ready          (ready),
     .op             (op),
@@ -86,8 +116,8 @@ ApLine apLine (
     .data_zero_valid(data_zero_valid),
     .ap_zero        (ap_zero),
     .mem_lock       (mem_lock),
-    .rx_data_bcd    (rx_data),
-    .tx_data_bcd    (tx_data_bcd),
+    .rx_data_bcd    (~rx_data),
+    .tx_data_bcd    (tx_data_bcd_n),
     .mem_addr       (MemAddr),
     .mem_wr_data    (MemWrData),
     .mem_rd_data    (MemRdData),
@@ -105,7 +135,9 @@ Ram #(
     .WRITE_CYCLES  (1),
     .INIT_ZERO     (1'b1),
     .EN_DBG_PORT   (1'b0),
-    .EN_OVERLAY    (1'b0)
+    .EN_OVERLAY    (1'b0),
+    .ADDR_ACTIVE_LOW (1'b1),   // как в DekatronPC (TC-O3)
+    .DATA_ACTIVE_LOW (1'b1)
 ) ram (
     .clk      (Clk),
     .rst_n    (Rst_n),
@@ -227,24 +259,28 @@ initial begin
     op      <= 5'h10;
     rx_data <= 12'd0;
 
+    HardRst <= 1'b1;
     #2000 Rst_n <= 1'b1;
+    repeat (12) @(posedge Clk);
+    HardRst <= 1'b0;
+    @(posedge Clk);
     while (!ready) @(posedge Clk);
 
     $display("AP increment test");
     for (int i = 1; i <= 20; i++) begin
         do_op(OP_AP_STEP, 1'b0, 12'd0);
-        if (MemAddr !== ap_bcd(i)) begin
+        if (~MemAddr !== ap_bcd(i)) begin
             errors++;
-            $display("FAIL: AP=%h expected=%h", MemAddr, ap_bcd(i));
+            $display("FAIL: AP=%h expected=%h", ~MemAddr, ap_bcd(i));
         end
     end
 
     $display("AP decrement test");
     for (int i = 19; i >= 0; i--) begin
         do_op(OP_AP_STEP, 1'b1, 12'd0);
-        if (MemAddr !== ap_bcd(i)) begin
+        if (~MemAddr !== ap_bcd(i)) begin
             errors++;
-            $display("FAIL: AP=%h expected=%h", MemAddr, ap_bcd(i));
+            $display("FAIL: AP=%h expected=%h", ~MemAddr, ap_bcd(i));
         end
     end
     if (!ap_zero) begin
@@ -374,9 +410,9 @@ initial begin
     mem_rd_cnt = 0; mem_wr_cnt = 0;
     do_op(OP_AP_ZERO, 1'b0, 12'd0);
     check_mem("CLRA", 0, 1);
-    if (!ap_zero || MemAddr !== AP_ZERO_BCD) begin
+    if (!ap_zero || ~MemAddr !== AP_ZERO_BCD) begin
         errors++;
-        $display("FAIL: CLRA -> AP=%h", MemAddr);
+        $display("FAIL: CLRA -> AP=%h", ~MemAddr);
     end
     do_op(OP_LOAD, 1'b0, 12'd0);
     check_data("cell0 after CLRA", 124);

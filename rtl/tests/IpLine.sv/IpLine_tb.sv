@@ -106,23 +106,43 @@ reg Rst_n;
 reg HardRst;      // hard_rst физическая линия
 reg SoftRst;
 reg Clk;
+`ifndef DEKATRON_DELAY_MODEL
 reg hsClk;
-
-initial begin
-    hsClk = 1'b0;
-    forever #50 hsClk = ~hsClk;
-end
+`endif
 
 parameter TEST_NUM = 2000;
 parameter RAND_NUM = 400;     // выборок в части 2
 
+`ifdef DEKATRON_DELAY_MODEL
+// Модель на задержках: hsClk нет вовсе [TRS v0.25]; Clk напрямую с
+// периодом CLK_NS, первый фронт через 50 нс после снятия Rst_n
+`ifndef CLK_NS
+`define CLK_NS CLK_PERIOD_NS
+`endif
+initial begin
+    Clk = 1'b0;
+    wait (Rst_n === 1'b1);
+    #50;
+    forever begin
+        Clk = 1'b1; #(`CLK_NS / 2.0);
+        Clk = 1'b0; #(`CLK_NS / 2.0);
+    end
+end
+`else
+initial begin
+    hsClk = 1'b0;
+    forever #(HSCLK_NS / 2.0) hsClk = ~hsClk;   // Clk / HSCLK_DIV
+end
+
+
 ClockDivider #(
-    .DIVISOR(10)
+    .DIVISOR(HSCLK_DIV)
 ) clock_divider_ms(
     .Rst_n(Rst_n),
     .clock_in(hsClk),
     .clock_out(Clk)
 );
+`endif
 
 reg        ip_valid = 1'b0;
 wire       ip_ready;
@@ -148,6 +168,14 @@ wire       InsnInReady;
 
 wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0]   Address;
 wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount;
+// IpLine выдаёт IP, счётчик циклов и адрес памяти активным нулём (TC-O3);
+// тестбенч сравнивает прямые значения, модель памяти берёт прямой адрес
+wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0]   Address_n;
+wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount_n;
+wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0]   MemAddr_n;
+assign Address   = ~Address_n;
+assign LoopCount = ~LoopCount_n;
+assign MemAddr   = ~MemAddr_n;
 wire       LoopOverflow;
 
 wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] MemAddr;
@@ -170,7 +198,9 @@ IpLine #(
 ) ipLine (
     .rst_n        (Rst_n),
     .clk          (Clk),
+`ifndef DEKATRON_DELAY_MODEL
     .hs_clk       (hsClk),
+`endif
     .soft_rst     (SoftRst),
     .hard_rst     (HardRst),
     .valid        (ip_valid),
@@ -189,10 +219,10 @@ IpLine #(
     .insn_in      (InsnIn),
     .insn_in_valid(InsnInValid),
     .insn_in_ready(InsnInReady),
-    .ip_addr      (Address),
-    .loop_count   (LoopCount),
+    .ip_addr      (Address_n),
+    .loop_count   (LoopCount_n),
     .loop_overflow(LoopOverflow),
-    .mem_addr     (MemAddr),
+    .mem_addr     (MemAddr_n),
     .mem_wr_data  (MemWrData),
     .mem_rd_data  (MemRdData),
     .mem_valid    (MemValid),
@@ -238,10 +268,14 @@ always @(posedge Clk) begin
         errors++;
         $display("FAIL: mem_valid without mem_ready");
     end
+`ifndef NETLIST_SIM
+    // Internal strobes: on the netlist the counters are flattened into IpLine
+    // and these nets are merged away (synt_dpc.tcl, doc/tube_count_1000.md §4)
     if (Rst_n && ipLine.ip_valid && ipLine.loop_valid) begin
         errors++;
         $display("FAIL: ip_valid and loop_valid together");
     end
+`endif
     if (Rst_n && ip_ready && InsnValid && ^Insn === 1'bx) begin
         errors++;
         $display("FAIL: insn is X at ready");
@@ -317,7 +351,7 @@ endtask
 task automatic pulse_rst(input bit hard);
     @(negedge Clk);
     if (hard) HardRst = 1'b1; else SoftRst = 1'b1;
-    repeat (15) @(posedge Clk);    // 150 hs > RESET_MIN_HS = 100
+    repeat (15) @(posedge Clk);    // реле времени: много тактов > RESET_MIN_HS
     @(negedge Clk);
     HardRst = 1'b0;
     SoftRst = 1'b0;
@@ -403,7 +437,10 @@ initial begin
     Data    <= 12'd0;
 
     #2000 Rst_n <= 1'b1;
-    while (!ip_ready) @(posedge Clk);
+    // Триггеры клея rst_n не получают: их сбрасывает
+    // линия сброса, как реле времени при включении (REQ-REF-011, TC-O5).
+    // Программный — чтобы IP встал в 0, а не в загрузчик
+    pulse_rst(1'b0);
 
     //------------------------------------------------------------------
     $display("1. Execute looptest");

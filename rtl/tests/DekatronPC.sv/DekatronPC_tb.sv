@@ -26,7 +26,9 @@
 module DekatronPC_tb;
 
 reg Clk;
+`ifndef DEKATRON_DELAY_MODEL
 reg hsClk;
+`endif
 reg rst_n;
 
 reg SoftRstKey;
@@ -69,6 +71,18 @@ wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApData1;
 wire [31:0]                                 IRET;
 
 wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd;
+// Шины значений DekatronPC — активным нулём (TC-O3, Приложение B);
+// тестбенч, как и эмулятор, работает с прямым кодом
+wire [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0]   IpAddress_n;
+wire [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0]   ApAddress_n;
+wire [LOOP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] LoopCount_n;
+wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd_n;
+wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] ApData1_n;
+assign IpAddress   = ~IpAddress_n;
+assign ApAddress   = ~ApAddress_n;
+assign LoopCount   = ~LoopCount_n;
+assign tx_data_bcd = ~tx_data_bcd_n;
+assign ApData1     = ~ApData1_n;
 wire tx_vld;
 reg  tx_rdy;
 reg  [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] rx_data_bcd;
@@ -79,13 +93,10 @@ wire rx_rdy;
 // Период Clk в нс (synth_sim.sh -c): поиск частоты, на которой работает
 // нетлист с задержками ламп (doc/vtube_sdf_timing.md)
 `ifndef CLK_NS
-`define CLK_NS 1000
+`define CLK_NS CLK_PERIOD_NS
 `endif
-// Модель на задержках: hsClk машине не нужен и стоит в нуле — так
-// проверяется, что DekatronPC от него не зависит. Clk 1 МГц с той же
-// фазой, что дал бы делитель: rst_n снимается на фронте hsClk, первый
-// фронт Clk — на следующем, через 100 нс.
-initial hsClk = 1'b0;
+// Модель на задержках: hsClk нет вовсе, у DekatronPC нет и порта
+// [TRS v0.25]. Первый фронт Clk через 100 нс после снятия rst_n.
 initial begin
     Clk = 1'b0;
     wait (rst_n === 1'b1);
@@ -98,13 +109,13 @@ end
 `else
 initial begin
     hsClk = 1'b0;
-    // 10 MHz, as the dekatron timing estimates assume: DekatronTubeDelay
-    // works in absolute time (HS_NS = 100 ns), not in hsClk cycles
-    forever #0.5 hsClk = ~hsClk;
+    // hsClk = 10 x Clk (HSCLK_NS = CLK_PERIOD_NS / 10, TRS v0.24);
+    // timescale 100 ns
+    forever #(HSCLK_NS / 200.0) hsClk = ~hsClk;
 end
 
 ClockDivider #(
-    .DIVISOR(10)
+    .DIVISOR(HSCLK_DIV)
 ) clock_divider_ms(
     .Rst_n(rst_n),
     .clock_in(hsClk),
@@ -184,7 +195,9 @@ end
 DekatronPC #(
     .EN_EMULATOR (1'b0)
 ) dekatronPC (
+`ifndef DEKATRON_DELAY_MODEL
     .hsClk           (hsClk),
+`endif
     .Clk             (Clk),
     .rst_n           (rst_n),
 
@@ -207,10 +220,10 @@ DekatronPC #(
     .BellOnHALT      (BellOnHALT),
     .BellOnError     (BellOnError),
 
-    .tx_data_bcd     (tx_data_bcd),
+    .tx_data_bcd     (tx_data_bcd_n),
     .tx_vld          (tx_vld),
     .tx_rdy          (tx_rdy),
-    .rx_data_bcd     (rx_data_bcd),
+    .rx_data_bcd     (~rx_data_bcd),
     .rx_vld          (rx_vld),
     .rx_rdy          (rx_rdy),
 
@@ -219,9 +232,9 @@ DekatronPC #(
     .InsnInReady     (InsnInReady),
     .InsnInLoading   (InsnInLoading),
 
-    .IpAddress       (IpAddress),
-    .ApAddress       (ApAddress),
-    .LoopCount       (LoopCount),
+    .IpAddress       (IpAddress_n),
+    .ApAddress       (ApAddress_n),
+    .LoopCount       (LoopCount_n),
     .Insn            (Insn),
     .state           (state),
     .IsHalted        (IsHalted),
@@ -231,7 +244,7 @@ DekatronPC #(
     .IpAddress1      (IpAddress1),
     .ApAddress1      (ApAddress1),
     .RomData1        (RomData1),
-    .ApData1         (ApData1),
+    .ApData1         (ApData1_n),
     .IRET            (IRET)
 );
 
@@ -400,7 +413,12 @@ initial begin
     InsnIn           <= 4'h0;
 
 `ifdef DEKATRON_DELAY_MODEL
-    #19.5;                              // те же 20 фронтов hsClk
+    // 10 мкс: на нетлисте с задержками ламп логика после X включения
+    // устанавливается ~2,1 мкс, и при прежних 1,95 мкс первый фронт Clk
+    // защёлкивал X в автомат MachineCtrl (doc/vtube_sta.md §6). В машине
+    // rst_n держит реле времени, логика к его снятию давно установилась.
+    // Clk запускается от снятия rst_n, число тактов не меняется.
+    #99.5;
 `else
     repeat (20) @(posedge hsClk);
 `endif

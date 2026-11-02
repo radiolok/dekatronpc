@@ -3563,7 +3563,7 @@
 	)
 	(text "R8\n200v - 1.1k\n120v - 1k\n80v  - 0.75k"
 		(exclude_from_sim no)
-		(at 256.794 114.3 0)
+		(at 261.366 112.776 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -4599,7 +4599,7 @@
 	)
 	(wire
 		(pts
-			(xy 238.76 106.68) (xy 270.51 106.68)
+			(xy 247.65 106.68) (xy 270.51 106.68)
 		)
 		(stroke
 			(width 0)
@@ -5919,7 +5919,7 @@
 	)
 	(wire
 		(pts
-			(xy 224.79 106.68) (xy 231.14 106.68)
+			(xy 224.79 106.68) (xy 240.03 106.68)
 		)
 		(stroke
 			(width 0)
@@ -8082,7 +8082,7 @@
 		(dnp no)
 		(uuid "6228dfbe-c4ff-46b7-9509-c66dad586807")
 		(property "Reference" "D38"
-			(at 242.57 81.2799 90)
+			(at 242.57 81.026 90)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -8486,7 +8486,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Resistor_THT:R_Axial_DIN0617_L17.0mm_D6.0mm_P7.62mm_Vertical"
+		(property "Footprint" "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal"
 			(at 116.078 116.84 90)
 			(hide yes)
 			(show_name no)
@@ -9723,7 +9723,7 @@
 	)
 	(symbol
 		(lib_id "Device:R")
-		(at 234.95 106.68 270)
+		(at 243.84 106.68 270)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -9734,7 +9734,7 @@
 		(fields_autoplaced yes)
 		(uuid "bc26f0d1-47bf-47e9-b4cb-a34b2c01b941")
 		(property "Reference" "R51"
-			(at 233.6799 104.14 0)
+			(at 242.5699 104.14 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -9746,7 +9746,7 @@
 			)
 		)
 		(property "Value" "470"
-			(at 236.2199 104.14 0)
+			(at 245.1099 104.14 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -9758,7 +9758,7 @@
 			)
 		)
 		(property "Footprint" "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal"
-			(at 234.95 104.902 90)
+			(at 243.84 104.902 90)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -9769,7 +9769,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 234.95 106.68 0)
+			(at 243.84 106.68 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -9780,7 +9780,7 @@
 			)
 		)
 		(property "Description" "Resistor"
-			(at 234.95 106.68 0)
+			(at 243.84 106.68 0)
 			(hide yes)
 			(show_name no)
 			(do_not_autoplace no)
@@ -9913,7 +9913,7 @@
 		(dnp no)
 		(uuid "c4583abf-0e2b-42a1-ba48-34302d41a35e")
 		(property "Reference" "R9"
-			(at 242.57 69.8499 0)
+			(at 237.744 69.85 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -9924,7 +9924,7 @@
 			)
 		)
 		(property "Value" "18k"
-			(at 242.57 72.3899 0)
+			(at 239.014 71.882 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -10223,7 +10223,7 @@
 				(justify right)
 			)
 		)
-		(property "Footprint" "Resistor_THT:R_Axial_DIN0617_L17.0mm_D6.0mm_P7.62mm_Vertical"
+		(property "Footprint" "Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal"
 			(at 108.712 116.84 90)
 			(hide yes)
 			(show_name no)

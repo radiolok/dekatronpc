@@ -1,0 +1,591 @@
+library(vtube_cells_lib) {
+  // Signal levels (REQ-MOD-012, doc/hv_lv_dividers.md). Read by rtl/run/div_insert.py, ignored by ABC.
+  //   vtube_level (pin): "HV" plate output (+150/+50 V), "LV" grid-level output (cathode follower)
+  //     or the LV side of DIV_HL, "PASS" relay contact (carries the level of what drives it),
+  //     "COIL" relay coil (panel switch only), "CONST" tie cell. Default: output "HV", input a grid.
+  //   vtube_grid (input pin): "triode", "pentode_g1", "pentode_g3", "follower" (a cathode follower grid:
+  //     needs its own divider). Default "triode".
+  //   vtube_c1 (input pin): divider speed-up capacitance per grid, pF. Default 3.9.
+  //   fanout_load (input pin): load in triode grids = vtube_c1 / 3.9 pF (rtl/run/vtube_liberty.py checks it).
+  define(vtube_level, pin, string);
+  define(vtube_grid, pin, string);
+  define(vtube_c1, pin, float);
+  cell(BUF_N16) {
+    dont_use : true;   // cathode follower: LV out cannot drive another follower, and ABC does not see levels; doc/follower_chains.md (owner, 2026-10-30)
+    area: 0.5;
+    tubes(names) {
+      N16B: 0.5;
+    }
+    current_unit : "1mA";
+    heat_current: 200;
+    pin(A) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 0.69;}
+    pin(Y) { vtube_level : "LV"; direction: output;
+              driver_type : pull_up;
+               max_fanout : 10;
+              function: "A"; }
+  }
+  cell(BUF_6J2B) {
+    dont_use : true;   // not designed; doc/follower_chains.md (owner, 2026-10-30)
+    area: 1;
+    current_unit : "1mA";
+    heat_current: 200;
+    tubes(names) {
+      J2B: 1;
+    }
+    pin(A) { direction: input; fanout_load: 1.0;}
+    pin(Y) { direction: output;
+              driver_type : pull_up;
+               max_fanout : 10;
+              function: "A"; }
+  }
+  cell(NOT_N16) {
+    area: 0.5;
+    current_unit : "1mA";
+    heat_current: 200;
+    tubes(names) {
+      N16B: 0.5;
+    }
+    pin(A) { vtube_grid : "triode"; vtube_c1 : 3.9; direction: input; fanout_load: 1.0; }
+    pin(Y) { vtube_level : "HV"; direction: output;
+              driver_type : pull_up;
+               max_fanout : 10;
+              function: "A'"; }
+  }
+  cell(NOT_J2) {
+    area: 1;
+    current_unit : "1mA";
+    heat_current: 200;
+    tubes(names) {
+      J2B: 1;
+    }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(Y) { direction: output;
+              driver_type : pull_up;
+               max_fanout : 10;
+              function: "A'"; }
+  }
+  cell(NAND2_N16X7) {
+    dont_use : true;   // not designed (diode gates need stiff drivers, doc/or4_variants.md); doc/follower_chains.md (owner, 2026-10-30)
+    area: 1.5;
+    current_unit : "1mA";
+    heat_current: 500;
+    tubes(names) {
+      N16B: 0.5;
+      X7B: 1;
+    }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(Y) { direction: output;
+             driver_type : pull_up;
+               max_fanout : 10;
+             function: "(A*B)'"; }
+  }
+  cell(AND2_N16X7) {
+    dont_use : true;   // not designed (diode gates need stiff drivers, doc/or4_variants.md); doc/follower_chains.md (owner, 2026-10-30)
+    area: 1.5;
+    current_unit : "1mA";
+    heat_current: 500;
+    tubes(names) {
+      N16B: 0.5;
+      X7B: 1;
+    }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(Y) { direction: output;
+            driver_type : pull_up;
+               max_fanout : 10;
+             function: "(A*B)"; }
+
+  }
+  cell(NAND2_J2) {
+    area: 1;
+    current_unit : "1mA";
+    heat_current: 200;
+    tubes(names) {
+      J2B: 1;
+    }
+    pin(A) { vtube_grid : "pentode_g1"; vtube_c1 : 3.9; direction: input; fanout_load: 1.0; }
+    pin(B) { vtube_grid : "pentode_g3"; vtube_c1 : 6.8; direction: input; fanout_load: 1.74; }
+    pin(Y) { vtube_level : "HV"; direction: output;
+            driver_type : pull_up;
+               max_fanout : 10;
+             function: "(A*B)'"; }
+
+  }
+  cell(NAND4_N16X7) {
+    dont_use : true;   // not designed (diode gates need stiff drivers, doc/or4_variants.md); doc/follower_chains.md (owner, 2026-10-30)
+    area: 2.5;
+    current_unit : "1mA";
+    heat_current: 800;
+    tubes(names) {
+      N16B: 0.5;
+      X7B: 2;
+    }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(C) { direction: input; fanout_load: 1.0; }
+    pin(D) { direction: input; fanout_load: 1.0; }
+    pin(Y) { direction: output;
+               max_fanout : 10;
+            driver_type : pull_up;
+             function: "(A*B*C*D)'"; }
+  }
+  // AOI21 (sch/logic/A1OOI_N16J2): 6Zh2B with A on g1, B on g3, and one triode of
+  // a 6N16B with C on the grid, all on one plate (Ra 15k). The sheet holds two
+  // cells on one 6N16B, so one cell is half of it.
+  cell(A1OOI_N16J2){
+    area: 1.5;
+    current_unit : "1mA";
+    heat_current: 400;
+    tubes(names) {
+      J2B: 1;
+      N16B: 0.5;
+    }
+    pin(A) { vtube_grid : "pentode_g1"; vtube_c1 : 2.7; direction: input; fanout_load: 0.69; }
+    pin(B) { vtube_grid : "pentode_g3"; vtube_c1 : 6.8; direction: input; fanout_load: 1.74; }
+    pin(C) { direction: input; fanout_load: 1.0; }
+    pin(Y) { vtube_level : "HV"; direction: output;
+            driver_type : pull_up;
+               max_fanout : 10;
+             function: "((A*B)+C)'"; }
+  }
+  // AOI211 (sch/logic/AOI211_J2N16): 6Zh2B with A on g1, B on g3, and both triodes
+  // of one 6N16B with C and D on the grids, all on one plate (Ra 15k). One cell
+  // per sheet, two tubes (TC-O2, doc/tube_count_1000.md).
+  cell(AOI211_J2N16){
+    area: 2;
+    current_unit : "1mA";
+    heat_current: 600;
+    tubes(names) {
+      J2B: 1;
+      N16B: 1;
+    }
+    pin(A) { vtube_grid : "pentode_g1"; vtube_c1 : 2.7; direction: input; fanout_load: 0.69; }
+    pin(B) { vtube_grid : "pentode_g3"; vtube_c1 : 6.8; direction: input; fanout_load: 1.74; }
+    pin(C) { vtube_grid : "triode"; vtube_c1 : 3.9; direction: input; fanout_load: 1.0; }
+    pin(D) { vtube_grid : "triode"; vtube_c1 : 3.9; direction: input; fanout_load: 1.0; }
+    pin(Y) { vtube_level : "HV"; direction: output;
+            driver_type : pull_up;
+               max_fanout : 10;
+             function: "((A*B)+C+D)'"; }
+  }
+  // AOI22 (sch/logic/A2OOI_J2): two 6Zh2B on one plate (Ra 15k), A and C on g1,
+  // B and D on g3; each pentode is an AND.
+  cell(A2OOI_J2){
+    area: 2;
+    current_unit : "1mA";
+    heat_current: 400;
+    tubes(names) {
+      J2B: 2;
+    }
+    pin(A) { vtube_grid : "pentode_g1"; vtube_c1 : 2.7; direction: input; fanout_load: 0.69; }
+    pin(B) { vtube_grid : "pentode_g3"; vtube_c1 : 6.8; direction: input; fanout_load: 1.74; }
+    pin(C) { vtube_grid : "pentode_g1"; vtube_c1 : 2.7; direction: input; fanout_load: 0.69; }
+    pin(D) { vtube_grid : "pentode_g3"; vtube_c1 : 6.8; direction: input; fanout_load: 1.74; }
+    pin(Y) { vtube_level : "HV"; direction: output;
+            driver_type : pull_up;
+               max_fanout : 10;
+             function: "((A*B)+(C*D))'"; }
+  }
+  cell(OR2_N16) {
+    dont_use : true;   // cathode follower: LV out cannot drive another follower, and ABC does not see levels; doc/follower_chains.md (owner, 2026-10-30)
+    area: 1;
+    current_unit : "1mA";
+    heat_current: 400;
+    tubes(names) {
+      N16B: 1;
+    }
+    pin(A) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 0.69; }
+    pin(B) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 0.69; }
+    pin(Y) { vtube_level : "LV"; direction: output;
+               max_fanout : 10;
+            driver_type : pull_up;
+             function: "(A+B)"; }
+  }
+  cell(OR2_N16X7) {
+    dont_use : true;   // not designed (diode gates need stiff drivers, doc/or4_variants.md); doc/follower_chains.md (owner, 2026-10-30)
+    area: 1.5;
+    current_unit : "1mA";
+    heat_current: 500;
+    tubes(names) {
+      N16B: 0.5;
+      X7B: 1;
+    }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(Y) { direction: output;
+               max_fanout : 10;
+            driver_type : pull_up;
+             function: "(A+B)"; }
+  }
+  // OR4 (sch/logic/OR4_N16): two 6N16B as cathode followers with the four cathodes tied, Rs 2.2k || 100p,
+  // Rk 12k (OR2_N16 widened, owner 2026-10-29: in place of the diode OR4_N16X7). LV output; each input on
+  // its own divider (follower grid, 2.7 pF).
+  cell(OR4_N16) {
+    dont_use : true;   // cathode follower: LV out cannot drive another follower, and ABC does not see levels; doc/follower_chains.md (owner, 2026-10-30)
+    area: 2;
+    current_unit : "1mA";
+    heat_current: 800;
+    tubes(names) {
+      N16B: 2;
+    }
+    pin(A) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 0.69; }
+    pin(B) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 0.69; }
+    pin(C) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 0.69; }
+    pin(D) { vtube_grid : "follower"; vtube_c1 : 2.7; direction: input; fanout_load: 0.69; }
+    pin(Y) { vtube_level : "LV"; direction: output;
+               max_fanout : 10;
+            driver_type : pull_up;
+             function: "(A+B+C+D)"; }
+  }
+  cell(OR10_X7) {
+    dont_use : true;   // not designed (diode gates need stiff drivers, doc/or4_variants.md); doc/follower_chains.md (owner, 2026-10-30)
+    area: 5;
+    current_unit : "1mA";
+    heat_current: 800;
+    tubes(names) {
+      X7B: 5;
+    }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(C) { direction: input; fanout_load: 1.0; }
+    pin(D) { direction: input; fanout_load: 1.0; }
+    pin(E) { direction: input; fanout_load: 1.0; }
+    pin(F) { direction: input; fanout_load: 1.0; }
+    pin(G) { direction: input; fanout_load: 1.0; }
+    pin(H) { direction: input; fanout_load: 1.0; }
+    pin(K) { direction: input; fanout_load: 1.0; }
+    pin(L) { direction: input; fanout_load: 1.0; }
+    pin(Y) { direction: output;
+               max_fanout : 1;
+            driver_type : pull_up;
+             function: "(A+B+C+D+E+F+G+H+K+L)"; }
+  }
+  cell(NOR2_N16) {
+    area: 1;
+    current_unit : "1mA";
+    heat_current: 400;
+    tubes(names) {
+      N16B: 1;
+    }
+    pin(A) { vtube_grid : "triode"; vtube_c1 : 3.9; direction: input; fanout_load: 1.0; }
+    pin(B) { vtube_grid : "triode"; vtube_c1 : 3.9; direction: input; fanout_load: 1.0; }
+    pin(Y) { vtube_level : "HV"; direction: output;
+               max_fanout : 10;
+            driver_type : pull_up;
+             function: "(A+B)'"; }
+  }
+  // NOR3 (sch/logic/NOR3_N16): one 6N16B (A, B) and one triode of a second 6N16B (C)
+  // on one plate, Ra 10k. The sheet holds two cells on three tubes, the middle
+  // tube shared, so one cell is 1.5 tubes (TC-O1, doc/tube_count_1000.md).
+  cell(NOR3_N16) {
+    area: 1.5;
+    current_unit : "1mA";
+    heat_current: 600;
+    tubes(names) {
+      N16B: 1.5;
+    }
+    pin(A) { vtube_grid : "triode"; vtube_c1 : 3.9; direction: input; fanout_load: 1.0; }
+    pin(B) { vtube_grid : "triode"; vtube_c1 : 3.9; direction: input; fanout_load: 1.0; }
+    pin(C) { vtube_grid : "triode"; vtube_c1 : 3.9; direction: input; fanout_load: 1.0; }
+    pin(Y) { vtube_level : "HV"; direction: output;
+               max_fanout : 10;
+            driver_type : pull_up;
+             function: "(A+B+C)'"; }
+  }
+  cell(NOR4_N16) {
+    area: 2;
+    current_unit : "1mA";
+    heat_current: 800;
+    tubes(names) {
+      N16B: 2;
+    }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(C) { direction: input; fanout_load: 1.0; }
+    pin(D) { direction: input; fanout_load: 1.0; }
+    pin(Y) { direction: output;
+               max_fanout : 10;
+            driver_type : pull_up;
+             function: "(A+B+C+D)'"; }
+  }
+  cell(NOR2_N16X7) {
+    dont_use : true;   // not designed (diode gates need stiff drivers, doc/or4_variants.md); doc/follower_chains.md (owner, 2026-10-30)
+    area: 1.5;
+    current_unit : "1mA";
+    heat_current: 500;
+    tubes(names) {
+      N16B: 0.5;
+      X7B: 1;
+    }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(Y) { direction: output;
+               max_fanout : 10;
+            driver_type : pull_up;
+             function: "(A+B)'"; }
+  }
+  cell(NOR4_N16X7) {
+    dont_use : true;   // not designed (diode gates need stiff drivers, doc/or4_variants.md); doc/follower_chains.md (owner, 2026-10-30)
+    area: 2.5;
+    current_unit : "1mA";
+    heat_current: 800;
+    tubes(names) {
+      N16B: 0.5;
+      X7B: 2;
+    }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(C) { direction: input; fanout_load: 1.0; }
+    pin(D) { direction: input; fanout_load: 1.0; }
+    pin(Y) { direction: output;
+               max_fanout : 10;
+            driver_type : pull_up;
+             function: "(A+B+C+D)'"; }
+  }
+    cell(NOR10_N16X7) {
+    dont_use : true;   // not designed (diode gates need stiff drivers, doc/or4_variants.md); doc/follower_chains.md (owner, 2026-10-30)
+    area: 5.5;
+    current_unit : "1mA";
+    heat_current: 800;
+    tubes(names) {
+      X7B: 5;
+    }
+    pin(A) { direction: input; fanout_load: 1.0; }
+    pin(B) { direction: input; fanout_load: 1.0; }
+    pin(C) { direction: input; fanout_load: 1.0; }
+    pin(D) { direction: input; fanout_load: 1.0; }
+    pin(E) { direction: input; fanout_load: 1.0; }
+    pin(F) { direction: input; fanout_load: 1.0; }
+    pin(G) { direction: input; fanout_load: 1.0; }
+    pin(H) { direction: input; fanout_load: 1.0; }
+    pin(K) { direction: input; fanout_load: 1.0; }
+    pin(L) { direction: input; fanout_load: 1.0; }
+    pin(Y) { direction: output;
+               max_fanout : 5;
+            driver_type : pull_up;
+             function: "(A+B+C+D+E+F+G+H+K+L)'"; }
+  }
+  // D latch, half of DLATCH2_J2N16 (sch/logic/DLATCH2_J2N16): an RSLATCH_J2N16
+  // (2 x 6Zh2B + 1 x 6N16B) plus half of the 6N16B with the two D inverters.
+  // Transparent while C (the E of the RS latch) is high. D is a pentode g1 plus
+  // the inverter's triode grid, C two pentode g3. fanout_load in triode grids.
+  cell(LATCH_J2N16) {
+    area: 3.5;
+    current_unit : "1mA";
+    heat_current: 1000;
+    tubes(names) {
+      N16B: 1.5;
+      J2B: 2;
+    }
+    latch(IQ, IQN) { enable: C;
+                  data_in: D; }
+    pin(C) { vtube_grid : "pentode_g3"; vtube_c1 : 13.6; direction: input; fanout_load: 3.5;
+                 clock: true; }
+    pin(D) { vtube_grid : "pentode_g1"; vtube_c1 : 6.6; direction: input; fanout_load: 1.7; }
+    pin(Q) { vtube_level : "HV"; direction: output;
+               max_fanout : 6;
+            driver_type : pull_up;
+              function: "IQ"; }
+    pin(QN) { vtube_level : "HV"; direction: output;
+               max_fanout : 6;
+            driver_type : pull_up;
+              function: "IQN"; }
+  }
+  // Master-slave D flip-flop, FALLING edge of C (sch/logic/DFF_J2N16): two
+  // RSLATCH_J2N16 plus one 6N16B for the D and C inverters. The RTL clocks on
+  // the rising edge; dfflibmap puts one inverter on each clock net (in the
+  // machine the clock is inverted once at the generator). C is two pentode g3
+  // plus the inverter's triode grid, D a pentode g1 plus a triode grid.
+  cell(DFF_J2N16) {
+    area: 7;
+    current_unit : "1mA";
+    heat_current: 2000;
+    tubes(names) {
+      N16B: 3;
+      J2B: 4;
+    }
+    ff(IQ, IQN) { clocked_on: "C'";
+                  next_state: D; }
+    pin(C) { vtube_grid : "pentode_g3"; vtube_c1 : 17.5; direction: input; fanout_load: 4.5;
+                 clock: true; }
+    pin(D) { vtube_grid : "pentode_g1"; vtube_c1 : 6.6; direction: input; fanout_load: 1.7; }
+    pin(Q) { vtube_level : "HV"; direction: output;
+               max_fanout : 6;
+            driver_type : pull_up;
+              function: "IQ"; }
+    pin(QN) { vtube_level : "HV"; direction: output;
+               max_fanout : 6;
+            driver_type : pull_up;
+              function: "IQN"; }
+  }
+  // DFF_J2N16 with an asynchronous clear (sch/logic/DFFRN_J2N16X7): one 6Kh7B, a diode from the reset
+  // line into the cross-coupled triode grid on plate Q of both latches, Cc 2.7 pF across each feedback
+  // divider. RN is the reset line, not an LV net: RN = 1 idles at -20 V, RN = 0 is the line at GND.
+  cell(DFFRN_J2N16X7) {
+    area: 8;
+    current_unit : "1mA";
+    heat_current: 2300;
+    tubes(names) {
+      N16B: 3;
+      J2B: 4;
+      X7B: 1;
+    }
+    ff(IQ, IQN) { clocked_on: "C'";
+                  next_state: D;
+                  clear: "RN'"; }
+    pin(C) { vtube_grid : "pentode_g3"; vtube_c1 : 17.5; direction: input; fanout_load: 4.5;
+                 clock: true; }
+    pin(D) { vtube_grid : "pentode_g1"; vtube_c1 : 6.6; direction: input; fanout_load: 1.7; }
+    pin(RN) { vtube_level : "RESET"; direction: input; }
+    pin(Q) { vtube_level : "HV"; direction: output;
+               max_fanout : 6;
+            driver_type : pull_up;
+              function: "IQ"; }
+    pin(QN) { vtube_level : "HV"; direction: output;
+               max_fanout : 6;
+            driver_type : pull_up;
+              function: "IQN"; }
+  }
+  // DFF_J2N16 with an asynchronous preset (sch/logic/DFFSN_J2N16X7): as DFFRN_J2N16X7, the diodes
+  // into the grid of the triode on plate QN of both latches.
+  cell(DFFSN_J2N16X7) {
+    area: 8;
+    current_unit : "1mA";
+    heat_current: 2300;
+    tubes(names) {
+      N16B: 3;
+      J2B: 4;
+      X7B: 1;
+    }
+    ff(IQ, IQN) { clocked_on: "C'";
+                  next_state: D;
+                  preset: "SN'"; }
+    pin(C) { vtube_grid : "pentode_g3"; vtube_c1 : 17.5; direction: input; fanout_load: 4.5;
+                 clock: true; }
+    pin(D) { vtube_grid : "pentode_g1"; vtube_c1 : 6.6; direction: input; fanout_load: 1.7; }
+    pin(SN) { vtube_level : "RESET"; direction: input; }
+    pin(Q) { vtube_level : "HV"; direction: output;
+               max_fanout : 6;
+            driver_type : pull_up;
+              function: "IQ"; }
+    pin(QN) { vtube_level : "HV"; direction: output;
+               max_fanout : 6;
+            driver_type : pull_up;
+              function: "IQN"; }
+  }
+  // Relay with two changeover contacts (2CO, 2 poles). Not a tube: area 0,
+  // no filament. The output pins have no function on purpose, so ABC never
+  // uses the relay in random logic: it only appears where RTL instantiates it
+  // (RelayMux/RelayEn, rtl/Logic/Relay.sv). COIL is driven only by a panel
+  // switch (static); the contacts pass any signal. Cn = COIL ? NOn : NCn.
+  cell(RELAY_2CO) {
+    area: 0;
+    current_unit : "1mA";
+    heat_current: 0;
+    tubes(names) {
+      N16B: 0;
+    }
+    relays(names) {
+      RELAY_2CO: 1;
+    }
+    pin(COIL) { vtube_level : "COIL"; direction: input; }
+    pin(NC1) { vtube_level : "PASS"; direction: input; }
+    pin(NO1) { vtube_level : "PASS"; direction: input; }
+    pin(NC2) { vtube_level : "PASS"; direction: input; }
+    pin(NO2) { vtube_level : "PASS"; direction: input; }
+    pin(C1) { vtube_level : "PASS"; direction: output; }
+    pin(C2) { vtube_level : "PASS"; direction: output; }
+  }
+  // HV -> LV divider of one net (REQ-MOD-012): R1 470k || C1 from HV to LV, R2 200k from LV to -50 V.
+  // No tube and no function, so ABC never uses it: rtl/run/div_insert.py places one per HV net and grid
+  // class after mapping, with C1 (parameter C1_DPF, 0.1 pF) = sum of vtube_c1 over the grids it feeds.
+  // P&R decides the board: the source side or the receiver side of a connector (doc/hv_lv_dividers.md).
+  cell(DIV_HL) {
+    area: 0;
+    current_unit : "1mA";
+    heat_current: 0;
+    tubes(names) {
+      N16B: 0;
+    }
+    pin(HV) { direction: input; vtube_level : "HV"; }
+    pin(LV) { direction: output; vtube_level : "LV"; }
+  }
+  // Guide gate of a dekatron decade: one J2, a pentode with two control
+  // grids, per guide (two per decade). The counter drives the guide buses
+  // (DekatronPulseSender at counter level); the guide pulse G goes to one
+  // grid, EN (the decade's carry) to the other: Y = G & EN. Like RELAY_2CO,
+  // the output has no function on purpose: ABC never uses this cell in
+  // random logic, it only appears where DekatronModule instantiates it.
+  cell(GUIDE_EN_J2) {
+    area: 1;
+    current_unit : "1mA";
+    heat_current: 200;
+    tubes(names) {
+      J2B: 1;
+    }
+    pin(EN) { direction: input; fanout_load: 1.0; }
+    pin(G) { direction: input; fanout_load: 1.0; }
+    pin(Y) { direction: output; }
+  }
+  /* Dekatron module (sch/logic/DEKATRON_A110/README.md, TRS v0.40): cells that the RTL places
+     itself, without a function, so ABC never uses them; they exist to count the tubes. */
+  cell(WRCH_N16) {
+    /* write channel: the 6N16B triode in one cathode return (or the common return) of a
+       dekatron, closed by a falling HV edge through Cc; on the write-channel board */
+    area: 0.5;
+    current_unit : "1mA";
+    heat_current: 200;
+    tubes(names) {
+      N16B: 0.5;
+    }
+    pin(A) { direction: input; fanout_load: 1.0; vtube_level : "COUPLED"; }
+    pin(Y) { direction: output; vtube_level : "LINE"; }
+  }
+  cell(RDD_X7) {
+    /* read diode: half a 6Kh7B from the gate grid (pulled up to +5 V by 100k) to the
+       cathode line; isolates the line from the grids during a write; on the dekatron board */
+    area: 0.5;
+    current_unit : "1mA";
+    heat_current: 150;
+    tubes(names) {
+      X7B: 0.5;
+    }
+    pin(A) { direction: input; fanout_load: 1.0; vtube_level : "LINE"; }
+    pin(Y) { direction: output; vtube_level : "LV"; max_fanout : 10; }
+  }
+  cell(GLIFT_N16) {
+    /* guide lift: the follower that drives the plate rail of the guide keys of one counter
+       (+50 V idle, +150 V during a write or reset), one per counter */
+    area: 1;
+    current_unit : "1mA";
+    heat_current: 400;
+    tubes(names) {
+      N16B: 1;
+    }
+    pin(A) { direction: input; fanout_load: 1.0; vtube_level : "COUPLED"; }
+    pin(Y) { direction: output; vtube_level : "LINE"; }
+  }
+    cell (TIEHI) {
+    area : 0.0;
+    tubes(names) {
+      N16B: 0;
+    }
+    pin (H) { vtube_level : "CONST";
+      direction : output;
+      driver_type : open_drain;
+      function : "1";
+    }
+  }
+  cell (TIELO) {
+    area : 0.0;
+    tubes(names) {
+      N16B: 0;
+    }
+    pin (L) { vtube_level : "CONST";
+      direction : output;
+      driver_type : open_source;
+      function : "0";
+    }
+  }
+}

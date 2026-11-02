@@ -37,7 +37,7 @@ DekatronPC runs, which hit the testbench timeout.
    The file list is now read relative to the list file itself, not the
    working directory (same files as before from `rtl/run`).
 2. **Prep**: `synth_sim_prep.py` checks that every liberty cell has a model
-   in `rtl/vtube/vtube_cells.v`. A synthesized top has no parameters, but the
+   in `sch/logic/vtube_cells.v`. A synthesized top has no parameters, but the
    testbench passes them, so the script declares them again in the top with the
    synthesized values. An `initial` block calls `$fatal` if the testbench passes
    a different value than the netlist was built for. This guard caught a
@@ -69,7 +69,7 @@ boxes here. Like the dekatron, they are outside the ABC tube count
 
 ### Cell models
 
-`rtl/vtube/vtube_cells.v` had drifted from `vtube_cells.lib`: old names
+`sch/logic/vtube_cells.v` had drifted from `vtube_cells.lib`: old names
 (`BUF_6N16B`, `NOT_6N16B`, `A1OOI_N16X7`, `A2OOI_N16X7`), no `NOR10_N16X7`,
 and triggers without `QN` (which `qn_absorb.py` uses). It is rewritten one to
 one with the liberty file. The models have zero delay, and flops without reset

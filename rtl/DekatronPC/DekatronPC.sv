@@ -17,7 +17,8 @@
 //    машины через OneShot. Декатрон цифровых сбросов не имеет: установка
 //    позиции разряда — импульс по катоду длительностью около сотни
 //    тактов hs_clk. Поэтому сброс счётчиков стал физической линией с
-//    выдержкой, а rst_n остался сбросом одной лишь логики.
+//    выдержкой. rst_n самостоятельным сбросом не является: он держит
+//    аппаратную линию реле времени (TC-O5).
 //
 //    Сам сброс при этом остаётся общемашинным: линии soft_rst/hard_rst
 //    приводят в исходное состояние и счётчики, и обе линии, и верхний
@@ -51,20 +52,23 @@
 // Пока реле держит линию, счётчики заняты, а верхний автомат ждёт
 // снятия busy.
 //
-// `DEKATRON_DELAY_MODEL: модель без тактовой базы, hs_clk не используется.
-// Линия держится HOLD_HS * HS_NS нс от фронта запуска; если запуск ещё
-// держится, реле срабатывает снова через HS_NS, как тактовая модель на
-// следующем фронте hs_clk. Иголки нулевой длительности на запуске
+// rst_n держит аппаратную линию, как включение питания (TC-O5): отдельного
+// сброса логики в ламповой машине нет, rst_n = hard_rst | soft_rst.
+//
+// `DEKATRON_DELAY_MODEL: модель на задержках, порта hs_clk нет [TRS v0.25].
+// Линия держится HOLD_HS * HS_NS нс от фронта запуска (HS_NS — число, а
+// не сигнал: та же выдержка, что у тактовой модели); если запуск ещё
+// держится, реле срабатывает снова через HS_NS. Иголки нулевой длительности на запуске
 // отсекает инерционная задержка 1 пс.
 //----------------------------------------------------------------------
 module RstTimeRelay #(
     parameter unsigned HOLD_HS         = 104,   // тактов hs_clk
     parameter bit          RST_ON_POWERUP  = 1'b1,  // аппаратный сброс при включении
-    parameter unsigned HS_NS           = 100    // такт hs_clk в модели на задержках, нс
+    parameter unsigned HS_NS           = HSCLK_NS   // такт hs_clk в модели на задержках, нс
 )(
-/* verilator lint_off UNUSEDSIGNAL */
+`ifndef DEKATRON_DELAY_MODEL
     input  wire  hs_clk,
-/* verilator lint_on UNUSEDSIGNAL */
+`endif
     input  wire  rst_n,
 
     input  wire  soft_key,      // пульт
@@ -152,9 +156,13 @@ module RstTimeRelay #(
     end
 `endif
 
-    assign hard_rst = active &  is_hard;
-    assign soft_rst = active & ~is_hard;
-    assign busy     = active;
+    // Низкий rst_n — это включение питания: реле держит аппаратную линию
+    // всё время, пока он низкий, и ещё HOLD_HS после (RST_ON_POWERUP).
+    // Триггеры клея rst_n не получают, их сбрасывает эта линия
+    // (REQ-REF-011, TC-O5)
+    assign hard_rst = ~rst_n | (active &  is_hard);
+    assign soft_rst =  rst_n &  active & ~is_hard;
+    assign busy     = ~rst_n | active;
 `endif
 endmodule
 
@@ -182,7 +190,11 @@ module DekatronPC #(
     // Второй порт чтения памяти и счётчик инструкций — только эмулятор
     parameter bit          EN_EMULATOR      = 1'b0
 )(
+`ifndef DEKATRON_DELAY_MODEL
+    // Только тактовая модель декатронов (эмулятор на FPGA, симуляция без
+    // задержек). В синтезе и нетлисте ламповой машины порта нет [TRS v0.25]
     input  wire hsClk,
+`endif
     input  wire Clk,
     input  wire rst_n,          // сброс логики; разряд декатронов не двигает
 
@@ -214,7 +226,9 @@ module DekatronPC #(
     input  wire BellOnError,
 
     //------------------------------------------------------------------
-    // Терминал
+    // Терминал. Все шины значений счётчиков — BCD активным нулём (TC-O3,
+    // TRS v0.38, Приложение B): tx/rx_data_bcd, IpAddress, ApAddress,
+    // LoopCount, IpAddress1, ApAddress1, ApData1
     //------------------------------------------------------------------
     output wire [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] tx_data_bcd,
     output wire                                        tx_vld,
@@ -259,14 +273,6 @@ module DekatronPC #(
     localparam int unsigned AP_W   = AP_DEKATRON_NUM   * DEKATRON_WIDTH;
     localparam int unsigned DATA_W = DATA_DEKATRON_NUM * DEKATRON_WIDTH;
 
-    // Временная база моделей декатронов, реле времени и генераторов фаз.
-    // В модели на задержках (`DEKATRON_DELAY_MODEL) она не нужна: порт
-    // hsClk остаётся (интерфейс с эмулятором заморожен), но внутрь не идёт.
-`ifdef DEKATRON_DELAY_MODEL
-    wire tclk = 1'b0;
-`else
-    wire tclk = hsClk;
-`endif
 
     //------------------------------------------------------------------
     // Реле времени в цепи сброса
@@ -278,7 +284,9 @@ module DekatronPC #(
         .HOLD_HS        (RST_HOLD_HS),
         .RST_ON_POWERUP (1'b1)
     ) rstRelay (
-        .hs_clk   (tclk),
+`ifndef DEKATRON_DELAY_MODEL
+        .hs_clk   (hsClk),
+`endif
         .rst_n    (rst_n),
         .soft_key (SoftRstKey),
         .hard_key (HardRstKey),
@@ -312,7 +320,9 @@ module DekatronPC #(
     ) ipLine (
         .rst_n         (rst_n),
         .clk           (Clk),
-        .hs_clk        (tclk),
+`ifndef DEKATRON_DELAY_MODEL
+        .hs_clk        (hsClk),
+`endif
         .soft_rst      (soft_rst),
         .hard_rst      (hard_rst),
 
@@ -355,7 +365,8 @@ module DekatronPC #(
         .READ_CYCLES   (MEM_READ_CYCLES),
         .WRITE_CYCLES  (MEM_WRITE_CYCLES),
         .EN_BOOTLOADER (1'b1),
-        .EN_DBG_PORT   (EN_EMULATOR)
+        .EN_DBG_PORT   (EN_EMULATOR),
+        .ADDR_ACTIVE_LOW (1'b1)       // IP с инверсных выходов BinToBcdN (TC-O3)
     ) ipMemory (
         .clk           (Clk),
         .rst_n         (rst_n),
@@ -392,7 +403,9 @@ module DekatronPC #(
     ) apLine (
         .rst_n       (rst_n),
         .clk         (Clk),
-        .hs_clk      (tclk),
+`ifndef DEKATRON_DELAY_MODEL
+        .hs_clk      (hsClk),
+`endif
         .soft_rst    (soft_rst),
         .hard_rst    (hard_rst),
 
@@ -427,7 +440,9 @@ module DekatronPC #(
         .DATA_WIDTH    (MEM_DATA_WIDTH),
         .READ_CYCLES   (MEM_READ_CYCLES),
         .WRITE_CYCLES  (MEM_WRITE_CYCLES),
-        .EN_DBG_PORT   (EN_EMULATOR)
+        .EN_DBG_PORT   (EN_EMULATOR),
+        .ADDR_ACTIVE_LOW (1'b1),      // AP и данные — активным нулём (TC-O3)
+        .DATA_ACTIVE_LOW (1'b1)
     ) ram (
         .clk      (Clk),
         .rst_n    (rst_n),
@@ -446,8 +461,9 @@ module DekatronPC #(
     );
 
     // Ячейка памяти уже 10 бит, счётчик данных 12: старшие два бита
-    // сотен восстанавливаются нулями, диапазон значений 0..255
-    assign ApData1 = {{(DATA_W-MEM_DATA_WIDTH){1'b0}}, ap_dbg_data};
+    // сотен восстанавливаются единицами (инверсный ноль, TC-O3),
+    // диапазон значений 0..255
+    assign ApData1 = {{(DATA_W-MEM_DATA_WIDTH){1'b1}}, ap_dbg_data};
 
     //------------------------------------------------------------------
     // Верхний автомат

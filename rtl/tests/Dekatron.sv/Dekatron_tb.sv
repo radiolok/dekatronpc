@@ -23,7 +23,9 @@ module Dekatron_tb();
 parameter WIDTH    = 4;
 parameter TOP_TEST = 12;
 
+`ifndef DEKATRON_DELAY_MODEL
 reg hsClk;
+`endif
 reg Clk;
 reg Rst_n;
 
@@ -31,12 +33,10 @@ reg Rst_n;
 // Период Clk в нс (synth_sim.sh -c): поиск частоты, на которой работает
 // нетлист с задержками ламп (doc/vtube_sdf_timing.md)
 `ifndef CLK_NS
-`define CLK_NS 1000
+`define CLK_NS CLK_PERIOD_NS
 `endif
-// Модель на задержках: hsClk не нужен и стоит в нуле — так проверяется,
-// что DUT от него не зависит. Clk 1 МГц с той же фазой, что дал бы
-// делитель: первый фронт через 50 нс после снятия Rst_n.
-initial hsClk = 1'b0;
+// Модель на задержках: hsClk нет вовсе [TRS v0.25]. Clk с той же фазой,
+// что дал бы делитель: первый фронт через 50 нс после снятия Rst_n.
 initial begin
     Clk = 1'b0;
     wait (Rst_n === 1'b1);
@@ -49,11 +49,11 @@ end
 `else
 initial begin
     hsClk = 1'b0;
-    forever #50 hsClk = ~hsClk;
+    forever #(HSCLK_NS / 2.0) hsClk = ~hsClk;   // Clk / HSCLK_DIV
 end
 
 ClockDivider #(
-    .DIVISOR(10)
+    .DIVISOR(HSCLK_DIV)
 ) clock_divider_ms(
     .Rst_n(Rst_n),
     .clock_in(hsClk),
@@ -69,6 +69,8 @@ reg             SetTop   = 1'b0;
 reg [WIDTH-1:0] In       = '0;
 
 wire [WIDTH-1:0] Out;
+wire [WIDTH-1:0] Out_n;          // активным нулём (BinToBcdN, TC-O3)
+assign Out = ~Out_n;
 wire             Zero;
 wire             Nine;
 wire             TopPin;
@@ -80,9 +82,7 @@ wire GuideB;
 DekatronPulseSender #(
     .EXT_PHASES (1'b0)
 ) pulseSender (
-`ifdef DEKATRON_DELAY_MODEL
-    .hsClk   (1'b0),
-`else
+`ifndef DEKATRON_DELAY_MODEL
     .hsClk   (hsClk),
 `endif
     .Clk     (Clk),
@@ -102,15 +102,17 @@ DekatronModule #(
     .TOP_PIN_OUT    (4'd9),
     .INIT_DIGIT     (4'd0)
 ) dek (
+`ifndef DEKATRON_DELAY_MODEL
     .hsClk   (hsClk),
+`endif
     .GuideA  (GuideA),
     .GuideB  (GuideB),
     .En      (1'b1),
-    .In      (In),
+    .In_n    (~In),
     .SetData (SetData),
     .SetZero (SetZero),
     .SetTop  (SetTop),
-    .Out     (Out),
+    .Out_n   (Out_n),
     .Zero    (Zero),
     .Nine    (Nine),
     .TopPin  (TopPin)
@@ -136,7 +138,7 @@ task automatic write_value(input [WIDTH-1:0] v);
     @(posedge Clk);
     In      <= v;
     SetData <= 1'b1;
-    repeat (15) @(posedge Clk);     // 150 hs > WRITE_MIN_HS = 100
+    repeat (15) @(posedge Clk);     // 15 тактов Clk > WRITE_MIN_HS
     SetData <= 1'b0;
     In      <= '0;
     @(negedge Clk);
@@ -146,7 +148,7 @@ task automatic set_position(input bit top, input bit zero);
     @(posedge Clk);
     SetTop  <= top;
     SetZero <= zero;
-    repeat (15) @(posedge Clk);     // 150 hs > RESET_MIN_HS = 100
+    repeat (15) @(posedge Clk);     // 15 тактов Clk > RESET_MIN_HS
     SetTop  <= 1'b0;
     SetZero <= 1'b0;
     @(negedge Clk);

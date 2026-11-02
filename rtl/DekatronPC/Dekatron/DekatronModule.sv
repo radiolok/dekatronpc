@@ -10,7 +10,9 @@
 //                        сетками, на одной импульс шины GuideA/GuideB
 //                        счётчика, на другой En
 //   BcdToOneHotEn      — преобразователь 8-4-2-1 -> позиционный, по WRITE
-//   BinToBcd           — преобразователь позиционный -> 8-4-2-1, по READ
+//                        (вход In_n — тетрады активным нулём, TC-O3)
+//   BinToBcdN          — преобразователь позиционный -> 8-4-2-1 активным
+//                        нулём (ИЛИ-НЕ без инверторов, TC-O3), по READ
 //
 //----------------------------------------------------------------------
 // ЧТО ИЗМЕНИЛОСЬ ОТНОСИТЕЛЬНО ПРЕЖНЕЙ ВЕРСИИ
@@ -35,8 +37,8 @@
 // 4. Признака достоверности Valid (ИЛИ-10 по линиям чтения) больше нет.
 //    Он показывал лишь то, что разряд стоит на каком-то главном катоде,
 //    и ничего не говорил о том, закончена ли операция. Готовность
-//    выводит DekatronCounter из известных длительностей: шаг укладывается
-//    в один такт Clk, запись и сброс — в окно реле времени.
+//    выводит DekatronCounter из известных длительностей: шаг, запись и
+//    сброс по handshake укладываются в один такт Clk [TRS v0.24].
 //
 // 5. Формирователь подкатодных импульсов (DekatronPulseSender) и
 //    генератор фаз перенесены в DekatronCounter: они одни на весь
@@ -49,7 +51,8 @@
 //----------------------------------------------------------------------
 // ТАКТИРОВАНИЕ
 //
-//   hsClk — временная база модели декатрона (10 МГц). Только для модели:
+//   hsClk — временная база модели декатрона, всегда в 10 раз быстрее Clk
+//           (1 МГц при Clk 100 кГц, TRS v0.24). Только для модели:
 //           в железе декатрон отрабатывает длительности сам.
 //
 //   При `define DEKATRON_DELAY_MODEL вместо DekatronTubeV2 ставится
@@ -65,17 +68,47 @@
 //     шаги можно выдавать подряд каждый такт.
 //   * En переключается по фронту Clk и держится весь такт. Снятие En в
 //     середине такта оставит разряд на подкатоде.
-//   * Показание Out достоверно на фронте Clk, завершающем такт шага,
-//     и по окончании окна записи/сброса. Внутри такта, пока разряд
-//     идёт по подкатодам, позиционный код нулевой.
+//   * Линии чтения главных катодов отдельные и читаются всегда, но
+//     показание Out_n достоверно только на фронте Clk, завершающем такт
+//     операции. Пока разряд идёт по подкатодам, позиционный код нулевой.
 //   * SetData/SetZero/SetTop удерживаются не менее WRITE_MIN_HS /
-//     RESET_MIN_HS тактов hsClk, иначе операция не состоится.
+//     RESET_MIN_HS тактов hsClk, иначе операция не состоится. Запись
+//     по handshake держится один такт Clk [TRS v0.24], поэтому обе
+//     длительности обязаны укладываться в такт (проверяет счётчик).
 //   * Одновременная подача нескольких воздействий недопустима.
 //======================================================================
 
 `default_nettype none
 
 `ifndef SYNTH
+// Ячейки декатронного модуля (TRS v0.40, sch/logic/DEKATRON_A110/README.md).
+// В синтезе берутся из vtube_cells.lib: функции у них нет, ABC их не
+// использует, они стоят только здесь и в DekatronCounter и считают лампы.
+// Аналоговая часть (узел записи, шина ключей) — в SPICE.
+//   WRCH_N16  — канал записи: ½ 6Н16Б в цепи катода (или общей шины катодов)
+//   RDD_X7    — диод чтения: ½ 6Х7Б от сетки вентиля к катодной линии
+//   GLIFT_N16 — повторитель анодной шины ключей подкатодов счётчика
+module WRCH_N16 (
+    input  wire A,
+    output wire Y
+);
+    assign Y = A;
+endmodule
+
+module RDD_X7 (
+    input  wire A,
+    output wire Y
+);
+    assign Y = A;
+endmodule
+
+module GLIFT_N16 (
+    input  wire A,
+    output wire Y
+);
+    assign Y = A;
+endmodule
+
 // Модель ключа подкатодов. В синтезе ячейка берётся из vtube_cells.lib:
 // у её выходов нет функции, ABC её не использует, она стоит только здесь.
 module GUIDE_EN_J2 (
@@ -101,15 +134,15 @@ module DekatronModule #(
     parameter logic [3:0]  INIT_DIGIT      = 4'd0,
 
     // Временные характеристики декатрона (такты hsClk)
-    parameter unsigned GUIDE_STEP_HS   = 2,
-    parameter unsigned FALL_STEP_HS    = 3,
+    parameter unsigned GUIDE_STEP_HS   = 1,
+    parameter unsigned FALL_STEP_HS    = 1,
     parameter unsigned GUIDE_MAX_HS    = 20,
-    parameter unsigned WRITE_MIN_HS    = 100,
-    parameter unsigned RESET_MIN_HS    = 100,
+    parameter unsigned WRITE_MIN_HS    = 5,
+    parameter unsigned RESET_MIN_HS    = 5,
 
-    // Нарезка такта счёта на трети (такты hsClk); только для проверок
-    // ниже, сами фазы формирует счётчик
-    parameter unsigned HS_PER_CLK      = 10,
+    // Нарезка такта счёта (такты hsClk); только для проверок ниже, сами
+    // фазы формирует счётчик
+    parameter unsigned HS_PER_CLK      = HSCLK_DIV,
     parameter unsigned PHASE1_HS       = 3,
     parameter unsigned PHASE2_HS       = 3,
     parameter unsigned PHASE_DELAY_HS  = 0,
@@ -117,9 +150,11 @@ module DekatronModule #(
     // Порядок фаз, дающий инкремент
     parameter bit          INC_BY_A_THEN_B = 1'b1
 )(
+`ifndef DEKATRON_DELAY_MODEL
 /* verilator lint_off UNUSEDSIGNAL */
-    input  wire       hsClk,     // временная база модели декатрона
+    input  wire       hsClk,     // временная база тактовой модели декатрона
 /* verilator lint_on UNUSEDSIGNAL */
+`endif
 
     // Счёт: общие шины подкатодов счётчика и разрешение этой декады
     input  wire       GuideA,
@@ -128,14 +163,14 @@ module DekatronModule #(
 
     // Установка значения
 /* verilator lint_off UNUSEDSIGNAL */
-    input  wire [3:0] In,        // записываемое число, 8-4-2-1
-    input  wire       SetData,   // запись числа со входа In (только при WRITE)
+    input  wire [3:0] In_n,      // записываемое число, 8-4-2-1 активным нулём
+    input  wire       SetData,   // запись числа со входа In_n (только при WRITE)
     input  wire       SetTop,    // сброс в позицию TOP_PIN_OUT (при TOP_LIMIT_MODE)
 /* verilator lint_on UNUSEDSIGNAL */
     input  wire       SetZero,   // сброс в нуль
 
     // Чтение
-    output wire [3:0] Out,       // текущее число, 8-4-2-1 (только при READ)
+    output wire [3:0] Out_n,     // текущее число, 8-4-2-1 активным нулём (только при READ)
 
     // Признаки позиций для схемы переноса
     output wire       Zero,      // разряд на нулевом катоде
@@ -146,7 +181,8 @@ module DekatronModule #(
     //------------------------------------------------------------------
     // Внутренние связи
     //------------------------------------------------------------------
-    wire [9:0] MainOneHot;      // позиционный код с главных катодов
+    wire [9:0] MainOneHotLine;  // катодные линии декатрона
+    wire [9:0] MainOneHot;      // позиционный код за диодами чтения
     wire [9:0] WritePos;        // позиционный код на усилители записи
     wire       GuideA_d;        // импульсы на подкатоды этой декады
     wire       GuideB_d;
@@ -175,8 +211,10 @@ module DekatronModule #(
 
     generate
         if (WRITE) begin : g_write
+            // Дешифратор берёт инверсные тетрады: литералы те же, полярность
+            // меняет только разводку входов
             BcdToBinEn bcdToOneHot (
-                .In  (In),
+                .In  (~In_n),
                 .En  (SetData),
                 .Out (WritePos)
             );
@@ -207,20 +245,23 @@ module DekatronModule #(
     // Декатрон
     //------------------------------------------------------------------
     // `DEKATRON_DELAY_MODEL: модель на задержках #N без hsClk
-    // (DekatronTubeDelay.sv, только Icarus). Иначе — тактовая модель.
+    // (DekatronTubeDelay.sv, синтез и нетлист), длительности в нс из
+    // макросов DEKATRON_*_NS [TRS v0.25]. Иначе — тактовая модель.
 `ifdef DEKATRON_DELAY_MODEL
     DekatronTubeDelay #(
+        .GUIDE_STEP_NS    (`DEKATRON_GUIDE_STEP_NS),
+        .FALL_STEP_NS     (`DEKATRON_FALL_STEP_NS),
+        .GUIDE_MAX_NS     (`DEKATRON_GUIDE_MAX_NS),
+        .WRITE_MIN_NS     (`DEKATRON_WRITE_MIN_NS),
+        .RESET_MIN_NS     (`DEKATRON_RESET_MIN_NS),
 `else
     DekatronTubeV2 #(
-`endif
-        .HS_PER_CLK       (HS_PER_CLK),
         .GUIDE_STEP_HS    (GUIDE_STEP_HS),
         .FALL_STEP_HS     (FALL_STEP_HS),
         .GUIDE_MAX_HS     (GUIDE_MAX_HS),
         .WRITE_MIN_HS     (WRITE_MIN_HS),
-        //.WRITE_MAX_HS     (2*WRITE_MIN_HS),
         .RESET_MIN_HS     (RESET_MIN_HS),
-        //.RESET_MAX_HS     (2*RESET_MIN_HS),
+`endif
         .EN_RESETN        (TOP_LIMIT_MODE),
         .RESET_N_POS      (TOP_PIN_OUT),
         .INIT_DIGIT       (INIT_DIGIT),
@@ -239,7 +280,7 @@ module DekatronModule #(
         .resetN_i              (ResetTop),
         .sim_preset_en_i       (1'b0),
         .sim_preset_cathodes_i (30'b0),
-        .main_onehot_o         (MainOneHot),
+        .main_onehot_o         (MainOneHotLine),
         //verilator lint_off PINCONNECTEMPTY
         .cathodes_dbg_o        (),
         .on_guide_dbg_o        (),
@@ -251,17 +292,65 @@ module DekatronModule #(
     );
 
     //------------------------------------------------------------------
+    // Диоды чтения (RDD_X7, ½ 6Х7Б на линию): все десять линий при READ,
+    // иначе только линии признаков — K0, K9 и катод TOP_PIN_OUT
+    //------------------------------------------------------------------
+    localparam logic [9:0] READ_LINES =
+        READ ? 10'h3FF :
+        (10'b10_0000_0001 | (TOP_LIMIT_MODE ? (10'b1 << TOP_PIN_OUT) : 10'b0));
+
+    generate
+        genvar k;
+        for (k = 0; k < 10; k++) begin : g_rdd
+            if (READ_LINES[k]) begin : g_on
+                RDD_X7 rdd (
+                    .A (MainOneHotLine[k]),
+                    .Y (MainOneHot[k])
+                );
+            end
+            else begin : g_off
+                assign MainOneHot[k] = MainOneHotLine[k];   // линия не читается
+            end
+        end
+    endgenerate
+
+    //------------------------------------------------------------------
+    // Каналы записи (WRCH_N16, ½ 6Н16Б), по перемычкам платы:
+    // полная запись — 10; сброс в 0 и 9 — K0, K9, общая шина K1..K8;
+    // сброс в 0 — K0 и общая шина K1..K9. Выход — аналоговый узел записи,
+    // в нетлисте не подключён
+    //------------------------------------------------------------------
+    generate
+        if (WRITE) begin : g_wrch_full
+            for (k = 0; k < 10; k++) begin : g_ch
+                /* verilator lint_off PINCONNECTEMPTY */
+                (* keep *) WRCH_N16 wrch (.A (WritePos[k]), .Y ());
+                /* verilator lint_on PINCONNECTEMPTY */
+            end
+        end
+        else begin : g_wrch_reset
+            /* verilator lint_off PINCONNECTEMPTY */
+            (* keep *) WRCH_N16 wrch_k0     (.A (ResetTop), .Y ());   // K0: закрыт при сбросе в TOP
+            (* keep *) WRCH_N16 wrch_common (.A (SetZero),  .Y ());   // общая шина
+            if (TOP_LIMIT_MODE) begin : g_k_top
+                (* keep *) WRCH_N16 wrch_top (.A (SetZero), .Y ());   // катод TOP_PIN_OUT
+            end
+            /* verilator lint_on PINCONNECTEMPTY */
+        end
+    endgenerate
+
+    //------------------------------------------------------------------
     // Схема чтения — только при READ
     //------------------------------------------------------------------
     generate
         if (READ) begin : g_read
-            BinToBcd binToBcd (
-                .In  (MainOneHot),
-                .Out (Out)
+            BinToBcdN binToBcd (
+                .In    (MainOneHot),
+                .Out_n (Out_n)
             );
         end
         else begin : g_no_read
-            assign Out = 4'b0;
+            assign Out_n = 4'b1111;   // как показание 0
         end
     endgenerate
 
@@ -283,6 +372,17 @@ module DekatronModule #(
 
 `ifndef SYNTH
     initial begin
+`ifdef DEKATRON_DELAY_MODEL
+        // Модель на задержках: те же условия в нс, на такт CLK_PERIOD_NS
+        if (`DEKATRON_PHASE1_NS < `DEKATRON_GUIDE_STEP_NS ||
+            `DEKATRON_PHASE2_NS < `DEKATRON_GUIDE_STEP_NS)
+            $error("DekatronModule: фаза короче DEKATRON_GUIDE_STEP_NS: разряд не успеет уйти на подкатод");
+        if (`DEKATRON_PHASE_DELAY_NS + `DEKATRON_PHASE1_NS + `DEKATRON_PHASE2_NS +
+            `DEKATRON_FALL_STEP_NS >= CLK_PERIOD_NS)
+            $error("DekatronModule: фазы и сваливание (%0d нс) не укладываются в такт Clk (%0d нс)",
+                   `DEKATRON_PHASE_DELAY_NS + `DEKATRON_PHASE1_NS + `DEKATRON_PHASE2_NS +
+                   `DEKATRON_FALL_STEP_NS, CLK_PERIOD_NS);
+`else
         // Фазы обязаны вмещать переход разряда на подкатод
         if (PHASE1_HS < GUIDE_STEP_HS)
             $error("DekatronModule: PHASE1_HS (%0d) < GUIDE_STEP_HS (%0d): разряд не успеет уйти на подкатод",
@@ -303,6 +403,7 @@ module DekatronModule #(
 
         if ((PHASE_DELAY_HS + PHASE1_HS + PHASE2_HS) >= HS_PER_CLK)
             $error("DekatronModule: фазы занимают весь такт, окна сваливания не остаётся");
+`endif
 
         if (TOP_PIN_OUT > 9)
             $error("DekatronModule: TOP_PIN_OUT (%0d) must be in range 0..9",

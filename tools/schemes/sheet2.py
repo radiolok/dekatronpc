@@ -13,7 +13,7 @@ def fig_gates():
 
     # --- генератор фаз
     f.pin_in(12, 80, 90, "Clk")
-    f.box(90, 55, 110, 50, "Impulse", ["фронт по hsClk"])
+    f.box(90, 55, 110, 50, "Impulse", ["фронт Clk"])
     f.wire([(200, 80), (240, 80)], arrow=False, label="ClkRise", lx=204, ly=73)
     f.wire([(240, 80), (240, 55), (270, 55)])
     f.box(270, 30, 130, 50, "OneShot", ["DELAY = PHASE1"])
@@ -65,18 +65,18 @@ def fig_gates():
 
 
 def fig_module():
-    f = Fig("module", 1060, 420,
+    f = Fig("module", 1140, 470,
             "Декатронный модуль: ключи подкатодов на двух лампах J2, необязательная схема "
-            "записи, декатрон, необязательная схема чтения и отводы позиций для схемы "
-            "переноса.")
+            "записи, каналы записи, декатрон, диоды чтения, необязательная схема чтения "
+            "(активный ноль) и отводы позиций для схемы переноса.")
     # входы: общие шины подкатодов счётчика и разрешение декады
     for y, n in ((62, "GuideA"), (84, "GuideB"), (128, "En")):
         f.pin_in(12, y, 150, n)
     f.box(150, 44, 180, 100, "GUIDE_EN_J2 × 2",
           ["по лампе J2 на подкатод:", "пентод, 2 упр. сетки", "A = GuideA · En", "B = GuideB · En"])
-    f.pin_in(12, 206, 150, "In[3:0]")
+    f.pin_in(12, 206, 150, "In_n[3:0]")
     f.pin_in(12, 230, 150, "SetData")
-    f.box(150, 186, 180, 70, "BcdToBinEn", ["BCD → позиционный код", "10 × И, 5-й вход = SetData"],
+    f.box(150, 186, 180, 70, "BcdToBinEn", ["инв. BCD → позиционный", "10 × И, 5-й вход = SetData"],
           cls="blk-opt")
     f.text(240, 270, "только при WRITE", "tn", "middle")
     f.pin_in(12, 300, 410, "SetZero")
@@ -85,32 +85,46 @@ def fig_module():
     f.text(240, 349, "только TOP_LIMIT_MODE", "tn", "middle")
     f.wire([(330, 344), (410, 344)])
 
+    # каналы записи: счётные ячейки, выход — аналоговый узел B (в нетлисте открыт)
+    f.box(150, 392, 260, 58, "WRCH_N16 × 10 / 3 / 2",
+          ["½ 6Н16Б: канал записи по перемычкам", "выход — узел B, плата каналов записи"],
+          cls="blk-opt", top=18)
+    f.wire([(260, 256), (260, 280), (120, 280), (120, 420), (150, 420)], "wd")
+    f.text(126, 374, "WritePos · SetZero · SetTop", "tn")
+
     # декатрон
-    f.box(410, 44, 200, 330, "DekatronTubeV2", [], top=24)
-    f.lines(500, 140, ["кольцо из 30 электродов", "RESET_N_POS = TOP_PIN_OUT"], "tm", "middle")
+    f.box(410, 44, 200, 330, "DekatronTube", [], top=24)
+    f.lines(510, 140, ["V2 (такт) / Delay (синтез)", "кольцо из 30 электродов",
+                       "RESET_N_POS = TOP_PIN_OUT"], "tm", "middle")
     f.wire([(330, 80), (410, 80)], "wacc", label="guide_a_i", lx=416, ly=84, lcls="tpi")
     f.wire([(330, 108), (410, 108)], "wacc", label="guide_b_i", lx=416, ly=112, lcls="tpi")
     f.wire([(330, 210), (410, 210)], label="write_pos_i", lx=416, ly=214, lcls="tpi")
     f.wire([(330, 232), (410, 232)], label="write_en_i", lx=416, ly=236, lcls="tpi")
     f.text(416, 304, "reset0_i", "tpi")
     f.text(416, 348, "resetN_i", "tpi")
-    f.text(604, 196, "main_onehot_o", "tpi", "end")
+    f.text(604, 196, "катоды", "tpi", "end")
+
+    # диоды чтения
+    f.wire([(610, 210), (640, 210)])
+    f.box(640, 170, 110, 80, "RDD_X7", ["½ 6Х7Б", "на линию:", "10 / K0·K9·TOP"], top=18)
 
     # выход и шина позиционного кода
-    BX = 690
-    f.wire([(610, 210), (BX, 210)], arrow=False)
+    BX = 790
+    f.wire([(750, 210), (BX, 210)], arrow=False)
     f.dot(BX, 210)
     f.wire([(BX, 82), (BX, 330)], "wbus", arrow=False)
     f.text(BX + 8, 360, "позиционный код [9:0]", "tn")
-    f.wire([(BX, 82), (740, 82)])
-    f.box(740, 52, 170, 60, "BinToBcd", ["ИЛИ по линиям 8-4-2-1"], cls="blk-opt")
-    f.text(825, 126, "только при READ", "tn", "middle")
-    f.pin_out(910, 82, 940, "Out[3:0]")
+    f.wire([(BX, 82), (840, 82)])
+    f.box(840, 52, 190, 60, "BinToBcdN", ["ИЛИ-НЕ по линиям 8-4-2-1"], cls="blk-opt")
+    f.text(935, 126, "только при READ", "tn", "middle")
+    f.pin_out(1030, 82, 1060, "Out_n[3:0]")
     for y, tap, name, opt in ((240, "[0]", "Zero", False), (272, "[9]", "Nine", False),
                               (304, "[TOP_PIN_OUT]", "TopPin", True)):
-        f.wire([(BX, y), (940, y)], "wd" if opt else "w")
+        f.wire([(BX, y), (1060, y)], "wd" if opt else "w")
         f.dot(BX, y)
         f.text(BX + 8, y - 5, tap, "tn")
-        f.text(946, y + 4, name, "tp")
+        f.text(1066, y + 4, name, "tp")
     f.text(BX + 8, 324, "TopPin только при TOP_LIMIT_MODE", "tn")
+    f.text(640, 420, "Out_n — тетрады активным нулём (TC-O3): память, терминал и эмулятор", "tn")
+    f.text(640, 436, "принимают инверсный код; ячейки WRCH/RDD считают лампы модуля (TRS v0.40)", "tn")
     return f.render()

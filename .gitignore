@@ -34,6 +34,12 @@ run/*.json
 
 # структурные схемы для SCHEMES.md
 !img/schemes/*.svg
+# doc/img: все PNG-рисунки, в любой подпапке, идут в git (схемы
+# от run_tests.sh -p попадают в rtl/run, а не сюда)
+!doc/img/**/*.png
+!sch/logic/*/img/*.png
+!sch/tubes/*/scan/*.png
+!sch/tubes/*/img/*.png
 tools/schemes/out/
 __pycache__/
 
@@ -41,8 +47,44 @@ __pycache__/
 rtl/run/synth_sim/
 rtl/run/synth_sim_delay/
 rtl/run/synth_sim_timing/
+# static timing analysis (rtl/run/vtube_sta.sh)
+rtl/run/sta/
 # Icarus runs with the delay-based dekatron model (rtl/run/run_tests.sh -d)
 rtl/run/delay/
 
 # Quartus CLI build (rtl/run/build_fpga.sh)
 rtl/quartus_build/
+
+# Local tools and side projects (not part of DekatronPC)
+.kilo/
+.vscode/
+webui/
+witch_dev/
+
+# Windows download marks and draw.io backups
+*:Zone.Identifier
+*.drawio.bkp
+
+# KiCad: local window state, autosave, locks, backups
+*.kicad_prl
+_autosave-*
+~*.lck
+*-backups/
+# sch/stand plot / BOM outputs (Gerber and drill files are ignored above)
+sch/stand/*.pdf
+sch/stand/*.gbrjob
+sch/stand/out/
+sch/stand/bom/
+
+# Run artifacts: the golden model is rebuilt from bfutils by run_tests.sh,
+# ./emul copies a DekatronPC_tb_cfg_*.svh into <test>_tb.svh before each run,
+# the firmware is generated
+rtl/run/.venv/
+rtl/run/dpcrun
+rtl/tests/*/*_tb.svh
+rtl/programs/firmware.sv
+
+# Books and scans of reference literature stay out of the repository
+# (the ones committed earlier stay tracked)
+doc/**/*.pdf
+doc/**/*.djvu

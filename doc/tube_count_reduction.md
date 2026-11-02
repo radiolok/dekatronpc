@@ -1,7 +1,7 @@
 # Tube count: analysis of the synthesis report and how to reach the budget (now ≤ 1200)
 
 Date: 2026-10-06. Covers the Yosys netlists of `IpLine`, `ApLine` and `MachineCtrl`
-(`rtl/run/run_tests.sh -s`, `rtl/run/synt_dpc.tcl`, `rtl/vtube/vtube_cells.lib`
+(`rtl/run/run_tests.sh -s`, `rtl/run/synt_dpc.tcl`, `sch/logic/vtube_cells.lib`
 with the uncommitted renames `NOT_N16`, `A1OOI_N16J2`, `A2OOI_J2`).
 §1–§7 are the original analysis (no RTL or flow file was changed then; all experiments
 ran on scratch copies). §8–§14 record what was implemented afterwards.
@@ -279,7 +279,7 @@ blocks. Every flop removed now saves about 7–9 tubes (with its enable mux), so
 
 ### Flow changes
 
-- `rtl/vtube/vtube_cells.lib`: `QN` pin (`function: "IQN"`) on `LATCH`, `DFF`,
+- `sch/logic/vtube_cells.lib`: `QN` pin (`function: "IQN"`) on `LATCH`, `DFF`,
   `DFFSR`, `DFFSR_n`.
 - `rtl/run/abc_area.abc`: `strash; &get -n; &deepsyn -J 50 -T 30; &put; dch -f; map -a; topo`.
   `-J` (stop after 50 steps without improvement) keeps the result reproducible.
@@ -759,10 +759,10 @@ switch, never by fast or clocked logic. Where a relay saves no tube, the tubes s
 
 ### Library and modules
 
-- `rtl/vtube/vtube_cells.lib`: cell `RELAY_2CO` (pins `COIL`, `NC1/NO1/C1`, `NC2/NO2/C2`;
+- `sch/logic/vtube_cells.lib`: cell `RELAY_2CO` (pins `COIL`, `NC1/NO1/C1`, `NC2/NO2/C2`;
   `Cn = COIL ? NOn : NCn`), area 0, `heat_current` 0, group `relays(names) { RELAY_2CO: 1; }`.
   The output pins have **no function**, so ABC never uses the relay as a general mux;
-  it only appears where RTL instantiates it. Model in `rtl/vtube/vtube_cells.v`.
+  it only appears where RTL instantiates it. Model in `sch/logic/vtube_cells.v`.
 - `rtl/Logic/Relay.sv` (added to `DPC.files` and `Emulator.qsf`):
   - `RELAY_2CO` behavioral model under `ifndef SYNTH` (in synthesis the liberty cell is used);
   - `RelayMux #(W, S)`: 2^S words of W bits, selected by S switches. A tree of changeover
@@ -1045,3 +1045,159 @@ Verification:
 
 Block diagrams: sheets 2 and 3 redrawn (pulse sender per counter, J2 gate, enable chain,
 `ZERO_ONLY`). No SVG renderer was available; the layout was checked by coordinates.
+
+## 18. Designed triggers in the liberty, and which cells to design next (2026-10-29)
+
+The generic `LATCH` and `DFF` became the designed cells `LATCH_J2N16` (one latch of
+`sch/logic/DLATCH2_J2N16`) and `DFF_J2N16` (`sch/logic/DFF_J2N16`, **falling** edge,
+`clocked_on: "C'"`), with the grid attributes and SPICE delays from their pages (TRS v0.20,
+REQ-MOD-008). The tube counts per cell did not change (3.5 and 7).
+
+The RTL clocks on the rising edge. `dfflibmap` maps it onto the falling-edge cell with a
+`$_NOT_` before every trigger. Nothing merged them before ABC, so ABC kept one output per
+trigger and drove each through a `BUF_N16`: 21 followers instead of 1, +10 tubes. `synt_dpc.tcl`
+now runs `opt_merge` after `dfflibmap`: one `NOT_N16` per clock net and module, 4 in all (the
+four counter modules), 2 tubes. In the machine the clock is inverted once at the generator.
+
+Synthesis (`run_tests.sh -s`, seed as in the script, `equiv_opt` proven on all three):
+
+| Block | §17 (mean of 3 seeds) | First run (no merge) | **With `opt_merge`** |
+|---|---|---|---|
+| IpLine | 489.3 | 492 | **488** |
+| ApLine | 568.8 | 561.5 | **555.5** |
+| MachineCtrl | 318.8 | 319.5 | **319.5** |
+| **Total** | 1377 | 1373 | **1363** + 5 relays |
+
+The −14 against §17 is within ABC drift (±10) plus the library changes since then (follower
+cells); the trigger rename itself is tube-neutral.
+
+### Cells in the netlist, by tubes
+
+| Cell | Count | Tubes | Designed |
+|---|---|---|---|
+| `DFFSR_n` | 38 | **266** | no |
+| `NOR2_N16` | 200 | 200 | yes |
+| `OR2_N16` | 175 | 175 | yes |
+| `DFF_J2N16` | 24 | 168 | yes |
+| `NAND2_J2` | 143 | 143 | yes |
+| `NOR4_N16` | 43 | **86** | no |
+| `OR4_N16X7` | 30 | **75** | no |
+| `A1OOI_N16J2` | 34 | **68** | no |
+| `A2OOI_J2` | 31 | **62** | no |
+| `NOT_N16` | 103 | 51.5 | yes |
+| `GUIDE_EN_J2` | 30 | 30 | no (RTL instance, not logic) |
+| `AND2_N16X7` | 15 | 22.5 | no |
+| `NAND4_N16X7` | 3 | 7.5 | no |
+| `BUF_N16` | 1 | 0.5 | yes |
+
+Not designed: 617 of the 1355 tubes in these cells (587 without `GUIDE_EN_J2`); the total of 1363 also holds 8 tubes outside the cell list. The largest is `DFFSR_n` (the triggers with `rst_n`), a
+fifth of the three blocks.
+
+### Choice: the two AOI cells
+
+`A1OOI_N16J2` and `A2OOI_J2` together: 65 cells, 130 tubes, the largest undesigned
+combinational group.
+
+- `A1OOI_N16J2` = ((A·B) + C)' is one half of `RSLATCH_J2N16` without the feedback: a 6Zh2B
+  with A on g1 and B on g3 (AND), a 6N16B triode with C on its grid (OR), both on one plate.
+  That half is already simulated inside the latch (Ra 10k, C1 2.7 pF on g1, 6.8 pF on g3, Cb
+  15 pF). It needs half a 6N16B, not the whole tube the liberty counts: two cells share one
+  6N16B, or the cell holds two AOIs. That is −17 tubes at today's 34 instances.
+- `A2OOI_J2` has the function ((A·B) + C + D)' on 2 × 6Zh2B. Two pentodes on one plate give
+  (A·B) + (C·D), the **AOI22_J2** of REQ-MOD-003; C + D alone would need a third device (a
+  triode, or each pentode with g3 tied high). The liberty function and the TRS list disagree;
+  the owner decides which cell is meant before it is designed.
+
+Next after them: `DFFSR_n` (needs the owner's agreement on the extra tubes for set/clear, or a
+synchronous reset in the RTL), then `NOR4_N16` and the 6Kh7B diode cells (`OR4_N16X7`).
+
+### Rerun with `A2OOI_J2` = AOI22 (owner, 2026-10-29)
+
+The owner confirmed that the liberty function was a mistake: `A2OOI_J2` is AOI22,
+Y = ~((A·B) + (C·D)), two 6Zh2B on one plate (A, C on g1; B, D on g3). Liberty and
+`vtube_cells.v` corrected; the cell name stays.
+
+| Block | Before (wrong A2OOI) | **AOI22** |
+|---|---|---|
+| IpLine | 488 | **494** |
+| ApLine | 555.5 | **558.5** |
+| MachineCtrl | 319.5 | **323.5** |
+| **Total** | 1363 | **1376** + 5 relays |
+
+The old function was cheaper than the tubes can do (C and D each alone pulled the plate), so
+ABC leaned on it: 31 cells. With the real function it takes 13 (26 tubes); `A1OOI_N16J2` 29
+(58), `NOR4_N16` 46 (92), `NAND2_J2` 158, `NOR2_N16` 225. The +13 is the price of the
+corrected cell, not a regression. `DFFSR_n` is unchanged at 38 (266 tubes): 34 clear on
+`rst_n`, 4 preset from `NOT(rst_n)`; no flop uses both.
+
+The AOI pair is still the next to design (84 tubes, and `A1OOI_N16J2` is half of the latch
+already simulated). The asynchronous clear/preset through a 6Kh7B diode, the owner's idea for
+`DFFSR_n`, is analysed in `sch/logic/DFF_J2N16/README.md` (Open points); 6Kh7B data in
+`sch/tubes/6Kh7B/README.md`.
+
+### The AOI cells designed, rerun (2026-10-29)
+
+`A1OOI_N16J2` (AOI21: 6Zh2B + one triode, 1.5 tubes; the liberty had a whole 6N16B, owner:
+a mistake) and `A2OOI_J2` (AOI22: two 6Zh2B) are designed in plain SPICE
+(`sch/logic/A1OOI_N16J2`, `sch/logic/A2OOI_J2`; KiCad sheets still to draw). Both liberty
+entries also had the tube name `J2` instead of `J2B`, so their 6Zh2B were missing from the
+per-type total; fixed, with grid attributes and SPICE delays (fanout 6).
+
+| Block | AOI22 fixed | **AOI21 at 1.5 tubes** |
+|---|---|---|
+| IpLine | 494 | **484.5** |
+| ApLine | 558.5 | **554** |
+| MachineCtrl | 323.5 | **316.5** |
+| **Total** | 1376 | **1355** + 5 relays |
+
+The cheaper AOI21 pulls ABC towards it: 63 `A1OOI_N16J2` (94.5 tubes, from 29), 10
+`A2OOI_J2` (20), `NAND2_J2` 109 (from 158). Not designed now: `DFFSR_n` 266, `NOR4_N16` 94,
+`OR4_N16X7` 80, `GUIDE_EN_J2` 30, `AND2_N16X7` 24, `NAND4_N16X7` 7.5.
+
+### Diode-reset flip-flops replace `DFFSR` / `DFFSR_n` (2026-10-29)
+
+`DFFRN_J2N16X7` (clear on RN = 0) and `DFFSN_J2N16X7` (preset on SN = 0) are designed (their pages in
+`sch/logic/`): DFF_J2N16 + one 6Kh7B, 8 tubes, the active-low pin on `rst_n` with no inverter. The
+undesigned `DFFSR` / `DFFSR_n` (7 tubes, the diode not counted) are gone from the liberty.
+
+| Block | AOI21 at 1.5 tubes | **Diode reset** |
+|---|---|---|
+| IpLine | 484.5 | **501** |
+| ApLine | 554 | **566** |
+| MachineCtrl | 316.5 | **333.5** |
+| **Total** | 1355 | **1400.5** + 5 relays |
+
++38 tubes are the 6Kh7B, one per reset flop (34 DFFRN + 4 DFFSN); the rest is ABC drift. The 4 `NOT(rst_n)` gates
+in front of the old preset flops are gone. Not designed now: `NOR4_N16` 90, `OR4_N16X7` 72.5, `AND2_N16X7` 36,
+`GUIDE_EN_J2` 30, `NAND4_N16X7` 10.
+
+### OR4_N16 replaces the diode OR4_N16X7 (2026-10-29)
+
+The owner chose the cathode-follower OR4 (`doc/or4_variants.md`, `sch/logic/OR4_N16`): 2 tubes instead of 2.5.
+
+| Block | Diode reset | **OR4_N16** |
+|---|---|---|
+| IpLine | 501 | **497.5** |
+| ApLine | 566 | **555** |
+| MachineCtrl | 333.5 | **327** |
+| **Total** | 1400.5 | **1379.5** + 5 relays |
+
+ABC takes the cheaper OR4 54 times (from 29 of the diode one); `NAND4_N16X7` drops out. Follower → follower chains
+(`synt_dpc.tcl -div`): 65 over the three blocks (MachineCtrl 10 → 23), the open point of the follower family. Not
+designed now: `AND2_N16X7` 33 tubes, `GUIDE_EN_J2` 30.
+
+### `dont_use` on the followers and the diode gates (owner, 2026-10-30)
+
+`doc/follower_chains.md`: the followers saved tubes only through illegal follower → follower chains. The liberty now marks
+BUF_N16, OR2_N16, OR4_N16, all `*_N16X7` / `OR10_X7` diode gates and `BUF_6J2B` `dont_use`.
+
+| Block | OR4_N16 | **dont_use** |
+|---|---|---|
+| IpLine | 497.5 | **522.5** |
+| ApLine | 555 | **602** |
+| MachineCtrl | 327 | **339.5** |
+| **Total** | 1379.5 (65 illegal grids) | **1464** + 5 relays |
+
+The netlist is built only from designed cells (plus the RTL-instantiated `GUIDE_EN_J2` and `RELAY_2CO`): NAND2_J2 277,
+NOR2_N16 339, NOT_N16 259, NOR4_N16 44, A1OOI_N16J2 67, A2OOI_J2 10, DFF_J2N16 24, DFFRN 34, DFFSN 4. A legalization pass
+would win back about 46–55 tubes.
