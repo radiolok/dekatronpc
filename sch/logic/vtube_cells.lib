@@ -554,6 +554,24 @@ library(vtube_cells_lib) {
     pin(A) { direction: input; fanout_load: 1.0; vtube_level : "LINE"; }
     pin(Y) { direction: output; vtube_level : "LV"; max_fanout : 10; }
   }
+  cell(KEYDB_N16) {
+    /* panel key debouncer (sch/logic/KEYDB_N16/README.md, TC-N3): an Eccles-Jordan
+       bistable on one 6N16B set by the NO contacts and reset by the NC contacts of
+       changeover keys. A and B are two keys wired in parallel (NO in parallel, NC in
+       series): Y = A | B. No function, so ABC never uses it; the RTL places it
+       between the panel key and the synchronizer trigger. */
+    area: 1;
+    current_unit : "1mA";
+    heat_current: 400;
+    tubes(names) {
+      N16B: 1;
+    }
+    pin(A) { direction: input; vtube_level : "KEY"; }
+    pin(B) { direction: input; vtube_level : "KEY"; }
+    pin(Y) { direction: output; vtube_level : "HV";
+               max_fanout : 6;
+            driver_type : pull_up; }
+  }
   cell(GLIFT_N16) {
     /* guide lift: the follower that drives the plate rail of the guide keys of one counter
        (+50 V idle, +150 V during a write or reset), one per counter */

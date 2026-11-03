@@ -21,7 +21,7 @@ steps are close to the ABC noise.
 | ID | Decision | Done |
 |---|---|---|
 | TC-N1 | take | **done** (TRS v0.44): 1115.5 → **1085.0** over seeds 0–3 (§11) |
-| TC-N3 | take, and count the key debouncer and the synchronizer; a liberty cell between the key and the counter input | |
+| TC-N3 | take, and count the key debouncer and the synchronizer; a liberty cell between the key and the counter input | **done** (TRS v0.45): 1085.0 → **1083.0** (§12) |
 | TC-N2 | take: the overflow lamp latches a self-holding relay that stops the clock; a liberty cell for it is welcome | |
 | TC-O9 | take, if the other lines already carry the validity | |
 | TC-O4 | take, if the memory interface doesn't change | |
@@ -311,3 +311,50 @@ Checks: `run_tests.sh -t` (Icarus, Verilator against dpcrun on helloworld, progr
 `-d` (delay model, incl. pi.bfk), `-s`, `synth_sim.sh` 7/7, `synth_sim.sh -t` 4/4 with 0 setup and
 0 hold violations, cocotb `make regression` 34/34; STA 8.10 µs (100 kHz meets, 1.9 µs slack).
 SCHEMES sheet 2 notes the channels and diodes up to `MAX_DIGIT`.
+
+## 12. TC-N3 done (TRS v0.45)
+
+**Debouncer.** The cell is `KEYDB_N16` (`sch/logic/KEYDB_N16/README.md`): an Eccles–Jordan bistable
+on one 6N16B. The NO contacts of a changeover key set it and the NC contacts reset it. Bonch-Bruevich
+(ch. VI §2) argues against the one-shot. A trigger has to get one steep edge, and a one-shot fired
+by an edge fires again on the release bounce unless its pulse outlasts the press, and its recovery
+time limits the shortest press. The bistable needs no time constant, since the moving contact never
+touches NO and NC at once. The cell is in the liberty without a function (like `GUIDE_EN_J2`), so ABC
+never uses it. Proposed, not simulated. I could not read the scan pages themselves in this session
+(no djvu renderer available); the arguments are those already quoted in
+`doc/bonch_bruevich_lamps_review.md` §4.
+
+**Synchronizer, and what the delay netlist taught.** In IpLine:
+
+| Try | Result in `synth_sim.sh -t` |
+|---|---|
+| One synchronizer for "any key", direction loaded into `dir_q` through the FSM | −IP stepped forward. The short path into the synchronizer caught the press one Clk before the long path into `dir_q` |
+| Separate synchronizers for −IP and +IP, `dec = key_mode ? key_prev_s : dir_q` | Setup failure at the carry latch of decade 4. The mux put ≈ 0.5 µs into the path from the Clk edge through the carry chain, beyond the command window |
+| **+IP: `key_next_s`; −IP: `dir_q` itself takes the key level every Clk in `S_HALT`/`S_INSN_IN`** | passes, 0 violations. The step and its direction come from one trigger, and `dec` is still a trigger output |
+
+`dir_q` is cleared on entering `S_HALT`/`S_INSN_IN` (an old scan direction would give a false −IP
+step) and by the reset lines. The zero-delay netlist of IpLine needs the reset: without it, the
+netlist kept X in `key_moved_q` and `ip_valid`, although RTL resolves `X & 0` to 0. So the TC-O5 audit
+entry "`dir_q`: no reset needed" no longer holds. `key_next_s` is in the "masked" section of
+`vtube_timing.json`: a synchronizer of an asynchronous level has no meaningful setup check. New
+IpLine_tb test 5b checks the keys while loading (an opcode lands at the address the keys chose).
+
+**Count**, `synth_seeds.sh -s "0 1 2 3"`:
+
+| Seed | IpLine | ApLine | MachineCtrl | Total |
+|---|---|---|---|---|
+| 0 | 380.5 | 431.5 | 264.5 | 1076.5 |
+| 1 | 388.5 | 432.0 | 264.5 | 1085.0 |
+| 2 | 379.5 | 432.0 | 269.0 | 1080.5 |
+| 3 | 387.0 | 434.0 | 269.0 | 1090.0 |
+| mean | | | | **1083.0** (was 1085.0, −2.0) |
+
+The experiment of §4 (−24) had no debouncer, no synchronizer and the direction race. The final
+change pays +2 (two KEYDB) and +7 (`key_next_s`), plus the `dir_q` load in two states. HEAD before
+had neither a debouncer nor a synchronizer: the raw key went into the FSM transitions. A safe version
+of the old scheme would cost about +9, so against that the saving is about 11.
+
+Checks: `run_tests.sh -t`, `-d`, `-s`, `synth_sim.sh` 7/7, `synth_sim.sh -t` 4/4 (0 setup, 0 hold,
+20 masked at `key_next_s`), cocotb 34/34. STA 9.03 µs (was 8.10): the worst path now runs from the
+Data counter's zero flag through `loop_val_zero` into the next-state logic of `dir_q`. 100 kHz meets
+with 0.97 µs of slack.

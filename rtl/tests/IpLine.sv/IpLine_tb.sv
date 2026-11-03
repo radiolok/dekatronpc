@@ -639,6 +639,43 @@ initial begin
     rand_mode = 1'b0;
 
     //------------------------------------------------------------------
+    // Кнопки ±IP при загрузке (TC-N3): IpLine ждёт опкод в S_INSN_IN,
+    // кнопка шагает счётчиком IP прямо оттуда, опкод пишется по новому IP
+    $display("5b. Manual steps while loading");
+    for (int i = 0; i < 4; i++) mem.mem[i] = 4'h0;   // остатки теста 2
+    pulse_rst(1'b0);
+    Loading = 1'b1;
+    load_insn(4'h2);                    // адрес 0: первая выборка без шага
+    @(negedge Clk);
+    while (!ip_ready) @(negedge Clk);
+    ip_valid = 1'b1;                    // запрос: шаг на 1, ожидание опкода
+    @(posedge Clk);
+    @(negedge Clk);
+    ip_valid = 1'b0;
+    repeat (10) @(negedge Clk);
+    check_addr("loading, waiting", 1);
+    key_step(1'b0);
+    key_step(1'b0);
+    key_step(1'b0);
+    key_step(1'b1);
+    check_addr("loading, keys", 3);
+    InsnIn      = 4'h3;
+    InsnInValid = 1'b1;
+    while (!InsnInReady) @(negedge Clk);
+    @(posedge Clk);
+    @(negedge Clk);
+    InsnInValid = 1'b0;
+    InsnIn      = 4'hF;
+    while (!ip_ready) @(negedge Clk);
+    Loading = 1'b0;
+    if (mem.mem[0] !== 4'h2 || mem.mem[1] !== 4'h0 ||
+        mem.mem[2] !== 4'h0 || mem.mem[3] !== 4'h3) begin
+        errors++;
+        $display("FAIL: loading with keys: mem[0..3] = %h %h %h %h, expected 2 0 0 3",
+                 mem.mem[0], mem.mem[1], mem.mem[2], mem.mem[3]);
+    end
+
+    //------------------------------------------------------------------
     $display("6. Hard reset");
     pulse_rst(1'b1);
     if (Address !== BOOTLOADER_ADDR) begin

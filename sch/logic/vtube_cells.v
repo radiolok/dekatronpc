@@ -395,6 +395,19 @@ specify
 endspecify
 endmodule
 
+// Panel key debouncer (TC-N3): a bistable on changeover contacts; A, B are the
+// "pressed" levels of up to two keys wired in parallel. The bounce is outside
+// the logic model: the RTL sees clean key levels.
+module KEYDB_N16(A, B, Y);
+input A, B;
+output Y;
+assign Y = A | B;
+specify
+	(A => Y) = 0;
+	(B => Y) = 0;
+endspecify
+endmodule
+
 module GUIDE_EN_J2(EN, G, Y);
 input EN, G;
 output Y;

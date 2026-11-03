@@ -31,6 +31,8 @@ Sketches not in the library yet:
 
 "Liberty" names the cell in `vtube_cells.lib`. BUF_N16, OR2_N16 and OR4_N16 carry `dont_use` (owner, 2026-10-30): ABC does not see the LV level and chained them; they stay available for hand-placed use (`doc/follower_chains.md`). "Proposed" means that the page proposes the entry and the owner has not reviewed it yet.
 
+The panel key debouncer [KEYDB_N16](KEYDB_N16/README.md) (one 6N16B bistable on the changeover contacts, Y = A | B, TC-N3) is in the liberty without a function, like the module cells below; proposed, not simulated.
+
 The dekatron module adds three counting cells that the RTL places itself (no function, ABC never uses them; TRS v0.40): `WRCH_N16` (write channel, ½ 6N16B per cathode or common return), `RDD_X7` (read diode, ½ 6Kh7B per read line), `GLIFT_N16` (guide-lift follower, one 6N16B per counter); see [DEKATRON_A110](DEKATRON_A110/README.md).
 
 The library also has cells that are not designed yet, all `dont_use` except the RTL-instantiated ones: `BUF_6J2B`, `NOT_J2`, the `*_N16X7` gates, `OR10_X7`, `GUIDE_EN_J2`, and the non-tube `RELAY_2CO`, `DIV_HL`, `TIEHI`, `TIELO`.

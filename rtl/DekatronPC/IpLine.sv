@@ -69,6 +69,19 @@
 
 `default_nettype none
 
+`ifndef SYNTH
+// Модель антидребезга кнопки пульта (sch/logic/KEYDB_N16, TC-N3). В синтезе
+// ячейка берётся из vtube_cells.lib: функции у неё нет, ABC её не использует.
+// Дребезг контактов в модели не виден: на входе уже уровень «нажата».
+module KEYDB_N16 (
+    input  wire A,
+    input  wire B,
+    output wire Y
+);
+    assign Y = A | B;
+endmodule
+`endif
+
 module IpLine #(
     // Сколько старших декад аппаратный сброс ставит в девятку.
     // Для пяти декатронов это даёт 99990 — начало загрузчика.
@@ -174,7 +187,8 @@ module IpLine #(
     logic                  ip_counted_q;   // IP уже сдвинут под текущую инструкцию
     logic                  scanning_q;     // идёт промотка тела цикла
     logic                  dir_q;          // направление шага IP: 1 — назад
-    logic                  key_moved_q;    // ручной шаг уже сделан, ждём отпускания
+    logic                  key_next_s;     // кнопка «вперёд», синхронизирована с Clk (TC-N3)
+    logic                  key_moved_q;    // нажатие тактом раньше: шаг на фронте нажатия
     logic                  halt_pending_q; // после шага IP уйти в останов
     logic                  overflow_q;
     logic                  eot_q;          // последним принят EOT
@@ -184,6 +198,8 @@ module IpLine #(
     // Счётчик инструкций
     //------------------------------------------------------------------
     wire            ip_valid;
+    wire            key_mode;      // IpLine стоит, счётчик IP отдан кнопкам (TC-N3)
+    wire            key_dir_mode;  // S_HALT / S_INSN_IN: dir_q держит кнопку «назад»
     wire            ip_ready;
     wire [IP_W-1:0] ip_out_n;     // тетрады активным нулём (TC-O3)
 
@@ -307,9 +323,29 @@ module IpLine #(
 
     wire end_of_transmission = (insn_in == 4'hB);   // LD
 
-    // Ручной шаг по программе: одна кнопка, один шаг до отпускания
-    wire key_step    = (key_prev_ip | key_next_ip) & ~key_moved_q;
-    wire key_release = ~key_prev_ip & ~key_next_ip;
+    // Ручной шаг по программе (TC-N3): одно нажатие — один шаг счётчика IP
+    // прямо из останова или из ожидания опкода при загрузке, без переходов
+    // автомата. Кнопки переключающие, антидребезг KEYDB_N16 (триггер на
+    // контактах) на каждую. Синхронизаторы: для «вперёд» — key_next_s, для
+    // «назад» — сам dir_q, который в S_HALT и S_INSN_IN каждый такт берёт
+    // уровень кнопки (при входе в эти состояния он обнулён). Шаг и его
+    // направление при «назад» идут с одного триггера, поэтому асинхронная
+    // кнопка не может дать шаг не в ту сторону, а dec счётчика остаётся
+    // выходом триггера: любой мультиплексор в dec удлиняет путь до защёлок
+    // переноса сверх окна команды (synth_sim.sh -t). key_moved_q выделяет
+    // фронт нажатия: ip_valid меняется только на фронте Clk.
+    wire key_prev_db, key_next_db;
+    KEYDB_N16 keyDbPrev (.A (key_prev_ip), .B (1'b0), .Y (key_prev_db));
+    KEYDB_N16 keyDbNext (.A (key_next_ip), .B (1'b0), .Y (key_next_db));
+
+    wire key_prev_s = dir_q & key_dir_mode;   // «назад», синхронизирована
+
+    always_ff @(posedge clk) begin
+        key_next_s  <= key_next_db;
+        key_moved_q <= key_prev_s | key_next_s;
+    end
+
+    wire key_step = (key_prev_s | key_next_s) & ~key_moved_q;
 
     // Парная скобка найдена: счётчик вложенности вернулся в нуль после
     // декремента. В промотке нулём он бывает только в этот момент:
@@ -338,7 +374,10 @@ module IpLine #(
     wire in_fetch    = (state == S_FETCH);
     wire in_loop     = (state == S_LOOP);
 
-    assign ip_valid      = in_ip & ~scan_done & go;
+    assign key_dir_mode = (state == S_HALT) | in_insn_in;
+    assign key_mode = ((state == S_HALT) & halt_rq) |
+                      (in_insn_in & insn_loading & ~insn_in_valid);
+    assign ip_valid = ((in_ip & ~scan_done) | (key_mode & key_step)) & go;
     assign loop_valid    = in_loop & go;
     assign loop_dec      = dir_q ? insn_loop_open : insn_loop_close;
     assign mem_valid     = (in_fetch & go) | (insn_in_accept & ~end_of_transmission);
@@ -362,6 +401,7 @@ module IpLine #(
             insn_valid_q   <= 1'b0;
             eot_q          <= 1'b0;
             overflow_q     <= 1'b0;
+            dir_q          <= 1'b0;   // входит в key_prev_s (TC-N3): без X после сброса
         end
         else begin
             case (state)
@@ -379,6 +419,7 @@ module IpLine #(
                         state          <= S_IP;
                     end
                     else begin
+                        dir_q <= 1'b0;   // в S_HALT dir_q — синхронизатор «назад»
                         state <= S_HALT;
                     end
                 end
@@ -389,6 +430,7 @@ module IpLine #(
                         // Первая выборка после сброса: читаем по
                         // текущему адресу, счётчик не двигаем
                         ip_counted_q <= 1'b1;
+                        dir_q        <= 1'b0;   // в S_INSN_IN — синхронизатор «назад»
                         state <= insn_loading ? S_INSN_IN : S_FETCH;
                     end
                     else if (~insn_loading & scan_req & loop_at_top) begin
@@ -491,14 +533,10 @@ module IpLine #(
                         state        <= S_IDLE;
                     end
                 end
-                else if (key_step) begin
-                    // Ручное перемещение по программе во время загрузки
-                    key_moved_q <= 1'b1;
-                    dir_q       <= key_prev_ip;
-                    state       <= S_IP;
-                end
-                else if (key_release) begin
-                    key_moved_q <= 1'b0;
+                // Иначе — ручное перемещение по программе во время
+                // загрузки: шаг счётчика IP прямо отсюда (key_mode, TC-N3)
+                else begin
+                    dir_q <= key_prev_db;
                 end
             end
 
@@ -509,15 +547,11 @@ module IpLine #(
                 if (~halt_rq) begin
                     state <= S_IDLE;
                 end
-                else if (key_step) begin
-                    key_moved_q <= 1'b1;
-                    dir_q       <= key_prev_ip;
-                    state       <= S_IP;
-                    // После ручного шага инструкция читается заново
-                    halt_pending_q <= 1'b1;
-                end
-                else if (key_release) begin
-                    key_moved_q <= 1'b0;
+                else begin
+                    dir_q <= key_prev_db;
+                    // Ручной шаг идёт прямо отсюда (key_mode, TC-N3);
+                    // после него инструкция читается заново
+                    if (key_step & go) insn_valid_q <= 1'b0;
                 end
             end
 

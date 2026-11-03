@@ -1818,6 +1818,46 @@ library(vtube_cells_lib_timing) {
       }
     }
   }
+  cell(KEYDB_N16) {
+    area : 1;
+    current_unit : "1mA";
+    heat_current : 400;
+    tubes(names) {
+      N16B : 1;
+    }
+    pin(A) {
+      direction : input;
+      vtube_level : "KEY";
+      capacitance : 1;
+    }
+    pin(B) {
+      direction : input;
+      vtube_level : "KEY";
+      capacitance : 1;
+    }
+    pin(Y) {
+      direction : output;
+      vtube_level : "HV";
+      max_fanout : 6;
+      driver_type : pull_up;
+      timing() {
+        related_pin : "A";
+        timing_sense : non_unate;
+        cell_rise(fanout3) { values("0, 0, 0"); }
+        rise_transition(fanout3) { values("0, 0, 0"); }
+        cell_fall(fanout3) { values("0, 0, 0"); }
+        fall_transition(fanout3) { values("0, 0, 0"); }
+      }
+      timing() {
+        related_pin : "B";
+        timing_sense : non_unate;
+        cell_rise(fanout3) { values("0, 0, 0"); }
+        rise_transition(fanout3) { values("0, 0, 0"); }
+        cell_fall(fanout3) { values("0, 0, 0"); }
+        fall_transition(fanout3) { values("0, 0, 0"); }
+      }
+    }
+  }
   cell(GLIFT_N16) {
     area : 1;
     current_unit : "1mA";

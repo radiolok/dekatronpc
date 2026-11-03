@@ -50,6 +50,7 @@
     "WRCH_N16": {"iopath": {"A->Y": 0}},
     "RDD_X7": {"iopath": {"A->Y": 0}},
     "GLIFT_N16": {"iopath": {"A->Y": 0}},
+    "KEYDB_N16": {"iopath": {"A->Y": 0, "B->Y": 0}},
     "RELAY_2CO": {"iopath": {"COIL->C1": 0, "NC1->C1": 0, "NO1->C1": 0, "COIL->C2": 0, "NC2->C2": 0, "NO2->C2": 0}},
     "DIV_HL": {"iopath": {"HV->LV": 0}}
   },
@@ -63,5 +64,10 @@
      "q": "^data_counter\\.g_top_limit\\.(zero_q|at_top_q)$",
      "used_when": "data_valid",
      "why": "The same triggers of the Data counter, flattened into ApLine (synt_dpc.tcl keeps only the boards, doc/tube_count_1000.md §4); data_valid is the counter's accept (its ready is only the reset lines)."}
+  ,
+    {"module": "IpLine",
+     "q": "^key_next_s$",
+     "used_when": "0",
+     "why": "Synchronizer of the panel +IP key (TC-N3, sch/logic/KEYDB_N16; for -IP dir_q itself samples the key while IpLine is halted): it samples an asynchronous key level by design, so its setup window is always open to a violation. A late sample delays the step by one Clk; key_moved_q, the step and the direction behind them see only the synchronized levels."}
   ]
 }
