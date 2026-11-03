@@ -1703,6 +1703,73 @@ library(vtube_cells_lib_timing) {
       }
     }
   }
+  cell(RELAY_HOLD_N16) {
+    area : 0.5;
+    current_unit : "1mA";
+    heat_current : 200;
+    tubes(names) {
+      N16B : 0.5;
+    }
+    relays(names) {
+      RELAY_2CO : 1;
+    }
+    pin(S) {
+      direction : input;
+      fanout_load : 1.0;
+      capacitance : 1;
+    }
+    pin(BRK) {
+      vtube_level : "RESET";
+      direction : input;
+      capacitance : 1;
+    }
+    pin(NC1) {
+      vtube_level : "PASS";
+      direction : input;
+      capacitance : 1;
+    }
+    pin(NO1) {
+      vtube_level : "PASS";
+      direction : input;
+      capacitance : 1;
+    }
+    pin(C1) {
+      vtube_level : "PASS";
+      direction : output;
+      timing() {
+        related_pin : "S";
+        timing_sense : non_unate;
+        cell_rise(fanout3) { values("0, 0, 0"); }
+        rise_transition(fanout3) { values("0, 0, 0"); }
+        cell_fall(fanout3) { values("0, 0, 0"); }
+        fall_transition(fanout3) { values("0, 0, 0"); }
+      }
+      timing() {
+        related_pin : "BRK";
+        timing_sense : non_unate;
+        cell_rise(fanout3) { values("0, 0, 0"); }
+        rise_transition(fanout3) { values("0, 0, 0"); }
+        cell_fall(fanout3) { values("0, 0, 0"); }
+        fall_transition(fanout3) { values("0, 0, 0"); }
+      }
+      timing() {
+        related_pin : "NC1";
+        timing_sense : non_unate;
+        cell_rise(fanout3) { values("0, 0, 0"); }
+        rise_transition(fanout3) { values("0, 0, 0"); }
+        cell_fall(fanout3) { values("0, 0, 0"); }
+        fall_transition(fanout3) { values("0, 0, 0"); }
+      }
+      timing() {
+        related_pin : "NO1";
+        timing_sense : non_unate;
+        cell_rise(fanout3) { values("0, 0, 0"); }
+        rise_transition(fanout3) { values("0, 0, 0"); }
+        cell_fall(fanout3) { values("0, 0, 0"); }
+        fall_transition(fanout3) { values("0, 0, 0"); }
+      }
+    }
+  }
   cell(DIV_HL) {
     area : 0;
     current_unit : "1mA";

@@ -189,7 +189,6 @@ module MachineCtrl #(
     logic one_step;      // выполняется ровно одна инструкция
     logic [INSN_WIDTH-1:0] op_q;   // код текущей инструкции (op_load)
     logic pf_q;          // следующая инструкция выбрана заранее
-    logic overflow_q;    // переполнение вложенности уже обработано
     logic rst_soft;      // сброс программный (иначе аппаратный)
 
     //------------------------------------------------------------------
@@ -225,11 +224,10 @@ module MachineCtrl #(
     wire go       = ip_ready & ap_ready & ~rst_line;
 
     // Переполнение счётчика вложенности — аппаратная ошибка. Промотка
-    // прервана самим IpLine, парная скобка не найдена, продолжать
-    // исполнение бессмысленно: машина останавливается (REQ-CTLV2-005).
-    // Реакция на фронт: IpLine держит признак до сброса, и
-    // после пуска с пульта машина не должна останавливаться снова.
-    wire overflow_hit = loop_overflow & ~overflow_q;
+    // прервана самим IpLine, и он до сброса не отвечает (ready снят): автомат
+    // остаётся ждать выборку, машина стоит (TC-N2, REQ-CNT-007). Своей ветки
+    // останова здесь нет; признак переполнения идёт на лампочку пульта, по нему
+    // реле с самоподхватом может остановить такт (sch/logic/RELAY_HOLD_N16).
 
     //------------------------------------------------------------------
     // Стробы исполнителям — дешифрация состояния (автомат Мура)
@@ -273,14 +271,14 @@ module MachineCtrl #(
     assign soft_rst_req = in_rst_rq &  rst_soft;
     assign hard_rst_req = in_rst_rq & ~rst_soft;
 
-    // Звонок — импульс в такт события
+    // Звонок — импульс в такт события; по ошибке — уровень до сброса
     wire decode_run = in_decode & ~insn_loading;
 
     // Тумблеры звонка — на лампах: реле ради нескольких ламп не стоят
     // отдельной платы (владелец, TRS v0.43)
     assign bell = (bell_on_halt  & ((in_idle & halt_key) | (decode_run & (op_q == 4'h1)))) |
                   (bell_on_cin   & decode_run & is_cin) |
-                  (bell_on_error & overflow_hit);
+                  (bell_on_error & loop_overflow);   // уровень до сброса (TC-N2)
 
     // Окончание инструкции: останов по кнопке или пошаговому режиму.
     // Если следующая инструкция уже выбрана, сразу её дешифрация: выход
@@ -300,8 +298,6 @@ module MachineCtrl #(
     // аппаратный сброс реле времени при включении (REQ-REF-011, TC-O5)
     always_ff @(posedge clk) begin
         begin
-            overflow_q <= loop_overflow;
-
             if (op_load) op_q <= insn;
 
             // Общемашинный сброс по физическим линиям. Работает
@@ -313,12 +309,6 @@ module MachineCtrl #(
                 one_step     <= 1'b0;
                 pf_q         <= 1'b0;
                 state        <= S_RST_WAIT;
-            end
-            // Переполнение вложенности перебивает любое состояние
-            // (оно возникает в S_FETCH_W, где иначе началась бы
-            // дешифрация скобки, на которой промотка прервана)
-            else if (overflow_hit) begin
-                state <= S_HALT;
             end
             else begin
             case (state)
@@ -494,7 +484,7 @@ module MachineCtrl #(
     always_ff @(posedge clk, negedge rst_n) begin
         if (~rst_n)
             iret <= '0;
-        else if (EN_EMULATOR & (state == S_DECODE) & ~rst_line & ~overflow_hit)
+        else if (EN_EMULATOR & (state == S_DECODE) & ~rst_line)
             iret <= iret + 32'd1;
     end
 
@@ -508,7 +498,7 @@ module MachineCtrl #(
             $error("MachineCtrl: скобка обрабатывается при недостоверном признаке нуля");
         if (rst_n && insn_loading && ap_valid)
             $error("MachineCtrl: операция над данными во время загрузки программы");
-        if (rst_n && overflow_hit)
+        if (rst_n && loop_overflow && !$past(loop_overflow))
             $error("MachineCtrl: переполнение счётчика вложенности циклов");
     end
 `endif

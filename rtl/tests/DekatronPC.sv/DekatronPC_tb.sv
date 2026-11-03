@@ -136,13 +136,23 @@ initial begin
     $readmemh(`PROGRAM_PATH, InsnMem, 1);
 end
 
-always_ff @(posedge Clk or negedge rst_n) begin
+// Внешний источник: на фронте Clk его данные гарантированно читаемы,
+// меняет он их только на спаде (TRS Приложение B). Ламповые триггеры
+// ловят фронт через инвертор такта (≈ 250 нс), и смена данных на самом
+// фронте давала гонку по удержанию в synth_sim.sh -t (TC-N2)
+reg insn_in_take;   // рукопожатие на последнем фронте
+
+always @(posedge Clk or negedge rst_n)
+    if (~rst_n) insn_in_take <= 1'b0;
+    else        insn_in_take <= InsnInReady & InsnInValid;
+
+always_ff @(negedge Clk or negedge rst_n) begin
     if (~rst_n) begin
         InsnInputAddr <= '0;
         InsnIn        <= InsnMem[12'd0];
         InsnInValid   <= 1'b0;
     end
-    else if (InsnInReady & InsnInValid) begin
+    else if (insn_in_take) begin
         InsnInputAddr <= InsnInputAddr + 12'd1;
         InsnIn        <= InsnMem[InsnInputAddr + 12'd1];
         InsnInValid   <= 1'b1;
@@ -169,18 +179,21 @@ BcdToAscii bcd_to_ascii(
     .Ascii(tx_data)
 );
 
-// tx_rdy поднимается раз в 11 тактов и держится до рукопожатия. Линии
-// смотрим на спаде Clk: после фронта автомат уже снял tx_vld, и чтение
-// сразу после фронта теряло символы.
+// tx_rdy поднимается раз в 11 тактов и держится до рукопожатия. Как
+// у внешнего источника, tx_rdy меняется только на спаде Clk (TRS
+// Приложение B). Линии смотрим на спаде Clk: после фронта автомат уже
+// снял tx_vld, и чтение сразу после фронта теряло символы.
 task automatic read_tx();
     tx_rdy <= 1'b0;
     forever begin
         repeat (10) @(posedge Clk);
+        @(negedge Clk);
         tx_rdy <= 1'b1;
-        do @(negedge Clk); while (!tx_vld);
+        while (!tx_vld) @(negedge Clk);   // рукопожатие — на следующем фронте
         $display("TX: %c (%0d)", tx_data, tx_data);
         tx_q.push_back(tx_data);
         @(posedge Clk);                 // рукопожатие на этом фронте
+        @(negedge Clk);
         tx_rdy <= 1'b0;
     end
 endtask

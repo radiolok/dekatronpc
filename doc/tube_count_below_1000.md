@@ -22,9 +22,9 @@ steps are close to the ABC noise.
 |---|---|---|
 | TC-N1 | take | **done** (TRS v0.44): 1115.5 → **1085.0** over seeds 0–3 (§11) |
 | TC-N3 | take, and count the key debouncer and the synchronizer; a liberty cell between the key and the counter input | **done** (TRS v0.45): 1085.0 → **1083.0** (§12) |
-| TC-N2 | take: the overflow lamp latches a self-holding relay that stops the clock; a liberty cell for it is welcome | |
+| TC-N2 | take: the overflow lamp latches a self-holding relay that stops the clock; a liberty cell for it is welcome | **done** (TRS v0.46): 1083.0 → **1068.0**, with an explicit reset gate on IpLine's `state` (§13) |
 | TC-O9 | take, if the other lines already carry the validity | |
-| TC-O4 | take, if the memory interface doesn't change | |
+| TC-O4 | take, if the memory interface doesn't change | **not taken** (2026-11-03): sharing the read bus needs a new "release the bus on CIN" control in the memory support |
 | TC-N4 | **rejected on purpose**: no NOP at the start of a program | – |
 | TC-N5 | later, as a separate large piece of work | – |
 | TC-N6 | doubtful, needs a study first | – |
@@ -358,3 +358,64 @@ Checks: `run_tests.sh -t`, `-d`, `-s`, `synth_sim.sh` 7/7, `synth_sim.sh -t` 4/4
 20 masked at `key_next_s`), cocotb 34/34. STA 9.03 µs (was 8.10): the worst path now runs from the
 Data counter's zero flag through `loop_val_zero` into the next-state logic of `dir_q`. 100 kHz meets
 with 0.97 µs of slack.
+
+## 13. TC-N2 done (TRS v0.46)
+
+**Change.** As in §3: IpLine's `ready` carries `~overflow_q`, so after a loop overflow IpLine never
+accepts again until a reset line, and MachineCtrl waits in `S_FETCH_W` with nothing moving.
+MachineCtrl lost `overflow_q`, `overflow_hit` and its branch into `S_HALT`. The error bell is now
+`bell_on_error & loop_overflow`, a level held until the reset. The LoopOverflow lamp is the operator's
+sign. The owner's addition: the lamp signal latches a self-holding relay that stops the clock, cell
+`RELAY_HOLD_N16` (`sch/logic/RELAY_HOLD_N16/README.md`, ½ 6N16B coil driver + relay). It belongs to
+the clock-generator board, which is outside the three counted blocks, so nothing in the RTL places it.
+Its release has to bypass the clock while a reset line is high: `overflow_q` clears only on a Clk edge.
+
+**What the netlists showed, and the two fixes.** The RTL passed everything at once. The netlists did
+not:
+
+1. *Zero-delay netlist, DekatronPC hangs.* IpLine's `state` powered up X and stayed X with the reset
+   line high. A three-valued evaluation of the netlist cone (scratch script) showed that the logic is
+   right: from each of the 8 codes, `hard_rst` gives `S_IDLE`. With `state` X, though, the reset enters
+   the next-state logic through reconvergent AOI paths that also take `state[i]` and its `QN`, so the
+   X model cannot resolve it. HEAD passed only because ABC had happened to build an X-clean cone. In
+   tubes there is no X, but the netlist does not mask X. **Owner's choice: an explicit reset gate.**
+   The next state is computed in `always_comb` (`state_nx`), and each bit goes through its own
+   `NOR2_N16` instance, `state_d = ~(rst_line | ~state_nx)`. ABC cannot dissolve an instantiated
+   cell. Yosys no longer extracts `state` as an FSM, so the codes stay as written; they are the ones
+   Yosys chose for `"binary"` (IDLE 0 · SCAN_EVAL 1 · FETCH 2 · HALT 3 · INSN_IN 4 · IP 5 · LOOP 6,
+   `doc/isa16.md` §6.1). The best `"none"` code of §6.1 (IDLE 0 · IP 7 · …) is worse here, 393.8 against
+   390.3 for IpLine over seeds 0–3. Unlike v0.43, `synth_sim.sh -t` passes without FSM extraction.
+2. *Tube-delay netlist, DekatronPC fails the ±IP check after loading.* One setup violation at
+   `eot_q`: D changed 2.6 ns before its clock edge. `DFF_J2N16` captures on the fall of C, and C is
+   `NOT_N16(clk)`, so the tube triggers capture ≈ 250 ns after the rising Clk edge. The testbench loader
+   changed `insn_in` on that rising edge, in the cycle of the `insn_in_valid & insn_in_ready`
+   handshake, and the short path `insn_in → end_of_transmission → D(eot_q)` arrived first. This hold
+   race on an external input is old: on HEAD the path happened to be a few ns longer than the clock
+   inverter. **Owner's rule (2026-11-03): on the rising Clk edge the data is guaranteed readable; an
+   external source changes it only on the falling edge, as on any normal interface.** DekatronPC_tb
+   now updates the loader (`insn_in`, `insn_in_valid`) and `tx_rdy` on the falling edge, from the
+   handshake sampled on the rising edge. Appendix B of the TRS carries the rule; the emulator must
+   follow it once tube blocks are connected to it (TRS §22).
+
+**Tube count of the empty branches.** A tidy rewrite of the flag `always_ff` (dropping the branches
+that only held the old `state` assignments) is logically the same, yet IpLine came out 398.8 instead
+of 391.5 over seeds 0–7: Yosys builds different multiplexers from the two texts and ABC does not
+reconcile them. The cheaper text is kept, with comments on the empty branches.
+
+**Count**, `synth_seeds.sh -s "0 1 2 3"`:
+
+| Seed | IpLine | ApLine | MachineCtrl | Total |
+|---|---|---|---|---|
+| 0 | 384.0 | 433.0 | 238.0 | 1055.0 |
+| 1 | 390.5 | 435.5 | 247.5 | 1073.5 |
+| 2 | 397.0 | 435.5 | 245.5 | 1078.0 |
+| 3 | 389.5 | 432.5 | 243.5 | 1065.5 |
+| mean | | | | **1068.0** (was 1083.0, −15.0) |
+
+Without the gate (first try, `"binary"` FSM) the mean was 1060.6. By block against v0.45: MachineCtrl 266.8 → 243.6, IpLine 383.9 → 390.3, ApLine 432.4 → 434.1 (noise).
+
+Against §3 (−25 measured without the gate): the gate and the lost FSM optimizations cost about +7.4.
+
+Checks: cocotb 34/34; `run_tests.sh -t` (helloworld, program.bfk, pi.bfk match dpcrun), `-d`,
+`-s`; `synth_sim.sh` 7/7; `synth_sim.sh -t` 4/4 (0 setup, 0 hold, 20 masked at `key_next_s`, as in
+v0.45); STA 9.32 µs (was 9.03), 100 kHz meets with 0.68 µs of slack. Owner's table above: TC-N2 done.

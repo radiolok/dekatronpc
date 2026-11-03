@@ -497,6 +497,27 @@ library(vtube_cells_lib) {
     pin(C1) { vtube_level : "PASS"; direction: output; }
     pin(C2) { vtube_level : "PASS"; direction: output; }
   }
+  // Self-holding relay that stops the clock on a loop overflow (TC-N2,
+  // sch/logic/RELAY_HOLD_N16/README.md): S (the LoopOverflow net) opens the
+  // coil driver, half a 6N16B; a hold contact through BRK (the reset line)
+  // keeps the relay in; C1 = held ? NO1 : NC1 switches the clock. Placed on
+  // the clock-generator board, not in the RTL; no function, so ABC never uses it.
+  cell(RELAY_HOLD_N16) {
+    area: 0.5;
+    current_unit : "1mA";
+    heat_current: 200;
+    tubes(names) {
+      N16B: 0.5;
+    }
+    relays(names) {
+      RELAY_2CO: 1;
+    }
+    pin(S) { direction: input; fanout_load: 1.0; }
+    pin(BRK) { vtube_level : "RESET"; direction: input; }
+    pin(NC1) { vtube_level : "PASS"; direction: input; }
+    pin(NO1) { vtube_level : "PASS"; direction: input; }
+    pin(C1) { vtube_level : "PASS"; direction: output; }
+  }
   // HV -> LV divider of one net (REQ-MOD-012): R1 470k || C1 from HV to LV, R2 200k from LV to -50 V.
   // No tube and no function, so ABC never uses it: rtl/run/div_insert.py places one per HV net and grid
   // class after mapping, with C1 (parameter C1_DPF, 0.1 pF) = sum of vtube_c1 over the grids it feeds.

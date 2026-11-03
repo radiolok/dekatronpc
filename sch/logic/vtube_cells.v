@@ -395,6 +395,24 @@ specify
 endspecify
 endmodule
 
+// Self-holding relay on the loop overflow (TC-N2): S latches, BRK (the reset
+// line) releases and wins; C1 = held ? NO1 : NC1. Relay time is not modelled.
+module RELAY_HOLD_N16(S, BRK, NC1, NO1, C1);
+input S, BRK, NC1, NO1;
+output C1;
+reg held = 1'b0;
+always @*
+	if (BRK) held = 1'b0;
+	else if (S) held = 1'b1;
+assign C1 = held ? NO1 : NC1;
+specify
+	(S => C1) = 0;
+	(BRK => C1) = 0;
+	(NC1 => C1) = 0;
+	(NO1 => C1) = 0;
+endspecify
+endmodule
+
 // Panel key debouncer (TC-N3): a bistable on changeover contacts; A, B are the
 // "pressed" levels of up to two keys wired in parallel. The bounce is outside
 // the logic model: the RTL sees clean key levels.

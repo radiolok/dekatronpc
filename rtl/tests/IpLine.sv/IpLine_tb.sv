@@ -547,18 +547,26 @@ initial begin
     fetch_insn(code);                   // '[' по адресу 0
     rand_mode = 1'b1;
     lvz_r     = 1'b1;
-    fetch_insn(code);                   // промотка вперёд, 100-я '[' — переполнение
+    // Промотка вперёд, 100-я '[' — переполнение. После него IpLine до
+    // сброса не отвечает (TC-N2): ready снят, IP стоит на скобке
+    @(negedge Clk);
+    while (!ip_ready) @(negedge Clk);
+    ip_valid = 1'b1;
+    @(posedge Clk);
+    @(negedge Clk);
+    ip_valid = 1'b0;
+    for (int t = 0; t < 50000 && !LoopOverflow; t++) @(negedge Clk);
     if (!LoopOverflow || LoopCount !== 8'h99) begin
         errors++;
         $display("FAIL: overflow %b, loop count %h", LoopOverflow, LoopCount);
     end
+    repeat (30) @(negedge Clk);
     check_addr("overflow stop", 99);
-    fetch_insn(code);                   // счётчик на 99: снова переполнение без шага
-    if (!LoopOverflow) begin
+    if (ip_ready || !LoopOverflow) begin
         errors++;
-        $display("FAIL: overflow lost");
+        $display("FAIL: after overflow: ready %b overflow %b (IpLine must stand until reset)",
+                 ip_ready, LoopOverflow);
     end
-    check_addr("overflow repeat", 99);
     pulse_rst(1'b0);                    // CLRL нет: снимает только сброс
     if (LoopOverflow || LoopCount !== '0) begin
         errors++;

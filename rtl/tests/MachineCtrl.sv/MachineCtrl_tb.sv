@@ -159,7 +159,8 @@ reg       ovf_on_fetch = 1'b0;  // следующая выборка кончи�
 reg       reread = 1'b0;        // останов при ip_ahead: читать ту же инструкцию
 
 // Как в IpLine: ready не зависит от valid, при останове снят
-assign ip_ready = (ip_busy == 0) & ~ip_fetching & ~is_halted & ~(soft_rst | hard_rst);
+// После переполнения IpLine до сброса не отвечает (TC-N2)
+assign ip_ready = (ip_busy == 0) & ~ip_fetching & ~is_halted & ~(soft_rst | hard_rst) & ~loop_overflow;
 
 // Счётчики выданных операций
 integer n_ip;
@@ -599,40 +600,47 @@ endtask
 // 6. Переполнение вложенности
 //----------------------------------------------------------------------
 task automatic check_overflow();
-    int iret0;
+    int iret0, n_ip0, n_ap0;
     $display("check_overflow");
     bell_on_error = 1'b1;
-    // Как в IpLine: insn держит скобку, на которой прервана промотка,
-    // insn_valid поднят
+    // Как в IpLine: промотка прервана переполнением, IpLine больше не
+    // отвечает (ready снят) до сброса линиями: машина стоит (TC-N2)
     exec(4'h7);
     clear_counts();
     iret0 = iret;
     ovf_on_fetch = 1'b1;
     tick(20);
-    wait_settled("overflow");
-    if (state != S_HALT) fail("overflow: not halted");
-    if (n_bell != 1)     fail("overflow: no bell");
+    if (!loop_overflow)  fail("overflow: no overflow from the IpLine model");
+    if (is_halted)       fail("overflow: entered S_HALT (TC-N2: it only stops)");
+    if (!bell)           fail("overflow: the error bell is not held");
     if (iret != iret0)   fail("overflow: the bracket was decoded");
-    // Пуск: признак ещё поднят, но второй раз машина не встаёт
-    run_from_halt();
-    wait_settled("run after overflow");
-    exec(4'h2);
-    if (!parked()) fail("overflow: halted again without a new overflow");
-    // CLRL нет: признак снимает сброс, новое переполнение снова
-    // останавливает
+    n_ip0 = n_ip;
+    n_ap0 = 0;
+    for (int i = 0; i < 16; i++) n_ap0 += n_ap[i];
+    // Пульт не оживляет машину: Run, Step, Halt ничего не меняют
+    run_key = 1'b1; tick(3); run_key = 1'b0; tick(3);
+    step_key = 1'b1; tick(3); step_key = 1'b0; tick(3);
+    halt_key = 1'b1; tick(3); halt_key = 1'b0; tick(30);
+    begin
+        int n_ap1 = 0;
+        for (int i = 0; i < 16; i++) n_ap1 += n_ap[i];
+        if (n_ip != n_ip0 || n_ap1 != n_ap0 || iret != iret0)
+            fail("overflow: the machine moved before a reset");
+    end
+    if (!bell) fail("overflow: the error bell dropped before a reset");
+    // CLRL нет: признак снимает только сброс; новое переполнение — снова стоп
     run_on_soft_rst = 1'b1;
     panel_soft = 1'b1; tick(); panel_soft = 1'b0;
     wait_settled("soft reset after overflow");
-    run_on_soft_rst = 1'b0;
     if (loop_overflow) fail("soft reset: overflow not cleared");
+    if (bell)          fail("soft reset: the error bell still held");
     exec(4'h7);
     ovf_on_fetch = 1'b1;
     tick(20);
-    wait_settled("second overflow");
-    if (state != S_HALT) fail("second overflow after reset: not halted");
-    exec(4'h0);    // в останове выборка не идёт: опкод останется в очереди
-    run_from_halt();
-    wait_settled("after second overflow");
+    if (!loop_overflow || is_halted) fail("second overflow after reset: not stopped");
+    panel_soft = 1'b1; tick(); panel_soft = 1'b0;
+    wait_settled("soft reset after the second overflow");
+    run_on_soft_rst = 1'b0;
     bell_on_error = 1'b0;
 endtask
 

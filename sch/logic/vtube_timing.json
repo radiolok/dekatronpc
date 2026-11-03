@@ -51,6 +51,7 @@
     "RDD_X7": {"iopath": {"A->Y": 0}},
     "GLIFT_N16": {"iopath": {"A->Y": 0}},
     "KEYDB_N16": {"iopath": {"A->Y": 0, "B->Y": 0}},
+    "RELAY_HOLD_N16": {"iopath": {"S->C1": 0, "BRK->C1": 0, "NC1->C1": 0, "NO1->C1": 0}},
     "RELAY_2CO": {"iopath": {"COIL->C1": 0, "NC1->C1": 0, "NO1->C1": 0, "COIL->C2": 0, "NC2->C2": 0, "NO2->C2": 0}},
     "DIV_HL": {"iopath": {"HV->LV": 0}}
   },
