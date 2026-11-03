@@ -10,7 +10,7 @@
 //                                    rd_data/rd_valid/err/ovl_*)
 //
 // Проверяется AP-счётчик, чтение ячейки (TEST) и шаг данных (+), CIN,
-// [-], STORE (копирование ячейки), CLRA с выгрузкой, переход 255 <-> 0 и число
+// [-], MemLock (копирование ячейки), CLRA с выгрузкой, переход 255 <-> 0 и число
 // обращений к памяти (ленивое чтение, выгрузка при MemLock).
 // Монитор обращений к памяти проверяет, что mem_valid не выставляется
 // без mem_ready: стробы ApLine поднимаются только при готовности всех
@@ -96,7 +96,7 @@ localparam [3:0]
     OP_DATA_ZERO = 4'd4,
     OP_CIN       = 4'd5,
     OP_COUT      = 4'd6,
-    OP_STORE     = 4'd8,
+    OP_MEMLOCK     = 4'd8,
     OP_TEST      = 4'd10;
 
 ApLine apLine (
@@ -197,7 +197,7 @@ function automatic [4:0] insn_of(input [3:0] o, input bit d);
         OP_DATA_ZERO: insn_of = 4'hA;              // [-]
         OP_CIN:       insn_of = 4'h9;
         OP_COUT:      insn_of = 4'h8;
-        OP_STORE:     insn_of = 4'hD;
+        OP_MEMLOCK:     insn_of = 4'hD;
         OP_TEST:      insn_of = d ? 4'h7 : 4'h6;   // ]  [
         default:      insn_of = 4'h0;              // NOP
     endcase
@@ -350,10 +350,10 @@ initial begin
     end
 
     // Ячейка 0 = 0 в счётчике, MemLock. Дальше счёт обращений идёт с нуля.
-    // STORE только ставит MemLock: счётчик забирает текущую ячейку со
+    // MemLock только ставит MemLock: счётчик забирает текущую ячейку со
     // своим прежним значением, следующий шаг адреса выгружает его в неё.
-    // '>' STORE '<' копирует ячейку 0 в ячейку 1
-    $display("STORE: copy a cell through the data counter");
+    // '>' MemLock '<' копирует ячейку 0 в ячейку 1
+    $display("MemLock: copy a cell through the data counter");
     do_op(OP_CIN, 1'b0, data_bcd(123));    // cell0 := 123 в счётчике, MemLock
     mem_rd_cnt = 0; mem_wr_cnt = 0;
     do_op(OP_AP_STEP, 1'b0, 12'd0);        // cell0 := 123, AP=1
@@ -361,15 +361,15 @@ initial begin
         errors++;
         $display("FAIL: mem_lock after AP step");
     end
-    do_op(OP_STORE, 1'b0, 12'd0);
-    check_mem("STORE", 0, 1);
+    do_op(OP_MEMLOCK, 1'b0, 12'd0);
+    check_mem("MEMLOCK", 0, 1);
     if (!mem_lock || data_zero || !data_zero_valid) begin
         errors++;
-        $display("FAIL: STORE: lock=%b data_zero=%b valid=%b", mem_lock, data_zero, data_zero_valid);
+        $display("FAIL: MemLock: lock=%b data_zero=%b valid=%b", mem_lock, data_zero, data_zero_valid);
     end
-    check_data("STORE keeps the counter", 123);
+    check_data("MemLock keeps the counter", 123);
     do_op(OP_AP_STEP, 1'b1, 12'd0);        // cell1 := 123, AP=0
-    check_mem("AP step after STORE", 0, 2);
+    check_mem("AP step after MemLock", 0, 2);
     do_op(OP_COUT, 1'b0, 12'd0);           // регистр памяти ушёл с адреса
     check_data("cell0", 123);
     do_op(OP_AP_STEP, 1'b0, 12'd0);        // AP=1
@@ -377,18 +377,18 @@ initial begin
     check_mem("copy read back", 2, 2);
     check_data("copy in cell1", 123);
 
-    $display("STORE with MemLock set changes nothing");
+    $display("MemLock with MemLock set changes nothing");
     do_op(OP_DATA_STEP, 1'b0, 12'd0);      // 124, значение уже в регистре памяти
     mem_rd_cnt = 0; mem_wr_cnt = 0;
-    do_op(OP_STORE, 1'b0, 12'd0);
-    check_mem("STORE with lock", 0, 0);
-    check_data("STORE with lock", 124);
+    do_op(OP_MEMLOCK, 1'b0, 12'd0);
+    check_mem("MemLock with lock", 0, 0);
+    check_data("MemLock with lock", 124);
     if (!mem_lock) begin
         errors++;
-        $display("FAIL: mem_lock lost after STORE");
+        $display("FAIL: mem_lock lost after MemLock");
     end
     do_op(OP_AP_STEP, 1'b1, 12'd0);        // cell1 := 124, AP=0
-    check_mem("flush after STORE", 0, 1);
+    check_mem("flush after MemLock", 0, 1);
 
     $display("Lazy read: AP steps do not touch memory");
     mem_rd_cnt = 0; mem_wr_cnt = 0;

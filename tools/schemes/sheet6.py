@@ -13,9 +13,9 @@ def fig_mctrl():
                  (128, "key_insn_loading_*")):
         f.pin_in(12, y, 200, n)
     f.text(12, 166, "ТУМБЛЕРЫ", "tf")
-    for y, n in ((196, "echo_mode, soft_rst_on_eot"), (218, "run_on_*_rst, bell_on_* → реле")):
+    for y, n in ((196, "echo_mode, soft_rst_on_eot"), (218, "run_on_*_rst, bell_on_*")):
         f.pin_in(12, y, 200, n)
-    f.text(16, 240, "реле 2CO ×5, 0 ламп", "tl")
+    f.text(16, 240, "на лампах, реле нет (v0.43)", "tl")
     f.text(12, 256, "ТЕРМИНАЛ", "tf")
     f.pin_in(12, 286, 200, "rx_vld, tx_rdy")
     f.wire([(200, 312), (16, 312)], label="tx_vld, rx_rdy (конец CIN)", lx=20, ly=305, lcls="tp")

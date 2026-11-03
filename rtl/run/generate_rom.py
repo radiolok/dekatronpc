@@ -18,7 +18,7 @@ symbolToOpcode = {
     'S' : 0x0B, # LD: start of loading
     'E' : 0x0B, # LD: end of loading (EOT) in the load stream
     'A' : 0x0C, # CLRA
-    'P' : 0x0D, # STORE: MemLock without load (cell := data counter)
+    'P' : 0x0D, # MemLock: MemLock without load (cell := data counter)
     '{' : 0x0E, # skip if AP == 0
     '}' : 0x0F, # repeat if AP != 0
 }

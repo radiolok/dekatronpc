@@ -94,7 +94,7 @@ flags = '''<div class="tbl"><table class="spec">
 <tr><td><code>.</code> COUT</td><td>нет lock и нет mem_here</td><td>—</td><td>— · 1 после чтения; без lock ячейка грузится в счётчик, lock не меняется</td></tr>
 <tr><td>TEST</td><td>нет lock и нет mem_here</td><td>—</td><td>— · 1 после чтения</td></tr>
 <tr><td><code>,</code> CIN, <code>[-]</code> CLRD</td><td>—</td><td>—</td><td>1 · —</td></tr>
-<tr><td>STORE</td><td>—</td><td>—</td><td>1 · —; ячейка ← счётчик, запишется при шаге адреса (копирование <code>&gt;P&lt;</code>)</td></tr>
+<tr><td>MemLock</td><td>—</td><td>—</td><td>1 · —; ячейка ← счётчик, запишется при шаге адреса (копирование <code>&gt;P&lt;</code>)</td></tr>
 </tbody></table></div>'''
 
 S.append(sheet(5, "apline", "Линия данных ApLine",
@@ -106,7 +106,7 @@ S.append(sheet(5, "apline", "Линия данных ApLine",
 
 S.append(sheet(6, "mctrl", "Управление машиной MachineCtrl",
     '<p>MachineCtrl дешифрует 4-битный опкод (ISA16, режимов нет) и выдаёт ровно одну операцию на линию выборки, линию данных, терминал или реле сброса. Перед <code>[ ]</code>, если признак нуля не достоверен, он выдаёт ApLine саму скобку (TEST) — одно чтение на проверку, не на каждый шаг промотки. Кодом операции ApLine служит инструкция без перекодирования, IpLine получает только запрос выборки (REQ-APV2-008). Пока ApLine исполняет операцию (кроме TEST и CIN), IpLine уже читает следующую инструкцию, поэтому код текущей держит регистр op_q, а ApLine получает op_q (упреждающая выборка, REQ-PERF-003).</p>'
-    + fig(sheet6.fig_mctrl(), '<b>Структура.</b> loop_val_zero для IpLine: для <code>[ ]</code> — нуль ячейки, для <code>{ }</code> (op_q[3]) — нуль счётчика адреса. Тумблеры звонка и выбор пуска после сброса сделаны на реле 2CO, а не на лампах (REQ-MOD-011); echo_mode и soft_rst_on_eot идут в автомат напрямую.')
+    + fig(sheet6.fig_mctrl(), '<b>Структура.</b> loop_val_zero для IpLine: для <code>[ ]</code> — нуль ячейки, для <code>{ }</code> (op_q[3]) — нуль счётчика адреса. Все тумблеры идут в логику на лампах: реле 2CO убраны (TRS v0.43).')
     + fig(sheet6.fig_mctrl_fsm(), '<b>Автомат.</b> Стробы дешифрируются из состояния, код инструкции — из op_q; пар OP/WAIT нет (REQ-CTLV2-010). Если следующая инструкция выбрана заранее (pf_q), после S_WAIT или S_COUT автомат идёт сразу в S_DECODE (REQ-PERF-003). Вывод: «.» сначала уходит в ApLine как COUT, tx_vld — по его окончании (OPEN-017).'),
     "Управление машиной", "MachineCtrl.sv"))
 

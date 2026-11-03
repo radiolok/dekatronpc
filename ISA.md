@@ -19,7 +19,7 @@ The symbols are those of `rtl/run/generate_rom.py` and `bfutils/dpcrun`.
 | `0` | 0xA | `[-]` | CLRD | Clear the cell (sets MemLock) |
 | `S` `E` | 0xB | | LD | Start loading at the next address; in the load stream it ends loading (EOT) and is not stored |
 | `A` | 0xC | | CLRA | Clear the address pointer (a locked cell is written back first) |
-| `P` | 0xD | | STORE | Set MemLock without a load: the cell takes the data counter's value; `>P<` copies a cell to its neighbour |
+| `P` | 0xD | | MemLock | Set the MemLock flag without a load: the cell takes the data counter's value; `>P<` copies a cell to its neighbour |
 | `{` | 0xE | | LABEG | If the address pointer is zero, skip the loop |
 | `}` | 0xF | | LAEND | If the address pointer is not zero, repeat the loop |
 

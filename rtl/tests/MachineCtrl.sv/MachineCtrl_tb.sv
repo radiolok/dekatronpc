@@ -54,7 +54,7 @@ localparam [3:0]
 
 localparam [3:0]
     AP_NOP = 4'd0, AP_AP_STEP = 4'd1, AP_AP_ZERO = 4'd2, AP_DATA_STEP = 4'd3,
-    AP_DATA_ZERO = 4'd4, AP_CIN = 4'd5, AP_COUT = 4'd6, AP_STORE = 4'd8,
+    AP_DATA_ZERO = 4'd4, AP_CIN = 4'd5, AP_COUT = 4'd6, AP_MEMLOCK = 4'd8,
     AP_TEST = 4'd10;
 
 //----------------------------------------------------------------------
@@ -136,7 +136,7 @@ function automatic [3:0] ap_op_of(input [3:0] c);
         4'h4, 4'h5: ap_op_of = AP_AP_STEP;
         4'h8:       ap_op_of = AP_COUT;
         4'h9:       ap_op_of = AP_CIN;
-        4'hD:       ap_op_of = AP_STORE;
+        4'hD:       ap_op_of = AP_MEMLOCK;
         default:    ap_op_of = AP_NOP;
     endcase
 endfunction
@@ -423,7 +423,7 @@ task automatic check_isa_table();
                 4'h8: expect_only(what, AP_COUT, 1, 0);          // . (OPEN-017)
                 4'hA: expect_only(what, AP_DATA_ZERO, 0, 0);     // [-]
                 4'hC: expect_only(what, AP_AP_ZERO, 0, 0);       // CLRA
-                4'hD: expect_only(what, AP_STORE, 0, 0);         // STORE
+                4'hD: expect_only(what, AP_MEMLOCK, 0, 0);         // MemLock
                 default: expect_only(what, -1, 0, 0);            // NOP, скобки
             endcase
         end

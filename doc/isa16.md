@@ -16,7 +16,8 @@ define (§7) the owner decided (2026-11-02):
 - The bootloader is small enough for one decade: start at 99990.
 - MemLock control was there for copying through the data counter: after a move the
   counter still holds the old cell; "set MemLock at the new address and move on"
-  is enough. Implemented as STORE (0xD), see §2.
+  is enough. Implemented as the MemLock instruction (0xD, first called STORE; the
+  owner named it MemLock), see §2.
 
 All `DPC_CUT_*` defines of the insn_cost experiment and the `DPC_ISA16` define were
 removed; the RTL is ISA16 only. The experiment patch is not kept in the tree.
@@ -34,17 +35,17 @@ removed; the RTL is ISA16 only. The experiment patch is not kept in the tree.
 | 0xA | `0` | CLRD `[-]` | cell ← 0, sets MemLock |
 | 0xB | `S` / `E` | LD | outside loading: start loading at the next address (SOT); in the load stream: end of loading (EOT), not stored |
 | 0xC | `A` | CLRA | AP ← 0, a locked cell is written back first |
-| 0xD | `P` | STORE | sets MemLock without a load: the cell takes the counter's value |
+| 0xD | `P` | MemLock | sets the MemLock flag without a load: the cell takes the counter's value |
 | 0xE / 0xF | `{` `}` | LABEG / LAEND | test AP; no TEST, no memory access |
 
 Brackets are `x11x`: bit 0 open/close, bit 3 what is tested. IpLine's detector
 is `insn[2] & insn[1]`; the scan counts both kinds together, so `[{]}` is illegal.
 MachineCtrl: `loop_val_zero = op_q[3] ? ap_zero : data_zero`.
 
-**STORE copy.** `>` writes a locked cell A back and keeps A's value in the data
-counter. STORE at B sets MemLock: the counter now owns B with A's value. The next
+**MemLock copy.** `>` writes a locked cell A back and keeps A's value in the data
+counter. The MemLock instruction at B sets the flag: the counter now owns B with A's value. The next
 address change writes it into B. So `>P<` copies a cell to its right neighbour;
-`P` on a locked cell changes nothing. STORE never touches memory itself.
+`P` on a locked cell changes nothing. MemLock never touches memory itself.
 
 Gone: ISA0/ISA1 and the mode register, HRST/SRST opcodes (resets only from the
 panel and SoftRstOnEOT), CLRL (the Loop overflow clears only on a reset), CLRI,
@@ -70,7 +71,7 @@ soft-resets and runs the program from 0.
 - RTL: `MachineCtrl` (no `insn_mode`/`ip_clr` ports, 4-bit decode of `op_q`, `ap_op`
   4 bits), `IpLine` (no `clr`/`insn_mode`, states S_CLR_IP/S_CLR_LOOP removed,
   counters' `set_zero` tied off, EOT = `insn_in == 4'hB`), `ApLine` (4-bit `op`,
-  STORE only sets `lock_q`, S_FLUSH always ends in S_AP), `InsnLoopDetector` (x11x),
+  MemLock only sets `lock_q`, S_FLUSH always ends in S_AP), `InsnLoopDetector` (x11x),
   `IpMemory` (one-decade ROM), `DekatronPC` (wiring, `HARD_RST_D_CNT = 4`),
   `bootloader.sv`, program files (`HDE` → `HE`).
 - Emulator layer: `SymbolToOpcode`/`OpcodeToSymbol` 4-bit; `Keyboard` has no ISA
@@ -80,10 +81,10 @@ soft-resets and runs the program from 0.
 - Tools: `generate_rom.py` (ISA16 table), `cycle_profile.py` (opcode names, `op_q`),
   `synth_sim.sh` (IpLine netlist built with `HARD_RST_D_CNT = 4`).
 - Golden model `bfutils/dpcrun` (submodule, branch `ISA16`, fa057be): opcode enum,
-  `isLoopOpen/Close`, `loopValZero` by bit 3, LD, STORE, one-decade ROM; `mnemonic()`
+  `isLoopOpen/Close`, `loopValZero` by bit 3, LD, MemLock, one-decade ROM; `mnemonic()`
   and `opcodeToSymbol()` lost the mode argument, `insnMode()` is gone.
 - Tests: `IpLine_tb` (overflow and restart through a soft reset, `{ }` in the random
-  scan program, LD as EOT, hard reset 99990), `ApLine_tb` (STORE copy, STORE with
+  scan program, LD as EOT, hard reset 99990), `ApLine_tb` (MemLock copy, MemLock with
   lock, COUT instead of LOAD), `MachineCtrl_tb` (16-code table, TEST only before
   `[ ]`, `loop_val_zero` by opcode, LD as SOT/EOT, panel resets, overflow cleared by
   reset), `DekatronPC_tb` (NOP prefix, 99990), cocotb (`test_conversions`,
@@ -127,7 +128,7 @@ its pieces (`{0<}`, the AP wrap, LD at 99999 with SIMPLEBOOT).
 Seed 0: 1111.0 (6N16B 652, 6Zh2B 376, 6Kh7B 67) + 15 dekatrons.
 
 MachineCtrl gives the saving (no mode register, 4-bit decode, no ISA/reset/CLR
-branches). ApLine saves little: STORE is now a state-free lock set, CLRML/LOAD left
+branches). ApLine saves little: MemLock is now a state-free lock set, CLRML/LOAD left
 S_FLUSH/S_READ simpler, but the decoder was already shared.
 
 **IpLine got worse (+10).** Removing S_CLR_IP/S_CLR_LOOP leaves 7 states; Yosys
@@ -142,15 +143,44 @@ insn_cost.md §2). IpLine alone, 5 autoidx perturbations × 8 seeds = 40 runs ea
 | `"none"`, 3 bits, IDLE 0 · IP 6 · FETCH 1 · SCAN_EVAL 4 · LOOP 2 · INSN_IN 7 · HALT 3 | **374.1** | 1.0 |
 | `"none"`, 3 bits, 7 other random assignments | 378.1 … 393.4 | |
 
-(The base IpLine in the same method was 382.0, insn_cost.md §1.) So about −11 more
-tubes are available in IpLine, which would make ISA16 ≈ −50 against the base. It
-needs `fsm_encoding = "none"` with hand-picked codes, which contradicts the AGENTS
-rule "state registers carry `fsm_encoding = "binary"`" (whose purpose is to avoid
-one-hot); the owner decides. A wider code search (as in tube_count_reduction.md
-§17) could find more.
+(The base IpLine in the same method was 382.0, insn_cost.md §1.)
+
+### 6.0. v0.43: MemLock rename and relays removed
+
+`synth_seeds.sh -s "0 1 2 3"`: IpLine 389.1, ApLine 459.5, MachineCtrl 266.9, total
+**1115.5** (+5.2 against v0.42). The five RELAY_2CO of MachineCtrl (bell switches,
+run after reset) are now tube logic: MachineCtrl +4.4. Seed 0 in `run_tests.sh -s`:
+1121.0 tubes + 15 A110. Checks on the final tree: `run_tests.sh -t` (pi.bfk etc.
+match dpcrun), `-d` 9/9, `-s`, `synth_sim.sh` 7/7, `synth_sim.sh -t` 4/4 with 0
+violations, dpcrun 46/46; cocotb 34/34 ran on the same tree before IpLine went back
+to `"binary"` (cocotb has no IpLine test).
+
+### 6.1. Encoding search (v0.43) and why it was not adopted
+
+The owner allowed a search for a better IpLine encoding. With `fsm_encoding =
+"none"` (Yosys keeps the RTL codes) and 3-bit codes:
+
+- 96 random assignments × 8 runs, the best 12 × 40 runs: best IDLE 0 · IP 7 ·
+  FETCH 6 · SCAN_EVAL 3 · LOOP 5 · INSN_IN 2 · HALT 4, **374.9 ± 0.7** against 385.2
+  for `"binary"`.
+- The 48 assignments with the fewest multi-bit transitions passing through a strobe
+  state (6, the minimum for 3 bits) × 8 runs: best 377.3.
+
+All `"none"` variants pass `run_tests.sh -t/-d/-s` and `synth_sim.sh` (netlist with
+zero delays), but **fail `synth_sim.sh -t`** (netlist with tube delays): after `H`
+the terminal gets garbage and the data counter sees write and reset at once
+(`DekatronTubeDelay: illegal stimulus (conflict=1)`, 150 errors, TIMEOUT). Tried:
+the chosen code, two others, the 4-bit RTL codes, two low-hazard codes, and **the
+very codes Yosys picks for `"binary"`** (IDLE 0 · IP 5 · FETCH 2 · SCAN_EVAL 1 ·
+LOOP 6 · INSN_IN 4 · HALT 3, read from its `fsm_recode` log) with `"none"`. All fail
+identically, to the clock cycle, so the cause is not the codes or transition
+hazards: the netlist Yosys builds without FSM extraction differs in some other way
+that breaks timing under tube delays (0 setup/hold violations reported). Not
+investigated further; IpLine stays on `"binary"`. TRS §22 carries it as an open
+item; the zero-delay checks are not enough to accept an encoding change.
 
 For comparison, the experiment in §7 measured −63.7 for ISA16 + CLRA with the
-`DPC_CUT_*` harness (40-run method). The difference: STORE is back (D), the hard
+`DPC_CUT_*` harness (40-run method). The difference: MemLock is back (D), the hard
 reset sets four decades instead of three, the IpLine FSM recode, and the method
 (4 seeds versus 40 perturbed runs).
 
@@ -170,9 +200,8 @@ perturbations × 8 seeds × 3 blocks × 6 configurations):
 
 ## 8. Open points
 
-1. IpLine FSM encoding (§6): allow `fsm_encoding = "none"` with searched codes?
-2. bfutils: the ISA16 commit is local on its `ISA16` branch; the submodule pointer
-   in this repository points at it. It has to be pushed before CI can check out the
-   submodule.
+1. IpLine FSM without extraction (§6.1): find why the `"none"` netlist fails under
+   tube delays; then the searched code gives ≈ −10 tubes.
+2. bfutils: the ISA16 commit lives on its `ISA16` branch (pushed with this work).
 3. `rtl/DekatronPC/insnValues.sv` and `InsnDecoder.sv` still describe the old
    two-mode ISA (stale, only the old decoder and its cocotb test use them; TRS 19.4).

@@ -31,10 +31,10 @@
 // содержит ячейку, сначала её надо загрузить. Сменить адрес при lock_q
 // нельзя: счётчик сначала выгружается в память, и это снимает lock_q.
 //
-// STORE только ставит lock_q, не загружая ячейку: счётчик объявляется
+// MemLock только ставит lock_q, не загружая ячейку: счётчик объявляется
 // владельцем текущей ячейки со своим прежним значением, и следующий шаг
 // адреса выгрузит его в неё. После выгрузки счётчик хранит значение
-// прежней ячейки, поэтому '>' STORE '>' копирует ячейку на соседнюю.
+// прежней ячейки, поэтому '>' MemLock '<' копирует ячейку на соседнюю.
 //
 //----------------------------------------------------------------------
 // ПРИЗНАК НУЛЯ
@@ -122,7 +122,7 @@ module ApLine #(
     wire op_data_zero = (op == 4'hA);                  // [-]
     wire op_cin       = (op == 4'h9);                  // ,
     wire op_cout      = (op == 4'h8);                  // .
-    wire op_store     = (op == 4'hD);                  // STORE
+    wire op_memlock   = (op == 4'hD);                  // MemLock
     // Скобка [ ]: обеспечить достоверность признака нуля
     wire op_test      = (op == 4'h6) | (op == 4'h7);
 
@@ -337,7 +337,7 @@ module ApLine #(
 
                     // Счётчик забирает ячейку как есть, без загрузки:
                     // её значением становится его прежнее содержимое
-                    if (op_store)
+                    if (op_memlock)
                         lock_q <= 1'b1;
                 end
             end
@@ -406,7 +406,7 @@ module ApLine #(
 `ifdef ASSERTIONS
     always @(posedge clk) begin
         if (rst_n && valid && !(op_ap_step | op_ap_zero | op_data_step | op_data_zero |
-                                op_cin | op_cout | op_store | op_test))
+                                op_cin | op_cout | op_memlock | op_test))
             $error("ApLine: код %h не является операцией над данными", op);
         if (rst_n && $past(valid) && !$past(ready) && !valid)
             $error("ApLine: valid снят до handshake");

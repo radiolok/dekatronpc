@@ -80,7 +80,7 @@ def fig_apline_fsm():
     f.state("DOP", 470, 200, "S_DOP")
     f.state("AP", 790, 200, "S_AP")
 
-    f.selfloop("IDLE", "t", label="COUT: lock · TEST: ячейка рядом · STORE: lock ← 1", lx=448, ly=14, anchor="end")
+    f.selfloop("IDLE", "t", label="COUT: lock · TEST: ячейка рядом · MemLock: lock ← 1", lx=448, ly=14, anchor="end")
     f.edge("IDLE", "l", "READ", "r", oa=-8, ob=-8, cls="wacc", label="ячейка нужна и её нет",
            lx=310, ly=45, lcls="tacc")
     f.edge("READ", "r", "IDLE", "l", oa=8, ob=8, label="TEST", lx=310, ly=86)

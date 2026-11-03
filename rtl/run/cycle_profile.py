@@ -26,7 +26,7 @@ AS = {0: 'IDLE', 1: 'FLUSH', 2: 'READ', 3: 'AP', 4: 'DSET', 5: 'DOP'}
 # ISA16 opcodes (doc/isa16.md)
 OPN = {0x0: 'NOP', 0x1: 'HALT', 0x2: '+', 0x3: '-', 0x4: '>', 0x5: '<',
        0x6: '[', 0x7: ']', 0x8: '.', 0x9: ',', 0xa: '[-]', 0xb: 'LD',
-       0xc: 'CLRA', 0xd: 'STORE', 0xe: '{', 0xf: '}'}
+       0xc: 'CLRA', 0xd: 'MEMLOCK', 0xe: '{', 0xf: '}'}
 PAYLOAD = ['machineCtrl.state', 'ipLine.state',
            'ipLine.scanning_q', 'apLine.state', 'ap_ready', 'ip_ready', 'IpAddress']
 

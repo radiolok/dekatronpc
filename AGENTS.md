@@ -41,7 +41,7 @@ One 4-bit instruction set: there is no insn_mode and no ISA switch. Decode on th
 | 0x2 | INC + | 0xA | CLRD [-] (sets MemLock) |
 | 0x3 | DEC - | 0xB | LD: SOT; in the load stream EOT (not stored) |
 | 0x4 | AINC > | 0xC | CLRA (AP; a locked cell is flushed first) |
-| 0x5 | ADEC < | 0xD | STORE (sets MemLock without a load: cell := data counter) |
+| 0x5 | ADEC < | 0xD | MemLock (sets the MemLock flag without a load: cell := data counter) |
 | 0x6 | LBEG [ (skip if data==0) | 0xE | LABEG { (skip if AP==0) |
 | 0x7 | LEND ] (repeat if data!=0) | 0xF | LAEND } (repeat if AP!=0) |
 
@@ -61,13 +61,13 @@ One 4-bit instruction set: there is no insn_mode and no ISA switch. Decode on th
   - Data can't change without lock: load first.
   - The address can't change with lock set unless the cell is flushed first; the flush clears lock.
   - CLRD sets lock.
-  - STORE only sets lock: the counter takes the current cell with its old value, and the next address change writes it there (copy).
+  - The MemLock instruction (0xD) only sets lock: the counter takes the current cell with its old value, and the next address change writes it there (copy).
   - The memory's rd_data holds the last touched cell, so ApLine never keeps its own copy.
 - **Decode once**: ApLine gets the opcode itself; IpLine gets only "next instruction" requests (no clr). IpLine has no opcode register (insn is the memory's rd_data). EOT is never written to memory and is reported as insn_eot.
 - **Prefetch** (doc/prefetch_p3.md): MachineCtrl fetches the next opcode during an ApLine op, so all decode after the fetch uses op_q. CIN and brackets must not prefetch. On halt, ip_ahead suppresses the halt step. MachineCtrl issues TEST before [ and ], never before { }.
 - **Terminal RX (REQ-UART-008)**: the sender holds rx_data_bcd until rx_vld & rx_rdy, and ApLine loads Data straight from it.
-- **Relays (REQ-MOD-011)**: logic driven only by panel switches may use RelayMux/RelayEn (rtl/Logic/Relay.sv). A coil is never driven by fast or clocked logic. Use a relay only where it measurably removes tubes.
-- **Yosys FSMs**: state registers carry (\* fsm_encoding = "binary" \*).
+- **No relays in logic** (TRS v0.43, REQ-MOD-011 rejected): panel switches go into tube logic; a separate relay board is not worth a few tubes. RELAY_2CO stays in the liberty unused.
+- **Yosys FSMs**: state registers carry (\* fsm_encoding = "binary" \*). "none" (codes as written) passes the zero-delay checks but breaks `synth_sim.sh -t` (doc/isa16.md §6.1): any encoding change must pass the tube-delay netlist.
 - **Code**: synthesizable SystemVerilog only, with no X-masking tricks. FPGA primitives go only in the Emulator layer.
 - **Combinational loops**: Verilator UNOPTFLAT is an error. Fix it structurally, never with lint_off. A ripple written bit by bit into a vector that is also read counts as a loop: use locals in always_comb. Python models can't see zero-delay loops, so they don't replace a simulator.
 - **Delay model** (`define DEKATRON_DELAY_MODEL; DekatronTubeDelay is Icarus only and not in DPC.files) is the tube machine: synthesis always uses it (synt_dpc.tcl defines it and reads DekatronTubeDelay), and so do netlist sims and `run_tests.sh -d`. Under the define no module has an hsClk/hs_clk port, and OneShot/Impulse have no Clk port. All durations are in ns: the DEKATRON_*_NS macros in rtl/parameters.sv (guide/fall step, write/reset, phase delay/widths, edge pulse). The *_HS parameters belong to the clocked model only (doc/dekatron_delay_model.md, doc/dekatron_counter_single_cycle.md §7).

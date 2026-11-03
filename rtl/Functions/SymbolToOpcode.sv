@@ -20,7 +20,7 @@ function logic [3:0] SymbolToOpcode (
     "S": SymbolToOpcode = 4'hB;   // LD: start of loading
     "E": SymbolToOpcode = 4'hB;   // LD: end of loading (EOT)
     "A": SymbolToOpcode = 4'hC;   // CLRA
-    "P": SymbolToOpcode = 4'hD;   // STORE
+    "P": SymbolToOpcode = 4'hD;   // MemLock
     "{": SymbolToOpcode = 4'hE;
     "}": SymbolToOpcode = 4'hF;
     default: SymbolToOpcode = 4'h0;

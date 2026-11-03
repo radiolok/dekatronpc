@@ -48,7 +48,7 @@
 // Один 4-битный набор, режимов нет:
 //   0 NOP  1 HALT  2 +  3 -  4 >  5 <  6 [  7 ]  8 .  9 ,
 //   A [-] (CLRD)  B LD (SOT; в потоке загрузки — EOT)  C CLRA
-//   D STORE (MemLock без загрузки: ячейка := счётчик)  E {  F }
+//   D MemLock (MemLock без загрузки: ячейка := счётчик)  E {  F }
 // Скобки — x11x: бит 0 — открывающая/закрывающая, бит 3 — что
 // проверяется (0 — ячейка, 1 — счётчик адреса).
 //
@@ -276,22 +276,11 @@ module MachineCtrl #(
     // Звонок — импульс в такт события
     wire decode_run = in_decode & ~insn_loading;
 
-    // Тумблеры звонка — контакты реле, а не лампы (rtl/Logic/Relay.sv)
-    wire bell_halt, bell_cin, bell_error;
-    RelayEn #(.W(1)) u_bell_halt (
-        .en (bell_on_halt),
-        .a  ((in_idle & halt_key) | (decode_run & (op_q == 4'h1))),
-        .y  (bell_halt));
-    RelayEn #(.W(1)) u_bell_cin (
-        .en (bell_on_cin),
-        .a  (decode_run & is_cin),
-        .y  (bell_cin));
-    RelayEn #(.W(1)) u_bell_error (
-        .en (bell_on_error),
-        .a  (overflow_hit),
-        .y  (bell_error));
-
-    assign bell = bell_halt | bell_cin | bell_error;
+    // Тумблеры звонка — на лампах: реле ради нескольких ламп не стоят
+    // отдельной платы (владелец, TRS v0.43)
+    assign bell = (bell_on_halt  & ((in_idle & halt_key) | (decode_run & (op_q == 4'h1)))) |
+                  (bell_on_cin   & decode_run & is_cin) |
+                  (bell_on_error & overflow_hit);
 
     // Окончание инструкции: останов по кнопке или пошаговому режиму.
     // Если следующая инструкция уже выбрана, сразу её дешифрация: выход
@@ -300,17 +289,8 @@ module MachineCtrl #(
                       : pf_q                  ? S_DECODE
                       :                         S_IDLE;
 
-    // Эхо (echo_mode) остаётся на лампах: is_cin & echo_mode сливается с
-    // логикой перехода, реле лампу не экономит (doc/tube_count_reduction.md §15).
-
-    // Пуск после сброса: rst_soft ? run_on_soft_rst : run_on_hard_rst.
-    // Реле управляют только тумблеры, поэтому rst_soft идёт через контакты:
-    // {soft, hard} = 00 -> 0, 01 -> ~rst_soft, 10 -> rst_soft, 11 -> 1
-    wire run_on_rst;
-    RelayMux #(.W(1), .S(2)) u_run_on_rst (
-        .sel ({run_on_soft_rst, run_on_hard_rst}),
-        .d   ({1'b1, rst_soft, ~rst_soft, 1'b0}),
-        .y   (run_on_rst));
+    // Пуск после сброса
+    wire run_on_rst = rst_soft ? run_on_soft_rst : run_on_hard_rst;
 
     //------------------------------------------------------------------
     // Основной автомат
@@ -444,7 +424,7 @@ module MachineCtrl #(
                     4'h2, 4'h3,                         // + -
                     4'h4, 4'h5,                         // > <
                     4'h8,                               // . COUT
-                    4'hA, 4'hC, 4'hD:                   // [-] CLRA STORE
+                    4'hA, 4'hC, 4'hD:                   // [-] CLRA MemLock
                         state <= S_EXEC;
 
                     4'h9:                               // , CIN
