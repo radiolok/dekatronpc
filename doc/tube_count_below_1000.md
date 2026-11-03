@@ -199,6 +199,8 @@ What changes (the owner's decision, since it touches several conventions):
 
 ## 6. TC-N5: a cheaper edge-triggered flip-flop (−95…−108)
 
+**Update (TRS v0.50):** the SPICE study is in `doc/tc_n5_pulse_dff.md`. The pulse alone races, as feared below; the cell works with a delayed HV D input and plate chokes, at 3.5 tubes, setup 527 ns, hold −3 ns at fanout 6. Not in the liberty yet.
+
 The biggest single item. `DFF_J2N16` is two DC-gated RS latches plus a 6N16B for the D and
 clock inverters, 3 + 3 + 1 = **7 tubes**. With a scratch liberty where `DFF_J2N16` costs 3.5,
 on today's RTL: **1116.5 → 1008.0 (−108.5)**. After N1–N4 + O9 + O4 (27 triggers left):
