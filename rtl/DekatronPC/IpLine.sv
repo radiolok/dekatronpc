@@ -121,7 +121,6 @@ module IpLine #(
     // Выборка
     //------------------------------------------------------------------
     output wire [INSN_WIDTH-1:0] insn,
-    output wire                  insn_valid,
     output wire                  insn_eot,     // принят EOT; insn не значим
 
     //------------------------------------------------------------------
@@ -203,7 +202,6 @@ module IpLine #(
     logic                  halt_pending_q; // после шага IP уйти в останов
     logic                  overflow_q;
     logic                  eot_q;          // последним принят EOT
-    logic                  insn_valid_q;
 
     //------------------------------------------------------------------
     // Счётчик инструкций
@@ -316,7 +314,6 @@ module IpLine #(
     wire go = ip_ready & loop_ready & mem_ready;
 
     assign insn          = mem_rd_data;
-    assign insn_valid    = insn_valid_q;
     assign insn_eot      = eot_q;
 
     // После переполнения вложенности IpLine больше не отвечает до сброса
@@ -462,7 +459,6 @@ module IpLine #(
             ip_counted_q   <= 1'b0;
             scanning_q     <= 1'b0;
             halt_pending_q <= 1'b0;
-            insn_valid_q   <= 1'b0;
             eot_q          <= 1'b0;
             overflow_q     <= 1'b0;
             dir_q          <= 1'b0;   // входит в key_prev_s (TC-N3): без X после сброса
@@ -522,7 +518,6 @@ module IpLine #(
                     end
                     else if (halt_pending_q) begin
                         halt_pending_q <= 1'b0;
-                        insn_valid_q   <= 1'b0;
                     end
                     else if (insn_loading & ~scanning_q) begin
                         // в S_INSN_IN (state_nx)
@@ -538,9 +533,7 @@ module IpLine #(
             // S_SCAN_EVAL: опкод на выходе памяти достоверен по go
             //----------------------------------------------------------
             S_FETCH: begin
-                if (go) begin
-                    insn_valid_q <= 1'b1;
-                end
+                if (go) begin end   // в S_IDLE или S_SCAN_EVAL (state_nx)
             end
 
             //----------------------------------------------------------
@@ -584,7 +577,6 @@ module IpLine #(
                 else if (insn_in_valid) begin
                     if (go) begin
                         eot_q        <= end_of_transmission;
-                        insn_valid_q <= 1'b1;
                     end
                 end
                 // Иначе — ручное перемещение по программе во время
@@ -604,8 +596,8 @@ module IpLine #(
                 else begin
                     dir_q <= key_prev_db;
                     // Ручной шаг идёт прямо отсюда (key_mode, TC-N3);
-                    // после него инструкция читается заново
-                    if (key_step & go) insn_valid_q <= 1'b0;
+                    // после него инструкция читается заново: ip_counted_q
+                    // снят при входе в останов
                 end
             end
 

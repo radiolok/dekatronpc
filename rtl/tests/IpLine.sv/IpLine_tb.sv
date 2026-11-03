@@ -150,7 +150,6 @@ wire       ip_ready;
 
 wire       loop_val_zero;
 wire [3:0] Insn;
-wire       InsnValid;
 wire       InsnEot;
 
 reg        HaltRq    = 1'b0;
@@ -203,7 +202,6 @@ IpLine #(
     .ready        (ip_ready),
     .loop_val_zero(loop_val_zero),
     .insn         (Insn),
-    .insn_valid   (InsnValid),
     .insn_eot     (InsnEot),
     .halt_rq      (HaltRq),
     .ip_ahead     (IpAhead),
@@ -254,6 +252,13 @@ endfunction
 
 int errors = 0;
 
+// Опкод выбран после сброса: только тогда insn на ready обязан быть
+// определён (признака insn_valid у IpLine нет, TC-O9)
+reg fetched = 1'b0;
+always @(posedge Clk)
+    if (SoftRst | HardRst)      fetched <= 1'b0;
+    else if (ip_valid & ip_ready) fetched <= 1'b1;
+
 //----------------------------------------------------------------------
 // Мониторы
 //----------------------------------------------------------------------
@@ -270,7 +275,7 @@ always @(posedge Clk) begin
         $display("FAIL: ip_valid and loop_valid together");
     end
 `endif
-    if (Rst_n && ip_ready && InsnValid && ^Insn === 1'bx) begin
+    if (Rst_n && ip_ready && fetched && ^Insn === 1'bx) begin
         errors++;
         $display("FAIL: insn is X at ready");
     end
@@ -309,7 +314,6 @@ endtask
 //----------------------------------------------------------------------
 task automatic fetch_insn(output [3:0] code);
     do_op();
-    while (!(ip_ready & InsnValid)) @(negedge Clk);
     code = Insn;
 endtask
 
@@ -475,9 +479,9 @@ initial begin
         end
     end
     load_insn(4'hB);                    // LD = EOT: в память не пишется
-    if (!InsnEot || !InsnValid) begin
+    if (!InsnEot) begin
         errors++;
-        $display("FAIL: EOT not reported (insn_eot %b, insn_valid %b)", InsnEot, InsnValid);
+        $display("FAIL: EOT not reported (insn_eot %b)", InsnEot);
     end
     check_addr("EOT", prog_len);
     Loading = 1'b0;
@@ -583,10 +587,6 @@ initial begin
     fetch_insn(code);
     pulse_rst(1'b0);
     check_addr("soft reset", 0);
-    if (InsnValid) begin
-        errors++;
-        $display("FAIL: insn_valid after soft reset");
-    end
     fetch_insn(code);
     check_addr("fetch after soft reset", 0);
     if (code !== 4'h2) begin
@@ -603,9 +603,9 @@ initial begin
     HaltRq = 1'b1;
     repeat (20) @(negedge Clk);
     check_addr("halt step", 2);
-    if (ip_ready || InsnValid) begin
+    if (ip_ready) begin
         errors++;
-        $display("FAIL: halt: ready %b insn_valid %b", ip_ready, InsnValid);
+        $display("FAIL: halt: ready %b", ip_ready);
     end
     key_step(1'b0);
     check_addr("key next", 3);

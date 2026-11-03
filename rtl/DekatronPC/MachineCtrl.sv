@@ -108,7 +108,6 @@ module MachineCtrl #(
     output wire                   loop_val_zero,
     output logic                  insn_loading,
     input  wire [INSN_WIDTH-1:0]  insn,
-    input  wire                   insn_valid,
     input  wire                   insn_eot,     // при загрузке принят EOT
     input  wire                   loop_overflow,
 
@@ -340,8 +339,12 @@ module MachineCtrl #(
                 else if (go)   state <= S_FETCH_W;
             end
 
+            // Отдельного признака достоверности опкода нет (TC-O9): сюда
+            // автомат приходит только после принятой выборки, а IpLine
+            // поднимает ready лишь по её окончании, так что go уже значит
+            // «insn достоверен»
             S_FETCH_W: begin
-                if (go & insn_valid) begin
+                if (go) begin
                     // Загрузка программы прерывается кнопкой или остановом
                     if (insn_loading & (key_insn_loading_stop | halt_key)) begin
                         insn_loading <= 1'b0;
@@ -490,11 +493,17 @@ module MachineCtrl #(
 
 `ifndef SYNTH
 `ifdef ASSERTIONS
+    // Только для проверки: опкод уже выбран после сброса (insn_valid нет, TC-O9)
+    logic insn_seen = 1'b0;
+    always @(posedge clk)
+        if (rst_line)                      insn_seen <= 1'b0;
+        else if ((state == S_FETCH_W) & go) insn_seen <= 1'b1;
+
     always @(posedge clk) begin
         if (rst_n && soft_rst_req && hard_rst_req)
             $error("MachineCtrl: одновременный запрос программного и аппаратного сброса");
-        if (rst_n && ip_valid && !insn_loading &&
-            insn_valid && ((insn == 4'h6) || (insn == 4'h7)) && !data_zero_valid)
+        if (rst_n && ip_valid && !insn_loading && insn_seen &&
+            ((insn == 4'h6) || (insn == 4'h7)) && !data_zero_valid)
             $error("MachineCtrl: скобка обрабатывается при недостоверном признаке нуля");
         if (rst_n && insn_loading && ap_valid)
             $error("MachineCtrl: операция над данными во время загрузки программы");

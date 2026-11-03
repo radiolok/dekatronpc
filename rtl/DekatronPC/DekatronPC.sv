@@ -305,7 +305,6 @@ module DekatronPC #(
     wire                  insn_eot;
     wire                  loop_val_zero;
     wire                  insn_loading;
-    wire                  insn_valid;
 
     wire [IP_W-1:0]       ip_mem_addr;
     wire [INSN_WIDTH-1:0] ip_mem_wr_data, ip_mem_rd_data;
@@ -330,7 +329,6 @@ module DekatronPC #(
         .ip_ahead      (ip_ahead),
 
         .insn          (Insn),
-        .insn_valid    (insn_valid),
         .insn_eot      (insn_eot),
 
         .halt_rq       (IsHalted),
@@ -490,7 +488,6 @@ module DekatronPC #(
         .loop_val_zero          (loop_val_zero),
         .insn_loading           (insn_loading),
         .insn                   (Insn),
-        .insn_valid             (insn_valid),
         .insn_eot               (insn_eot),
         .loop_overflow          (LoopOverflow),
 

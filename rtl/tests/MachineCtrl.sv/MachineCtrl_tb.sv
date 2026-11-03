@@ -74,7 +74,6 @@ wire       ip_ahead;
 wire       loop_val_zero;
 wire       insn_loading;
 reg  [3:0] insn = 4'h0;
-reg        insn_valid = 1'b0;
 reg        insn_eot = 1'b0;
 reg        loop_overflow = 1'b0;
 
@@ -107,7 +106,7 @@ MachineCtrl #(.EN_EMULATOR(1'b1)) dut (
     .bell_on_cin(bell_on_cin), .bell_on_halt(bell_on_halt), .bell_on_error(bell_on_error),
     .ip_valid(ip_valid), .ip_ready(ip_ready), .ip_ahead(ip_ahead),
     .loop_val_zero(loop_val_zero), .insn_loading(insn_loading),
-    .insn(insn), .insn_valid(insn_valid), .insn_eot(insn_eot),
+    .insn(insn), .insn_eot(insn_eot),
     .loop_overflow(loop_overflow),
     .ap_valid(ap_valid), .ap_ready(ap_ready), .ap_op(ap_op_w),
     .data_zero(data_zero), .data_zero_valid(data_zero_valid), .ap_zero(ap_zero),
@@ -178,7 +177,6 @@ always @(posedge clk) begin
     if (soft_rst | hard_rst) begin
         ip_busy     <= 0;
         ip_fetching <= 1'b0;
-        insn_valid  <= 1'b0;
         reread      <= 1'b0;
         loop_overflow <= 1'b0;    // счётчик вложенности сбрасывается линией
     end
@@ -205,7 +203,6 @@ always @(posedge clk) begin
             end
             else if (reread) begin
                 reread      <= 1'b0;
-                insn_valid  <= 1'b1;
                 ip_fetching <= 1'b0;
                 ip_busy     <= 1;
             end
@@ -219,7 +216,6 @@ always @(posedge clk) begin
                 else begin
                     insn <= prog.pop_front();
                 end
-                insn_valid  <= 1'b1;
                 ip_fetching <= 1'b0;
                 ip_busy     <= 1;
             end

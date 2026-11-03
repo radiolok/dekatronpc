@@ -23,7 +23,7 @@ steps are close to the ABC noise.
 | TC-N1 | take | **done** (TRS v0.44): 1115.5 → **1085.0** over seeds 0–3 (§11) |
 | TC-N3 | take, and count the key debouncer and the synchronizer; a liberty cell between the key and the counter input | **done** (TRS v0.45): 1085.0 → **1083.0** (§12) |
 | TC-N2 | take: the overflow lamp latches a self-holding relay that stops the clock; a liberty cell for it is welcome | **done** (TRS v0.46): 1083.0 → **1068.0**, with an explicit reset gate on IpLine's `state` (§13) |
-| TC-O9 | take, if the other lines already carry the validity | |
+| TC-O9 | take, if the other lines already carry the validity | **done** (TRS v0.47): 1068.0 → **1053.2** (§14) |
 | TC-O4 | take, if the memory interface doesn't change | **not taken** (2026-11-03): sharing the read bus needs a new "release the bus on CIN" control in the memory support |
 | TC-N4 | **rejected on purpose**: no NOP at the start of a program | – |
 | TC-N5 | later, as a separate large piece of work | – |
@@ -419,3 +419,44 @@ Against §3 (−25 measured without the gate): the gate and the lost FSM optimiz
 Checks: cocotb 34/34; `run_tests.sh -t` (helloworld, program.bfk, pi.bfk match dpcrun), `-d`,
 `-s`; `synth_sim.sh` 7/7; `synth_sim.sh -t` 4/4 (0 setup, 0 hold, 20 masked at `key_next_s`, as in
 v0.45); STA 9.32 µs (was 9.03), 100 kHz meets with 0.68 µs of slack. Owner's table above: TC-N2 done.
+
+## 14. TC-O9 done (TRS v0.47)
+
+**Change.** IpLine's `insn_valid` output and its trigger `insn_valid_q` are gone; MachineCtrl's
+`S_FETCH_W` leaves on `go` alone. The owner's condition was "if the other lines already carry the
+validity", and they do:
+
+- MachineCtrl enters `S_FETCH_W` only from `S_IDLE`, in the cycle its fetch request is accepted
+  (`ip_valid` contains `go`, so IpLine was ready). On that edge IpLine leaves `S_IDLE`.
+- IpLine comes back to `S_IDLE` (and only there raises `ready`) through `S_FETCH` or `S_INSN_IN`,
+  which were exactly the places that set `insn_valid_q`, or after a scan that ends on the matching
+  bracket, read by its own `S_FETCH`.
+- The only way back to `S_IDLE` without a read was the overflow branch, and since TC-N2 `ready` is low
+  there until a reset.
+- `insn_valid_q` was cleared by a reset, on a halt step and by the ±IP keys, all in states where
+  MachineCtrl is not in `S_FETCH_W` (reset, `S_HALT`).
+
+So `go` in `S_FETCH_W` already means "the opcode on `insn` is the fetched one". The two simulation
+checks that used the flag now track "an opcode was fetched since the reset" themselves: MachineCtrl's
+assertion (bracket with an unknown zero flag) with a sim-only `insn_seen`, IpLine_tb's "insn is X at
+ready" with `fetched`. `rtl/DekatronPC/model_opcodes.py` still models the flag, but nothing uses that
+file (its overflow at 999 is stale too).
+
+**Count**, `synth_seeds.sh -s "0 1 2 3"`:
+
+| Seed | IpLine | ApLine | MachineCtrl | Total |
+|---|---|---|---|---|
+| 0 | 375.5 | 433.0 | 244.0 | 1052.5 |
+| 1 | 380.0 | 435.5 | 242.0 | 1057.5 |
+| 2 | 378.0 | 435.5 | 243.5 | 1057.0 |
+| 3 | 369.5 | 432.5 | 244.0 | 1046.0 |
+| mean | | | | **1053.2** (was 1068.0, −14.8) |
+
+IpLine 390.3 → 375.8: one trigger (7) and its next-state logic; MachineCtrl unchanged within noise.
+
+Checks: cocotb 34/34; `run_tests.sh -t` (helloworld, program.bfk, pi.bfk match dpcrun), `-d`, `-s`;
+`synth_sim.sh` 7/7; `synth_sim.sh -t` 4/4 (0 setup, 0 hold, 20 masked); STA 8.97 µs (was 9.32),
+100 kHz meets with 1.03 µs of slack.
+
+With TC-O4 not taken, the fourth pass is closed: **1115.5 (v0.43) → 1053.2** over seeds
+0–3 by TC-N1, N3, N2 and O9. Left for later: TC-N5 (capacitor-clocked flip-flop, ≈ −95), N6, N7.
