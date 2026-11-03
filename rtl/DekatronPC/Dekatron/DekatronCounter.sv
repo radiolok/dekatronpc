@@ -458,6 +458,7 @@ module DekatronCounter #(
                 (IS_HARD_DEC   ? 9 : 0);
 
             localparam bit EN_RESET_N_D = TOP_LIMIT_MODE || IS_HARD_DEC;
+            localparam bit IS_TOP_DEC   = TOP_LIMIT_MODE && (d == int'(D_NUM) - 1);
 
 
             //----------------------------------------------------------
@@ -475,6 +476,8 @@ module DekatronCounter #(
                 .TOP_LIMIT_MODE  (EN_RESET_N_D),
                 .TOP_PIN_OUT     (RESET_N_POS_D),
                 .INIT_DIGIT      (4'd0),
+                // Верхняя декада с пределом не уходит выше цифры предела (TC-N1)
+                .MAX_DIGIT       (IS_TOP_DEC ? int'(TOP_VALUE[(d+1)*DW-1 -: DW]) : 9),
                 .GUIDE_STEP_HS   (GUIDE_STEP_HS),
                 .FALL_STEP_HS    (FALL_STEP_HS),
                 .WRITE_MIN_HS    (WRITE_MIN_HS),

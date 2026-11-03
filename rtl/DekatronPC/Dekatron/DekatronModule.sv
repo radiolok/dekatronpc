@@ -133,6 +133,10 @@ module DekatronModule #(
     // Начальное положение разряда после включения питания
     parameter logic [3:0]  INIT_DIGIT      = 4'd0,
 
+    // Старшая цифра, до которой доходит разряд (TC-N1): катоды выше неё
+    // не читаются и не пишутся. Сотни счётчика данных (предел 255) — 2
+    parameter unsigned MAX_DIGIT       = 9,
+
     // Временные характеристики декатрона (такты hsClk)
     parameter unsigned GUIDE_STEP_HS   = 1,
     parameter unsigned FALL_STEP_HS    = 1,
@@ -184,6 +188,9 @@ module DekatronModule #(
     wire [9:0] MainOneHotLine;  // катодные линии декатрона
     wire [9:0] MainOneHot;      // позиционный код за диодами чтения
     wire [9:0] WritePos;        // позиционный код на усилители записи
+
+    // Катоды выше MAX_DIGIT (TC-N1) остаются без диода и без канала записи
+    localparam logic [9:0] DIG_MASK = 10'((1 << (MAX_DIGIT + 1)) - 1);
     wire       GuideA_d;        // импульсы на подкатоды этой декады
     wire       GuideB_d;
 
@@ -213,11 +220,14 @@ module DekatronModule #(
         if (WRITE) begin : g_write
             // Дешифратор берёт инверсные тетрады: литералы те же, полярность
             // меняет только разводку входов
+            wire [9:0] WritePosAll;
             BcdToBinEn bcdToOneHot (
                 .In  (~In_n),
                 .En  (SetData),
-                .Out (WritePos)
+                .Out (WritePosAll)
             );
+            // Выше MAX_DIGIT каналов записи нет (TC-N1)
+            assign WritePos = WritePosAll & DIG_MASK;
             assign WriteEn = SetData;
         end
         else begin : g_no_write
@@ -295,9 +305,9 @@ module DekatronModule #(
     // Диоды чтения (RDD_X7, ½ 6Х7Б на линию): все десять линий при READ,
     // иначе только линии признаков — K0, K9 и катод TOP_PIN_OUT
     //------------------------------------------------------------------
-    localparam logic [9:0] READ_LINES =
+    localparam logic [9:0] READ_LINES = DIG_MASK & (
         READ ? 10'h3FF :
-        (10'b10_0000_0001 | (TOP_LIMIT_MODE ? (10'b1 << TOP_PIN_OUT) : 10'b0));
+        (10'b10_0000_0001 | (TOP_LIMIT_MODE ? (10'b1 << TOP_PIN_OUT) : 10'b0)));
 
     generate
         genvar k;
@@ -309,7 +319,8 @@ module DekatronModule #(
                 );
             end
             else begin : g_off
-                assign MainOneHot[k] = MainOneHotLine[k];   // линия не читается
+                // линия не читается; выше MAX_DIGIT её нет вовсе
+                assign MainOneHot[k] = DIG_MASK[k] ? MainOneHotLine[k] : 1'b0;
             end
         end
     endgenerate
@@ -322,7 +333,7 @@ module DekatronModule #(
     //------------------------------------------------------------------
     generate
         if (WRITE) begin : g_wrch_full
-            for (k = 0; k < 10; k++) begin : g_ch
+            for (k = 0; k <= int'(MAX_DIGIT); k++) begin : g_ch
                 /* verilator lint_off PINCONNECTEMPTY */
                 (* keep *) WRCH_N16 wrch (.A (WritePos[k]), .Y ());
                 /* verilator lint_on PINCONNECTEMPTY */
@@ -405,6 +416,9 @@ module DekatronModule #(
             $error("DekatronModule: фазы занимают весь такт, окна сваливания не остаётся");
 `endif
 
+        if (MAX_DIGIT > 9 || (TOP_LIMIT_MODE && TOP_PIN_OUT > MAX_DIGIT))
+            $error("DekatronModule: MAX_DIGIT (%0d) must be 0..9 and cover TOP_PIN_OUT (%0d)",
+                   MAX_DIGIT, TOP_PIN_OUT);
         if (TOP_PIN_OUT > 9)
             $error("DekatronModule: TOP_PIN_OUT (%0d) must be in range 0..9",
                    TOP_PIN_OUT);

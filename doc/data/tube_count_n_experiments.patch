@@ -1,0 +1,257 @@
+diff -ru base/rtl/DekatronPC/ApLine.sv all2/rtl/DekatronPC/ApLine.sv
+--- base/rtl/DekatronPC/ApLine.sv	2026-11-03 08:56:41.190878147 +0300
++++ all2/rtl/DekatronPC/ApLine.sv	2026-11-03 09:03:17.655088835 +0300
+@@ -235,7 +235,7 @@
+     // rx_data_bcd до рукопожатия rx_vld & rx_rdy, а rx_rdy верхний автомат
+     // выдаёт только по завершении CIN, когда запись в счётчик окончена
+     // (REQ-UART-008). op мастер держит до ready.
+-    assign data_in_n = op_cin ? rx_data_bcd : cell_from_mem_n;
++    assign data_in_n = cell_from_mem_n;
+ 
+     //------------------------------------------------------------------
+     // Наблюдаемое состояние
+diff -ru base/rtl/DekatronPC/Dekatron/DekatronCounter.sv all2/rtl/DekatronPC/Dekatron/DekatronCounter.sv
+--- base/rtl/DekatronPC/Dekatron/DekatronCounter.sv	2026-11-03 08:56:41.186961832 +0300
++++ all2/rtl/DekatronPC/Dekatron/DekatronCounter.sv	2026-11-03 09:03:03.564713678 +0300
+@@ -475,6 +475,7 @@
+                 .TOP_LIMIT_MODE  (EN_RESET_N_D),
+                 .TOP_PIN_OUT     (RESET_N_POS_D),
+                 .INIT_DIGIT      (4'd0),
++                .MAX_DIGIT       ((TOP_LIMIT_MODE && d == int'(D_NUM)-1) ? int'(TOP_VALUE[(d+1)*DW-1 -: DW]) : 9),
+                 .GUIDE_STEP_HS   (GUIDE_STEP_HS),
+                 .FALL_STEP_HS    (FALL_STEP_HS),
+                 .WRITE_MIN_HS    (WRITE_MIN_HS),
+diff -ru base/rtl/DekatronPC/Dekatron/DekatronModule.sv all2/rtl/DekatronPC/Dekatron/DekatronModule.sv
+--- base/rtl/DekatronPC/Dekatron/DekatronModule.sv	2026-11-03 08:56:41.189904399 +0300
++++ all2/rtl/DekatronPC/Dekatron/DekatronModule.sv	2026-11-03 09:03:03.564985404 +0300
+@@ -132,6 +132,7 @@
+ 
+     // Начальное положение разряда после включения питания
+     parameter logic [3:0]  INIT_DIGIT      = 4'd0,
++    parameter unsigned MAX_DIGIT = 9,
+ 
+     // Временные характеристики декатрона (такты hsClk)
+     parameter unsigned GUIDE_STEP_HS   = 1,
+@@ -295,9 +296,10 @@
+     // Диоды чтения (RDD_X7, ½ 6Х7Б на линию): все десять линий при READ,
+     // иначе только линии признаков — K0, K9 и катод TOP_PIN_OUT
+     //------------------------------------------------------------------
+-    localparam logic [9:0] READ_LINES =
++    localparam logic [9:0] DIG_MASK = 10'((1 << (MAX_DIGIT+1)) - 1);
++    localparam logic [9:0] READ_LINES = DIG_MASK & (
+         READ ? 10'h3FF :
+-        (10'b10_0000_0001 | (TOP_LIMIT_MODE ? (10'b1 << TOP_PIN_OUT) : 10'b0));
++        (10'b10_0000_0001 | (TOP_LIMIT_MODE ? (10'b1 << TOP_PIN_OUT) : 10'b0)));
+ 
+     generate
+         genvar k;
+@@ -309,7 +311,7 @@
+                 );
+             end
+             else begin : g_off
+-                assign MainOneHot[k] = MainOneHotLine[k];   // линия не читается
++                assign MainOneHot[k] = DIG_MASK[k] ? MainOneHotLine[k] : 1'b0;
+             end
+         end
+     endgenerate
+@@ -322,7 +324,7 @@
+     //------------------------------------------------------------------
+     generate
+         if (WRITE) begin : g_wrch_full
+-            for (k = 0; k < 10; k++) begin : g_ch
++            for (k = 0; k <= MAX_DIGIT; k++) begin : g_ch
+                 /* verilator lint_off PINCONNECTEMPTY */
+                 (* keep *) WRCH_N16 wrch (.A (WritePos[k]), .Y ());
+                 /* verilator lint_on PINCONNECTEMPTY */
+diff -ru base/rtl/DekatronPC/IpLine.sv all2/rtl/DekatronPC/IpLine.sv
+--- base/rtl/DekatronPC/IpLine.sv	2026-11-03 08:56:41.184612207 +0300
++++ all2/rtl/DekatronPC/IpLine.sv	2026-11-03 09:03:03.575935994 +0300
+@@ -171,19 +171,21 @@
+     // а триггер стоит 7 ламп (doc/tube_count_reduction.md §17.2)
+     (* fsm_encoding = "binary" *) logic [3:0] state;
+ 
+-    logic                  ip_counted_q;   // IP уже сдвинут под текущую инструкцию
++    wire ip_counted_q = 1'b1;
+     logic                  scanning_q;     // идёт промотка тела цикла
+     logic                  dir_q;          // направление шага IP: 1 — назад
+     logic                  key_moved_q;    // ручной шаг уже сделан, ждём отпускания
+-    logic                  halt_pending_q; // после шага IP уйти в останов
++    wire halt_pending_q = 1'b0;
+     logic                  overflow_q;
+     logic                  eot_q;          // последним принят EOT
+-    logic                  insn_valid_q;
++    wire insn_valid_q = 1'b1;
+ 
+     //------------------------------------------------------------------
+     // Счётчик инструкций
+     //------------------------------------------------------------------
+     wire            ip_valid;
++    wire key_mode;
++    wire key_step;
+     wire            ip_ready;
+     wire [IP_W-1:0] ip_out_n;     // тетрады активным нулём (TC-O3)
+ 
+@@ -203,7 +205,7 @@
+         .hard_rst  (hard_rst),
+         .valid     (ip_valid),
+         .ready     (ip_ready),
+-        .dec       (dir_q),
++        .dec       (key_mode ? key_prev_ip : dir_q),
+         .set       (1'b0),
+         .set_zero  (1'b0),
+         .in_n      ({IP_W{1'b1}}),
+@@ -292,7 +294,7 @@
+     assign insn_valid    = insn_valid_q;
+     assign insn_eot      = eot_q;
+ 
+-    assign ready = (state == S_IDLE) & ~halt_rq & go;
++    assign ready = (state == S_IDLE) & ~halt_rq & go & ~overflow_q;
+ 
+     wire accept = valid & ready;
+ 
+@@ -308,7 +310,7 @@
+     wire end_of_transmission = (insn_in == 4'hB);   // LD
+ 
+     // Ручной шаг по программе: одна кнопка, один шаг до отпускания
+-    wire key_step    = (key_prev_ip | key_next_ip) & ~key_moved_q;
++    assign key_step    = (key_prev_ip | key_next_ip) & ~key_moved_q;
+     wire key_release = ~key_prev_ip & ~key_next_ip;
+ 
+     // Парная скобка найдена: счётчик вложенности вернулся в нуль после
+@@ -338,7 +340,8 @@
+     wire in_fetch    = (state == S_FETCH);
+     wire in_loop     = (state == S_LOOP);
+ 
+-    assign ip_valid      = in_ip & ~scan_done & go;
++    assign key_mode = ((state == S_HALT) & halt_rq) | ((state == S_INSN_IN) & insn_loading & ~insn_in_valid);
++    assign ip_valid      = ((in_ip & ~scan_done) | (key_mode & key_step)) & go;
+     assign loop_valid    = in_loop & go;
+     assign loop_dec      = dir_q ? insn_loop_open : insn_loop_close;
+     assign mem_valid     = (in_fetch & go) | (insn_in_accept & ~end_of_transmission);
+@@ -356,10 +359,7 @@
+         // адрес ушёл на начало, прочитанная инструкция недостоверна
+         if (soft_rst | hard_rst) begin
+             state          <= S_IDLE;
+-            ip_counted_q   <= 1'b0;
+             scanning_q     <= 1'b0;
+-            halt_pending_q <= 1'b0;
+-            insn_valid_q   <= 1'b0;
+             eot_q          <= 1'b0;
+             overflow_q     <= 1'b0;
+         end
+@@ -372,9 +372,7 @@
+                     // При останове продвигаем IP на следующую
+                     // инструкцию и снимаем признак выборки, чтобы
+                     // после возобновления читать заново
+-                    ip_counted_q <= 1'b0;
+-                    if (ip_counted_q & ~ip_ahead) begin
+-                        halt_pending_q <= 1'b1;
++                    if (1'b0) begin
+                         dir_q          <= 1'b0;
+                         state          <= S_IP;
+                     end
+@@ -388,7 +386,6 @@
+                     if (~ip_counted_q) begin
+                         // Первая выборка после сброса: читаем по
+                         // текущему адресу, счётчик не двигаем
+-                        ip_counted_q <= 1'b1;
+                         state <= insn_loading ? S_INSN_IN : S_FETCH;
+                     end
+                     else if (~insn_loading & scan_req & loop_at_top) begin
+@@ -421,8 +418,6 @@
+                         state      <= S_IDLE;
+                     end
+                     else if (halt_pending_q) begin
+-                        halt_pending_q <= 1'b0;
+-                        insn_valid_q   <= 1'b0;
+                         state          <= S_HALT;
+                     end
+                     else if (insn_loading & ~scanning_q) begin
+@@ -440,7 +435,6 @@
+             //----------------------------------------------------------
+             S_FETCH: begin
+                 if (go) begin
+-                    insn_valid_q <= 1'b1;
+                     state        <= scanning_q ? S_SCAN_EVAL : S_IDLE;
+                 end
+             end
+@@ -487,15 +481,11 @@
+                 else if (insn_in_valid) begin
+                     if (go) begin
+                         eot_q        <= end_of_transmission;
+-                        insn_valid_q <= 1'b1;
+                         state        <= S_IDLE;
+                     end
+                 end
+                 else if (key_step) begin
+-                    // Ручное перемещение по программе во время загрузки
+-                    key_moved_q <= 1'b1;
+-                    dir_q       <= key_prev_ip;
+-                    state       <= S_IP;
++                    if (go) key_moved_q <= 1'b1;
+                 end
+                 else if (key_release) begin
+                     key_moved_q <= 1'b0;
+@@ -510,11 +500,9 @@
+                     state <= S_IDLE;
+                 end
+                 else if (key_step) begin
+-                    key_moved_q <= 1'b1;
+-                    dir_q       <= key_prev_ip;
+-                    state       <= S_IP;
+-                    // После ручного шага инструкция читается заново
+-                    halt_pending_q <= 1'b1;
++                    if (go) begin
++                        key_moved_q  <= 1'b1;
++                    end
+                 end
+                 else if (key_release) begin
+                     key_moved_q <= 1'b0;
+diff -ru base/rtl/DekatronPC/MachineCtrl.sv all2/rtl/DekatronPC/MachineCtrl.sv
+--- base/rtl/DekatronPC/MachineCtrl.sv	2026-11-03 08:56:41.190730305 +0300
++++ all2/rtl/DekatronPC/MachineCtrl.sv	2026-11-03 09:03:03.576121424 +0300
+@@ -229,7 +229,7 @@
+     // исполнение бессмысленно: машина останавливается (REQ-CTLV2-005).
+     // Реакция на фронт: IpLine держит признак до сброса, и
+     // после пуска с пульта машина не должна останавливаться снова.
+-    wire overflow_hit = loop_overflow & ~overflow_q;
++    wire overflow_hit = 1'b0;
+ 
+     //------------------------------------------------------------------
+     // Стробы исполнителям — дешифрация состояния (автомат Мура)
+@@ -280,7 +280,7 @@
+     // отдельной платы (владелец, TRS v0.43)
+     assign bell = (bell_on_halt  & ((in_idle & halt_key) | (decode_run & (op_q == 4'h1)))) |
+                   (bell_on_cin   & decode_run & is_cin) |
+-                  (bell_on_error & overflow_hit);
++                  (bell_on_error & loop_overflow);
+ 
+     // Окончание инструкции: останов по кнопке или пошаговому режиму.
+     // Если следующая инструкция уже выбрана, сразу её дешифрация: выход
+@@ -300,7 +300,7 @@
+     // аппаратный сброс реле времени при включении (REQ-REF-011, TC-O5)
+     always_ff @(posedge clk) begin
+         begin
+-            overflow_q <= loop_overflow;
++            
+ 
+             if (op_load) op_q <= insn;
+ 
+@@ -331,7 +331,7 @@
+ 
+                     if (~one_step) begin
+                         if (step_key) one_step <= 1'b1;
+-                        state <= S_IDLE;
++                        state <= pf_q ? S_DECODE : S_IDLE;
+                     end
+                 end
+ 
+@@ -351,7 +351,7 @@
+             end
+ 
+             S_FETCH_W: begin
+-                if (go & insn_valid) begin
++                if (go) begin
+                     // Загрузка программы прерывается кнопкой или остановом
+                     if (insn_loading & (key_insn_loading_stop | halt_key)) begin
+                         insn_loading <= 1'b0;
