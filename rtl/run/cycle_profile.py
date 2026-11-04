@@ -23,9 +23,10 @@ S = {'HALT': 4, 'IDLE': 0, 'FETCH_W': 1, 'DECODE': 10, 'EXEC': 11, 'WAIT': 2,
      'COUT': 6, 'CIN_WAIT': 15, 'RST_REQ': 14, 'RST_WAIT': 7}
 MS = {v: k for k, v in S.items()}
 AS = {0: 'IDLE', 1: 'FLUSH', 2: 'READ', 3: 'AP', 4: 'DSET', 5: 'DOP'}
-OPN = {0x12: '+', 0x13: '-', 0x14: '>', 0x15: '<', 0x16: '[', 0x17: ']',
-       0x18: '.', 0x19: ',', 0x11: 'HALT', 0x0e: 'ISA0', 0x0f: 'ISA1',
-       0x1e: 'ISA0', 0x1f: 'ISA1'}
+# ISA16 opcodes (doc/isa16.md)
+OPN = {0x0: 'NOP', 0x1: 'HALT', 0x2: '+', 0x3: '-', 0x4: '>', 0x5: '<',
+       0x6: '[', 0x7: ']', 0x8: '.', 0x9: ',', 0xa: '[-]', 0xb: 'LD',
+       0xc: 'CLRA', 0xd: 'MEMLOCK', 0xe: '{', 0xf: '}'}
 PAYLOAD = ['machineCtrl.state', 'ipLine.state',
            'ipLine.scanning_q', 'apLine.state', 'ap_ready', 'ip_ready', 'IpAddress']
 
@@ -116,7 +117,7 @@ def main():
     ap.add_argument('--scope', default='DekatronPC_tb.dekatronPC')
     ap.add_argument('--from', dest='t_from', required=True)
     ap.add_argument('--to', dest='t_to', required=True)
-    ap.add_argument('--op', default='machineCtrl.op_cur',
+    ap.add_argument('--op', default='machineCtrl.op_q',
                     help='opcode valid in S_DECODE (machineCtrl.op_full before P3)')
     args = ap.parse_args()
 

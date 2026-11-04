@@ -15,6 +15,9 @@ is HV, an input is a triode grid with C1 3.9 pF). For each net of each module:
   constant  -> grids tied to a constant are listed (they need a bias network, not a divider).
 Relay contacts (vtube_level PASS) carry the level of what drives them.
 Reset pins (vtube_level RESET, the 6Kh7B diodes of DFFRN/DFFSN) get no divider and must be driven by a port.
+HV inputs (vtube_level HV_IN, D and C of DFFP_J2N16) carry their own dividers inside the cell: no divider, but the
+net must be HV, and the DC loads (vtube_hv_load, mA) of the HV_IN pins on one net may not exceed HV_LOAD_MAX
+(two DFFP_J2N16 D pins: "1" of a 10k plate stays above 118 V, doc/tc_n5_pulse_dff.md §4.5).
 
 usage: div_insert.py -l vtube_cells.lib -i in.json -o out.json [--top-inputs HV|LV] [--strict]
 The input is a Yosys JSON netlist after mapping (synt_dpc.tcl -div runs it after qn_absorb.py).
@@ -26,6 +29,7 @@ import re
 import sys
 
 DEFAULT_C1 = 3.9
+HV_LOAD_MAX = 2.4     # mA of HV_IN DC load per net
 
 
 def lib_pins(lib_text):
@@ -49,6 +53,7 @@ def lib_pins(lib_text):
             level = attrs.get('vtube_level', 'HV' if d == 'output' else 'GRID')
             pins[pm.group(1)] = dict(dir=d, level=level, grid=attrs.get('vtube_grid', 'triode'),
                                      c1=float(attrs.get('vtube_c1', DEFAULT_C1)),
+                                     hv_load=float(attrs.get('vtube_hv_load', 0)),
                                      max_fanout=int(float(attrs.get('max_fanout', 10))))
         cells[name] = pins
     return cells
@@ -194,6 +199,7 @@ class Netlist:
             cells = m.setdefault('cells', {})
             for b, lds in sorted(self.loads[mn].items()):
                 groups = {'gate': [], 'follower': []}
+                hv_in = []
                 ports_out = False
                 for ld in lds:
                     if ld[0] == 'port':
@@ -205,12 +211,23 @@ class Netlist:
                         p = self.lib[t].get(pin, {})
                         if p.get('level') == 'GRID':
                             groups['follower' if p['grid'] == 'follower' else 'gate'].append((cn, pin, i, p['c1']))
+                        elif p.get('level') == 'HV_IN':
+                            hv_in.append((cn, pin, p['hv_load']))
                         elif p.get('level') == 'RESET':
                             # the reset line (DFFRN/DFFSN diodes): no divider, and only a port may drive it
                             d = self.drv[mn].get(b)
                             if d and d[0] == 'cell':
                                 rep['errors'].append(f"{mn}: reset pin {cn}.{pin} on net {self.netname(mn, b)} "
                                                      f"is driven by {cells[d[1]]['type']}, not by the reset line")
+                if hv_in:
+                    lvh = self.level(mn, b)
+                    nm = self.netname(mn, b)
+                    if lvh not in ('HV', 'UNKNOWN', 'CONST'):
+                        rep['errors'].append(f"{mn}: HV input {hv_in[0][0]}.{hv_in[0][1]} on net {nm} of level {lvh}")
+                    load = sum(x[2] for x in hv_in)
+                    if load > HV_LOAD_MAX + 1e-9:
+                        rep['errors'].append(f"{mn}: net {nm} carries {load:.1f} mA of HV_IN loads "
+                                             f"({', '.join(f'{c}.{p}' for c, p, _ in hv_in)}), max {HV_LOAD_MAX} mA")
                 if not groups['gate'] and not groups['follower'] and not ports_out:
                     continue
                 lv = self.level(mn, b)

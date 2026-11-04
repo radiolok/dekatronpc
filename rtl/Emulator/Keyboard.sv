@@ -38,26 +38,8 @@ assign numericKey = {
     keysCurrentState[KEYBOARD_0_KEY]
 };
 
-reg currentIsa;
-reg nextIsa;
-
-assign symbol = (|numericKey)? OpcodeToSymbol({currentIsa, BinaryToHex(numericKey)}) : 8'h0;
-
-always_comb begin
-    if (keysCurrentState[KEYBOARD_F_KEY])
-        nextIsa = BRAINFUCK_ISA;
-    else if (keysCurrentState[KEYBOARD_E_KEY])
-        nextIsa = DEBUG_ISA;
-    else 
-        nextIsa = currentIsa;
-end
-
-always @(negedge Clk, negedge Rst_n) begin
-    if (~Rst_n)
-        currentIsa <= BRAINFUCK_ISA;
-    else 
-        currentIsa <= nextIsa;
-end
+// ISA16: one instruction set, the hex key is the opcode (doc/isa16.md)
+assign symbol = (|numericKey)? OpcodeToSymbol(BinaryToHex(numericKey)) : 8'h0;
 
 RegisterFileFlatOut #(
     .WIDTH(5),

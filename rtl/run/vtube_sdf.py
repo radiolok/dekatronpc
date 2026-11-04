@@ -47,7 +47,7 @@ KEYWORDS = {"module", "input", "output", "inout", "wire", "reg", "assign",
 # trigger cell -> (vtube_setuphold ASYNC mode, set pin, reset pin); 3: clear while RN = 0, 4: preset while SN = 0
 # A latch is checked at its closing edge, the fall of C (LATCH = closes on negedge).
 LATCH = {"LATCH_J2N16"}
-ASYNC = {"LATCH_J2N16": (0, None, None), "DFF_J2N16": (0, None, None), "DFFRN_J2N16X7": (3, None, "RN"), "DFFSN_J2N16X7": (4, "SN", None)}
+ASYNC = {"LATCH_J2N16": (0, None, None), "DFF_J2N16": (0, None, None), "DFFP_J2N16": (0, None, None), "DFFRN_J2N16X7": (3, None, "RN"), "DFFSN_J2N16X7": (4, "SN", None)}
 
 
 def vname(name):

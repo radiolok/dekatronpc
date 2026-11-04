@@ -49,6 +49,7 @@ __pycache__/
 rtl/run/synth_sim/
 rtl/run/synth_sim_delay/
 rtl/run/synth_sim_timing/
+rtl/run/synth_sim_power/
 # static timing analysis (rtl/run/vtube_sta.sh)
 rtl/run/sta/
 # Icarus runs with the delay-based dekatron model (rtl/run/run_tests.sh -d)
@@ -90,3 +91,5 @@ rtl/programs/firmware.sv
 # (the ones committed earlier stay tracked)
 doc/**/*.pdf
 doc/**/*.djvu
+tools/netview/node_modules/
+rtl/run/sch/

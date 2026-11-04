@@ -129,20 +129,30 @@ ClockDivider #(
 reg [INSN_WIDTH-1:0] InsnMem [0:4095];
 reg [11:0] InsnInputAddr;
 
-// generate_rom.py не ставит ISA1 в начало, а загрузка начинается в Debug ISA,
-// где первая '>' (0x4) — это EOT. Поэтому загрузчик сначала выдаёт ISA1.
+// ISA16: режима нет, первым загрузчик выдаёт NOP (адрес 0), затем
+// программу; она кончается на LD (EOT)
 initial begin
-    InsnMem[0] = 4'hF;
+    InsnMem[0] = 4'h0;
     $readmemh(`PROGRAM_PATH, InsnMem, 1);
 end
 
-always_ff @(posedge Clk or negedge rst_n) begin
+// Внешний источник: на фронте Clk его данные гарантированно читаемы,
+// меняет он их только на спаде (TRS Приложение B). Ламповые триггеры
+// ловят фронт через инвертор такта (≈ 250 нс), и смена данных на самом
+// фронте давала гонку по удержанию в synth_sim.sh -t (TC-N2)
+reg insn_in_take;   // рукопожатие на последнем фронте
+
+always @(posedge Clk or negedge rst_n)
+    if (~rst_n) insn_in_take <= 1'b0;
+    else        insn_in_take <= InsnInReady & InsnInValid;
+
+always_ff @(negedge Clk or negedge rst_n) begin
     if (~rst_n) begin
         InsnInputAddr <= '0;
         InsnIn        <= InsnMem[12'd0];
         InsnInValid   <= 1'b0;
     end
-    else if (InsnInReady & InsnInValid) begin
+    else if (insn_in_take) begin
         InsnInputAddr <= InsnInputAddr + 12'd1;
         InsnIn        <= InsnMem[InsnInputAddr + 12'd1];
         InsnInValid   <= 1'b1;
@@ -169,18 +179,21 @@ BcdToAscii bcd_to_ascii(
     .Ascii(tx_data)
 );
 
-// tx_rdy поднимается раз в 11 тактов и держится до рукопожатия. Линии
-// смотрим на спаде Clk: после фронта автомат уже снял tx_vld, и чтение
-// сразу после фронта теряло символы.
+// tx_rdy поднимается раз в 11 тактов и держится до рукопожатия. Как
+// у внешнего источника, tx_rdy меняется только на спаде Clk (TRS
+// Приложение B). Линии смотрим на спаде Clk: после фронта автомат уже
+// снял tx_vld, и чтение сразу после фронта теряло символы.
 task automatic read_tx();
     tx_rdy <= 1'b0;
     forever begin
         repeat (10) @(posedge Clk);
+        @(negedge Clk);
         tx_rdy <= 1'b1;
-        do @(negedge Clk); while (!tx_vld);
+        while (!tx_vld) @(negedge Clk);   // рукопожатие — на следующем фронте
         $display("TX: %c (%0d)", tx_data, tx_data);
         tx_q.push_back(tx_data);
         @(posedge Clk);                 // рукопожатие на этом фронте
+        @(negedge Clk);
         tx_rdy <= 1'b0;
     end
 endtask
@@ -251,10 +264,14 @@ DekatronPC #(
 //----------------------------------------------------------------------
 // Тактовые операции
 //----------------------------------------------------------------------
-// Кнопки пульта выставляются неблокирующим присваиванием: блокирующее
-// сразу после @(posedge Clk) — гонка с автоматом на том же фронте, и
-// увидит ли он кнопку в этом такте, зависело от порядка событий (с
-// делителем hsClk видел, с генератором Clk в модели на задержках — нет).
+// Кнопки пульта меняются на спаде Clk, как и прочие входы внешних
+// источников (TRS v0.46, Приложение B, §22 п. 19). Прежде они
+// выставлялись по фронту, и блокирующее присваивание сразу после
+// @(posedge Clk) было гонкой с автоматом на том же фронте. Кнопки
+// сброса идут на асинхронное реле времени; по спаду их снятие реле
+// приходилось за 1 мкс до фронта, и без синхронизатора rst_busy в
+// MachineCtrl synth_sim.sh -t падал (doc/external_inputs_falling_edge.md
+// §5). Этот сценарий и проверяет синхронизатор.
 
 // IsHalted — дешифратор состояния автомата. В нетлисте биты состояния
 // меняются в разных дельта-циклах, и при переходе в S_EXEC дешифратор
@@ -271,9 +288,9 @@ task automatic wait_relay();
 endtask
 
 task automatic soft_rst_key();
-    @(posedge Clk);
+    @(negedge Clk);
     SoftRstKey <= 1'b1;
-    repeat (4) @(posedge Clk);
+    repeat (4) @(negedge Clk);
     SoftRstKey <= 1'b0;
     wait_relay();
     wait_halted();
@@ -281,9 +298,9 @@ task automatic soft_rst_key();
 endtask
 
 task automatic hard_rst_key();
-    @(posedge Clk);
+    @(negedge Clk);
     HardRstKey <= 1'b1;
-    repeat (4) @(posedge Clk);
+    repeat (4) @(negedge Clk);
     HardRstKey <= 1'b0;
     wait_relay();
     wait_halted();
@@ -291,22 +308,25 @@ task automatic hard_rst_key();
 endtask
 
 task automatic key_next();
+    @(negedge Clk);
     keyNextIp <= 1'b1;
-    repeat (6) @(posedge Clk);
+    repeat (6) @(negedge Clk);
     keyNextIp <= 1'b0;
     repeat (6) @(posedge Clk);
 endtask
 
 task automatic key_prev();
+    @(negedge Clk);
     keyPrevIp <= 1'b1;
-    repeat (6) @(posedge Clk);
+    repeat (6) @(negedge Clk);
     keyPrevIp <= 1'b0;
     repeat (6) @(posedge Clk);
 endtask
 
 task automatic press_run();
+    @(negedge Clk);
     Run <= 1'b1;
-    repeat (4) @(posedge Clk);
+    repeat (4) @(negedge Clk);
     Run <= 1'b0;
     repeat (4) @(posedge Clk);
 endtask
@@ -360,8 +380,7 @@ task automatic check_bootloader();
     $display("  bootloader: loading started"); $fflush;
     @(negedge InsnInLoading);
     $display("  bootloader: loading finished"); $fflush;
-    $display("  state=%0d IP=%h Insn=%h mode=%b", state, IpAddress, Insn,
-             dekatronPC.machineCtrl.insn_mode); $fflush;
+    $display("  state=%0d IP=%h Insn=%h", state, IpAddress, Insn); $fflush;
     wait_halted();
     $display("  bootloader: halted"); $fflush;
     $display("  state=%0d IP=%h Insn=%h", state, IpAddress, Insn); $fflush;
@@ -426,10 +445,10 @@ initial begin
     wait_relay();
     wait_halted();
 
-    // После включения реле времени даёт аппаратный сброс: IP = 99900
-    if (IpAddress !== 20'h99900) begin
+    // После включения реле времени даёт аппаратный сброс: IP = 99990
+    if (IpAddress !== 20'h99990) begin
         errors++;
-        $display("FAIL: IP after power-up = %h, expected 99900", IpAddress);
+        $display("FAIL: IP after power-up = %h, expected 99990", IpAddress);
     end
 
 `ifdef TRY_PROGRAM
@@ -462,7 +481,15 @@ initial begin
     end
 end
 
-`ifndef NO_VCD
+`ifdef POWER_VCD
+// Power run (synth_sim.sh -p, doc/vtube_power.md): only the DUT, into the
+// FIFO that vtube_power_vcd reads, so the VCD of pi.bfk never lands on disk
+initial begin
+    $dumpfile(`POWER_VCD);
+    $dumpvars(0, DekatronPC_tb.dekatronPC);
+end
+`elsif NO_VCD
+`else
 initial begin
     $dumpfile("DekatronPC_tb.vcd");
     $dumpvars(0, DekatronPC_tb);

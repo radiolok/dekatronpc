@@ -2,9 +2,9 @@
 Tests for the InsnLoopDetector module.
 
 InsnLoopDetector: combinational loop instruction detector.
-- isLoopInsn = ~Insn[3] & Insn[2] & Insn[1]  (matches 4'b011x)
-- LoopOpen = isLoopInsn & ~Insn[0]  (opcode 0x6 = '[')
-- LoopClose = isLoopInsn & Insn[0]  (opcode 0x7 = ']')
+- isLoopInsn = Insn[2] & Insn[1]  (matches 4'bx11x, ISA16 doc/isa16.md)
+- LoopOpen = isLoopInsn & ~Insn[0]  (0x6 '[' and 0xE '{')
+- LoopClose = isLoopInsn & Insn[0]  (0x7 ']' and 0xF '}')
 """
 
 import cocotb
@@ -21,7 +21,7 @@ async def test_exhaustive_all_opcodes(dut):
         dut.Insn.value = insn
         await Timer(1, unit="ns")
 
-        is_loop = (insn & 0b1110) == 0b0110  # ~bit3 & bit2 & bit1
+        is_loop = (insn & 0b0110) == 0b0110  # bit2 & bit1
         expected_open = 1 if (is_loop and (insn & 1) == 0) else 0
         expected_close = 1 if (is_loop and (insn & 1) == 1) else 0
 
@@ -55,10 +55,21 @@ async def test_loop_close(dut):
 
 
 @cocotb.test()
+async def test_ap_loop_brackets(dut):
+    """Insn=0xE ('{') opens and 0xF ('}') closes: the scan counts both kinds."""
+    dut.Insn.value = 0xE
+    await Timer(1, unit="ns")
+    assert (int(dut.LoopOpen.value), int(dut.LoopClose.value)) == (1, 0)
+    dut.Insn.value = 0xF
+    await Timer(1, unit="ns")
+    assert (int(dut.LoopOpen.value), int(dut.LoopClose.value)) == (0, 1)
+
+
+@cocotb.test()
 async def test_non_loop_opcodes(dut):
     """All non-loop opcodes produce LoopOpen=0 and LoopClose=0."""
     for insn in range(16):
-        if insn in (0x6, 0x7):
+        if insn in (0x6, 0x7, 0xE, 0xF):
             continue
         dut.Insn.value = insn
         await Timer(1, unit="ns")

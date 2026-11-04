@@ -271,6 +271,20 @@ specify
 endspecify
 endmodule
 
+// DFFP_J2N16: pulse-clocked, rising edge of C (one half of DFFP2_J2N16)
+module DFFP_J2N16(C, D, Q, QN);
+input C, D;
+output reg Q;
+output QN;
+assign QN = ~Q;
+always @(posedge C)
+	Q <= D;
+specify
+	(posedge C => (Q +: D)) = 0;
+	(posedge C => (QN -: D)) = 0;
+endspecify
+endmodule
+
 // DFF_J2N16: falling edge of C (master on C, slave on ~C)
 module DFF_J2N16(C, D, Q, QN);
 input C, D;
@@ -392,6 +406,37 @@ output Y;
 assign Y = A;
 specify
 	(A => Y) = 0;
+endspecify
+endmodule
+
+// Self-holding relay on the loop overflow (TC-N2): S latches, BRK (the reset
+// line) releases and wins; C1 = held ? NO1 : NC1. Relay time is not modelled.
+module RELAY_HOLD_N16(S, BRK, NC1, NO1, C1);
+input S, BRK, NC1, NO1;
+output C1;
+reg held = 1'b0;
+always @*
+	if (BRK) held = 1'b0;
+	else if (S) held = 1'b1;
+assign C1 = held ? NO1 : NC1;
+specify
+	(S => C1) = 0;
+	(BRK => C1) = 0;
+	(NC1 => C1) = 0;
+	(NO1 => C1) = 0;
+endspecify
+endmodule
+
+// Panel key debouncer (TC-N3): a bistable on changeover contacts; A, B are the
+// "pressed" levels of up to two keys wired in parallel. The bounce is outside
+// the logic model: the RTL sees clean key levels.
+module KEYDB_N16(A, B, Y);
+input A, B;
+output Y;
+assign Y = A | B;
+specify
+	(A => Y) = 0;
+	(B => Y) = 0;
 endspecify
 endmodule
 

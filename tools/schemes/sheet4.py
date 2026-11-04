@@ -7,29 +7,31 @@ def fig_ipline():
             "Линия выборки: автомат управляет счётчиком инструкций и счётчиком вложенности "
             "циклов, читает опкоды из памяти программ (опкод держит её выходной регистр) и по "
             "детектору скобок решает, нужна ли промотка тела цикла.")
-    pins_in = [(62, "valid, clr"), (88, "loop_val_zero"), (148, "halt_rq, ip_ahead, key_±ip"),
-               (196, "insn_loading, mode"), (218, "insn_in, valid")]
+    pins_in = [(62, "valid"), (88, "loop_val_zero"), (148, "halt_rq, ip_ahead"),
+               (170, "key_±ip → KEYDB_N16"), (196, "insn_loading"), (218, "insn_in, valid")]
     for y, n in pins_in:
         f.pin_in(12, y, 200, n)
-    f.wire([(200, 118), (16, 118)], label="ready", lx=20, ly=111, lcls="tp")
+    f.wire([(200, 118), (16, 118)], label="ready · ~overflow_q", lx=20, ly=111, lcls="tp")
     f.wire([(200, 244), (16, 244)], label="insn_in_ready", lx=20, ly=237, lcls="tp")
     f.wire([(200, 272), (16, 272)], label="loop_overflow", lx=20, ly=265, lcls="tp")
 
     f.box(200, 40, 220, 250, "Автомат выборки",
-          ["ip_counted_q — IP уже", "сдвинут под инструкцию", "",
-           "scanning_q — идёт промотка", "",
-           "dir_q — шаг IP назад", "(промотка, кнопка −IP)", "",
-           "overflow_q — глубина > 99", "",
+          ["ip_counted_q — IP уже", "сдвинут под инструкцию",
+           "scanning_q — идёт промотка",
+           "dir_q — шаг IP назад (промотка);", "синхронизатор кнопки −IP",
+           "key_next_s — синхр. кнопки +IP",
+           "overflow_q — глубина > 99,", "ready снят до сброса",
+           "state: сброс — NOR2_N16 на D",
            "стробы — из state (Мур)"], align="start", top=22)
 
     # счётчик инструкций
     f.wire([(420, 70), (560, 70)], label="valid · dec", lx=428, ly=63)
     f.wire([(560, 108), (420, 108)], label="ready", lx=428, ly=101)
     f.box(560, 40, 210, 100, "DekatronCounter · IP",
-          ["5 декад, 0…99999", "HARD_RST_D_CNT = 3", "hard_rst → 99900", "soft_rst → 00000"])
+          ["5 декад, 0…99999", "HARD_RST_D_CNT = 4", "hard_rst → 99990", "soft_rst → 00000"])
 
     # счётчик циклов
-    f.wire([(420, 186), (560, 186)], label="valid · dec · set_zero", lx=428, ly=179)
+    f.wire([(420, 186), (560, 186)], label="valid · dec", lx=428, ly=179)
     f.wire([(560, 224), (420, 224)], label="zero", lx=428, ly=217)
     f.box(560, 168, 210, 80, "DekatronCounter · Loop",
           ["2 декады, 0…99", "LOOP_DEKATRON_NUM = 2", "переход через 0 = переполнение"])
@@ -47,10 +49,11 @@ def fig_ipline():
     f.wire([(1005, 250), (1005, 340), (770, 340)], "wacc",
            label="rd_data", lx=1012, ly=300, lcls="tacc")
     f.box(560, 310, 210, 80, "InsnLoopDetector",
-          ["0x6 — [ или {", "0x7 — ] или }", "на выходе регистра памяти"])
+          ["x110 — [ (0x6) или { (0xE)", "x111 — ] (0x7) или } (0xF)",
+           "на выходе регистра памяти"])
     f.wire([(560, 340), (310, 340), (310, 290)], "wacc",
            label="скобка открыта / закрыта", lx=316, ly=334)
-    f.wire([(665, 390), (665, 430), (16, 430)], label="insn = rd_data, insn_valid, insn_eot", lx=20, ly=423,
+    f.wire([(665, 390), (665, 430), (16, 430)], label="insn = rd_data, insn_eot", lx=20, ly=423,
            lcls="tp")
     f.text(16, 456, "Опкоды на этом уровне — только 4-битные коды; символы преобразует "
                     "загрузчик программ.", "tl")
@@ -58,7 +61,7 @@ def fig_ipline():
 
 
 def fig_ipline_fsm():
-    f = Fig("iplfsm", 1100, 440,
+    f = Fig("iplfsm", 1100, 470,
             "Автомат IpLine. Основной цикл: шаг IP, чтение опкода. Ветвь "
             "промотки: разбор скобки, шаг счётчика вложенности, снова шаг IP до парной "
             "скобки. Каждое состояние, выдающее операцию, ждёт go — готовности обоих "
@@ -74,8 +77,6 @@ def fig_ipline_fsm():
     # останов
     f.edge("HALT", "r", "IDLE", "l", oa=-8, ob=-8, label="halt_rq снят", lx=255, ly=45)
     f.edge("IDLE", "l", "HALT", "r", oa=8, ob=8, label="halt_rq: IP не сдвинут или ip_ahead", lx=255, ly=86)
-    f.edge("HALT", "b", "IP", "l", oa=20, ob=-12, via=[(130, 160), (280, 160), (280, 198)],
-           label="кнопка ±IP", lx=205, ly=176)
 
     # из IDLE вниз
     f.edge("IDLE", "b", "INSN_IN", "t", oa=-35, ob=-30, via=[(365, 120), (80, 120)],
@@ -109,19 +110,22 @@ def fig_ipline_fsm():
     f.text(430, 334, "→ S_IDLE из S_SCAN_EVAL: своя скобка при 99 — переполнение, промотка прервана",
            "tl")
     f.text(430, 350, "S_SCAN_EVAL разбирает опкод по go, когда чтение окончено", "tl")
+    f.text(430, 366, "overflow_q держит ready = 0 до сброса линиями: машина стоит (TC-N2)", "tl")
 
     # загрузка программы
     f.edge("IP", "l", "INSN_IN", "r", label="загрузка", lx=200, ly=205)
-    f.edge("INSN_IN", "r", "IP", "l", oa=12, ob=12, label="ручной ±IP", lx=255, ly=238)
     f.edge("IP", "b", "HALT", "l", oa=-30, via=[(370, 340), (40, 340), (40, 60)],
            cls="wwarn", label="halt_pending", lx=210, ly=334, lcls="twarn")
     f.text(16, 366, "S_INSN_IN → S_IDLE: опкод принят, запись в память", "tl")
     f.text(16, 382, "выдана в такте рукопожатия; EOT не пишется → insn_eot", "tl")
-    f.text(16, 400, "S_INSN_IN → S_IDLE: загрузка снята", "tl")
+    f.text(16, 398, "S_INSN_IN → S_IDLE: загрузка снята", "tl")
+    f.text(60, 292, "S_HALT, S_INSN_IN: кнопки ±IP шагают", "tl")
+    f.text(60, 308, "счётчиком IP без перехода (TC-N3)", "tl")
 
-    # сброс счётчиков по команде
-    f.box(560, 372, 420, 52, None, [], cls="blk-opt")
-    f.text(574, 393, "CLRI, CLRL: IDLE → S_CLR_IP | S_CLR_LOOP → IDLE", "tm")
-    f.text(574, 409, "set_zero выдаётся по go, сброс окончен — ready в S_IDLE", "tl")
-    f.text(16, 432, "soft_rst | hard_rst → S_IDLE из любого состояния", "tl")
+    # ISA16: команд сброса счётчиков нет
+    f.box(560, 384, 420, 52, None, [], cls="blk-opt")
+    f.text(574, 405, "ISA16: CLRI/CLRL нет — IP и Loop обнуляют только линии сброса", "tm")
+    f.text(574, 421, "скобки x11x: [ ] и { } считаются вместе", "tl")
+    f.text(16, 430, "soft_rst | hard_rst → S_IDLE из любого состояния: вентиль", "tl")
+    f.text(16, 446, "NOR2_N16 на D каждого бита (state_d), для Yosys не FSM", "tl")
     return f.render()

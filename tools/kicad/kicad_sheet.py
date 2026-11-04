@@ -57,6 +57,7 @@ def tube_lib(name, key):
 LIBS = {
     "Device:R": embed(f"{SYSLIB}/Device.kicad_sym", "R", "Device"),
     "Device:C": embed(f"{SYSLIB}/Device.kicad_sym", "C", "Device"),
+    "Device:L": embed(f"{SYSLIB}/Device.kicad_sym", "L", "Device"),
     "power:GND": embed(f"{SYSLIB}/power.kicad_sym", "GND", "power"),
     "power:PWR_FLAG": embed(f"{SYSLIB}/power.kicad_sym", "PWR_FLAG", "power"),
     "power:+150V": embed(f"{SYSLIB}/power.kicad_sym", "+12V", "power", "+150V"),
@@ -73,6 +74,7 @@ LIBS = {
 PINS = {  # lib-space pin coordinates (y up)
     "Device:R": {"1": (0, 3.81), "2": (0, -3.81)},
     "Device:C": {"1": (0, 3.81), "2": (0, -3.81)},
+    "Device:L": {"1": (0, 3.81), "2": (0, -3.81)},
     "Simulation_SPICE:VDC": {"1": (0, 5.08), "2": (0, -5.08)},
     "Simulation_SPICE:VPWL": {"1": (0, 5.08), "2": (0, -5.08)},
     J2: {"1": (0, 10.16), "2": (-7.62, 1.27), "3": (7.62, 0), "4": (-1.27, -10.16), "5": (1.27, -10.16),

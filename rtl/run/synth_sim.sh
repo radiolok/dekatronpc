@@ -2,7 +2,7 @@
 # Gate-level simulation: the Icarus tests of run_tests.sh -t, run against the
 # Yosys netlist of the DUT instead of its RTL.
 #
-#   synth_sim.sh [-n] [-t] [-c NS] [-o NS] [-w NS] [test ...]
+#   synth_sim.sh [-n] [-t | -p] [-c NS] [-o NS] [-w NS] [test ...]
 #     -n    skip synthesis, reuse the netlists in synth_sim/<test>/
 #     -d    accepted for compatibility: the netlist is always the tube
 #           machine with the delay-based dekatron model DekatronTubeDelay
@@ -16,6 +16,15 @@
 #           trigger a setup/hold checker; a run
 #           with violations fails. Default tests: Dekatron Counter
 #           DekatronPC. Output in synth_sim_timing/ (doc/vtube_sdf_timing.md)
+#     -p    power (doc/vtube_power.md): the netlist with the HV -> LV
+#           dividers (synt_dpc.tcl -div), the phase timing of the tube
+#           build (-o 3300 -w 600, as -t), and the VCD of the DUT streamed
+#           through a FIFO into vtube_power_vcd (nothing on disk, so pi.bfk
+#           works too); the state times times the cell currents of
+#           sch/logic/vtube_power.json give <run>_power.md: current, voltage
+#           and power per rail (heater, plates, screens, bias, dekatron
+#           anodes) and per block. Tests: DekatronPC (helloworld and
+#           program.bfk, the default), Pi. Output in synth_sim_power/
 #     -o NS phase start delay after the Clk edge, ns (DEKATRON_PHASE_DELAY_NS,
 #           REQ-PULSE-009): at least the worst step command path. Default
 #           0 (RTL), 3300 under -t: the longest step command with the SPICE
@@ -58,29 +67,33 @@ dpc_files=${root_dir}/DekatronPC/DPC.files
 
 do_synth=1
 timing=0
+power=0
 clk_ns=""
 all_tests=(Dekatron Counter IpLine ApLine MachineCtrl DekatronPC)
 
 phase_delay=""
 phase_width=""
-while getopts "ndtc:o:w:h" opt; do
+while getopts "ndtpc:o:w:h" opt; do
 	case ${opt} in
 	n) do_synth=0 ;;
 	d) ;;
 	t) timing=1 ;;
+	p) power=1 ;;
 	c) clk_ns=${OPTARG} ;;
 	o) phase_delay=${OPTARG} ;;
 	w) phase_width=${OPTARG} ;;
-	*) sed -n '2,45p' "$0"; exit 1 ;;
+	*) sed -n '2,55p' "$0"; exit 1 ;;
 	esac
 done
 shift $((OPTIND - 1))
 tests=("$@")
-[ ${timing} -ne 0 ] && [ -z "${phase_delay}" ] && phase_delay=3300
-[ ${timing} -ne 0 ] && [ -z "${phase_width}" ] && phase_width=600
+[ ${timing} -ne 0 ] && [ ${power} -ne 0 ] && { echo "-t and -p exclude each other"; exit 1; }
+[ $((timing + power)) -ne 0 ] && [ -z "${phase_delay}" ] && phase_delay=3300
+[ $((timing + power)) -ne 0 ] && [ -z "${phase_width}" ] && phase_width=600
 if [ ${#tests[@]} -eq 0 ]; then
 	tests=("${all_tests[@]}")
 	[ ${timing} -ne 0 ] && tests=(Dekatron Counter DekatronPC)
+	[ ${power} -ne 0 ] && tests=(DekatronPC)
 fi
 
 # Dekatron model: always the delay-based DekatronTubeDelay, no hsClk. It is
@@ -99,6 +112,12 @@ if [ ${timing} -ne 0 ]; then
 	# delays at the load of each net: flat netlist + table liberty
 	synth_defs+=(-flat)
 	python3 "${script_dir}/vtube_liberty.py" > /dev/null
+fi
+if [ ${power} -ne 0 ]; then
+	work_dir=${script_dir}/synth_sim_power
+	synth_defs+=(-div)
+	mkdir -p "${work_dir}"
+	gcc -O2 -o "${work_dir}/vtube_power_vcd" "${script_dir}/vtube_power_vcd.c" || exit 1
 fi
 mkdir -p "${work_dir}"
 # Phase timing of the tube build, ns: macros read by DekatronPhaseGen (the
@@ -132,7 +151,7 @@ config() {
 	IpLine)
 		dut=IpLine_tb.ipLine
 		top=IpLine
-		params=(HARD_RST_D_CNT=3 LOOP_READ=1)
+		params=(HARD_RST_D_CNT=4 LOOP_READ=1)   # 99990, ISA16 (doc/isa16.md)
 		runs=("IpLine|${root_dir}/programs/looptest.bfk|") ;;
 	ApLine)
 		dut=ApLine_tb.apLine
@@ -207,6 +226,14 @@ simulate() {
 		sdf=(-s vtube_sdf "${dir}/sdf/vtube_sdf.sv" "${cell_dir}/vtube_timing_check.v")
 	fi
 	echo "  sim   ${name}${clk_ns:+ (Clk ${clk_ns} ns)}"
+	local fifo=${dir}/${name}.vcd.fifo
+	if [ ${power} -ne 0 ]; then
+		[ "${tb}" = DekatronPC ] || { echo "-p: only DekatronPC and Pi"; return 2; }
+		python3 "${script_dir}/vtube_power.py" plan -n "${dir}/${top}_synth.v" -t "${top}" -s "${dut}" \
+			-l "${cell_lib}" -m "${cell_dir}/vtube_power.json" -o "${dir}/${name}_plan" \
+			-w "${clk_ns:-10000}" || return 2
+		defines+=" -DPOWER_VCD=\"${fifo}\""
+	fi
 	iverilog -g2012 -o "${dir}/${name}_netlist" -DIPMEMFILE -DSIMPLEBOOT ${sim_defs} ${defines} \
 		-s "${tb}_tb" "${sdf[@]}" \
 		"${root_dir}/parameters.sv" \
@@ -221,9 +248,25 @@ simulate() {
 	# GB (Counter at 1 us: 7.6 GB): cap files at 2 GB under -t
 	local fsize=unlimited
 	[ ${timing} -ne 0 ] && fsize=2000000
-	(cd "${dir}" && ulimit -f ${fsize} && vvp -n "./${name}_netlist" > "${name}_sim.log" 2>&1) \
-		|| { tail -n 20 "${dir}/${name}_sim.log"; return 1; }
+	local reader=
+	if [ ${power} -ne 0 ]; then
+		rm -f "${fifo}"; mkfifo "${fifo}"
+		"${work_dir}/vtube_power_vcd" "${dir}/${name}_plan.txt" "${fifo}" "${dir}/${name}_power.txt" &
+		reader=$!
+	fi
+	if ! (cd "${dir}" && ulimit -f ${fsize} && vvp -n "./${name}_netlist" > "${name}_sim.log" 2>&1); then
+		[ -n "${reader}" ] && { kill ${reader} 2>/dev/null; wait ${reader} 2>/dev/null; rm -f "${fifo}"; }
+		tail -n 20 "${dir}/${name}_sim.log"; return 1
+	fi
 	tail -n 3 "${dir}/${name}_sim.log"
+	if [ -n "${reader}" ]; then
+		wait ${reader}; local rc=$?
+		rm -f "${fifo}"
+		[ ${rc} -eq 0 ] || return 1
+		python3 "${script_dir}/vtube_power.py" report -p "${dir}/${name}_plan" -r "${dir}/${name}_power.txt" \
+			-o "${dir}/${name}_power.md" --title "Потребление: ${name}" > /dev/null || return 1
+		echo "  power ${dir}/${name}_power.md"
+	fi
 	if [ ${timing} -ne 0 ]; then
 		# Annotation problems and setup/hold violations fail the run
 		grep -q "SDF ERROR\|SDF WARNING" "${dir}/${name}_sim.log" && return 3

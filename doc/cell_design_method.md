@@ -182,7 +182,17 @@ A cell is accepted when all of these hold at every fanout from 2 to the target:
 - **A bypass capacitor across Rs must stay small** (100 pF). A larger one stores a charge from the last "0" that pulls the next "1" down for microseconds.
 - **Wired-OR followers have a hazard of their own.** When one input falls and the other rises, the falling grid drags the shared cathode down through Cgk and cancels part of the rising grid's C1 step. The rising grid then creeps up through the 140 kΩ divider, and Y with it. Measure the recovery, not only the dip: with Rk 10k it took 0.9–1.9 µs, and with 12k under 0.25 µs.
 - **Measure the delay through one load gate** (input grid → load plate 100 V). The LV → LV delay of a follower hides the slow tail of the "1" level, which is what the next gate needs.
+- **The plate is not a logic input.** A follower conducts with a few tens of volts across it, so a plate driven to the HV "0" (+50 V) does not cut it off (threshold ≈ +37 V), and the plate input draws the whole cathode current from its driver (`doc/anode_gated_follower.md`).
 - **ERC:** a follower plate sits on +150 V. Make the plate pin passive in that sheet, or ERC reports open collector against power output.
+
+## 4e. Traps found on the pulse-clocked flip-flop (TC-N5, `doc/tc_n5_pulse_dff.md`)
+
+- **A pulse-clocked latch races unless the data path is delayed.** The pulse must outlast the flip of the bistable, and the flip takes about Ra·C of the loaded plate, which is also the cell's own C→Q. So the next stage always sees its new D while its gate is still open. Measure the shortest flip (`pff_timing.py wmin`) and the fastest C→Q (the falling output, pulled by the pentode at once: 51–68 ns) before anything else; the data delay has to cover the difference.
+- **Put an RC delay before the grid clamp, never after it.** A series R into a g1 that charges from an LV net clamped at +0.3 V (any other grid on the net draws grid current) creeps towards the clamp and never opens the pentode fully. An uncompensated HV → LV divider (no C1) charges the grid towards +10 V and stops at the clamp: a clean delay of about 0.7 · R1‖R2 · C_grid.
+- **Shorten the flip before lengthening the delay.** Plate chokes (1 mH) halved the shortest flip, and with it the delay the data path needed, and therefore the setup time.
+- **Check hold and setup in all four cases** (state before the edge 0/1, value taken 0/1). The case that limits hold was not the obvious race (a new D opening the wrong gate, 400–600 ns of margin) but the old D leaving the right gate before the flip has finished.
+- **A pulse a little longer than the shortest flip is worse than a long one.** With the pulse at 1.1 × the flip time, both setup and hold got worse than at 1.7 ×: a marginal pulse finishes the flip late.
+- **ngspice with plate chokes** stopped on "timestep too small" at a fast clock edge; `.options method=gear` cures it. libngspice can also hang: give every `subprocess.run` of `ngrun.py` a timeout and count a hang as a failure, or a `Pool` of bisections waits forever.
 
 ## 5. Draw the cell in KiCad
 

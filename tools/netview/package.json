@@ -1,0 +1,9 @@
+{
+  "name": "dpc-netview",
+  "private": true,
+  "description": "ELK layout for tools/netview/netview.py",
+  "type": "module",
+  "dependencies": {
+    "elkjs": "^0.11.0"
+  }
+}

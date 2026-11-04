@@ -2,9 +2,10 @@ import os
 import sys
 import argparse
 
+# ISA16 (doc/isa16.md): one 4-bit instruction set, no modes
 symbolToOpcode = {
-    'N' : 0x00,#NOP
-    'H' : 0x01, #HALT
+    'N' : 0x00, # NOP
+    'H' : 0x01, # HALT
     '+' : 0x02,
     '-' : 0x03,
     '>' : 0x04,
@@ -13,25 +14,13 @@ symbolToOpcode = {
     ']' : 0x07,
     '.' : 0x08,
     ',' : 0x09,
-    '0' : 0x0A, # Clear data cell
-    'M' : 0x0B, # Clear memory Lock
-    'G' : 0x0C,
-    'P' : 0x0D,
-    'D' : 0x0E,
-    'B' : 0x0F,
-    # Debug ISA:
-    '\a' : 0x02, #Ring the bell
-    #'-' : 0x03,
-    'E' : 0x04, #EOT
-    'S' : 0x05, #SOT
-    '{' : 0x06,
-    '}' : 0x07,
-    'L' : 0x08,
-    'I' : 0x09,
-    '0' : 0x0A, # Clear data cell
-    'A' : 0x0B,
-    'R' : 0x0C,
-    'r' : 0x0D
+    '0' : 0x0A, # [-] clear data cell
+    'S' : 0x0B, # LD: start of loading
+    'E' : 0x0B, # LD: end of loading (EOT) in the load stream
+    'A' : 0x0C, # CLRA
+    'P' : 0x0D, # MemLock: MemLock without load (cell := data counter)
+    '{' : 0x0E, # skip if AP == 0
+    '}' : 0x0F, # repeat if AP != 0
 }
 
 def encodeSymbol(symbol):

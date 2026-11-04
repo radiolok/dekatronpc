@@ -5,9 +5,9 @@
 // накладывается через входы ovl_* самого Ram, поэтому отдельного
 // автомата обращений здесь нет и выходной регистр остаётся один.
 //
-// Загрузчик занимает старшие 100 адресов — при пяти декатронах это
-// 99900..99999, ровно один банк 10x10. Записи в эту область не
-// выполняются и поднимают признак ошибки.
+// Загрузчик занимает старшие 10 адресов — при пяти декатронах это
+// 99990..99999, одна декада. Записи в эту область не выполняются и
+// поднимают признак ошибки.
 //======================================================================
 
 `default_nettype none
@@ -45,7 +45,7 @@ module IpMemory #(
     output wire                     is_bootloader
 );
 
-    localparam unsigned ROM_DIGITS = 2;               // банк 10x10
+    localparam unsigned ROM_DIGITS = 1;               // одна декада
     localparam unsigned ROM_AW     = ROM_DIGITS * 4;
     localparam unsigned TOP_DIGITS = D_NUM - ROM_DIGITS;
     localparam unsigned TOP_AW     = TOP_DIGITS * 4;
@@ -133,10 +133,10 @@ module IpMemory #(
 
 `ifndef SYNTH
     initial begin
-        if (D_NUM < 3)
-            $error("IpMemory: D_NUM (%0d) < 3 — под загрузчик нужен отдельный старший банк", D_NUM);
+        if (D_NUM < 2)
+            $error("IpMemory: D_NUM (%0d) < 2 — под загрузчик нужна старшая декада", D_NUM);
         if (EN_BOOTLOADER)
-            $display("IpMemory: загрузчик занимает старший банк, 100 инструкций");
+            $display("IpMemory: загрузчик занимает старшую декаду, 10 инструкций");
     end
 
 `ifdef ASSERTIONS

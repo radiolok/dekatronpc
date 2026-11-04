@@ -39,7 +39,7 @@ die() {
 usage() {
 	 msg "-h help"
 	 msg "-v verbose"
-	 msg "-p png"
+	 msg "-p schematics of the -s netlists (sch/index.html)"
 	 msg "-s synt"
 	 msg "-c coverage"
 	 msg "-t sim"
@@ -194,6 +194,13 @@ if [ ${cov} -ne 0 ]; then
 	genhtml logs/DPC.info --output-directory coverage
 fi
 
+# -p draws the -s netlists: synthesize first when any of them is missing
+if [ ${png} -ne 0 ] && [ ${synt} -eq 0 ]; then
+	for top in IpLine ApLine MachineCtrl; do
+		[ -f ${top}_netlist.json ] || synt=1
+	done
+fi
+
 if [ ${synt} -ne 0 ]; then
 
 	rm -f *.dot
@@ -215,29 +222,12 @@ if [ ${gate} -ne 0 ]; then
 fi
 
 if [ ${png} -ne 0 ]; then
-	for file in $(ls *.dot); do
-			gvpr -f $script_dir/split $file
-		done
-		rm -f *.png
-
-		for file in $(ls *.dot); do
-			if [ $file == 'DekatronPC.dot' ]; then
-				continue
-			fi
-			#echo $file; dot -Tpng $file -O
-			echo $file; dot -Tsvg $file -O
-		done
-
-	if [ ! -d sch ]; then
-		mkdir sch
-	else
-		rm -f sch/*.svg
-		rm -f sch/*.png
-		rm -f sch/*.dot
-	fi
-
-	mv *.svg sch/
-	mv *.dot sch/
+	# Gate-level schematics of the -s netlists (tools/netview/README.md):
+	# sch/<sheet>.svg and the viewer sch/index.html
+	netview=${root_dir}/../tools/netview
+	[ -d ${netview}/node_modules/elkjs ] || (cd ${netview} && npm install --no-audit --no-fund)
+	rm -rf sch
+	python3 ${netview}/netview.py -o sch IpLine_netlist.json ApLine_netlist.json MachineCtrl_netlist.json
 fi
 
 if [ ${uvm} -ne 0 ]; then

@@ -198,6 +198,12 @@ memory takes microseconds. Trigger-to-trigger hold is met: C→Q alone is
   relay lines.
 * The memory: ideal synchronous, no access time. Real ferrite memory timing
   (4 µs, OPEN-014) is not in the model.
+* External inputs were not timed until TRS v0.48. Since then each input port
+  except `Clk` and the reset lines is its own arrival class `in:<port>`,
+  launched on the falling Clk edge (T/2, TRS Appendix B) and reported in its
+  own section, "External inputs", with the hold slack a rising-edge source
+  would have. It is not part of the minimum period. Results:
+  `doc/external_inputs_falling_edge.md` §3.
 
 ## 4. What it means for the clock
 

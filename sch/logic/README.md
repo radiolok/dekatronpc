@@ -22,6 +22,7 @@ This folder holds the logic cells of the tube machine (REQ-MOD-003/004/005), eac
 | [DFFRN_J2N16X7](DFFRN_J2N16X7/README.md) | DFF_J2N16 + asynchronous clear (RN = 0) | 8 (+ 1 × 6Kh7B) | LV + reset line → HV | RN → Q 54 … 100 ns; recovery ≥ 100 ns | `DFFRN_J2N16X7` | RN is the reset line (idle −20 V, GND = reset) |
 | [DFFSN_J2N16X7](DFFSN_J2N16X7/README.md) | DFF_J2N16 + asynchronous preset (SN = 0) | 8 (+ 1 × 6Kh7B) | LV + reset line → HV | SN → Q 273 … 611 ns | `DFFSN_J2N16X7` | |
 | [DFF_J2N16](DFF_J2N16/README.md) | D flip-flop, **falling** edge of C | 7 (2 × RSLATCH + 1 × 6N16B) | LV → HV | C↓→Q 340 … 539 ns; 1.11 … 0.93 MHz register to register | `DFF_J2N16` | synthesis adds one clock inverter per clock net |
+| [DFFP2_J2N16](DFFP2_J2N16/README.md) | two D flip-flops, **rising** edge of C, pulse-clocked (TC-N5) | 7 (2 × 3.5: 2 × 6Zh2B + 1.5 × 6N16B each) | **HV** D and C → HV | C↑→Q 51…95 / 122…158 ns (fanout 2 / 6); setup 527, hold −3 ns at fanout 6 | `DFFP_J2N16` (one flip-flop, `dont_use`: placed by the RTL) | Bonch-Bruevich bistable, g3 pulsed from the clock edge; D pin at most twice per net |
 
 Sketches not in the library yet:
 
@@ -30,6 +31,10 @@ Sketches not in the library yet:
 | [DEKATRON_A110](DEKATRON_A110/README.md) | dekatron module: A110, a write tube in every cathode (reset-only decades: on K0 and a common return), guide circuits after Yablonsky; principle agreed (TRS v0.34), values before SPICE, no sheet yet | REQ-MOD-007, REQ-PR-020 |
 
 "Liberty" names the cell in `vtube_cells.lib`. BUF_N16, OR2_N16 and OR4_N16 carry `dont_use` (owner, 2026-10-30): ABC does not see the LV level and chained them; they stay available for hand-placed use (`doc/follower_chains.md`). "Proposed" means that the page proposes the entry and the owner has not reviewed it yet.
+
+The panel key debouncer [KEYDB_N16](KEYDB_N16/README.md) (one 6N16B bistable on the changeover contacts, Y = A | B, TC-N3) is in the liberty without a function, like the module cells below; proposed, not simulated.
+
+The self-holding relay [RELAY_HOLD_N16](RELAY_HOLD_N16/README.md) (½ 6N16B coil driver + relay, TC-N2) stops the clock on a loop overflow; it belongs to the clock-generator board and nothing in the RTL places it; proposed, not simulated.
 
 The dekatron module adds three counting cells that the RTL places itself (no function, ABC never uses them; TRS v0.40): `WRCH_N16` (write channel, ½ 6N16B per cathode or common return), `RDD_X7` (read diode, ½ 6Kh7B per read line), `GLIFT_N16` (guide-lift follower, one 6N16B per counter); see [DEKATRON_A110](DEKATRON_A110/README.md).
 
@@ -54,7 +59,7 @@ Each cell folder `<CELL>/` holds:
 | `img/` | figures of the page, rebuilt by `tools/spice/*_plots.py` |
 
 - The sheets take the tube models from `sch/libs/` as `${KIPRJMOD}/../../libs/<tube>.sub`, so a cell project sits two levels below `sch/`.
-- DLATCH2_J2N16, DFF_J2N16, DFFRN_J2N16X7 and DFFSN_J2N16X7 use `../RSLATCH_J2N16/RSLATCH_J2N16.kicad_sch` as their sub-sheet. A change to the RS latch changes all of them.
+- DLATCH2_J2N16, DFF_J2N16, DFFRN_J2N16X7 and DFFSN_J2N16X7 use `../RSLATCH_J2N16/RSLATCH_J2N16.kicad_sch` as their sub-sheet. A change to the RS latch changes all of them. DFFP2_J2N16 has its own sub-sheet `DFFP_J2N16.kicad_sch` (other values: plate chokes, Rg2 12k, no Cb).
 - The scripts stay in `tools/`. `tools/kicad/gen_*.py OUT_DIR` writes the sheets to `OUT_DIR/<CELL>/` (run with `sch/logic`, and only to start over: the drawn sheets are edited in KiCad). `tools/spice/*_sweep.py`, `*_static.py` and `*_plots.py` run the simulations and draw the figures; with no argument, the plots go into `<CELL>/img/`.
 
 ## Cell library
@@ -67,6 +72,7 @@ These files are the interface of the cells to the RTL flow. Keep them in step wi
 | `vtube_cells.v` | Verilog models of the cells, one to one with the liberty (AGENTS §6) | `rtl/run/synth_sim.sh` |
 | `vtube_cells.sp` | behavioural SPICE models (0/1 V logic, ngspice + XSPICE) with the liberty names and pins | not used by a script now |
 | `vtube_timing.json` | the only place for cell delays and setup/hold | `rtl/run/vtube_sdf.py` (`synth_sim.sh -t`, `doc/vtube_sdf_timing.md`) |
+| `vtube_power.json` | the only place for the static supply currents of the cells per pin state and rail (+150 V plate, screen, −50 V, +350 V), from the cell pages | `rtl/run/vtube_power.py` (`synth_sim.sh -p`, `doc/vtube_power.md`) |
 | `vtube_timing_check.v` | `vtube_setuphold`, the setup/hold checker of the trigger cells | `synth_sim.sh -t` |
 
 ## Other files

@@ -6,25 +6,25 @@
 // IpLine, ApLine, реле времени и терминал заменены моделями:
 //   IpLine  выдаёт опкоды из очереди prog; пока очередь пуста, выборка
 //           не заканчивается (автомат стоит в S_FETCH_W). Как и в RTL,
-//           insn — регистр памяти: EOT при загрузке в него не попадает,
-//           а поднимает insn_eot;
-//   ApLine  занят 1..4 такта на операцию, проверяет, что операция
-//           {insn_mode, insn} не меняется до возврата ready. Какую
-//           операцию она означает, тест считает по прежней таблице
-//           (ap_op_of), то есть повторяет дешифрацию ApLine;
+//           insn — регистр памяти: EOT (LD 0xB при загрузке) в него не
+//           попадает, а поднимает insn_eot;
+//   ApLine  занят 1..4 такта на операцию, проверяет, что опкод не
+//           меняется до возврата ready. Какую операцию он означает,
+//           тест считает по таблице ISA16 (ap_op_of), то есть повторяет
+//           дешифрацию ApLine;
 //   реле    по запросу поднимает линию сброса и busy на 6 тактов.
 //
 // Проверяется:
-//   1. Таблица ISA: все 32 пары {insn_mode, insn} — какую операцию и
-//      какому исполнителю выдаёт автомат, звонок, смена ISA, останов.
-//   2. TEST перед скобкой только в BF и только при недостоверном
-//      признаке нуля (REQ-CTLV2-007/008).
+//   1. Таблица ISA16 (doc/isa16.md): все 16 опкодов — какую операцию
+//      выдаёт автомат, звонок, останов.
+//   2. TEST только перед [ ] и только при недостоверном признаке нуля,
+//      { } проверяют адрес (REQ-CTLV2-007/008).
 //   3. CIN: rx_rdy только по окончании операции CIN, эхо (REQ-UART-008).
-//   4. Загрузка программы: SOT, ISA1/ISA0 внутри, EOT с SoftRstOnEOT.
-//   5. HRST/SRST: набор команд после сброса, RunOnHardRst/RunOnSoftRst,
-//      сброс с пульта во время операции (REQ-CTLV2-004/009).
+//   4. Загрузка программы: LD как SOT, LD как EOT с SoftRstOnEOT.
+//   5. Сбросы с пульта: RunOnHardRst/RunOnSoftRst, сброс во время
+//      операции (REQ-CTLV2-004/009).
 //   6. Переполнение вложенности останавливает машину, звонок по ошибке,
-//      повторный пуск не останавливается снова, после CLRL новое
+//      повторный пуск не останавливается снова, после сброса новое
 //      переполнение снова останавливает (REQ-CTLV2-005).
 //   7. Пошаговый режим, кнопка останова в S_IDLE и в ожидании CIN.
 //   8. Упреждающая выборка (P3): операции ApLine, кроме TEST и CIN,
@@ -52,12 +52,10 @@ localparam [3:0]
     S_DECODE   = 4'd10,
     S_CIN_WAIT = 4'd15;
 
-localparam [1:0] IP_NEXT = 2'd0, IP_CLR_IP = 2'd1, IP_CLR_LOOP = 2'd2;
-
 localparam [3:0]
     AP_NOP = 4'd0, AP_AP_STEP = 4'd1, AP_AP_ZERO = 4'd2, AP_DATA_STEP = 4'd3,
-    AP_DATA_ZERO = 4'd4, AP_CIN = 4'd5, AP_COUT = 4'd6, AP_LOAD = 4'd7, AP_STORE = 4'd8,
-    AP_CLRML = 4'd9, AP_TEST = 4'd10;
+    AP_DATA_ZERO = 4'd4, AP_CIN = 4'd5, AP_COUT = 4'd6, AP_MEMLOCK = 4'd8,
+    AP_TEST = 4'd10;
 
 //----------------------------------------------------------------------
 // Пульт и тумблеры
@@ -72,18 +70,16 @@ reg bell_on_cin = 0, bell_on_halt = 0, bell_on_error = 0;
 //----------------------------------------------------------------------
 wire       ip_valid;
 wire       ip_ready;
-wire       ip_clr;
 wire       ip_ahead;
 wire       loop_val_zero;
 wire       insn_loading;
 reg  [3:0] insn = 4'h0;
-reg        insn_valid = 1'b0;
 reg        insn_eot = 1'b0;
 reg        loop_overflow = 1'b0;
 
 wire       ap_valid;
 wire       ap_ready;
-wire [4:0] ap_op_w;
+wire [3:0] ap_op_w;
 reg        data_zero = 1'b0;
 reg        data_zero_valid = 1'b1;
 reg        ap_zero = 1'b0;
@@ -97,7 +93,7 @@ wire       soft_rst_req, hard_rst_req;
 reg        rst_busy = 1'b0;
 reg        soft_rst = 1'b0, hard_rst = 1'b0;
 
-wire        insn_mode, is_halted, bell;
+wire        is_halted, bell;
 wire [3:0]  state;
 wire [31:0] iret;
 
@@ -108,9 +104,9 @@ MachineCtrl #(.EN_EMULATOR(1'b1)) dut (
     .echo_mode(echo_mode), .run_on_hard_rst(run_on_hard_rst),
     .run_on_soft_rst(run_on_soft_rst), .soft_rst_on_eot(soft_rst_on_eot),
     .bell_on_cin(bell_on_cin), .bell_on_halt(bell_on_halt), .bell_on_error(bell_on_error),
-    .ip_valid(ip_valid), .ip_ready(ip_ready), .ip_clr(ip_clr), .ip_ahead(ip_ahead),
+    .ip_valid(ip_valid), .ip_ready(ip_ready), .ip_ahead(ip_ahead),
     .loop_val_zero(loop_val_zero), .insn_loading(insn_loading),
-    .insn(insn), .insn_valid(insn_valid), .insn_eot(insn_eot),
+    .insn(insn), .insn_eot(insn_eot),
     .loop_overflow(loop_overflow),
     .ap_valid(ap_valid), .ap_ready(ap_ready), .ap_op(ap_op_w),
     .data_zero(data_zero), .data_zero_valid(data_zero_valid), .ap_zero(ap_zero),
@@ -118,34 +114,29 @@ MachineCtrl #(.EN_EMULATOR(1'b1)) dut (
     .tx_vld(tx_vld), .tx_rdy(tx_rdy), .rx_vld(rx_vld), .rx_rdy(rx_rdy),
     .soft_rst_req(soft_rst_req), .hard_rst_req(hard_rst_req), .rst_busy(rst_busy),
     .soft_rst(soft_rst), .hard_rst(hard_rst),
-    .insn_mode(insn_mode), .is_halted(is_halted), .bell(bell),
+    .is_halted(is_halted), .bell(bell),
     .state(state), .iret(iret)
 );
 
 integer errors = 0;
 
 //----------------------------------------------------------------------
-// Операции исполнителям в терминах прежней таблицы.
-// IpLine: clr выбирает CLRL/CLRI по младшему биту опкода.
-// ApLine: операция — ap_op = {insn_mode, op_q}, направление — её бит 0.
+// Операции ApLine: операция — ap_op = op_q, направление — её бит 0.
 // insn при упреждающей выборке уже следующий, поэтому не годится.
 //----------------------------------------------------------------------
-wire [1:0] ip_op = ip_clr ? (insn[0] ? IP_CLR_IP : IP_CLR_LOOP) : IP_NEXT;
-wire [4:0] ap_insn = ap_op_w;
+wire [3:0] ap_insn = ap_op_w;
 
-function automatic [3:0] ap_op_of(input [4:0] c);
+function automatic [3:0] ap_op_of(input [3:0] c);
     case (c)
-        5'h16, 5'h17: ap_op_of = AP_TEST;
-        5'h0A, 5'h1A: ap_op_of = AP_DATA_ZERO;
-        5'h0B:        ap_op_of = AP_AP_ZERO;
-        5'h12, 5'h13: ap_op_of = AP_DATA_STEP;
-        5'h14, 5'h15: ap_op_of = AP_AP_STEP;
-        5'h18:        ap_op_of = AP_COUT;
-        5'h19:        ap_op_of = AP_CIN;
-        5'h1B:        ap_op_of = AP_CLRML;
-        5'h1C:        ap_op_of = AP_LOAD;
-        5'h1D:        ap_op_of = AP_STORE;
-        default:      ap_op_of = AP_NOP;
+        4'h6, 4'h7: ap_op_of = AP_TEST;
+        4'hA:       ap_op_of = AP_DATA_ZERO;
+        4'hC:       ap_op_of = AP_AP_ZERO;
+        4'h2, 4'h3: ap_op_of = AP_DATA_STEP;
+        4'h4, 4'h5: ap_op_of = AP_AP_STEP;
+        4'h8:       ap_op_of = AP_COUT;
+        4'h9:       ap_op_of = AP_CIN;
+        4'hD:       ap_op_of = AP_MEMLOCK;
+        default:    ap_op_of = AP_NOP;
     endcase
 endfunction
 
@@ -167,16 +158,17 @@ reg       ovf_on_fetch = 1'b0;  // следующая выборка кончи�
 reg       reread = 1'b0;        // останов при ip_ahead: читать ту же инструкцию
 
 // Как в IpLine: ready не зависит от valid, при останове снят
-assign ip_ready = (ip_busy == 0) & ~ip_fetching & ~is_halted & ~(soft_rst | hard_rst);
+// После переполнения IpLine до сброса не отвечает (TC-N2)
+assign ip_ready = (ip_busy == 0) & ~ip_fetching & ~is_halted & ~(soft_rst | hard_rst) & ~loop_overflow;
 
 // Счётчики выданных операций
-integer n_ip [0:3];
+integer n_ip;
 integer n_ap [0:15];
 reg     last_ap_dec;
 integer n_tx, n_bell, n_hreq, n_sreq, n_rx, n_pf;
 
 task automatic clear_counts();
-    for (int i = 0; i < 4;  i++) n_ip[i] = 0;
+    n_ip = 0;
     for (int i = 0; i < 16; i++) n_ap[i] = 0;
     n_tx = 0; n_bell = 0; n_hreq = 0; n_sreq = 0; n_rx = 0; n_pf = 0;
 endtask
@@ -185,8 +177,8 @@ always @(posedge clk) begin
     if (soft_rst | hard_rst) begin
         ip_busy     <= 0;
         ip_fetching <= 1'b0;
-        insn_valid  <= 1'b0;
         reread      <= 1'b0;
+        loop_overflow <= 1'b0;    // счётчик вложенности сбрасывается линией
     end
     else begin
         if (ip_busy > 0) ip_busy <= ip_busy - 1;
@@ -196,14 +188,9 @@ always @(posedge clk) begin
         if (is_halted & ip_ahead) reread <= 1'b1;
 
         if (ip_valid & ip_ready) begin
-            n_ip[ip_op] = n_ip[ip_op] + 1;
-            insn_eot   <= 1'b0;
-            case (ip_op)
-                IP_NEXT:     ip_fetching <= 1'b1;
-                IP_CLR_LOOP: begin ip_busy <= 2; loop_overflow <= 1'b0; end
-                IP_CLR_IP:   begin ip_busy <= 2; insn_valid <= 1'b0; end
-                default:     fail("ip_op 3");
-            endcase
+            n_ip        = n_ip + 1;
+            insn_eot    <= 1'b0;
+            ip_fetching <= 1'b1;
         end
 
         if (ip_fetching & (ip_busy == 0)) begin
@@ -216,21 +203,19 @@ always @(posedge clk) begin
             end
             else if (reread) begin
                 reread      <= 1'b0;
-                insn_valid  <= 1'b1;
                 ip_fetching <= 1'b0;
                 ip_busy     <= 1;
             end
             else if (prog.size() > 0) begin
                 // EOT в память не пишется: регистр памяти держит прежний
                 // опкод, о конце загрузки говорит insn_eot
-                if (insn_loading && !insn_mode && prog[0] == 4'h4) begin
+                if (insn_loading && prog[0] == 4'hB) begin
                     void'(prog.pop_front());
                     insn_eot <= 1'b1;
                 end
                 else begin
                     insn <= prog.pop_front();
                 end
-                insn_valid  <= 1'b1;
                 ip_fetching <= 1'b0;
                 ip_busy     <= 1;
             end
@@ -242,7 +227,7 @@ end
 // Модель ApLine
 //----------------------------------------------------------------------
 integer   ap_busy = 0;
-reg [4:0] ap_insn_q;
+reg [3:0] ap_insn_q;
 
 assign ap_ready = (ap_busy == 0) & ~(soft_rst | hard_rst);
 
@@ -295,6 +280,7 @@ end
 // Терминал и счётчики событий
 //----------------------------------------------------------------------
 reg in_cin_op = 1'b0;   // ApLine выполняет CIN
+reg rx_take   = 1'b0;   // рукопожатие приёма на последнем фронте
 
 always @(posedge clk) begin
     if (rst_n) begin
@@ -302,10 +288,8 @@ always @(posedge clk) begin
         if (bell)            n_bell++;
         if (hard_rst_req & ~rst_busy) n_hreq++;
         if (soft_rst_req & ~rst_busy) n_sreq++;
-        if (rx_vld & rx_rdy) begin
-            n_rx++;
-            rx_vld <= 1'b0;
-        end
+        rx_take <= rx_vld & rx_rdy;
+        if (rx_vld & rx_rdy) n_rx++;
 
         if (ap_valid & ap_ready & (ap_op == AP_CIN)) in_cin_op <= 1'b1;
         if (rx_vld & rx_rdy)                         in_cin_op <= 1'b0;
@@ -317,12 +301,9 @@ always @(posedge clk) begin
         // не при скобке (TEST) и CIN
         if (ip_valid & ap_valid) begin
             n_pf++;
-            if (ip_clr) fail("ip_clr together with ap_valid");
             if ((ap_op == AP_TEST) | (ap_op == AP_CIN))
                 fail($sformatf("prefetch with ap op %0d", ap_op));
         end
-        if (ip_valid & ip_clr & ~((ap_insn == 5'h08) | (ap_insn == 5'h09)))
-            fail($sformatf("ip_clr with %h, not CLRL/CLRI", ap_insn));
         if (soft_rst_req & hard_rst_req) fail("soft and hard reset requests together");
         if (rx_rdy & ~(in_cin_op & ap_ready))
             fail("rx_rdy before CIN finished");
@@ -332,12 +313,20 @@ always @(posedge clk) begin
     end
 end
 
+// Внешние источники (терминал, кнопки, тумблеры) меняют входы только на
+// спаде clk (TRS v0.46, Приложение B, §22 п. 19): терминал снимает rx_vld
+// на спаде после рукопожатия, а задачи ниже выставляют входы после tick(),
+// который кончается спадом. Модели IpLine/ApLine и реле времени выше —
+// внутренние мастера и работают по фронту, как в машине.
+always @(negedge clk)
+    if (rx_take) rx_vld = 1'b0;
+
 //----------------------------------------------------------------------
 // Вспомогательные задачи
 //----------------------------------------------------------------------
 task automatic tick(input int n = 1);
     repeat (n) @(posedge clk);
-    #1;
+    @(negedge clk);
 endtask
 
 // Машина ждёт опкод: выборка принята, очередь пуста, ApLine свободен.
@@ -372,21 +361,12 @@ endtask
 task automatic exec(input [3:0] op);
     clear_counts();
     prog.push_back(op);
-    wait_settled($sformatf("exec %h mode %b", op, insn_mode));
+    wait_settled($sformatf("exec %h", op));
 endtask
 
-task automatic set_mode(input bit m);
-    if (insn_mode !== m) exec(m ? 4'hF : 4'hE);
-    if (insn_mode !== m) fail("set_mode");
-endtask
-
-task automatic expect_only(input string what, input int ipop, input int apop, input int tx, input int bells);
+task automatic expect_only(input string what, input int apop, input int tx, input int bells);
     int ap_total = 0;
     for (int i = 0; i < 16; i++) ap_total += n_ap[i];
-    // IP_NEXT не считаем: это выборка следующей инструкции
-    for (int i = 1; i < 4; i++)
-        if (n_ip[i] != ((i == ipop) ? 1 : 0))
-            fail($sformatf("%s: ip op %0d issued %0d times", what, i, n_ip[i]));
     if (apop < 0 && ap_total != 0)
         fail($sformatf("%s: unexpected ap op (total %0d)", what, ap_total));
     if (apop >= 0 && (n_ap[apop] != 1 || ap_total != 1))
@@ -414,95 +394,74 @@ task automatic power_up();
     while (rst_busy) tick();
     tick(2);
     if (state != S_HALT) fail("after rst_n: not in S_HALT");
-    if (insn_mode !== 1'b0) fail("after rst_n: not Debug ISA");
     run_from_halt();
     wait_settled("power_up");
 endtask
 
 //----------------------------------------------------------------------
-// 1, 2. Таблица ISA
+// 1, 2. Таблица ISA16
 //----------------------------------------------------------------------
 task automatic check_isa_table();
     $display("check_isa_table");
     tx_rdy = 1'b1;
 
-    for (int m = 0; m < 2; m++) begin
-        for (int op = 0; op < 16; op++) begin
-            string what = $sformatf("{%0d,%h}", m, op);
-            bit was_mode;
-            // {x,1}/{x,5}/{x,C}/{x,D} — ниже, CIN — отдельно (без continue: Icarus 12)
-            if (!(op == 4'h1 || op == 4'h5 || op == 4'hC || op == 4'hD || (m == 1 && op == 4'h9))) begin
-                set_mode(m);
-                was_mode = insn_mode;
-                data_zero_valid = 1'b1;
-                // Вывод идёт по окончании упреждающей выборки: ей нужен
-                // следующий опкод, NOP его и даёт
-                if (m == 1 && op == 4'h8) prog.push_back(4'h8);
-                exec((m == 1 && op == 4'h8) ? 4'h0 : op[3:0]);
-                if (!parked()) fail({what, ": machine stopped"});
-                case ({m[0], op[3:0]})
-                    5'h02: expect_only(what, -1, -1, 0, 1);              // BELL
-                    5'h08: expect_only(what, IP_CLR_LOOP, -1, 0, 0);     // CLRL
-                    5'h09: expect_only(what, IP_CLR_IP, -1, 0, 0);       // CLRI
-                    5'h0A: expect_only(what, -1, AP_DATA_ZERO, 0, 0);    // CLRD
-                    5'h0B: expect_only(what, -1, AP_AP_ZERO, 0, 0);      // CLRA
-                    5'h12, 5'h13: begin                                  // + -
-                        expect_only(what, -1, AP_DATA_STEP, 0, 0);
-                        if (last_ap_dec !== op[0]) fail({what, ": dec"});
-                    end
-                    5'h14, 5'h15: begin                                  // > <
-                        expect_only(what, -1, AP_AP_STEP, 0, 0);
-                        if (last_ap_dec !== op[0]) fail({what, ": dec"});
-                    end
-                    5'h18: expect_only(what, -1, AP_COUT, 1, 0);         // . (OPEN-017)
-                    5'h1A: expect_only(what, -1, AP_DATA_ZERO, 0, 0);    // [-]
-                    5'h1B: expect_only(what, -1, AP_CLRML, 0, 0);
-                    5'h1C: expect_only(what, -1, AP_LOAD, 0, 0);
-                    5'h1D: expect_only(what, -1, AP_STORE, 0, 0);
-                    default: expect_only(what, -1, -1, 0, 0);            // NOP, скобки, ISA, EOT, 0x3
-                endcase
-                // Смена набора команд
-                if (op == 4'hE && insn_mode !== 1'b0) fail({what, ": ISA0"});
-                if (op == 4'hF && insn_mode !== 1'b1) fail({what, ": ISA1"});
-                if (op != 4'hE && op != 4'hF && insn_mode !== was_mode) fail({what, ": mode changed"});
-            end
+    for (int op = 0; op < 16; op++) begin
+        string what = $sformatf("op %h", op);
+        // HALT, LD и CIN — ниже (без continue: Icarus 12)
+        if (!(op == 4'h1 || op == 4'hB || op == 4'h9)) begin
+            data_zero_valid = 1'b1;
+            // Вывод идёт по окончании упреждающей выборки: ей нужен
+            // следующий опкод, NOP его и даёт
+            if (op == 4'h8) prog.push_back(4'h8);
+            exec((op == 4'h8) ? 4'h0 : op[3:0]);
+            if (!parked()) fail({what, ": machine stopped"});
+            case (op[3:0])
+                4'h2, 4'h3: begin                                // + -
+                    expect_only(what, AP_DATA_STEP, 0, 0);
+                    if (last_ap_dec !== op[0]) fail({what, ": dec"});
+                end
+                4'h4, 4'h5: begin                                // > <
+                    expect_only(what, AP_AP_STEP, 0, 0);
+                    if (last_ap_dec !== op[0]) fail({what, ": dec"});
+                end
+                4'h8: expect_only(what, AP_COUT, 1, 0);          // . (OPEN-017)
+                4'hA: expect_only(what, AP_DATA_ZERO, 0, 0);     // [-]
+                4'hC: expect_only(what, AP_AP_ZERO, 0, 0);       // CLRA
+                4'hD: expect_only(what, AP_MEMLOCK, 0, 0);         // MemLock
+                default: expect_only(what, -1, 0, 0);            // NOP, скобки
+            endcase
         end
     end
 
-    // Скобки в BF при недостоверном признаке: одна операция TEST
-    set_mode(1);
+    // [ ] при недостоверном признаке: одна операция TEST
     for (int op = 6; op < 8; op++) begin
         data_zero_valid = 1'b0;
         exec(op[3:0]);
-        expect_only($sformatf("BF bracket %h, zero invalid", op), -1, AP_TEST, 0, 0);
+        expect_only($sformatf("bracket %h, zero invalid", op), AP_TEST, 0, 0);
     end
-    // В Debug TEST не выдаётся никогда
-    set_mode(0);
-    for (int op = 6; op < 8; op++) begin
+    // { } проверяют адрес: TEST не выдаётся никогда
+    for (int op = 14; op < 16; op++) begin
         data_zero_valid = 1'b0;
         exec(op[3:0]);
-        expect_only($sformatf("Debug bracket %h", op), -1, -1, 0, 0);
+        expect_only($sformatf("bracket %h", op), -1, 0, 0);
     end
     data_zero_valid = 1'b1;
 
-    // loop_val_zero: в BF — ячейка, в Debug — адрес
-    data_zero = 1'b1; ap_zero = 1'b0; #1;
-    if (loop_val_zero !== 1'b0) fail("loop_val_zero in Debug must follow ap_zero");
-    set_mode(1);
-    #1;
-    if (loop_val_zero !== 1'b1) fail("loop_val_zero in BF must follow data_zero");
+    // loop_val_zero: для [ ] — ячейка, для { } — адрес (бит 3 опкода)
+    data_zero = 1'b1; ap_zero = 1'b0;
+    exec(4'hE); #1;
+    if (loop_val_zero !== 1'b0) fail("loop_val_zero for { must follow ap_zero");
+    exec(4'h6); #1;
+    if (loop_val_zero !== 1'b1) fail("loop_val_zero for [ must follow data_zero");
     data_zero = 1'b0;
 
-    // HALT в обоих наборах, со звонком
+    // HALT со звонком
     bell_on_halt = 1'b1;
-    for (int m = 0; m < 2; m++) begin
-        set_mode(m);
-        exec(4'h1);
-        if (state != S_HALT) fail($sformatf("HALT mode %0d: not halted", m));
-        if (n_bell != 1) fail($sformatf("HALT mode %0d: bell %0d", m, n_bell));
-        run_from_halt();
-        wait_settled("after HALT");
-    end
+    exec(4'h1);
+    if (state != S_HALT) fail("HALT: not halted");
+    if (n_bell != 1) fail($sformatf("HALT: bell %0d", n_bell));
+    run_from_halt();
+    wait_settled("after HALT");
     bell_on_halt = 1'b0;
 endtask
 
@@ -511,7 +470,6 @@ endtask
 //----------------------------------------------------------------------
 task automatic check_cin();
     $display("check_cin");
-    set_mode(1);
     tx_rdy = 1'b1;
     for (int e = 0; e < 2; e++) begin
         echo_mode   = e;
@@ -547,24 +505,18 @@ endtask
 //----------------------------------------------------------------------
 task automatic check_loading();
     $display("check_loading");
-    set_mode(0);
     soft_rst_on_eot = 1'b0;
-    exec(4'h5);                                   // SOT
-    if (!insn_loading) fail("SOT: loading not set");
+    exec(4'hB);                                   // LD — начало загрузки
+    if (!insn_loading) fail("LD: loading not set");
     // В загрузке ничего не исполняется
     for (int op = 0; op < 16; op++) begin
-        if (op != 4 && op != 4'hE && op != 4'hF) begin
+        if (op != 4'hB) begin
             exec(op[3:0]);
-            expect_only($sformatf("loading %h", op), -1, -1, 0, 0);
+            expect_only($sformatf("loading %h", op), -1, 0, 0);
             if (!parked()) fail($sformatf("loading %h: stopped", op));
         end
     end
-    // ISA1 внутри загрузки: 0x4 — уже '>', а не EOT
-    exec(4'hF);
-    exec(4'h4);
-    if (!insn_loading) fail("loading: 0x4 in BF ended the load");
-    exec(4'hE);
-    exec(4'h4);                                   // EOT
+    exec(4'hB);                                   // LD — EOT
     if (insn_loading)     fail("EOT: loading still set");
     if (state != S_HALT)  fail("EOT without SoftRstOnEOT: not halted");
     if (n_sreq != 0)      fail("EOT without SoftRstOnEOT: reset requested");
@@ -573,14 +525,13 @@ task automatic check_loading();
     soft_rst_on_eot = 1'b1;
     run_on_soft_rst = 1'b1;
     run_from_halt();
-    wait_settled("before SOT");
-    exec(4'h5);
+    wait_settled("before LD");
+    exec(4'hB);
     exec(4'h2);
     clear_counts();
-    prog.push_back(4'h4);
+    prog.push_back(4'hB);
     wait_settled("EOT soft reset");
     if (n_sreq != 1)          fail("EOT: no soft reset request");
-    if (insn_mode !== 1'b1)   fail("EOT: not BF after soft reset");
     if (!parked())   fail("EOT: RunOnSoftRst did not start the program");
     soft_rst_on_eot = 1'b0;
     run_on_soft_rst = 1'b0;
@@ -605,53 +556,45 @@ endtask
 //----------------------------------------------------------------------
 task automatic check_resets();
     $display("check_resets");
-    // HRST из BF невозможен (0xC — LOAD), поэтому из Debug
+    // HRST/SRST из программы нет: только пульт и SoftRstOnEOT
     for (int r = 0; r < 2; r++) begin
-        set_mode(0);
         run_on_hard_rst = r;
         clear_counts();
-        prog.push_back(4'hC);
-        wait_settled("HRST");
-        if (n_hreq != 1)        fail("HRST: no hard request");
-        if (n_sreq != 0)        fail("HRST: soft request");
-        if (insn_mode !== 1'b0) fail("HRST: not Debug ISA");
-        if (r == 0 && state != S_HALT)    fail("HRST: RunOnHardRst=0 but running");
-        if (r == 1 && !parked()) fail("HRST: RunOnHardRst=1 but halted");
-        if (r == 0) begin run_from_halt(); wait_settled("after HRST"); end
+        panel_hard = 1'b1; tick(); panel_hard = 1'b0;
+        wait_settled("panel hard reset");
+        if (n_hreq != 0 || n_sreq != 0) fail("panel hard reset: machine requested a reset");
+        if (r == 0 && state != S_HALT)    fail("hard reset: RunOnHardRst=0 but running");
+        if (r == 1 && !parked()) fail("hard reset: RunOnHardRst=1 but halted");
+        if (r == 0) begin run_from_halt(); wait_settled("after hard reset"); end
     end
     run_on_hard_rst = 1'b0;
 
     for (int r = 0; r < 2; r++) begin
-        set_mode(0);
         run_on_soft_rst = r;
         clear_counts();
-        prog.push_back(4'hD);
-        wait_settled("SRST");
-        if (n_sreq != 1)        fail("SRST: no soft request");
-        if (insn_mode !== 1'b1) fail("SRST: not BF ISA");
-        if (r == 0 && state != S_HALT)    fail("SRST: RunOnSoftRst=0 but running");
-        if (r == 1 && !parked()) fail("SRST: RunOnSoftRst=1 but halted");
-        if (r == 0) begin run_from_halt(); wait_settled("after SRST"); end
+        panel_soft = 1'b1; tick(); panel_soft = 1'b0;
+        wait_settled("panel soft reset");
+        if (n_hreq != 0 || n_sreq != 0) fail("panel soft reset: machine requested a reset");
+        if (r == 0 && state != S_HALT)    fail("soft reset: RunOnSoftRst=0 but running");
+        if (r == 1 && !parked()) fail("soft reset: RunOnSoftRst=1 but halted");
+        if (r == 0) begin run_from_halt(); wait_settled("after soft reset"); end
     end
     run_on_soft_rst = 1'b0;
 
     // Сброс с пульта во время ожидания ввода: машина бросает CIN
-    set_mode(1);
     exec(4'h9);
     if (state != S_CIN_WAIT) fail("panel reset: not in CIN");
     panel_hard = 1'b1; tick(); panel_hard = 1'b0;
     wait_settled("panel hard reset");
     if (state != S_HALT)    fail("panel hard reset: not halted");
-    if (insn_mode !== 1'b0) fail("panel hard reset: not Debug ISA");
     run_from_halt();
     wait_settled("after panel reset");
 
     // Сброс с пульта во время загрузки снимает её
-    exec(4'h5);
+    exec(4'hB);
     panel_soft = 1'b1; tick(); panel_soft = 1'b0;
     wait_settled("panel soft reset");
     if (insn_loading)       fail("panel soft reset: loading still set");
-    if (insn_mode !== 1'b1) fail("panel soft reset: not BF ISA");
     run_from_halt();
     wait_settled("after panel soft reset");
 endtask
@@ -660,38 +603,47 @@ endtask
 // 6. Переполнение вложенности
 //----------------------------------------------------------------------
 task automatic check_overflow();
-    int iret0;
+    int iret0, n_ip0, n_ap0;
     $display("check_overflow");
-    set_mode(1);
     bell_on_error = 1'b1;
-    // Как в IpLine: insn держит скобку, на которой прервана промотка,
-    // insn_valid поднят
+    // Как в IpLine: промотка прервана переполнением, IpLine больше не
+    // отвечает (ready снят) до сброса линиями: машина стоит (TC-N2)
     exec(4'h7);
     clear_counts();
     iret0 = iret;
     ovf_on_fetch = 1'b1;
     tick(20);
-    wait_settled("overflow");
-    if (state != S_HALT) fail("overflow: not halted");
-    if (n_bell != 1)     fail("overflow: no bell");
+    if (!loop_overflow)  fail("overflow: no overflow from the IpLine model");
+    if (is_halted)       fail("overflow: entered S_HALT (TC-N2: it only stops)");
+    if (!bell)           fail("overflow: the error bell is not held");
     if (iret != iret0)   fail("overflow: the bracket was decoded");
-    // Пуск: признак ещё поднят, но второй раз машина не встаёт
-    run_from_halt();
-    wait_settled("run after overflow");
-    exec(4'h2);
-    if (!parked()) fail("overflow: halted again without a new overflow");
-    // CLRL снимает признак, новое переполнение снова останавливает
-    set_mode(0);
-    exec(4'h8);
-    if (loop_overflow) fail("CLRL: overflow not cleared");
+    n_ip0 = n_ip;
+    n_ap0 = 0;
+    for (int i = 0; i < 16; i++) n_ap0 += n_ap[i];
+    // Пульт не оживляет машину: Run, Step, Halt ничего не меняют
+    run_key = 1'b1; tick(3); run_key = 1'b0; tick(3);
+    step_key = 1'b1; tick(3); step_key = 1'b0; tick(3);
+    halt_key = 1'b1; tick(3); halt_key = 1'b0; tick(30);
+    begin
+        int n_ap1 = 0;
+        for (int i = 0; i < 16; i++) n_ap1 += n_ap[i];
+        if (n_ip != n_ip0 || n_ap1 != n_ap0 || iret != iret0)
+            fail("overflow: the machine moved before a reset");
+    end
+    if (!bell) fail("overflow: the error bell dropped before a reset");
+    // CLRL нет: признак снимает только сброс; новое переполнение — снова стоп
+    run_on_soft_rst = 1'b1;
+    panel_soft = 1'b1; tick(); panel_soft = 1'b0;
+    wait_settled("soft reset after overflow");
+    if (loop_overflow) fail("soft reset: overflow not cleared");
+    if (bell)          fail("soft reset: the error bell still held");
     exec(4'h7);
     ovf_on_fetch = 1'b1;
     tick(20);
-    wait_settled("second overflow");
-    if (state != S_HALT) fail("second overflow after CLRL: not halted");
-    exec(4'h8);    // в останове выборка не идёт: опкод останется в очереди
-    run_from_halt();
-    wait_settled("after second overflow");
+    if (!loop_overflow || is_halted) fail("second overflow after reset: not stopped");
+    panel_soft = 1'b1; tick(); panel_soft = 1'b0;
+    wait_settled("soft reset after the second overflow");
+    run_on_soft_rst = 1'b0;
     bell_on_error = 1'b0;
 endtask
 
@@ -701,7 +653,6 @@ endtask
 task automatic check_step_halt();
     int iret0;
     $display("check_step_halt");
-    set_mode(1);
     bell_on_halt = 1'b1;
     clear_counts();
     // Кнопка останова действует в S_IDLE, то есть по окончании текущей

@@ -176,8 +176,8 @@ async def test_keyboard_multiple_keys_priority(dut):
 
 
 @cocotb.test()
-async def test_keyboard_isa_switch(dut):
-    """Pressing F key sets ISA to BRAINFUCK_ISA, E key sets DEBUG_ISA."""
+async def test_keyboard_hex_e_f_are_brackets(dut):
+    """ISA16: no ISA switch any more; keys E and F give the { } symbols."""
     clock = Clock(dut.Clk, CLOCK_PERIOD_NS, unit="ns")
     cocotb.start_soon(clock.start())
 
@@ -191,23 +191,19 @@ async def test_keyboard_isa_switch(dut):
     dut.Rst_n.value = 1
     await Timer(5 * CLOCK_PERIOD_NS, unit="ns")
 
-    # Press F key (KEYBOARD_F_KEY = 4)
     await release_keys(dut)
     await press_key(dut, KEYBOARD_F_KEY)
     await Timer(2 * CLOCK_PERIOD_NS, unit="ns")
-
-    # The ISA state isn't directly output, but the symbol output should reflect it
-    # Using BRAINFUCK_ISA=1, key F → BinaryToHex(onehot(F)) = 15 → opcode = {1, 4'hF} = 5'h1F → "B"
     sym = int(dut.symbol.value)
-    log.info(f"F key pressed, symbol={sym:#x} ({chr(sym) if 32 <= sym < 127 else '?'})")
+    log.info(f"F key pressed, symbol={sym:#x}")
+    assert sym == ord("}"), f"F key: expected '}}', got {sym:#x}"
 
-    # Press E key instead (KEYBOARD_E_KEY = 3), toggles to DEBUG_ISA
     await release_keys(dut)
     await press_key(dut, KEYBOARD_E_KEY)
     await Timer(2 * CLOCK_PERIOD_NS, unit="ns")
-
     sym2 = int(dut.symbol.value)
-    log.info(f"E key pressed, symbol={sym2:#x} ({chr(sym2) if 32 <= sym2 < 127 else '?'})")
+    log.info(f"E key pressed, symbol={sym2:#x}")
+    assert sym2 == ord("{"), f"E key: expected '{{', got {sym2:#x}"
 
 
 @cocotb.test()

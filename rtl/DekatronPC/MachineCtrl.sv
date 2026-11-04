@@ -24,9 +24,9 @@
 //
 // 2. Ветвление IpRequest/ApRequest/DataRequest на отдельные импульсные
 //    линии. Заменено на два интерфейса Valid/Ready. Кода операции
-//    ApLine не получает отсюда: им служит сама инструкция {insn_mode,
-//    insn}, и дешифрирует её ApLine (REQ-APV2-008). IpLine получает
-//    один бит clr: следующая инструкция или исполнение CLRL/CLRI.
+//    ApLine не получает отсюда: им служит сама инструкция op_q, и
+//    дешифрирует её ApLine (REQ-APV2-008). IpLine получает только
+//    запрос следующей инструкции.
 //
 // 3. Асинхронные входы Rst_n/HardRst_n, дёргавшие всю логику из двух
 //    always-веток. Сброс декатронных счётчиков — физический импульс по
@@ -34,27 +34,30 @@
 //    машина выдаёт ЗАПРОС сброса и ждёт снятия признака занятости реле.
 //
 //    Сброс при этом ОБЩЕМАШИННЫЙ: в исходное состояние приводятся и
-//    автомат, и режим набора команд, и обе линии. Программный от
-//    аппаратного отличается только тем, какой адрес окажется в счётчике
-//    инструкций и какой набор команд включится после снятия.
-//    Инициатором может быть как инструкция HRST/SRST, так и кнопка на
-//    пульте, поэтому машина следит за самими линиями сброса, а не только
-//    за собственным запросом.
+//    автомат, и обе линии. Программный от аппаратного отличается только
+//    тем, какой адрес окажется в счётчике инструкций (0 или 99990).
+//    Инициатором может быть SoftRstOnEOT или кнопка на пульте, поэтому
+//    машина следит за самими линиями сброса, а не только за собственным
+//    запросом.
 //
 //    rst_n остаётся сбросом одной лишь логики и разряд не двигает.
 //
 //----------------------------------------------------------------------
-// РЕЖИМЫ НАБОРА КОМАНД
+// НАБОР КОМАНД (ISA16, doc/isa16.md)
 //
-// Декодирование ведётся по паре {insn_mode, insn}: опкоды 0xB..0xD в
-// двух наборах означают разное (CLRA/HRST/SRST против CLRML/LOAD/STORE).
+// Один 4-битный набор, режимов нет:
+//   0 NOP  1 HALT  2 +  3 -  4 >  5 <  6 [  7 ]  8 .  9 ,
+//   A [-] (CLRD)  B LD (SOT; в потоке загрузки — EOT)  C CLRA
+//   D MemLock (MemLock без загрузки: ячейка := счётчик)  E {  F }
+// Скобки — x11x: бит 0 — открывающая/закрывающая, бит 3 — что
+// проверяется (0 — ячейка, 1 — счётчик адреса).
 //
 //----------------------------------------------------------------------
 // УПРЕЖДАЮЩАЯ ВЫБОРКА (P3, doc/prefetch_p3.md)
 //
 // Операция над ApLine не трогает ни IP, ни память программ, поэтому
 // следующая инструкция выбирается одновременно с её исполнением: в такте
-// выдачи ap_valid автомат выдаёт и ip_valid (clr = 0). Исключение —
+// выдачи ap_valid автомат выдаёт и ip_valid. Исключение —
 // скобки: решение о промотке IpLine принимает по самой скобке и
 // по признаку нуля, который даёт как раз эта операция TEST. CIN тоже не
 // выбирает заранее: он ждёт терминал, выигрыша нет.
@@ -70,8 +73,6 @@
 // обычного шага при останове (вход ip_ahead), а только снимает
 // ip_counted_q: после пуска та же инструкция читается заново.
 //======================================================================
-
-`include "../DekatronPC/insnValues.sv"
 
 `default_nettype none
 
@@ -103,21 +104,19 @@ module MachineCtrl #(
     //------------------------------------------------------------------
     output logic                  ip_valid,
     input  wire                   ip_ready,
-    output wire                   ip_clr,       // CLRL/CLRI, иначе выборка
     output wire                   ip_ahead,     // IP уже на следующей инструкции
     output wire                   loop_val_zero,
     output logic                  insn_loading,
     input  wire [INSN_WIDTH-1:0]  insn,
-    input  wire                   insn_valid,
     input  wire                   insn_eot,     // при загрузке принят EOT
     input  wire                   loop_overflow,
 
     //------------------------------------------------------------------
-    // Линия работы с данными. Операция — {insn_mode, insn}
+    // Линия работы с данными. Операция — сам опкод
     //------------------------------------------------------------------
     output logic                  ap_valid,
     input  wire                   ap_ready,
-    output wire [4:0]             ap_op,        // {insn_mode, op_q}, держится до ready
+    output wire [INSN_WIDTH-1:0]  ap_op,        // op_q, держится до ready
     input  wire                   data_zero,
     input  wire                   data_zero_valid,
     input  wire                   ap_zero,
@@ -151,7 +150,6 @@ module MachineCtrl #(
     //------------------------------------------------------------------
     // Состояние машины
     //------------------------------------------------------------------
-    output logic                  insn_mode,    // 0 = Debug ISA, 1 = Brainfuck ISA
     output wire                   is_halted,
     output logic                  bell,
     output logic [3:0]            state,
@@ -187,40 +185,60 @@ module MachineCtrl #(
         S_RST_REQ   = 4'd14,  // запрос физического сброса
         S_RST_WAIT  = 4'd7;
 
+    //------------------------------------------------------------------
+    // Синхронизаторы асинхронных входов (TRS §22 п. 19, v0.49): кнопки
+    // пульта и снятие реле времени приходят в любой момент такта, а идут
+    // на D сразу нескольких триггеров автомата (биты state, insn_loading,
+    // one_step), halt_key — ещё и в ip_valid/ap_valid. Без синхронизатора
+    // разные триггеры могут защёлкнуть разные значения
+    // (doc/external_inputs_falling_edge.md §3, §5). По импульсному триггеру
+    // DFFP_J2N16 на сигнал (TC-N5, TRS v0.52: 3,5 лампы вместо 7 у
+    // DFF_J2N16), как key_next_s для +IP в IpLine; задержка — один такт.
+    // D триггера — ВВ-вход: каждая входная цепь нагружена одним таким D.
+    // Сброса нет: при включении линии сброса держат автомат в S_RST_WAIT
+    // дольше одного такта, и к их снятию синхронизаторы уже переписаны.
+    // Линии soft_rst/hard_rst снимаются вместе с rst_busy, но в S_RST_WAIT
+    // D автомата от них не зависит: выход оттуда — только по rst_busy_s.
+    //------------------------------------------------------------------
+    wire halt_key_s, step_key_s, run_key_s;
+    wire key_insn_loading_start_s, key_insn_loading_stop_s;
+    wire rst_busy_s;
+
+    DFFP_J2N16 syncHalt   (.C (clk), .D (halt_key),               .Q (halt_key_s),               .QN ());
+    DFFP_J2N16 syncStep   (.C (clk), .D (step_key),               .Q (step_key_s),               .QN ());
+    DFFP_J2N16 syncRun    (.C (clk), .D (run_key),                .Q (run_key_s),                .QN ());
+    DFFP_J2N16 syncLdSta  (.C (clk), .D (key_insn_loading_start), .Q (key_insn_loading_start_s), .QN ());
+    DFFP_J2N16 syncLdStp  (.C (clk), .D (key_insn_loading_stop),  .Q (key_insn_loading_stop_s),  .QN ());
+    DFFP_J2N16 syncRstBsy (.C (clk), .D (rst_busy),               .Q (rst_busy_s),               .QN ());
+
     logic one_step;      // выполняется ровно одна инструкция
     logic [INSN_WIDTH-1:0] op_q;   // код текущей инструкции (op_load)
     logic pf_q;          // следующая инструкция выбрана заранее
-    logic overflow_q;    // переполнение вложенности уже обработано
     logic rst_soft;      // сброс программный (иначе аппаратный)
 
     //------------------------------------------------------------------
-    // Признак, который проверяют скобки:
-    // в Brainfuck ISA — ноль текущей ячейки, в Debug ISA — ноль адреса
+    // Признак, который проверяют скобки: [ ] (0x6/0x7) — ноль текущей
+    // ячейки, { } (0xE/0xF) — ноль счётчика адреса. IpLine берёт его в
+    // такте приёма запроса, когда op_q — та самая скобка
     //------------------------------------------------------------------
-    assign loop_val_zero = insn_mode ? data_zero : ap_zero;
+    assign loop_val_zero = op_q[3] ? ap_zero : data_zero;
 
     assign is_halted = (state == S_HALT);
 
-    // Полный код инструкции с учётом текущего набора команд.
     // Память программ может читать следующую инструкцию, пока текущая
     // ещё исполняется, поэтому код дешифрируется только из op_q.
     // op_q пишется в S_FETCH_W (каждый такт, последний — уже с готовым
     // опкодом) и в последнем такте инструкции (op_end), когда на выходе
     // памяти уже заранее выбранная следующая. Если дальше не S_DECODE, а
     // S_IDLE или S_HALT, запись безвредна: S_FETCH_W перепишет op_q.
-    // Набор команд меняется только в S_DECODE и при сбросе, так что
-    // {insn_mode, op_q} держится до ready ApLine, как того требует
-    // Valid/Ready.
-    wire [4:0] op_cur = {insn_mode, op_q};
+    // До ready ApLine op_q держится, как того требует Valid/Ready.
+    assign ap_op = op_q;
 
-    assign ap_op = op_cur;
-
-    wire is_cin     = (op_cur == 5'h19);
-    wire is_cout    = (op_cur == 5'h18);
-    wire is_ip_op   = (op_cur == 5'h08) | (op_cur == 5'h09);   // CLRL, CLRI
-    // Скобка в S_EXEC — это TEST (только BF); в Debug скобки туда не
-    // попадают, поэтому режим не проверяется
-    wire is_bracket = (op_q[3:1] == 3'b011);
+    wire is_cin     = (op_q == 4'h9);
+    wire is_cout    = (op_q == 4'h8);
+    // Скобка в S_EXEC — это TEST; { } туда не попадают, поэтому
+    // достаточно x11x
+    wire is_bracket = op_q[2] & op_q[1];
 
     //------------------------------------------------------------------
     // Готовность исполнителей.
@@ -231,11 +249,10 @@ module MachineCtrl #(
     wire go       = ip_ready & ap_ready & ~rst_line;
 
     // Переполнение счётчика вложенности — аппаратная ошибка. Промотка
-    // прервана самим IpLine, парная скобка не найдена, продолжать
-    // исполнение бессмысленно: машина останавливается (REQ-CTLV2-005).
-    // Реакция на фронт: IpLine держит признак до CLRL или сброса, и
-    // после пуска с пульта машина не должна останавливаться снова.
-    wire overflow_hit = loop_overflow & ~overflow_q;
+    // прервана самим IpLine, и он до сброса не отвечает (ready снят): автомат
+    // остаётся ждать выборку, машина стоит (TC-N2, REQ-CNT-007). Своей ветки
+    // останова здесь нет; признак переполнения идёт на лампочку пульта, по нему
+    // реле с самоподхватом может остановить такт (sch/logic/RELAY_HOLD_N16).
 
     //------------------------------------------------------------------
     // Стробы исполнителям — дешифрация состояния (автомат Мура)
@@ -251,14 +268,10 @@ module MachineCtrl #(
     wire in_cin    = (state == S_CIN_WAIT);
     wire in_rst_rq = (state == S_RST_REQ);
 
-    // В S_EXEC линия выборки получает CLRL/CLRI либо, вместе с ap_valid,
-    // упреждающую выборку: всё, кроме скобки (TEST)
-    assign ip_valid = ((in_idle & ~halt_key) | (in_exec & ~is_bracket)) & go;
-    assign ap_valid = ((in_exec & ~is_ip_op) | (in_cin & ~halt_key & rx_vld)) & go;
-
-    // CLRL (0x8) и CLRI (0x9) IpLine различает по своему же опкоду:
-    // при них упреждающей выборки нет, и insn ещё текущий
-    assign ip_clr = in_exec & is_ip_op;
+    // В S_EXEC линия выборки вместе с ap_valid получает упреждающую
+    // выборку: всё, кроме скобки (TEST)
+    assign ip_valid = ((in_idle & ~halt_key_s) | (in_exec & ~is_bracket)) & go;
+    assign ap_valid = (in_exec | (in_cin & ~halt_key_s & rx_vld)) & go;
 
     assign ip_ahead = pf_q;
 
@@ -283,48 +296,24 @@ module MachineCtrl #(
     assign soft_rst_req = in_rst_rq &  rst_soft;
     assign hard_rst_req = in_rst_rq & ~rst_soft;
 
-    // Звонок — импульс в такт события
+    // Звонок — импульс в такт события; по ошибке — уровень до сброса
     wire decode_run = in_decode & ~insn_loading;
 
-    // Тумблеры звонка — контакты реле, а не лампы (rtl/Logic/Relay.sv)
-    wire bell_halt, bell_cin, bell_error;
-    RelayEn #(.W(1)) u_bell_halt (
-        .en (bell_on_halt),
-        .a  ((in_idle & halt_key) |
-             (decode_run & ((op_cur == 5'h01) | (op_cur == 5'h11)))),
-        .y  (bell_halt));
-    RelayEn #(.W(1)) u_bell_cin (
-        .en (bell_on_cin),
-        .a  (decode_run & is_cin),
-        .y  (bell_cin));
-    RelayEn #(.W(1)) u_bell_error (
-        .en (bell_on_error),
-        .a  (overflow_hit),
-        .y  (bell_error));
-
-    assign bell = bell_halt |
-                  (decode_run & (op_cur == 5'h02)) |                   // BELL
-                  bell_cin |
-                  bell_error;
+    // Тумблеры звонка — на лампах: реле ради нескольких ламп не стоят
+    // отдельной платы (владелец, TRS v0.43)
+    assign bell = (bell_on_halt  & ((in_idle & halt_key_s) | (decode_run & (op_q == 4'h1)))) |
+                  (bell_on_cin   & decode_run & is_cin) |
+                  (bell_on_error & loop_overflow);   // уровень до сброса (TC-N2)
 
     // Окончание инструкции: останов по кнопке или пошаговому режиму.
     // Если следующая инструкция уже выбрана, сразу её дешифрация: выход
     // в s_next бывает только по go, то есть выборка закончена
-    wire [3:0] s_next = (halt_key | one_step) ? S_HALT
+    wire [3:0] s_next = (halt_key_s | one_step) ? S_HALT
                       : pf_q                  ? S_DECODE
                       :                         S_IDLE;
 
-    // Эхо (echo_mode) остаётся на лампах: is_cin & echo_mode сливается с
-    // логикой перехода, реле лампу не экономит (doc/tube_count_reduction.md §15).
-
-    // Пуск после сброса: rst_soft ? run_on_soft_rst : run_on_hard_rst.
-    // Реле управляют только тумблеры, поэтому rst_soft идёт через контакты:
-    // {soft, hard} = 00 -> 0, 01 -> ~rst_soft, 10 -> rst_soft, 11 -> 1
-    wire run_on_rst;
-    RelayMux #(.W(1), .S(2)) u_run_on_rst (
-        .sel ({run_on_soft_rst, run_on_hard_rst}),
-        .d   ({1'b1, rst_soft, ~rst_soft, 1'b0}),
-        .y   (run_on_rst));
+    // Пуск после сброса
+    wire run_on_rst = rst_soft ? run_on_soft_rst : run_on_hard_rst;
 
     //------------------------------------------------------------------
     // Основной автомат
@@ -334,8 +323,6 @@ module MachineCtrl #(
     // аппаратный сброс реле времени при включении (REQ-REF-011, TC-O5)
     always_ff @(posedge clk) begin
         begin
-            overflow_q <= loop_overflow;
-
             if (op_load) op_q <= insn;
 
             // Общемашинный сброс по физическим линиям. Работает
@@ -348,29 +335,23 @@ module MachineCtrl #(
                 pf_q         <= 1'b0;
                 state        <= S_RST_WAIT;
             end
-            // Переполнение вложенности перебивает любое состояние
-            // (оно возникает в S_FETCH_W, где иначе началась бы
-            // дешифрация скобки, на которой промотка прервана)
-            else if (overflow_hit) begin
-                state <= S_HALT;
-            end
             else begin
             case (state)
 
             //--------------------------------------------------------------
             S_HALT: begin
-                if (step_key | run_key | key_insn_loading_start) begin
-                    if (key_insn_loading_start)
+                if (step_key_s | run_key_s | key_insn_loading_start_s) begin
+                    if (key_insn_loading_start_s)
                         insn_loading <= 1'b1;
 
                     if (~one_step) begin
-                        if (step_key) one_step <= 1'b1;
+                        if (step_key_s) one_step <= 1'b1;
                         state <= S_IDLE;
                     end
                 end
 
                 // Отпускание кнопки шага разрешает следующий шаг
-                if (one_step & ~step_key)
+                if (one_step & ~step_key_s)
                     one_step <= 1'b0;
             end
 
@@ -380,14 +361,18 @@ module MachineCtrl #(
             //--------------------------------------------------------------
             S_IDLE: begin
                 pf_q <= 1'b0;   // после останова выборка обычная
-                if (halt_key)  state <= S_HALT;
+                if (halt_key_s)  state <= S_HALT;
                 else if (go)   state <= S_FETCH_W;
             end
 
+            // Отдельного признака достоверности опкода нет (TC-O9): сюда
+            // автомат приходит только после принятой выборки, а IpLine
+            // поднимает ready лишь по её окончании, так что go уже значит
+            // «insn достоверен»
             S_FETCH_W: begin
-                if (go & insn_valid) begin
+                if (go) begin
                     // Загрузка программы прерывается кнопкой или остановом
-                    if (insn_loading & (key_insn_loading_stop | halt_key)) begin
+                    if (insn_loading & (key_insn_loading_stop_s | halt_key_s)) begin
                         insn_loading <= 1'b0;
                         state        <= S_HALT;
                     end
@@ -419,42 +404,20 @@ module MachineCtrl #(
                 end
                 else if (insn_loading) begin
                     //------------------------------------------------------
-                    // Режим загрузки программы: исполняются только
-                    // служебные коды, остальное просто пишется в память.
-                    // insn — только что записанный опкод (сквозная запись)
+                    // Режим загрузки программы: опкод уже записан в память
+                    // (сквозная запись), исполнять нечего
                     //------------------------------------------------------
-                    case (op_cur)
-                        5'h0E, 5'h1E: begin             // ISA0
-                            insn_mode <= 1'b0;
-                            state     <= S_IDLE;
-                        end
-                        5'h0F, 5'h1F: begin             // ISA1
-                            insn_mode <= 1'b1;
-                            state     <= S_IDLE;
-                        end
-                        default: state <= S_IDLE;
-                    endcase
+                    state <= S_IDLE;
                 end
                 else begin
                     //------------------------------------------------------
                     // Обычное исполнение. В S_EXEC операцией служит
-                    // сама инструкция (ip_clr, ap_valid выше)
+                    // сама инструкция (ap_valid выше)
                     //------------------------------------------------------
-                    case (op_cur)
+                    case (op_q)
 
-                    //--- общие для обоих наборов ---------------------------
-                    5'h01, 5'h11:                       // HALT
+                    4'h1:                               // HALT
                         state <= S_HALT;
-
-                    5'h0E, 5'h1E: begin                 // ISA0 — в Debug
-                        insn_mode <= 1'b0;
-                        state     <= one_step ? S_HALT : S_IDLE;
-                    end
-
-                    5'h0F, 5'h1F: begin                 // ISA1 — в Brainfuck
-                        insn_mode <= 1'b1;
-                        state     <= one_step ? S_HALT : S_IDLE;
-                    end
 
                     //--- скобки -------------------------------------------
                     // Промотку делает IpLine, но решение он принимает по
@@ -464,46 +427,29 @@ module MachineCtrl #(
                     // За одну проверку скобки — одно обращение к памяти,
                     // и то лишь если значение не под рукой; во время самой
                     // промотки проверка не повторяется.
-                    // В Debug ISA скобки проверяют счётчик адреса, он
-                    // достоверен всегда.
-                    5'h16, 5'h17:                       // [ ]
+                    // { } (0xE/0xF) проверяют счётчик адреса, он достоверен
+                    // всегда: они идут по default
+                    4'h6, 4'h7:                         // [ ]
                         state <= ~data_zero_valid ? S_EXEC
                                : one_step         ? S_HALT : S_IDLE;
 
-                    //--- Debug ISA ----------------------------------------
-                    5'h05: begin                        // SOT — начало загрузки
+                    4'hB: begin                         // LD — начало загрузки
                         insn_loading <= 1'b1;
                         state        <= one_step ? S_HALT : S_IDLE;
                     end
 
-                    5'h08, 5'h09,                       // CLRL, CLRI
-                    5'h0A, 5'h0B:                       // CLRD, CLRA
-                        state <= S_EXEC;
-
-                    5'h0C: begin                        // HRST
-                        rst_soft <= 1'b0;
-                        state    <= S_RST_REQ;
-                    end
-
-                    5'h0D: begin                        // SRST
-                        rst_soft <= 1'b1;
-                        state    <= S_RST_REQ;
-                    end
-
-                    //--- Brainfuck ISA ------------------------------------
                     // '.' выводит счётчик данных: ApLine сначала
                     // загружает в него ячейку, если MemLock снят
-                    5'h12, 5'h13,                       // + -
-                    5'h14, 5'h15,                       // > <
-                    5'h18,                              // . COUT
-                    5'h1A, 5'h1B,                       // [-] CLRML
-                    5'h1C, 5'h1D:                       // LOAD STORE
+                    4'h2, 4'h3,                         // + -
+                    4'h4, 4'h5,                         // > <
+                    4'h8,                               // . COUT
+                    4'hA, 4'hC, 4'hD:                   // [-] CLRA MemLock
                         state <= S_EXEC;
 
-                    5'h19:                              // , CIN
+                    4'h9:                               // , CIN
                         state <= S_CIN_WAIT;
 
-                    //--- NOP, BELL, незанятые опкоды -----------------------
+                    //--- NOP, { } ------------------------------------------
                     default:
                         state <= one_step ? S_HALT : S_IDLE;
                     endcase
@@ -515,7 +461,7 @@ module MachineCtrl #(
             //--------------------------------------------------------------
             S_EXEC: begin
                 if (go) begin
-                    pf_q  <= ~is_bracket & ~is_ip_op;   // выдана и выборка
+                    pf_q  <= ~is_bracket;   // выдана и выборка
                     state <= S_WAIT;
                 end
             end
@@ -529,7 +475,7 @@ module MachineCtrl #(
             // Ввод символа с терминала: ApLine пишет его в счётчик
             //--------------------------------------------------------------
             S_CIN_WAIT: begin
-                if (halt_key)          state <= S_HALT;
+                if (halt_key_s)          state <= S_HALT;
                 else if (rx_vld & go)  state <= S_WAIT;
             end
 
@@ -544,16 +490,14 @@ module MachineCtrl #(
             // Физический сброс счётчиков
             //--------------------------------------------------------------
             S_RST_REQ: begin
-                if (rst_busy) state <= S_RST_WAIT;
+                if (rst_busy_s) state <= S_RST_WAIT;
             end
 
             S_RST_WAIT: begin
-                if (~rst_busy) begin
-                    // Набор команд после сброса задан архитектурой:
-                    // после аппаратного стартует загрузчик в Debug ISA,
-                    // после программного — программа в Brainfuck ISA
-                    insn_mode <= rst_soft;
-                    state     <= run_on_rst ? S_IDLE : S_HALT;
+                if (~rst_busy_s) begin
+                    // После аппаратного сброса стартует загрузчик (99990),
+                    // после программного — программа с нуля
+                    state <= run_on_rst ? S_IDLE : S_HALT;
                 end
             end
 
@@ -569,23 +513,27 @@ module MachineCtrl #(
     always_ff @(posedge clk, negedge rst_n) begin
         if (~rst_n)
             iret <= '0;
-        else if (EN_EMULATOR & (state == S_DECODE) & ~rst_line & ~overflow_hit)
+        else if (EN_EMULATOR & (state == S_DECODE) & ~rst_line)
             iret <= iret + 32'd1;
     end
 
 `ifndef SYNTH
 `ifdef ASSERTIONS
+    // Только для проверки: опкод уже выбран после сброса (insn_valid нет, TC-O9)
+    logic insn_seen = 1'b0;
+    always @(posedge clk)
+        if (rst_line)                      insn_seen <= 1'b0;
+        else if ((state == S_FETCH_W) & go) insn_seen <= 1'b1;
+
     always @(posedge clk) begin
         if (rst_n && soft_rst_req && hard_rst_req)
             $error("MachineCtrl: одновременный запрос программного и аппаратного сброса");
-        if (rst_n && ip_valid && ap_valid && ip_clr)
-            $error("MachineCtrl: CLRL/CLRI одновременно с операцией ApLine");
-        if (rst_n && ip_valid && !ip_clr && !insn_loading && insn_mode &&
-            insn_valid && ((insn == 4'h6) || (insn == 4'h7)) && !data_zero_valid)
+        if (rst_n && ip_valid && !insn_loading && insn_seen &&
+            ((insn == 4'h6) || (insn == 4'h7)) && !data_zero_valid)
             $error("MachineCtrl: скобка обрабатывается при недостоверном признаке нуля");
         if (rst_n && insn_loading && ap_valid)
             $error("MachineCtrl: операция над данными во время загрузки программы");
-        if (rst_n && overflow_hit)
+        if (rst_n && loop_overflow && !$past(loop_overflow))
             $error("MachineCtrl: переполнение счётчика вложенности циклов");
     end
 `endif

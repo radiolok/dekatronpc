@@ -1,0 +1,126 @@
+{
+  "_doc": [
+    "Static supply currents of the tube cells per pin state, mA (doc/vtube_power.md). Read by rtl/run/vtube_power.py.",
+    "The heater current is not here: it is heat_current of vtube_cells.lib (one source). Edges are not modelled:",
+    "a tube cell draws its current while it conducts, and C*V^2*f of the nets is below 0.1 mW per net.",
+    "rails: the supply lines of the report; v is the rail voltage, the power is |v| * I.",
+    "cells.<CELL>.pins: the pins the state is made of, in VCD order of the table (the cell scope in the netlist VCD).",
+    "cells.<CELL>.states: [condition, {rail: value}], the first true condition wins; conditions and values are",
+    "Python expressions of the pins (0/1). No condition true: zero. A pin at x/z: the mean over all states.",
+    "status: spice (numbers of the cell page), derived (built from the pages of the sub-cells), estimate (no SPICE).",
+    "Divider currents: DIV_HL (470k / 200k to -50 V, one per HV net and grid class, synt_dpc.tcl -div). With the",
+    "load grids clamping a 1 near 0 V: 150/470k = 0.32 mA from the plate, 50/200k = 0.25 mA into -50 V; a 0 (50 V)",
+    "is not clamped: 100/670k = 0.15 mA through both. The plate share comes from +150 V through the plate resistor."
+  ],
+  "rails": {
+    "a":  {"name": "Анод +150 В",            "v": 150,  "supply": "+150 V"},
+    "g2": {"name": "Экранные сетки +150 В",  "v": 150,  "supply": "+150 V"},
+    "n50":{"name": "Смещение −50 В",         "v": -50,  "supply": "-50 V"},
+    "hv": {"name": "Аноды декатронов +350 В","v": 350,  "supply": "+350 V"},
+    "h":  {"name": "Накал 6,3 В",            "v": 6.3,  "supply": "6.3 V"}
+  },
+  "cells": {
+    "NOT_N16": {
+      "status": "spice", "src": "NOT_N16/README.md, Power per tube: 9.5 mA per half whose output is low",
+      "pins": ["A"],
+      "states": [["A", {"a": 9.5}]]
+    },
+    "NOR2_N16": {
+      "status": "spice", "src": "NOR2_N16/README.md, Power per gate: 9.5 mA one input high, 11 mA both",
+      "pins": ["A", "B"],
+      "states": [["A and B", {"a": 11.0}], ["A or B", {"a": 9.5}]]
+    },
+    "NOR3_N16": {
+      "status": "spice", "src": "NOR3_N16/README.md, Static operating points: 9.43 / 2 x 5.53 / 3 x 3.95 mA",
+      "pins": ["A", "B", "C"],
+      "states": [["1", {"a": "[0, 9.43, 11.06, 11.85][A + B + C]"}]]
+    },
+    "NOR4_N16": {
+      "status": "spice", "src": "NOR4_N16/README.md, Static operating points: 9.43 / 2 x 5.53 / 3 x 3.95 / 4 x 3.08 mA",
+      "pins": ["A", "B", "C", "D"],
+      "states": [["1", {"a": "[0, 9.43, 11.06, 11.85, 12.32][A + B + C + D]"}]]
+    },
+    "NAND2_J2": {
+      "status": "spice", "src": "NAND2_J2/README.md, Screen resistor table: AB=10 Ig2 5.4; AB=11 Ia 7.0, Ig2 4.4 mA",
+      "pins": ["A", "B"],
+      "states": [["A and B", {"a": 7.0, "g2": 4.4}], ["A", {"g2": 5.4}]]
+    },
+    "A1OOI_N16J2": {
+      "status": "spice", "src": "A1OOI_N16J2/README.md, Static operating points (pentode Ik/Ia, triode Ik)",
+      "pins": ["A", "B", "C"],
+      "states": [["A and B", {"a": "8.3 if C else 7.0", "g2": "4.6 if C else 4.3"}],
+                 ["1", {"a": "6.95 * C", "g2": "5.46 * A"}]]
+    },
+    "AOI211_J2N16": {
+      "status": "spice", "src": "AOI211_J2N16/README.md, Static operating points (pentode Ik/Ia, each triode Ik)",
+      "pins": ["A", "B", "C", "D"],
+      "states": [["A and B", {"a": "[7.0, 5.4 + 2.9, 4.5 + 2 * 2.05][C + D]", "g2": "[4.3, 4.6, 4.8][C + D]"}],
+                 ["1", {"a": "[0, 6.95, 7.9][C + D]", "g2": "5.46 * A"}]]
+    },
+    "A2OOI_J2": {
+      "status": "spice", "src": "A2OOI_J2/README.md, Static operating points: one term Ik 11.3 / Ia 7.0, both Ik 9.2 / Ia 4.4, g1 high g3 low 5.46 mA to the screen",
+      "pins": ["A", "B", "C", "D"],
+      "states": [["A and B and C and D", {"a": 8.8, "g2": 9.6}],
+                 ["A and B", {"a": 7.0, "g2": "4.3 + 5.46 * C"}],
+                 ["C and D", {"a": 7.0, "g2": "4.3 + 5.46 * A"}],
+                 ["1", {"g2": "5.46 * (A + C)"}]]
+    },
+    "LATCH_J2N16": {
+      "status": "derived", "src": "RSLATCH_J2N16/README.md (Datasheet limits and power): E low and S or R high: plate 9.2 + screen 5.4; E high, set or reset: pentode 6.3 + triode 5.0, screen 4.5 mA. S = D, R = ~D: one of them is always high. D inverter (half 6N16B) 9.5 mA at D = 1. Feedback and inverter dividers: about 0.7 / 0.6 mA",
+      "pins": ["C", "D"],
+      "states": [["1", {"a": "(11.3 if C else 9.2) + 9.5 * D + 0.7", "g2": "4.5 if C else 5.4", "n50": 0.6}]]
+    },
+    "DFF_J2N16": {
+      "status": "derived", "src": "DFF_J2N16/README.md: two RSLATCH (master E = C, slave E = ~C, so one latch is always open: 11.3 + 9.2 mA plate, 4.5 + 5.4 mA screen) + one 6N16B (D and C inverters, 9.5 mA each while its input is 1); four divider pairs ~1.9 / 1.6 mA",
+      "pins": ["C", "D"],
+      "states": [["1", {"a": "20.5 + 9.5 * C + 9.5 * D + 1.9", "g2": 9.9, "n50": 1.6}]]
+    },
+    "DFFP_J2N16": {
+      "status": "derived", "src": "DFFP2_J2N16/README.md, Datasheet limits and power: per flip-flop triode 9.2, screen 6.6 mA static; inverter half 9.5 mA at D = 1; D pin divider 1.2 mA at D = 1. The 200 ns clock pulse (~23 mA) is left out",
+      "pins": ["C", "D"],
+      "states": [["1", {"a": "9.4 + 9.5 * D + 1.2 * D", "g2": 6.6, "n50": "0.3 + 1.2 * D"}]]
+    },
+    "KEYDB_N16": {
+      "status": "estimate", "src": "KEYDB_N16/README.md: an Eccles-Jordan bistable, one triode always on (taken as NOT_N16: 9.5 mA), two dividers",
+      "pins": [],
+      "states": [["1", {"a": 9.8, "n50": 0.4}]]
+    },
+    "GUIDE_EN_J2": {
+      "status": "estimate", "src": "DEKATRON_A110/README.md §9.3: guide key, 6Zh2B, Ra 10k to the key rail S (+50 V idle) -> ~4 mA with the plate at ~10 V; screen as NAND2_J2",
+      "pins": ["EN", "G"],
+      "states": [["G and EN", {"a": 4.0, "g2": 4.4}], ["G", {"g2": 5.4}]]
+    },
+    "GLIFT_N16": {
+      "status": "estimate", "src": "DEKATRON_A110/README.md §9.3: follower of the key rail S (+50 V idle, +150 V during write/reset); no sheet: assumed cathode load 22k to -50 V",
+      "pins": ["A"],
+      "states": [["A", {"a": 9.1, "n50": 9.1}], ["1", {"a": 4.5, "n50": 4.5}]]
+    },
+    "WRCH_N16": {
+      "status": "estimate", "src": "DEKATRON_A110/README.md §9.4: write tube open (all the time except a write), 2.3 mA from +150 V through Rp 62k into -50 V",
+      "pins": [],
+      "states": [["1", {"a": 2.3, "n50": 2.3}]]
+    },
+    "RDD_X7": {
+      "status": "estimate", "src": "vtube_cells.lib RDD_X7: grid pulled up by 100k; the diode conducts on an unlit line (-13 V): ~0.18 mA into the line and on to -50 V",
+      "pins": ["A"],
+      "states": [["not A", {"n50": 0.18}]]
+    },
+    "DIV_HL": {
+      "status": "derived", "src": "NOR2_N16/README.md and doc/hv_lv_dividers.md: 470k / 200k to -50 V",
+      "pins": ["HV"],
+      "states": [["HV", {"a": 0.32, "n50": 0.25}], ["1", {"a": 0.15, "n50": 0.15}]]
+    },
+    "BUF_N16": {
+      "status": "spice", "src": "BUF_N16/README.md, Power per tube: 5.4 mA at Y = 1, 2.6 mA at Y = 0, plate to +150 V, Rk to -50 V",
+      "pins": ["A"],
+      "states": [["A", {"a": 5.4, "n50": 5.4}], ["1", {"a": 2.6, "n50": 2.6}]]
+    },
+    "DEKATRON_A110": {
+      "status": "estimate", "src": "doc/a110_datasheet.md: anode current 0.7-0.9 mA from > 350 V; the cathode current returns through the write tube to -50 V",
+      "module": "DekatronTubeDelay",
+      "heater_ma": 0,
+      "pins": [],
+      "states": [["1", {"hv": 0.8, "n50": 0.8}]]
+    }
+  }
+}

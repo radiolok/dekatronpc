@@ -301,13 +301,10 @@ module DekatronPC #(
     // Линия выборки инструкций и память программ
     //------------------------------------------------------------------
     wire                  ip_valid, ip_ready;
-    wire                  ip_clr;
     wire                  ip_ahead;
     wire                  insn_eot;
     wire                  loop_val_zero;
     wire                  insn_loading;
-    wire                  insn_valid;
-    wire                  insn_mode;      // 0 = Debug ISA, 1 = Brainfuck ISA
 
     wire [IP_W-1:0]       ip_mem_addr;
     wire [INSN_WIDTH-1:0] ip_mem_wr_data, ip_mem_rd_data;
@@ -315,7 +312,7 @@ module DekatronPC #(
     wire                  ip_mem_rd_valid, ip_mem_err;
 
     IpLine #(
-        .HARD_RST_D_CNT    (IP_DEKATRON_NUM - 2),
+        .HARD_RST_D_CNT    (IP_DEKATRON_NUM - 1),   // 99990 — загрузчик
         .LOOP_READ         (EN_EMULATOR)
     ) ipLine (
         .rst_n         (rst_n),
@@ -328,12 +325,10 @@ module DekatronPC #(
 
         .valid         (ip_valid),
         .ready         (ip_ready),
-        .clr           (ip_clr),
         .loop_val_zero (loop_val_zero),
         .ip_ahead      (ip_ahead),
 
         .insn          (Insn),
-        .insn_valid    (insn_valid),
         .insn_eot      (insn_eot),
 
         .halt_rq       (IsHalted),
@@ -341,7 +336,6 @@ module DekatronPC #(
         .key_next_ip   (keyNextIp),
 
         .insn_loading  (insn_loading),
-        .insn_mode     (insn_mode),
         .insn_in       (InsnIn),
         .insn_in_valid (InsnInValid),
         .insn_in_ready (InsnInReady),
@@ -387,7 +381,7 @@ module DekatronPC #(
     // Линия работы с данными и память данных
     //------------------------------------------------------------------
     wire                       ap_valid, ap_ready;
-    wire [4:0]                 ap_op;
+    wire [INSN_WIDTH-1:0]      ap_op;
     wire                       data_zero, ap_zero, mem_lock;
 
     wire [AP_W-1:0]            ap_mem_addr;
@@ -411,7 +405,7 @@ module DekatronPC #(
 
         .valid       (ap_valid),
         .ready       (ap_ready),
-        .op          (ap_op),   // {insn_mode, op_q}: при упреждающей выборке Insn уже следующий
+        .op          (ap_op),   // op_q: при упреждающей выборке Insn уже следующий
 
         .data_zero       (data_zero),
         .data_zero_valid (data_zero_valid),
@@ -490,12 +484,10 @@ module DekatronPC #(
 
         .ip_valid               (ip_valid),
         .ip_ready               (ip_ready),
-        .ip_clr                 (ip_clr),
         .ip_ahead               (ip_ahead),
         .loop_val_zero          (loop_val_zero),
         .insn_loading           (insn_loading),
         .insn                   (Insn),
-        .insn_valid             (insn_valid),
         .insn_eot               (insn_eot),
         .loop_overflow          (LoopOverflow),
 
@@ -518,7 +510,6 @@ module DekatronPC #(
         .soft_rst               (soft_rst),
         .hard_rst               (hard_rst),
 
-        .insn_mode              (insn_mode),
         .is_halted              (IsHalted),
         .bell                   (Bell),
         .state                  (state),

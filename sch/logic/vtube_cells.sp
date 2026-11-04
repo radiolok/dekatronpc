@@ -3,7 +3,7 @@
 *
 * Logic convention: low = 0 V, high = 1 V, switching threshold = 0.5 V.
 * Combinational cells are modeled as ideal behavioral voltage sources
-* (ngspice E devices). Storage cells (LATCH_J2N16, DFF_J2N16, DFFRN_J2N16X7, DFFSN_J2N16X7) use the
+* (ngspice E devices). Storage cells (LATCH_J2N16, DFF_J2N16, DFFP_J2N16, DFFRN_J2N16X7, DFFSN_J2N16X7) use the
 * XSPICE d_latch / d_dff code models and therefore require ngspice built
 * with XSPICE support. ngspice auto-inserts analog/digital bridges at the
 * mixed-signal boundaries between these two domains.
@@ -94,6 +94,12 @@ E1 Y 0 VALUE = { ((v(A) > 0.5) || (v(B) > 0.5) || (v(C) > 0.5) || (v(D) > 0.5)) 
 .model latch1 d_latch
 Alatch D C null null Q nQ latch1
 .ENDS LATCH_J2N16
+
+* pulse-clocked flip-flop, rising edge
+.SUBCKT DFFP_J2N16 C D Q
+.model dffp1 d_dff
+Adff D C null null Q nQ dffp1
+.ENDS DFFP_J2N16
 
 * falling edge: the clock goes through an inverter
 .SUBCKT DFF_J2N16 C D Q
