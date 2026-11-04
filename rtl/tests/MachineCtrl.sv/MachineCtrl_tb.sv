@@ -280,6 +280,7 @@ end
 // Терминал и счётчики событий
 //----------------------------------------------------------------------
 reg in_cin_op = 1'b0;   // ApLine выполняет CIN
+reg rx_take   = 1'b0;   // рукопожатие приёма на последнем фронте
 
 always @(posedge clk) begin
     if (rst_n) begin
@@ -287,10 +288,8 @@ always @(posedge clk) begin
         if (bell)            n_bell++;
         if (hard_rst_req & ~rst_busy) n_hreq++;
         if (soft_rst_req & ~rst_busy) n_sreq++;
-        if (rx_vld & rx_rdy) begin
-            n_rx++;
-            rx_vld <= 1'b0;
-        end
+        rx_take <= rx_vld & rx_rdy;
+        if (rx_vld & rx_rdy) n_rx++;
 
         if (ap_valid & ap_ready & (ap_op == AP_CIN)) in_cin_op <= 1'b1;
         if (rx_vld & rx_rdy)                         in_cin_op <= 1'b0;
@@ -314,12 +313,20 @@ always @(posedge clk) begin
     end
 end
 
+// Внешние источники (терминал, кнопки, тумблеры) меняют входы только на
+// спаде clk (TRS v0.46, Приложение B, §22 п. 19): терминал снимает rx_vld
+// на спаде после рукопожатия, а задачи ниже выставляют входы после tick(),
+// который кончается спадом. Модели IpLine/ApLine и реле времени выше —
+// внутренние мастера и работают по фронту, как в машине.
+always @(negedge clk)
+    if (rx_take) rx_vld = 1'b0;
+
 //----------------------------------------------------------------------
 // Вспомогательные задачи
 //----------------------------------------------------------------------
 task automatic tick(input int n = 1);
     repeat (n) @(posedge clk);
-    #1;
+    @(negedge clk);
 endtask
 
 // Машина ждёт опкод: выборка принята, очередь пуста, ApLine свободен.

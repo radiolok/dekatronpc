@@ -270,6 +270,61 @@ assign LoopCount   = ~LoopCount_n;
 assign tx_data_bcd = ~tx_data_bcd_n;
 assign ApData1     = ~ApData1_n;
 
+logic                        tx_rdy  ;
+logic                        tx_vld  ;
+//rx signal
+logic                          rx_vld  ;
+logic                          rx_rdy  ;
+
+// Входы Emu -> DPC меняются только на спаде Clk (TRS v0.46, Приложение B,
+// §22 п. 19): на фронте Clk данные гарантированно читаемы, а ламповые
+// DFF_J2N16 ловят фронт через инвертор такта (~250 нс после него), и смена
+// на самом фронте — гонка по удержанию. Источники эмулятора (загрузчики,
+// клавиатура, буфер приёма, UART/консул) работают по фронту Clock_1MHz,
+// поэтому все их выходы к DekatronPC проходят регистр по спаду. По тактам
+// это прозрачно: DekatronPC на фронте N+1 видит то, что источник выставил
+// на фронте N, как и без регистра, а источник по-прежнему смотрит на
+// ready/InsnInLoading по фронту. Линии сброса (rst_n, SoftRstKey,
+// HardRstKey) идут на асинхронное реле времени и регистр не проходят.
+typedef struct packed {
+    logic [INSN_WIDTH-1:0]                       insn;
+    logic                                        insn_vld;
+    logic [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0] rx_data_bcd;
+    logic                                        rx_vld;
+    logic                                        tx_rdy;
+    logic                                        halt;
+    logic                                        run;
+    logic                                        step;
+    logic                                        next_ip;
+    logic                                        prev_ip;
+    logic                                        next_app;
+    logic                                        load_start;
+    logic                                        load_stop;
+} dpc_in_t;
+
+dpc_in_t dpc_in, dpc_in_q;
+
+assign dpc_in = '{
+    insn:        InsnInInternal,
+    insn_vld:    InsnInValidInternal,
+    rx_data_bcd: rx_data_bcd,
+    rx_vld:      rx_vld,
+    tx_rdy:      tx_rdy,
+    halt:        keyHalt,
+    run:         keyRun,
+    step:        keyStep,
+    next_ip:     keyNextIp,
+    prev_ip:     keyPrevIp,
+    next_app:    keyNextApp,
+    load_start:  InsnLoadingStartInternal,
+    load_stop:   InsnLoadingStopInternal
+};
+
+always_ff @(negedge Clock_1MHz, negedge Rst_n) begin
+    if (~Rst_n) dpc_in_q <= '0;
+    else        dpc_in_q <= dpc_in;
+end
+
 DekatronPC dekatronPC(
     .IpAddress(IpAddress_n),
     .ApAddress(ApAddress_n),
@@ -279,10 +334,10 @@ DekatronPC dekatronPC(
     .rst_n(Rst_n),
     .SoftRstKey(~SoftRst_n),
     .HardRstKey(~HardRst_n),
-    .Halt(keyHalt),
-    .Run(keyRun),
-    .InsnIn(InsnInInternal),
-    .InsnInValid(InsnInValidInternal),
+    .Halt(dpc_in_q.halt),
+    .Run(dpc_in_q.run),
+    .InsnIn(dpc_in_q.insn),
+    .InsnInValid(dpc_in_q.insn_vld),
     .InsnInReady(InsnInReadyInternal),
     .InsnInLoading(InsnInLoading),
     .EchoMode(EchoMode),
@@ -294,16 +349,16 @@ DekatronPC dekatronPC(
     .BellOnError(1'b0),
     .tx_data_bcd(tx_data_bcd_n),
     .tx_vld(tx_vld),
-    .tx_rdy(tx_rdy),
-    .rx_data_bcd(~rx_data_bcd),
-    .rx_vld(rx_vld),
+    .tx_rdy(dpc_in_q.tx_rdy),
+    .rx_data_bcd(~dpc_in_q.rx_data_bcd),
+    .rx_vld(dpc_in_q.rx_vld),
     .rx_rdy(rx_rdy),
-    .Step(keyStep),
-    .keyNextIp(keyNextIp),
-    .keyPrevIp(keyPrevIp),
-    .InsnLoadingStart(InsnLoadingStartInternal),
-    .InsnLoadingStop(InsnLoadingStopInternal),
-    .key_next_app_i(keyNextApp),
+    .Step(dpc_in_q.step),
+    .keyNextIp(dpc_in_q.next_ip),
+    .keyPrevIp(dpc_in_q.prev_ip),
+    .InsnLoadingStart(dpc_in_q.load_start),
+    .InsnLoadingStop(dpc_in_q.load_stop),
+    .key_next_app_i(dpc_in_q.next_app),
     .IRET(IRET),
     .IpAddress1(~IpAddress1),
     .ApAddress1(~ApAddress1),
@@ -384,11 +439,6 @@ io_register_block #(
 
 
 
-logic                        tx_rdy  ;
-logic                        tx_vld  ;
-//rx signal
-logic                          rx_vld  ;
-logic                          rx_rdy  ;
 // Источник терминала до буфера приёма
 logic [7:0]                    term_rx_data;
 logic                          term_rx_vld;

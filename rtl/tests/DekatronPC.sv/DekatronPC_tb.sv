@@ -264,10 +264,14 @@ DekatronPC #(
 //----------------------------------------------------------------------
 // Тактовые операции
 //----------------------------------------------------------------------
-// Кнопки пульта выставляются неблокирующим присваиванием: блокирующее
-// сразу после @(posedge Clk) — гонка с автоматом на том же фронте, и
-// увидит ли он кнопку в этом такте, зависело от порядка событий (с
-// делителем hsClk видел, с генератором Clk в модели на задержках — нет).
+// Кнопки пульта меняются на спаде Clk, как и прочие входы внешних
+// источников (TRS v0.46, Приложение B, §22 п. 19). Прежде они
+// выставлялись по фронту, и блокирующее присваивание сразу после
+// @(posedge Clk) было гонкой с автоматом на том же фронте. Кнопки
+// сброса идут на асинхронное реле времени; по спаду их снятие реле
+// приходилось за 1 мкс до фронта, и без синхронизатора rst_busy в
+// MachineCtrl synth_sim.sh -t падал (doc/external_inputs_falling_edge.md
+// §5). Этот сценарий и проверяет синхронизатор.
 
 // IsHalted — дешифратор состояния автомата. В нетлисте биты состояния
 // меняются в разных дельта-циклах, и при переходе в S_EXEC дешифратор
@@ -284,9 +288,9 @@ task automatic wait_relay();
 endtask
 
 task automatic soft_rst_key();
-    @(posedge Clk);
+    @(negedge Clk);
     SoftRstKey <= 1'b1;
-    repeat (4) @(posedge Clk);
+    repeat (4) @(negedge Clk);
     SoftRstKey <= 1'b0;
     wait_relay();
     wait_halted();
@@ -294,9 +298,9 @@ task automatic soft_rst_key();
 endtask
 
 task automatic hard_rst_key();
-    @(posedge Clk);
+    @(negedge Clk);
     HardRstKey <= 1'b1;
-    repeat (4) @(posedge Clk);
+    repeat (4) @(negedge Clk);
     HardRstKey <= 1'b0;
     wait_relay();
     wait_halted();
@@ -304,22 +308,25 @@ task automatic hard_rst_key();
 endtask
 
 task automatic key_next();
+    @(negedge Clk);
     keyNextIp <= 1'b1;
-    repeat (6) @(posedge Clk);
+    repeat (6) @(negedge Clk);
     keyNextIp <= 1'b0;
     repeat (6) @(posedge Clk);
 endtask
 
 task automatic key_prev();
+    @(negedge Clk);
     keyPrevIp <= 1'b1;
-    repeat (6) @(posedge Clk);
+    repeat (6) @(negedge Clk);
     keyPrevIp <= 1'b0;
     repeat (6) @(posedge Clk);
 endtask
 
 task automatic press_run();
+    @(negedge Clk);
     Run <= 1'b1;
-    repeat (4) @(posedge Clk);
+    repeat (4) @(negedge Clk);
     Run <= 1'b0;
     repeat (4) @(posedge Clk);
 endtask

@@ -185,6 +185,32 @@ module MachineCtrl #(
         S_RST_REQ   = 4'd14,  // запрос физического сброса
         S_RST_WAIT  = 4'd7;
 
+    //------------------------------------------------------------------
+    // Синхронизаторы асинхронных входов (TRS §22 п. 19, v0.49): кнопки
+    // пульта и снятие реле времени приходят в любой момент такта, а идут
+    // на D сразу нескольких триггеров автомата (биты state, insn_loading,
+    // one_step), halt_key — ещё и в ip_valid/ap_valid. Без синхронизатора
+    // разные триггеры могут защёлкнуть разные значения
+    // (doc/external_inputs_falling_edge.md §3, §5). По DFF_J2N16 на сигнал,
+    // как key_next_s для +IP в IpLine (TC-N3); задержка — один такт.
+    // Сброса нет: при включении линии сброса держат автомат в S_RST_WAIT
+    // дольше одного такта, и к их снятию синхронизаторы уже переписаны.
+    // Линии soft_rst/hard_rst снимаются вместе с rst_busy, но в S_RST_WAIT
+    // D автомата от них не зависит: выход оттуда — только по rst_busy_s.
+    //------------------------------------------------------------------
+    logic halt_key_s, step_key_s, run_key_s;
+    logic key_insn_loading_start_s, key_insn_loading_stop_s;
+    logic rst_busy_s;
+
+    always_ff @(posedge clk) begin
+        halt_key_s               <= halt_key;
+        step_key_s               <= step_key;
+        run_key_s                <= run_key;
+        key_insn_loading_start_s <= key_insn_loading_start;
+        key_insn_loading_stop_s  <= key_insn_loading_stop;
+        rst_busy_s               <= rst_busy;
+    end
+
     logic one_step;      // выполняется ровно одна инструкция
     logic [INSN_WIDTH-1:0] op_q;   // код текущей инструкции (op_load)
     logic pf_q;          // следующая инструкция выбрана заранее
@@ -244,8 +270,8 @@ module MachineCtrl #(
 
     // В S_EXEC линия выборки вместе с ap_valid получает упреждающую
     // выборку: всё, кроме скобки (TEST)
-    assign ip_valid = ((in_idle & ~halt_key) | (in_exec & ~is_bracket)) & go;
-    assign ap_valid = (in_exec | (in_cin & ~halt_key & rx_vld)) & go;
+    assign ip_valid = ((in_idle & ~halt_key_s) | (in_exec & ~is_bracket)) & go;
+    assign ap_valid = (in_exec | (in_cin & ~halt_key_s & rx_vld)) & go;
 
     assign ip_ahead = pf_q;
 
@@ -275,14 +301,14 @@ module MachineCtrl #(
 
     // Тумблеры звонка — на лампах: реле ради нескольких ламп не стоят
     // отдельной платы (владелец, TRS v0.43)
-    assign bell = (bell_on_halt  & ((in_idle & halt_key) | (decode_run & (op_q == 4'h1)))) |
+    assign bell = (bell_on_halt  & ((in_idle & halt_key_s) | (decode_run & (op_q == 4'h1)))) |
                   (bell_on_cin   & decode_run & is_cin) |
                   (bell_on_error & loop_overflow);   // уровень до сброса (TC-N2)
 
     // Окончание инструкции: останов по кнопке или пошаговому режиму.
     // Если следующая инструкция уже выбрана, сразу её дешифрация: выход
     // в s_next бывает только по go, то есть выборка закончена
-    wire [3:0] s_next = (halt_key | one_step) ? S_HALT
+    wire [3:0] s_next = (halt_key_s | one_step) ? S_HALT
                       : pf_q                  ? S_DECODE
                       :                         S_IDLE;
 
@@ -314,18 +340,18 @@ module MachineCtrl #(
 
             //--------------------------------------------------------------
             S_HALT: begin
-                if (step_key | run_key | key_insn_loading_start) begin
-                    if (key_insn_loading_start)
+                if (step_key_s | run_key_s | key_insn_loading_start_s) begin
+                    if (key_insn_loading_start_s)
                         insn_loading <= 1'b1;
 
                     if (~one_step) begin
-                        if (step_key) one_step <= 1'b1;
+                        if (step_key_s) one_step <= 1'b1;
                         state <= S_IDLE;
                     end
                 end
 
                 // Отпускание кнопки шага разрешает следующий шаг
-                if (one_step & ~step_key)
+                if (one_step & ~step_key_s)
                     one_step <= 1'b0;
             end
 
@@ -335,7 +361,7 @@ module MachineCtrl #(
             //--------------------------------------------------------------
             S_IDLE: begin
                 pf_q <= 1'b0;   // после останова выборка обычная
-                if (halt_key)  state <= S_HALT;
+                if (halt_key_s)  state <= S_HALT;
                 else if (go)   state <= S_FETCH_W;
             end
 
@@ -346,7 +372,7 @@ module MachineCtrl #(
             S_FETCH_W: begin
                 if (go) begin
                     // Загрузка программы прерывается кнопкой или остановом
-                    if (insn_loading & (key_insn_loading_stop | halt_key)) begin
+                    if (insn_loading & (key_insn_loading_stop_s | halt_key_s)) begin
                         insn_loading <= 1'b0;
                         state        <= S_HALT;
                     end
@@ -449,7 +475,7 @@ module MachineCtrl #(
             // Ввод символа с терминала: ApLine пишет его в счётчик
             //--------------------------------------------------------------
             S_CIN_WAIT: begin
-                if (halt_key)          state <= S_HALT;
+                if (halt_key_s)          state <= S_HALT;
                 else if (rx_vld & go)  state <= S_WAIT;
             end
 
@@ -464,11 +490,11 @@ module MachineCtrl #(
             // Физический сброс счётчиков
             //--------------------------------------------------------------
             S_RST_REQ: begin
-                if (rst_busy) state <= S_RST_WAIT;
+                if (rst_busy_s) state <= S_RST_WAIT;
             end
 
             S_RST_WAIT: begin
-                if (~rst_busy) begin
+                if (~rst_busy_s) begin
                     // После аппаратного сброса стартует загрузчик (99990),
                     // после программного — программа с нуля
                     state <= run_on_rst ? S_IDLE : S_HALT;

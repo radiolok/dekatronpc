@@ -182,6 +182,7 @@ A cell is accepted when all of these hold at every fanout from 2 to the target:
 - **A bypass capacitor across Rs must stay small** (100 pF). A larger one stores a charge from the last "0" that pulls the next "1" down for microseconds.
 - **Wired-OR followers have a hazard of their own.** When one input falls and the other rises, the falling grid drags the shared cathode down through Cgk and cancels part of the rising grid's C1 step. The rising grid then creeps up through the 140 kΩ divider, and Y with it. Measure the recovery, not only the dip: with Rk 10k it took 0.9–1.9 µs, and with 12k under 0.25 µs.
 - **Measure the delay through one load gate** (input grid → load plate 100 V). The LV → LV delay of a follower hides the slow tail of the "1" level, which is what the next gate needs.
+- **The plate is not a logic input.** A follower conducts with a few tens of volts across it, so a plate driven to the HV "0" (+50 V) does not cut it off (threshold ≈ +37 V), and the plate input draws the whole cathode current from its driver (`doc/anode_gated_follower.md`).
 - **ERC:** a follower plate sits on +150 V. Make the plate pin passive in that sheet, or ERC reports open collector against power output.
 
 ## 4e. Traps found on the pulse-clocked flip-flop (TC-N5, `doc/tc_n5_pulse_dff.md`)

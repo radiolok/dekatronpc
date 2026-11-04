@@ -21,8 +21,10 @@ arrivals are kept per edge and per signal class:
         reading is valid at the NEXT Clk edge (DekatronCounter: "after a step
         out is valid at the next clk edge"), so a tube path that reaches a
         step command is due before the phase of the next cycle.
+  in    an external input port (loader, terminal, panel keys and switches),
+        launched at 0 ns of its own edge and timed on its own (below)
   async not timed: OneShot / Impulse started by data (the write window), the
-        reset relay, panel inputs, rst_n, relay coils.
+        reset relay (rst_n, SoftRstKey, HardRstKey), relay coils.
 
 Checks, for a Clk period T:
   setup   trigger D: late + setup <= T + clock at C (early);
@@ -34,6 +36,14 @@ Checks, for a Clk period T:
             data holds until the pulse ends:       T + early(data) >= trail
             a cathode reading of cycle N is due at the pulse of cycle N+1:
                                                    late(tube) - T <= lead
+External inputs change only on the falling Clk edge (TRS v0.46, Appendix B),
+so an `in` path starts at T/2 (input timing `-i`, the rows below the table):
+  setup   T/2 + late + setup <= T + clock at C;  memory input: T/2 + late <= T
+  hold    T/2 + early >= clock at C + hold
+  gating  an input meeting a phase must be steady over the whole pulse of the
+          cycle: -T/2 + late <= lead and T/2 + early >= trail
+and the hold slack with the input changed AT the rising edge (early - clock at
+C - hold) lists the short paths a rising-edge source would race.
 The first condition sets the phase start delay (REQ-PULSE-009). Unless -p is
 given, the report first shows the netlist as synthesized, then repeats the
 analysis with the smallest DEKATRON_PHASE_DELAY_NS that meets it (in steps
@@ -57,6 +67,8 @@ from vtube_liberty import parse_liberty  # noqa: E402
 # the tube netlist has no hsClk (TRS v0.25)
 FIT_NS = 100
 DATA = ('data', 'tube')
+# Input ports that are not data: the clock and the lines of the reset relay
+NOT_IN = ('Clk', 'rst_n', 'SoftRstKey', 'HardRstKey')
 
 
 # --------------------------------------------------------------------------
@@ -182,6 +194,9 @@ class Sta:
             self.load[b] = cap
         self.clk = mod['ports']['Clk']['bits'][0]
         self.arr = collections.defaultdict(dict)   # bit -> class -> Arr
+        self.in_ports = {b: n for n, pt in mod['ports'].items()
+                         if pt['direction'] == 'input' and n not in NOT_IN
+                         for b in pt['bits'] if isinstance(b, int)}
         self.async_starts = []
         self.gating = []
 
@@ -259,7 +274,8 @@ class Sta:
             if isinstance(b, int) and self.arr.get(b):
                 classes[arc.src] = set(self.arr[b])
         has_clk = any('clk' in s for s in classes.values())
-        if has_clk and any(s & set(DATA) for s in classes.values()):
+        if has_clk and any((s & set(DATA)) or any(c.startswith('in:') for c in s)
+                           for s in classes.values()):
             self.gating.append((cn, {p: conn[p][0] for p in classes}))
         for arc in lc['arcs']:
             ib, ob = conn[arc.src][0], conn[arc.dst][0]
@@ -389,6 +405,9 @@ class Sta:
 
     def run(self):
         self.put(self.clk, 'clk', 'r', 0.0, 0.0, ('start', 'Clk port'), 'Clk')
+        for b, n in self.in_ports.items():
+            for e in 'rf':
+                self.put(b, 'in:' + n, e, 0.0, 0.0, ('start', f'{n} port'), n)
         waits, users = {}, collections.defaultdict(list)
         for cn in self.cells:
             ds = {b for b in self.deps(cn) if isinstance(b, int) and b in self.drv}
@@ -434,6 +453,7 @@ class Sta:
     # ---- checks
     def checks(self):
         setup, hold, gating = [], [], []
+        ins = self.ins = []   # endpoints of external inputs
         for cn, c in self.cells.items():
             lc = self.lib.get(c['type'])
             conn = c['connections']
@@ -449,6 +469,12 @@ class Sta:
                     ho = lc['hold'].get(pin, (None, None, 0.0))[2] * self.derate
                     for cls, a in self.arr.get(db, {}).items():
                         late, e = a.max_late()
+                        if cls.startswith('in:'):
+                            ins.append({'kind': 'latch' if lc['latch'] else 'trigger', 'cell': cn, 'pin': pin,
+                                        'bit': db, 'edge': e, 'cls': cls, 'start': a.start, 'estart': a.estart,
+                                        'need': 2 * max(late + su - cap_e, cap_l + ho - a.min_early()),
+                                        'rise_slack': a.min_early() - cap_l - ho})
+                            continue
                         if lc['latch'] and cls == 'data':
                             # Same cycle: D settles before C falls (setup), and the
                             # next cycle's D changes after it (T + early >= close):
@@ -469,6 +495,11 @@ class Sta:
                         continue
                     for db in bits:
                         for cls, a in (self.arr.get(db, {}).items() if isinstance(db, int) else ()):
+                            if cls.startswith('in:'):
+                                late, e = a.max_late()
+                                ins.append({'kind': 'memory', 'cell': cn, 'pin': p, 'bit': db, 'edge': e, 'cls': cls,
+                                            'start': a.start, 'estart': a.estart, 'need': 2 * late,
+                                            'rise_slack': None})
                             if cls in DATA:
                                 late, e = a.max_late()
                                 setup.append({'need': late, 'cell': cn, 'pin': p, 'bit': db,
@@ -478,6 +509,14 @@ class Sta:
             lead = min(p.min_early() for p in pulses)
             trail = max(p.max_late()[0] for p in pulses)
             for p, b in pins.items():
+                for cls, a in self.arr[b].items():
+                    if not cls.startswith('in:'):
+                        continue
+                    late, e = a.max_late()
+                    ins.append({'kind': 'phase gate', 'cell': cn, 'pin': p, 'bit': b, 'edge': e,
+                                'cls': cls, 'start': a.start, 'estart': a.estart,
+                                'need': 2 * max(late - lead, trail - a.min_early()),
+                                'rise_slack': None})
                 for cls in DATA:
                     a = self.arr[b].get(cls)
                     if a is None:
@@ -535,6 +574,8 @@ def summarize(sta):
     s['hold_slack'] = s['hold'][0]['slack'] if hold else float('inf')
     s['t_min'] = max(s['t_setup'], s['t_hold_gate'], s['t_tube_gate'])
     s['pulse_margin'] = min((w - d for _, _, _, w, d in sta.pulse_checks), default=float('inf'))
+    s['ins'] = sorted(sta.ins, key=lambda x: -x['need'])
+    s['t_in'] = s['ins'][0]['need'] if sta.ins else 0.0
     return s
 
 
@@ -557,6 +598,7 @@ def report(sta, freqs, npaths, title):
             f'| step command settles before the phase starts | slack {s["gate_slack"]:.0f} ns'
             + ('' if ok_gate else ' **(phase delay too short)**') + ' |',
             f'| hold at the triggers | slack {s["hold_slack"]:.0f} ns |',
+            f'| external inputs changed on the falling edge (not in the minimum) | T ≥ {s["t_in"]:.0f} ns |',
             f'| guide pulse width through the gates | margin {s["pulse_margin"]:.0f} ns'
             + ('' if s['pulse_margin'] > 0 else ' **(phases too short: the guide pulse is lost)**') + ' |',
             f'| **minimum Clk period** | **{s["t_min"]:.0f} ns, {1e6 / s["t_min"]:.0f} kHz**'
@@ -620,7 +662,37 @@ def report(sta, freqs, npaths, title):
         out.append(f'- `{short(h["cell"], 60)}.{h["pin"]}` ({h["cls"]}, from `{short(h["start"], 50)}`): '
                    f'slack {h["slack"]:.0f} ns')
     out.append('')
+    out += in_report(sta, s, npaths, path)
     return out, s
+
+
+def in_report(sta, s, npaths, path):
+    """External inputs: per port, what it reaches, the period it needs when it changes on
+    the falling edge, and the hold slack if it changed on the rising edge instead."""
+    if not s['ins']:
+        return []
+    ports = {}
+    for x in s['ins']:
+        p = ports.setdefault(x['cls'][3:], {'need': 0.0, 'kinds': set(), 'rise': None, 'rise_at': None})
+        p['need'] = max(p['need'], x['need'])
+        p['kinds'].add(x['kind'])
+        r = x['rise_slack']
+        if r is not None and (p['rise'] is None or r < p['rise']):
+            p['rise'], p['rise_at'] = r, f'{x["cell"]}.{x["pin"]}'
+    out = ['### External inputs (change on the falling Clk edge, TRS Appendix B)', '',
+           'needs T ≥: setup, hold and phase gating with the input launched at T/2. '
+           'Rising-edge hold: the slack if the source changed the input at the rising edge '
+           '(a negative value is the race of TC-N2).', '',
+           '| input | reaches | needs T ≥ | rising-edge hold slack | at |', '|---|---|---|---|---|']
+    for n, p in sorted(ports.items(), key=lambda kv: -kv[1]['need']):
+        rise = '—' if p['rise'] is None else f'{p["rise"]:.0f} ns'
+        at = '' if p['rise_at'] is None else f'`{short(p["rise_at"], 50)}`'
+        out.append(f'| {n} | {", ".join(sorted(p["kinds"]))} | {p["need"]:.0f} ns | {rise} | {at} |')
+    out.append('')
+    x = s['ins'][0]
+    out += path(x['bit'], x['cls'], x['edge'],
+                f'Worst input path, to `{short(x["cell"], 60)}.{x["pin"]}` ({x["kind"]}): T ≥ {x["need"]:.0f} ns')
+    return out
 
 
 def clock_report(sta):

@@ -26,19 +26,20 @@ def fig_mctrl():
 
     f.box(200, 40, 260, 440, "Автомат исполнения",
           ["state[3:0] — 10 состояний", "one_step — шаговый режим",
+           "*_s — синхронизаторы (DFF):", "кнопки пульта, rst_busy",
            "insn_loading", "rst_soft — тип сброса",
-           "overflow_q — фронт переполнения",
            "op_q — код инструкции (P3)", "pf_q — следующая уже выбрана",
            "стробы — дешифрация state,", "valid только при go:",
            "go = ip_ready · ap_ready", "      · ~(soft_rst | hard_rst)", "",
-           "loop_overflow↑ → S_HALT", "soft_rst | hard_rst →", "S_RST_WAIT из любого"],
+           "loop_overflow: IpLine не отвечает,", "машина стоит; bell — уровень",
+           "soft_rst | hard_rst →", "S_RST_WAIT из любого"],
           align="start", top=24)
 
     # линия выборки
     f.box(860, 40, 320, 130, "IpLine", ["линия выборки инструкций"], cls="blk-opt")
     f.wire([(460, 60), (860, 60)], label="ip_valid · ip_ahead · insn_loading", lx=470, ly=53)
     f.wire([(860, 86), (460, 86)], label="ip_ready · loop_overflow", lx=470, ly=79)
-    f.wire([(860, 112), (640, 112), (640, 290)], label="insn · insn_valid · insn_eot", lx=650, ly=105)
+    f.wire([(860, 112), (640, 112), (640, 290)], label="insn · insn_eot", lx=650, ly=105)
 
     # признак нуля для скобок
     f.box(690, 130, 110, 50, "MUX", ["op_q[3] ? a : d"], top=20, bcls="tpi")
@@ -90,7 +91,7 @@ def fig_mctrl_fsm():
     f.edge("IDLE", "l", "HALT", "r", oa=8, ob=8, label="halt_key", lx=510, ly=86)
     f.edge("IDLE", "r", "FETCH_W", "t", via=[(900, 60)], label="go: ip_valid, выборка",
            lx=770, ly=53)
-    f.edge("FETCH_W", "l", "DECODE", "r", label="go · insn_valid", lx=770, ly=173)
+    f.edge("FETCH_W", "l", "DECODE", "r", label="go: insn достоверен", lx=770, ly=173)
     f.edge("FETCH_W", "r", "HALT", "t", via=[(1040, 180), (1040, 18), (380, 18)],
            label="загрузка прервана кнопкой или остановом", lx=710, ly=12)
     f.edge("DECODE", "t", "IDLE", "b", oa=30, ob=30,
@@ -122,6 +123,6 @@ def fig_mctrl_fsm():
     f.wire([(x, y), (x + 30, y)], label="tx_rdy:", lx=x + 36, ly=y - 4)
     f.text(x + 36, y + 12, "s_next", "tl")
     f.text(16, 438, "s_next = (halt_key | one_step) ? S_HALT : pf_q ? S_DECODE : S_IDLE   (pf_q — следующая уже выбрана)", "tl")
-    f.text(16, 456, "фронт loop_overflow → S_HALT из любого состояния (REQ-CTLV2-005)", "tl")
+    f.text(16, 456, "переполнение вложенности: IpLine снимает ready до сброса, машина стоит в S_FETCH_W (TC-N2, REQ-CTLV2-005)", "tl")
     f.text(16, 474, "стробы: ip_valid, ap_valid, tx_vld = S_COUT, rx_rdy = S_WAIT · CIN · go, *_rst_req = S_RST_REQ", "tl")
     return f.render()
