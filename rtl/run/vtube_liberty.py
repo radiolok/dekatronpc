@@ -15,7 +15,8 @@ read (rtl/run/vtube_sta.py, or OpenSTA). It is generated: edit the sources.
   * timing_sense comes from the pin function; GUIDE_EN_J2 and RELAY_2CO
     have none and get non_unate;
   * flip-flops: "negedge C->Q" is a falling_edge arc, "setuphold" gives
-    setup_falling / hold_falling on D, RN / SN arcs are clear / preset.
+    setup_falling / hold_falling on D (setup_rising / hold_rising for a flip-flop with only
+    posedge arcs, DFFP_J2N16), RN / SN arcs are clear / preset.
 
 usage: vtube_liberty.py [-l vtube_cells.lib] [-T vtube_timing.json] [-o vtube_cells_timing.lib]
 The module also holds the liberty parser and the function evaluator used by
@@ -276,7 +277,12 @@ def build(lib_path, timing_path):
                 out.append(f'      capacitance : {cap:g};')
                 if pname in sh:
                     su, ho = sh[pname]
-                    for typ, v in (('setup_falling', su), ('hold_falling', ho)):
+                    # a flip-flop with rising-edge arcs (DFFP_J2N16) is checked at the rising edge; the falling-edge
+                    # DFF_J2N16 and the latches (closing edge = fall of C) at the falling one
+                    is_ff = any(isinstance(i, Group) and i.name == 'ff' for i in cell.items)
+                    rising = is_ff and not any(k.startswith('negedge') for k in iop)
+                    e = 'rising' if rising else 'falling'
+                    for typ, v in ((f'setup_{e}', su), (f'hold_{e}', ho)):
                         out.append('      timing() {')
                         out.append('        related_pin : "C";')
                         out.append(f'        timing_type : {typ};')

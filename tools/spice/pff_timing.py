@@ -78,17 +78,39 @@ def case(kind, x, p, init=0, v=1):
     return p, D, meas
 
 
-def tcq(p, n):
-    """clock (HV line 100 V, rising) to Q / QN crossing 100 V: set (D high) and reset (D low, from set)"""
+def tcq(p, n, vr=100, vf=100):
+    """clock (HV line 100 V, rising) to Q / QN crossing vr (rising) / vf (falling): set (D high) and reset (D low,
+    from set). vr 118 / vf 92 are the next stage's thresholds (vtube_timing.json)"""
     r = {}
     for nm, D, CKs in (("set", [(0, 0), (3.0, 1)], CK),
                        ("rst", [(0, 1), (3.0, 0)], CK)):
         qd, nd = ("rise", "fall") if nm == "set" else ("fall", "rise")
-        meas = (f"meas tran q trig v(ck) val=100 rise=1 td={E1-0.2}u targ v(q) val=100 {qd}=1 td={E1-0.2}u\n"
-                f"meas tran n trig v(ck) val=100 rise=1 td={E1-0.2}u targ v(qn) val=100 {nd}=1 td={E1-0.2}u")
+        vq, vn = (vr, vf) if nm == "set" else (vf, vr)
+        meas = (f"meas tran q trig v(ck) val=100 rise=1 td={E1-0.2}u targ v(q) val={vq} {qd}=1 td={E1-0.2}u\n"
+                f"meas tran n trig v(ck) val=100 rise=1 td={E1-0.2}u targ v(qn) val={vn} {nd}=1 td={E1-0.2}u")
         m = sim(p, n, D, CKs, 11.0, meas)
         r[nm] = (m.get('q', float('nan')) * 1e9, m.get('n', float('nan')) * 1e9)
     return r
+
+
+def static(p, n):
+    """currents and dissipation: D high from 3 us, the edge at 6 us sets the cell. Static values at 8.9 us (Q = 1,
+    clock high, D high: the S pentode's current all goes to its screen), maxima during the pulse (6..7 us).
+    The pentode of the QN half is XJxs (plate QN, screen sxs), the triodes VTxa (plate QN) / VTxb (plate Q)."""
+    D = [(0, 0), (3.0, 1)]
+    rg2 = float(str(p['Rg2']).rstrip('k')) * 1e3
+    ig2 = lambda t: f"((150-v(s{t}))/{rg2:g})"
+    lines = []
+    for nm, expr in (("ip_s", "i(VPxs)"), ("ig2_s", ig2("xs")), ("pg2_s", f"(v(sxs)*{ig2('xs')})"),
+                     ("ik_s", f"(i(VPxs)+{ig2('xs')})"), ("pa_s", "(v(qn)*i(VPxs))"),
+                     ("ik_r", f"(i(VPxr)+{ig2('xr')})"), ("pg2_r", f"(v(sxr)*{ig2('xr')})"),
+                     ("ia_b", "i(VTxb)"), ("pa_b", "(v(q)*i(VTxb))"), ("ia_a", "i(VTxa)"), ("pa_a", "(v(qn)*i(VTxa))")):
+        lines.append(f"let w_{nm} = {expr}")              # .control meas takes vectors, not expressions
+        lines.append(f"meas tran {nm}_st find w_{nm} at=8.9u")
+        lines.append(f"meas tran {nm}_pk max w_{nm} from=6.0u to=7.0u")
+    lines.append("meas tran icc_st find i(VCC) at=8.9u")
+    m = sim(p, n, D, CK, 11.0, "\n".join(lines))
+    return {k: v for k, v in m.items() if k not in ("qe", "ne")}
 
 
 def bisect(kind, p, n, lo, hi, init, v, it=8):
@@ -110,6 +132,8 @@ def bisect(kind, p, n, lo, hi, init, v, it=8):
 def run(arg):
     kind, p, n, init, v = arg
     if kind == "tcq": return kind, n, init, v, 0, tcq(p, n)
+    if kind == "tcqth": return "tcq", n, init, v, 0, tcq(p, n, 118, 92)
+    if kind == "static": return kind, n, init, v, 0, static(p, n)
     rng = dict(wmin=(1.0, 60.0), hold=(-1.0, 1.5), setup=(-0.4, 3.0))[kind]
     x, m = bisect(kind, p, n, *rng, init, v)
     return kind, n, init, v, x, m
@@ -122,10 +146,12 @@ if __name__ == "__main__":
     for a in [a for a in args if "=" in a]:
         k, v = a.split("=", 1); p[k] = float(v) if re.match(r"^-?[\d.]+(e-?\d+)?$", v) else v
     grids = [int(x) for x in args if "=" not in x] or [2, 6, 10]
-    combos = [(0, 1)] if kind in ("wmin", "tcq") else [(0, 1), (1, 1), (0, 0), (1, 0)]
+    combos = [(0, 1)] if kind in ("wmin", "tcq", "tcqth", "static") else [(0, 1), (1, 1), (0, 0), (1, 0)]
     with Pool(16) as pool:
         for kind_, n, init, v, x, m in pool.map(run, [(kind, p, n, i, v) for n in grids for i, v in combos]):
-            if kind_ == "tcq":
+            if kind_ == "static":
+                print(f"static N={n:2d} " + " ".join(f"{k} {v:.3g}" for k, v in m.items()))
+            elif kind_ == "tcq":
                 print(f"tcq   N={n:2d} set Q/QN {m['set'][0]:4.0f}/{m['set'][1]:4.0f} ns, reset Q/QN {m['rst'][0]:4.0f}/{m['rst'][1]:4.0f} ns")
             elif x is None:
                 print(f"{kind_:5s} N={n:2d} {init}->{v} {m}")

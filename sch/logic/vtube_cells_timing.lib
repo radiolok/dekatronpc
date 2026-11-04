@@ -1429,6 +1429,76 @@ library(vtube_cells_lib_timing) {
       }
     }
   }
+  cell(DFFP_J2N16) {
+    dont_use : true;
+    area : 3.5;
+    current_unit : "1mA";
+    heat_current : 1000;
+    tubes(names) {
+      N16B : 1.5;
+      J2B : 2;
+    }
+    ff(IQ, IQN) {
+      clocked_on : "C";
+      next_state : D;
+    }
+    pin(C) {
+      vtube_level : "HV_IN";
+      direction : input;
+      fanout_load : 0.7;
+      clock : true;
+      capacitance : 0.7;
+    }
+    pin(D) {
+      vtube_level : "HV_IN";
+      vtube_hv_load : 1.2;
+      direction : input;
+      fanout_load : 3;
+      capacitance : 3;
+      timing() {
+        related_pin : "C";
+        timing_type : setup_rising;
+        rise_constraint(fanout3) { values("527, 527, 527"); }
+        fall_constraint(fanout3) { values("527, 527, 527"); }
+      }
+      timing() {
+        related_pin : "C";
+        timing_type : hold_rising;
+        rise_constraint(fanout3) { values("0, 0, 0"); }
+        fall_constraint(fanout3) { values("0, 0, 0"); }
+      }
+    }
+    pin(Q) {
+      vtube_level : "HV";
+      direction : output;
+      max_fanout : 6;
+      driver_type : pull_up;
+      function : "IQ";
+      timing() {
+        related_pin : "C";
+        timing_type : rising_edge;
+        cell_rise(fanout3) { values("145.1, 261, 399.1"); }
+        rise_transition(fanout3) { values("0, 0, 0"); }
+        cell_fall(fanout3) { values("66.06, 181, 472"); }
+        fall_transition(fanout3) { values("0, 0, 0"); }
+      }
+    }
+    pin(QN) {
+      vtube_level : "HV";
+      direction : output;
+      max_fanout : 6;
+      driver_type : pull_up;
+      function : "IQN";
+      timing() {
+        related_pin : "C";
+        timing_type : rising_edge;
+        cell_rise(fanout3) { values("145.1, 261, 399.1"); }
+        rise_transition(fanout3) { values("0, 0, 0"); }
+        cell_fall(fanout3) { values("68.25, 187, 487.7"); }
+        fall_transition(fanout3) { values("0, 0, 0"); }
+      }
+    }
+  }
   cell(DFFRN_J2N16X7) {
     area : 8;
     current_unit : "1mA";

@@ -22,6 +22,7 @@ This folder holds the logic cells of the tube machine (REQ-MOD-003/004/005), eac
 | [DFFRN_J2N16X7](DFFRN_J2N16X7/README.md) | DFF_J2N16 + asynchronous clear (RN = 0) | 8 (+ 1 × 6Kh7B) | LV + reset line → HV | RN → Q 54 … 100 ns; recovery ≥ 100 ns | `DFFRN_J2N16X7` | RN is the reset line (idle −20 V, GND = reset) |
 | [DFFSN_J2N16X7](DFFSN_J2N16X7/README.md) | DFF_J2N16 + asynchronous preset (SN = 0) | 8 (+ 1 × 6Kh7B) | LV + reset line → HV | SN → Q 273 … 611 ns | `DFFSN_J2N16X7` | |
 | [DFF_J2N16](DFF_J2N16/README.md) | D flip-flop, **falling** edge of C | 7 (2 × RSLATCH + 1 × 6N16B) | LV → HV | C↓→Q 340 … 539 ns; 1.11 … 0.93 MHz register to register | `DFF_J2N16` | synthesis adds one clock inverter per clock net |
+| [DFFP2_J2N16](DFFP2_J2N16/README.md) | two D flip-flops, **rising** edge of C, pulse-clocked (TC-N5) | 7 (2 × 3.5: 2 × 6Zh2B + 1.5 × 6N16B each) | **HV** D and C → HV | C↑→Q 51…95 / 122…158 ns (fanout 2 / 6); setup 527, hold −3 ns at fanout 6 | `DFFP_J2N16` (one flip-flop, `dont_use`: placed by the RTL) | Bonch-Bruevich bistable, g3 pulsed from the clock edge; D pin at most twice per net |
 
 Sketches not in the library yet:
 
@@ -58,7 +59,7 @@ Each cell folder `<CELL>/` holds:
 | `img/` | figures of the page, rebuilt by `tools/spice/*_plots.py` |
 
 - The sheets take the tube models from `sch/libs/` as `${KIPRJMOD}/../../libs/<tube>.sub`, so a cell project sits two levels below `sch/`.
-- DLATCH2_J2N16, DFF_J2N16, DFFRN_J2N16X7 and DFFSN_J2N16X7 use `../RSLATCH_J2N16/RSLATCH_J2N16.kicad_sch` as their sub-sheet. A change to the RS latch changes all of them.
+- DLATCH2_J2N16, DFF_J2N16, DFFRN_J2N16X7 and DFFSN_J2N16X7 use `../RSLATCH_J2N16/RSLATCH_J2N16.kicad_sch` as their sub-sheet. A change to the RS latch changes all of them. DFFP2_J2N16 has its own sub-sheet `DFFP_J2N16.kicad_sch` (other values: plate chokes, Rg2 12k, no Cb).
 - The scripts stay in `tools/`. `tools/kicad/gen_*.py OUT_DIR` writes the sheets to `OUT_DIR/<CELL>/` (run with `sch/logic`, and only to start over: the drawn sheets are edited in KiCad). `tools/spice/*_sweep.py`, `*_static.py` and `*_plots.py` run the simulations and draw the figures; with no argument, the plots go into `<CELL>/img/`.
 
 ## Cell library

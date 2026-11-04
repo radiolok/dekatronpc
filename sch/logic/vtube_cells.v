@@ -271,6 +271,20 @@ specify
 endspecify
 endmodule
 
+// DFFP_J2N16: pulse-clocked, rising edge of C (one half of DFFP2_J2N16)
+module DFFP_J2N16(C, D, Q, QN);
+input C, D;
+output reg Q;
+output QN;
+assign QN = ~Q;
+always @(posedge C)
+	Q <= D;
+specify
+	(posedge C => (Q +: D)) = 0;
+	(posedge C => (QN -: D)) = 0;
+endspecify
+endmodule
+
 // DFF_J2N16: falling edge of C (master on C, slave on ~C)
 module DFF_J2N16(C, D, Q, QN);
 input C, D;
