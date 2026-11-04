@@ -481,7 +481,15 @@ initial begin
     end
 end
 
-`ifndef NO_VCD
+`ifdef POWER_VCD
+// Power run (synth_sim.sh -p, doc/vtube_power.md): only the DUT, into the
+// FIFO that vtube_power_vcd reads, so the VCD of pi.bfk never lands on disk
+initial begin
+    $dumpfile(`POWER_VCD);
+    $dumpvars(0, DekatronPC_tb.dekatronPC);
+end
+`elsif NO_VCD
+`else
 initial begin
     $dumpfile("DekatronPC_tb.vcd");
     $dumpvars(0, DekatronPC_tb);

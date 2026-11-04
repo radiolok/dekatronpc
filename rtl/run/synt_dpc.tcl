@@ -186,6 +186,8 @@ file delete ${top}_premap.json ${top}_qn.json ${top}_cells_sim.v
 if {$div} { file delete ${top}_div.json }
 
 yosys write_verilog ${top}_synth.v
+# Netlist for the schematics (tools/netview/netview.py, run_tests.sh -p)
+yosys write_json ${top}_netlist.json
 
 # Flat netlist with the names of the file above (write_verilog renames the
 # $-names, so it is read back): the sources only as headers, for the port
@@ -213,7 +215,5 @@ if {$flat} {
   yosys design -load final
 }
 #
-# # show
-yosys show -format dot -lib ${top}_synth.v -prefix $top
 yosys tee -o  $top.json stat -liberty $cell_lib -json
 #yosys ltp

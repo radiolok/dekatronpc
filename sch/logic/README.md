@@ -72,6 +72,7 @@ These files are the interface of the cells to the RTL flow. Keep them in step wi
 | `vtube_cells.v` | Verilog models of the cells, one to one with the liberty (AGENTS §6) | `rtl/run/synth_sim.sh` |
 | `vtube_cells.sp` | behavioural SPICE models (0/1 V logic, ngspice + XSPICE) with the liberty names and pins | not used by a script now |
 | `vtube_timing.json` | the only place for cell delays and setup/hold | `rtl/run/vtube_sdf.py` (`synth_sim.sh -t`, `doc/vtube_sdf_timing.md`) |
+| `vtube_power.json` | the only place for the static supply currents of the cells per pin state and rail (+150 V plate, screen, −50 V, +350 V), from the cell pages | `rtl/run/vtube_power.py` (`synth_sim.sh -p`, `doc/vtube_power.md`) |
 | `vtube_timing_check.v` | `vtube_setuphold`, the setup/hold checker of the trigger cells | `synth_sim.sh -t` |
 
 ## Other files
