@@ -46,7 +46,9 @@ The script checks, in order: `--quartus DIR`, `$QUARTUS_BIN`, `quartus_sh` on `P
 | `elab` before the loop limit | `Error (10106)`: loop in `RamBank` (RAM.sv:147) exceeds 5000 iterations. |
 | `elab` | Successful, 0 errors, 212 warnings, 58 s, peak about 4.8 GB virtual memory. |
 | `syn` / `compile` before the RamBank fix | `Error (276003)` in Analysis & Synthesis (35 s, peak 4.96 GB), see §5. |
-| `syn` / `compile` after the fix | Not run yet. This is a heavy job; per AGENTS.md §0 it waits for the owner's go-ahead. |
+| `syn` / `compile` after the fix | Successful (2026-11-04): 0 errors, Flow Status Successful (see §6.1 for the struct-literal fix that unblocked it). |
+
+Full compile (`map`+`fit`+`asm`+`sta`) on the Windows Quartus 23.1std.0: 0 errors in every stage, `Emulator.sof` written, STA meets timing (worst slack positive). The only Critical Warnings are the harmless memory-depth mismatches (127005, §5) and 19 pins without exact locations (169085, carried over from `Emulator.qsf`).
 
 Memory is expected to fit: OPEN-015 was closed in TRS v0.8 by `BANK_DIGITS = 4` (about 80 memory blocks instead of 1300). With the debug read port (`EN_EMULATOR = 1`) Quartus may duplicate each bank for the second read address; even then the two memories need about 1.4 Mbit of the device's 2.7 Mbit (270 M10K blocks).
 
@@ -88,4 +90,20 @@ Fallback if the image disappears or breaks: a self-hosted runner on the owner's 
 
 The local Windows install is 23.1std.0; the CI image is 23.1std.1, which gives the same results for this flow as far as is known.
 
-Status: written, not yet run on GitHub.
+### 6.1 Struct literal in a continuous assignment (Error 10734)
+
+First real CI run (pull request to `master`, 2026-11-04) failed elaboration with three errors:
+
+```
+Error (10734): Verilog HDL error at Emulator.sv(310): rx_data_bcd is not a constant
+Error (10734): Verilog HDL error at Emulator.sv(311): rx_vld is not a constant
+Error (10734): Verilog HDL error at Emulator.sv(312): tx_rdy is not a constant
+```
+
+The lines were the `assign dpc_in = '{ insn: …, rx_data_bcd: rx_data_bcd, … };` named-field assignment pattern that packs the Emu→DPC inputs into `dpc_in_t`. Quartus elaboration refuses non-constant expressions inside an assignment pattern in a continuous assignment (error 10734), on both 23.1std.0 and 23.1std.1.
+
+Fix in `rtl/Emulator/Emulator.sv`: replace the pattern with a plain concatenation in declaration order. `dpc_in_t` is a `packed` struct, so its first-declared field is the most-significant bits — a `{insn, insn_vld, rx_data_bcd, …}` concatenation in field order is bit-for-bit identical to the pattern. Behaviour is unchanged.
+
+Checked (2026-11-04): `elab` 0 errors on the local Windows Quartus 23.1std.0 and on the CI image 23.1std.1; full `compile` on 23.1std.0 is 0 errors, Flow Status Successful, `Emulator.sof` written, STA met.
+
+Status: CI now runs on GitHub; the job has `continue-on-error: true`, so a failure does not fail the workflow — check the job log, not the green tick.

@@ -304,20 +304,22 @@ typedef struct packed {
 
 dpc_in_t dpc_in, dpc_in_q;
 
-assign dpc_in = '{
-    insn:        InsnInInternal,
-    insn_vld:    InsnInValidInternal,
-    rx_data_bcd: rx_data_bcd,
-    rx_vld:      rx_vld,
-    tx_rdy:      tx_rdy,
-    halt:        keyHalt,
-    run:         keyRun,
-    step:        keyStep,
-    next_ip:     keyNextIp,
-    prev_ip:     keyPrevIp,
-    next_app:    keyNextApp,
-    load_start:  InsnLoadingStartInternal,
-    load_stop:   InsnLoadingStopInternal
+// Конкатенация в порядке полей dpc_in_t (Quartus не берёт структурный литерал
+// '{...} с непостоянными полями в assign)
+assign dpc_in = {
+    InsnInInternal,             // insn
+    InsnInValidInternal,        // insn_vld
+    rx_data_bcd,                // rx_data_bcd
+    rx_vld,                     // rx_vld
+    tx_rdy,                     // tx_rdy
+    keyHalt,                    // halt
+    keyRun,                     // run
+    keyStep,                    // step
+    keyNextIp,                  // next_ip
+    keyPrevIp,                  // prev_ip
+    keyNextApp,                 // next_app
+    InsnLoadingStartInternal,   // load_start
+    InsnLoadingStopInternal     // load_stop
 };
 
 always_ff @(negedge Clock_1MHz, negedge Rst_n) begin
