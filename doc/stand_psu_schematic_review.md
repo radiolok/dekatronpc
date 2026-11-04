@@ -769,3 +769,154 @@ leakage is symmetric and lower overall, the proximity loss is lower, and the hal
 only through the secondary layers and tape, not wire to wire. Check before rewinding: compare the turn-off spike heights on
 the two drains (scope, both channels at the same V/div). If they differ by more than ≈ 20–30 %, or one MOSFET still runs
 warmer with the loop fixed, rewind as P1–S–P2 with insulating tape between primary and secondary.
+
+## 11. 200v channel: one MOSFET overheats (2026-11-04)
+
+The owner reports that one MOSFET of the 200v channel overheats badly and the other much less. There is a scope shot of both
+drains. Yellow is the hot MOSFET and cyan the cool one; both are at ≈ 100 V/div (read from the MAX values and the
+grid). The channel frequency is 65.2 kHz (period 15.3 µs). The output voltage, the load and the choke status are not given.
+The transformer is the common 50 + 50 / 56 sectioned winding (P1-P1-P2-P2-S).
+
+What the shot shows (one period):
+- **Yellow ON** ≈ 5.3 µs: its drain is at 0 and cyan at ≈ 590 V = 2·Vbus, so **Vbus ≈ 285–295 V**. The 200v design
+  assumes 136 V RMS in, i.e. ≈ 191 V. During the last ≈ 2 µs the yellow drain **curls up to ≈ 25 V** (and the cyan top
+  sags by the same amount). With R_DS(on) ≈ 3–5 Ω (hot) that is **≈ 5–8 A**: the
+  magnetizing current runs away, so the core saturates at the end of every yellow pulse.
+- **Yellow OFF**: a leakage ring to 359 V, then a flat level at ≈ 280 V = Vbus, which means **no** voltage on its half.
+  During the same ≈ 10 µs the cyan drain sits at about −10…−29 V, below 0, so the **cyan body diode conducts**.
+  The large saturation current freewheels through the cyan half back into the bus. The core is still
+  saturated, so no voltage couples into the yellow half. The cyan gate pulse falls inside this diode
+  interval, so it barely resets the flux. There is no dead-time plateau at Vbus on either drain.
+- The result is a DC flux offset (flux walk) toward the yellow polarity. Each yellow pulse
+  ends in saturation, with amperes in the yellow MOSFET (conduction loss I²·R_DS plus turn-off at high current).
+  The cyan MOSFET turns on with zero voltage (its diode is already conducting) and runs cool.
+
+Volt-seconds: ΔB = 285 V · 5.3 µs/(50 · 120 mm²) ≈ 0.25 T p-p, i.e. Bpk ≈ 0.13 T when balanced. That is
+fine by itself, but only ≈ 0.15–0.2 T is left for an offset before a hot ferrite saturates. A small
+volt-second imbalance between the halves is enough to use that up. Possible sources:
+the two MOSFETs (turn-off delay, R_DS), the BC337/BC327 drivers, the TL494 output pulse widths, and the
+unequal P1/P2 leakage to S (§10.6).
+
+Tests, cheapest first:
+1. Stop running this channel at that bus voltage. Feed it the design ≈ 136 V RMS (Vbus ≈ 191 V) and
+   recheck. ΔB then drops by 1/3. Ask: what input gives 285 V?
+2. **Swap the two MOSFETs.** If the heat follows the part, it is the MOSFET (slower turn-off, higher R_DS). If the heat stays
+   on the yellow side, it is the drive or the winding.
+3. Both gates at once (CH1/CH2, 5 V/div): compare the pulse widths and the fall times. A difference of ≥ 0.1–0.2 µs out of
+   5.3 µs is already a ≈ 2–4 % imbalance.
+4. Remedies: a 0.1–0.2 mm gap in the core, so a DC imbalance current gives less offset flux and the
+   resistive balancing works before saturation; the P1–S–P2 sandwich; a lower Vbus; or current-mode control
+   (UC3846/UC3825), which balances the flux inherently.
+
+### 11.1 Correction and gate shot (2026-11-04)
+
+The owner measures **Vbus = 200 V**, so the "Vbus ≈ 285 V" reading above is withdrawn. The check is that the mean of each
+drain must equal Vbus, by volt-second balance of each half. From the drain shot, yellow is
+≈ 280 V × 147/225 ≈ 185 V and cyan ≈ 585 V × 75/225 ≈ 195 V, i.e. ≈ 200 V for both. So the scale is right and
+the 280 V level is **not** Vbus. Re-reading the shot with Vbus = 200 V:
+- Yellow ON: the yellow half has +200 V, and cyan sits at 200 + 200·N_c/N_y ≈ 590 V, so **N_c/N_y ≈ 1.95**.
+- Cyan conducting (gate or body diode): the cyan half has +200 V, and yellow sits at 200 + 200·N_y/N_c ≈ 280 V,
+  so **N_c/N_y ≈ 2.5**.
+- Volt-second balance: the yellow ON time is 5.3 µs and the cyan conduction time is ≈ 10 µs, so N_c/N_y ≈ 1.9.
+
+All three readings say the **two primary halves differ by about 2×**. The hot (yellow) half has the fewer turns. Its
+V/turn and flux rate are about twice as high, so it saturates at the end of each pulse. The flux is then balanced by the cyan body
+diode, which keeps conducting after the cyan gate pulse ends. Likely cause: the centre tap
+was brought out at the wrong layer boundary, or the layer order/phasing inside one half is wrong. The owner states
+that all transformers are wound 50 + 50 / 56 to the note. That matches the earlier channels; this is a 200v-channel-specific fault.
+Check with power off: the LCR inductance of each half should be equal (L ∝ N², so 2× the turns gives 4× the L).
+Alternatively, feed one half from a generator (a few V, 10–50 kHz) and compare the voltages on the two halves.
+
+Gate shot (2 V/div, 10 µs/div): the duty is 35.3 % (yellow) and 35.8 % (cyan), so the TL494 and the drivers are
+balanced (≈ 70 ns difference) and do not cause the asymmetry. But:
+- **The gate high level is only ≈ 6.5–7 V** (12 V expected minus a ≈ 0.7 V follower drop). That is the
+  12 V supply sagging. R1 = 10k from 200 V gives ≈ 18 mA against a ≈ 33 mA budget at 71 kHz (R20/R21 1k ≈ 10 mA,
+  gates 2 × 78 nC × 71 kHz ≈ 11 mA, TL494 ≈ 7 mA, 7812 ≈ 5 mA), as predicted in §8. At 7 V the IRFBE30 is
+  not fully enhanced: R_DS rises well above the 3 Ω rating and it goes linear at the saturation current. Fix: R20/R21 → 4.7k,
+  R1 ≈ 6.8k / 10 W (≈ 5.8 W at 200 V), or better an auxiliary winding for VCC.
+- The **off-state yellow gate rings from −3 V to ≈ +3 V** whenever cyan turns off (Miller coupling of the
+  large yellow-drain dv/dt). That reaches V_GS(th) (2–4 V), so the MOSFET partly turns on while its drain is at hundreds of volts.
+  The cyan gate rings much less. Fix: a 10k gate–source resistor at each MOSFET (still open, §8), a lower-impedance
+  turn-off (e.g. R18/R19 10 Ω with a diode across for faster turn-off), and a short gate loop.
+
+### 11.2 Turns are equal; the 12 V sag (2026-11-04)
+
+The owner confirms the halves are equal within one turn, so the "2× turns" reading of §11.1 is withdrawn. With equal
+turns, the different half voltages (390 V against 200 V, and 80 V against 200 V) mean the halves are **not coupled** during those
+intervals. The core is deep in saturation for a large part of the cycle, and the voltages are divided by the leakage and
+saturated inductances carrying large currents. The drain means (≈ Vbus) still hold. The open question is the
+source of the DC offset. With the TL494 widths equal, the candidates are the following:
+- **Gate drive at ≈ 7 V.** With V_GS(th) spread over 2–4 V (IRFBE30), two parts at 7 V can differ several times in
+  R_DS. The I·R_DS drop subtracts from the volt-seconds of one half, so the flux walks, and at saturation current
+  the weaker MOSFET goes linear.
+- **Miller turn-on of the yellow gate** (+3 V rings when cyan turns off): it adds conduction on the yellow side.
+
+Why the 12 V supply sags now and did not before: CT went from 2.2 nF to 1 nF, so the frequency rose from ≈ 27 to ≈ 71 kHz, and the duty is
+now ≈ 35 % per side. Gate charge went from ≈ 4 to ≈ 11 mA, and the R20/R21 base current scales with duty. R1 = 10k gives ≈ 18 mA from 200 V
+against a ≈ 33 mA budget.
+
+R1 options (Vbus = 200 V, 18 V node):
+
+| Change | R1 total | I | P (R1 parts) | Note |
+|---|---|---|---|---|
+| 10k ‖ 15k (owner) | 6k | ≈ 30 mA | 3.3 + 2.2 W | both ≥ 5 W parts; D5 idle 0.55 W, so a 1 W zener |
+| R20/R21 → 4.7k, 10k ‖ 27k | 7.3k | ≈ 25 mA | 3.3 + 1.2 W | budget falls to ≈ 25 mA; less heat |
+| Auxiliary winding on T1 | — | — | — | removes the loss; R1 stays as start-up only |
+
+R1 = 10k already dissipates 3.3 W in a ≈ 2 W DIN0918 footprint (§8).
+Order: fix the 12 V (and fit the 10k gate–source resistors), then re-shoot both drains. If one side is still hot, swap the
+MOSFETs to see whether the heat follows the part.
+
+Owner decision: no auxiliary winding in this iteration. The R1 parts on the board are rated 5 W, so 10k ‖ 15k (3.3 + 2.2 W) is
+within rating. The remaining check is D5: at idle it takes ≈ 0.55 W. The 7812 drops (18 − 12) V · 30 mA ≈ 0.2 W, which is fine.
+
+### 11.3 After the 12 V fix: 54 W at no load (2026-11-04)
+
+State: 15k fitted in parallel with R1, a 1 W zener, R20/R21 still 1k; 12 V is present and the gates reach ≈ 11 V. At **Vbus 200 V with no load the
+input is ≈ 300 mA (60 W)**, of which ≈ 30 mA is R1, so the power stage loses ≈ 54 W with no load. The 80v channel loses ≈ 1.2 W.
+
+Drain shot (≈ 100 V/div, 75.7 kHz). The picture is the same as in §11:
+- While yellow conducts, the cyan drain sits flat at ≈ 600 V. That is the **RCD clamp level**: C3 is at ≈ 400 V over Vbus,
+  so R22 (47k) dissipates ≈ 3.4 W against a ≈ 1 W part. Check R22/C3 temperature.
+- While the cyan side conducts (gate, then body diode), the yellow drain sits at ≈ 280 V. Only ≈ 80 V of the 200 V on the
+  cyan half couples into the yellow half, so the coupled voltage collapses to ≈ 40 % in that polarity. That means a large current
+  flowing through the leakage in that polarity: a heavy load on one half-cycle (a shorted output diode, a shorted turn) or
+  a saturated core.
+- Every ≈ 7 periods there is an irregular event: a narrow cyan spike instead of a plateau.
+
+Gate shot (≈ 11 V high): mostly alternating with dead time, but at the same ≈ 7-period rhythm **yellow gets
+two pulses in a row**. Each such event comes with a large spike on both gates (MAX 16 V), and the counters read yellow
+113.5 kHz against cyan 74.9 kHz. The TL494 steering flip-flop is being double-clocked, most likely by noise on CT/GND from the
+fault currents. That feeds extra volt-seconds into the yellow side. It is probably a consequence, but it is self-reinforcing.
+The earlier gate shot (§11.1, low VCC) was clean.
+
+54 W at no load is a fault, not a tuning issue. Tests, all at reduced Vbus (50–100 V) from a current-limited
+supply:
+1. Sweep the no-load input current against Vbus. If it rises smoothly from zero, the cause is a short or shoot-through. If it is
+   small and then takes off above some voltage, it is flux (saturation onset).
+2. **Disconnect the secondary** (lift the bridge input or the choke/C14). If the no-load current becomes normal, the fault is on the
+   secondary side: check D8–D11 (200v copy) in diode mode, C14, and the output. If not, it is primary-side.
+3. LCR: each primary half and the secondary, L and Q at 10–100 kHz, against the identical 80v-channel transformer as a
+   reference. A shorted turn shows as a several-times lower L and a low Q.
+4. Diode check of D6/D7 (clamp), and the temperature of C3/R22.
+5. Then swap the MOSFETs.
+Decoupling at the TL494 (100 nF at VCC and REF next to the pins, a short CT/RT return to pin 7) is worth doing anyway, against the
+double clocking.
+
+### 11.4 Root cause found: the halves are not equal (2026-11-04)
+
+At Vbus 30 V the no-load input is already ≈ 120 mA, and the thermal camera shows only the MOSFETs hot. The LCR gives **1.5 mH on one half and
+6.5 mH on the other** ("Q" 0.011 and 0.018; that is probably the dissipation factor D = 1/Q, so Q ≈ 90 and 55, and there is no
+sign of a shorted turn). L ∝ N², so the ratio of 4.3 means **≈ 2.1× the effective turns**. That matches the drain-voltage
+reading of §11.1 (N_c/N_y ≈ 1.9–2.5), which was withdrawn there only because the owner counted equal turns.
+With unequal halves, no duty pattern balances the flux: each period walks it, and only saturation
+current and the body diode bring it back. That happens at any Vbus, which is why there are 120 mA already at 30 V.
+A wiring mix-up fits the number well: one "half" being P2 + S in series (50 + 56 = 106 turns, i.e. 2.12×,
+L ratio 4.5). Check the old transformer: the primary to secondary resistance must be open (isolation), and each winding
+should be measured on its own with the others open.
+
+The owner is winding a new transformer. Acceptance checks before fitting it:
+- L of P1 and P2 equal within ≈ 5 % (one turn in 50 is ≈ 4 % of L); L(S) ≈ (56/50)² ≈ 1.25 × L(P).
+- Phasing: L of P1 + P2 in series through the centre tap ≈ 4 × L(half). ≈ 0 means the halves are in antiphase.
+- Ratio: a few volts at 10–50 kHz on P1 from a generator gives P2 ≈ 1.00× and S ≈ 1.12×.
+- Primary to secondary open at ≥ 500 V (insulation tape between the sections); the P1–S–P2 sandwich is preferred (§10.6).
