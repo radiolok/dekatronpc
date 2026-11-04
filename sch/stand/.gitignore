@@ -1,0 +1,6 @@
+# KiCad per-user/session files and generated outputs
+~*.lck
+*.kicad_prl
+fp-info-cache
+*-backups/
+stand-*.pdf

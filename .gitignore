@@ -40,6 +40,8 @@ run/*.json
 !sch/logic/*/img/*.png
 !sch/tubes/*/scan/*.png
 !sch/tubes/*/img/*.png
+!sch/fcore/img/*.png
+!sch/fcore/source/*.png
 tools/schemes/out/
 __pycache__/
 

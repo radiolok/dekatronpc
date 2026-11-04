@@ -87,6 +87,7 @@ One 4-bit instruction set: there is no insn_mode and no ISA switch. Decode on th
 - Old blocks still in use and due for removal (TRS 19.4): Dekatron.sv, DekatronPulseAllow, DekatronCarrySignal, RsLatch, InsnDecoder, BcdToBinEnc.
 - bfutils/ is a git submodule. Its dpcrun is the C++ golden model; it mirrors the RTL as-is and is linked into DekatronPC_tb.cpp for step-by-step comparison. Change the model there, not here (`git submodule update --init`). The Brainfuck-100 set (bfutils/programs/bf100/) is the yardstick for any counter-width change (REQ-ARCH-011).
 - sch/stand/: KiCad project of the test-stand PSU.
+- web/: browser simulator (dpc.js is a JS port of dpcrun); CI web.yml compares traces with dpcrun, pages.yml publishes it. See web/README.md and doc/web_simulator.md.
 - doc/: reference literature and investigation reports.
 
 ## 6. Build and test
