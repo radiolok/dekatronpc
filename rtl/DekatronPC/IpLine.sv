@@ -197,7 +197,7 @@ module IpLine #(
     logic                  ip_counted_q;   // IP уже сдвинут под текущую инструкцию
     logic                  scanning_q;     // идёт промотка тела цикла
     logic                  dir_q;          // направление шага IP: 1 — назад
-    logic                  key_next_s;     // кнопка «вперёд», синхронизирована с Clk (TC-N3)
+    wire                   key_next_s;     // кнопка «вперёд», синхронизирована с Clk (TC-N3)
     logic                  key_moved_q;    // нажатие тактом раньше: шаг на фронте нажатия
     logic                  halt_pending_q; // после шага IP уйти в останов
     logic                  overflow_q;
@@ -350,10 +350,12 @@ module IpLine #(
 
     wire key_prev_s = dir_q & key_dir_mode;   // «назад», синхронизирована
 
-    always_ff @(posedge clk) begin
-        key_next_s  <= key_next_db;
+    // Синхронизатор «вперёд» — импульсный DFFP_J2N16 (TC-N5, TRS v0.52):
+    // его D — ВВ-выход антидребезга, других нагрузок у этой цепи нет
+    DFFP_J2N16 syncNext (.C (clk), .D (key_next_db), .Q (key_next_s), .QN ());
+
+    always_ff @(posedge clk)
         key_moved_q <= key_prev_s | key_next_s;
-    end
 
     wire key_step = (key_prev_s | key_next_s) & ~key_moved_q;
 

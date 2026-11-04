@@ -21,7 +21,7 @@ Cell page. Two edge-triggered D flip-flops, each one Bonch-Bruevich bistable (a 
 | Register to register | 0.83 MHz at fanout 6, ≥ 1 MHz at fanout 2–4 (no logic between) |
 | Lowest grid | −40.2 V (g3, on the falling clock edge) |
 
-`DFF_J2N16` (7 tubes, falling edge, LV inputs) stays the default trigger of the synthesis. `DFFP_J2N16` carries `dont_use` and is placed by name in the RTL where its pins fit; the panel-key synchronizers are the first place (owner, 2026-11-04; not wired yet).
+`DFF_J2N16` (7 tubes, falling edge, LV inputs) stays the default trigger of the synthesis. `DFFP_J2N16` carries `dont_use` and is placed by name in the RTL where its pins fit; the first ones are the seven panel-key synchronizers (TRS v0.52): `halt_key_s`, `step_key_s`, `run_key_s`, `key_insn_loading_start_s`, `key_insn_loading_stop_s`, `rst_busy_s` in `MachineCtrl` and `key_next_s` in `IpLine`, each the only D pin on its input net. The RTL model is `rtl/Logic/DFFP_J2N16.sv` (under `` `ifndef SYNTH ``).
 
 ## How it works
 

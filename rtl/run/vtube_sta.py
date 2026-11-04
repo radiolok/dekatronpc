@@ -696,15 +696,17 @@ def in_report(sta, s, npaths, path):
 
 
 def clock_report(sta):
-    out = ['### Clock nets', '', '| net | driver | triggers | load, grids | C↓ arrival |', '|---|---|---|---|---|']
+    out = ['### Clock nets', '', '| net | driver | triggers | load, grids | capture-edge arrival |', '|---|---|---|---|---|']
     for b, sinks in sorted(sta.snk.items(), key=lambda kv: sta.name(kv[0])):
         ff = [cn for cn, p in sinks if p == 'C' and sta.cells[cn]['type'].startswith('DFF')]
         if not ff:
             continue
         a = sta.get(b, 'clk')
         drv = sta.drv.get(b, ('port', ''))[0]
+        # the falling edge for DFF_J2N16 behind a clock inverter, the rising one for DFFP_J2N16 on Clk itself
+        edge = 'f' if a.late['f'] is not None else 'r'
         out.append(f'| `{short(sta.name(b), 40)}` | {sta.cells[drv]["type"] if drv in sta.cells else drv} | '
-                   f'{len(ff)} | {sta.load[b]:.1f} | {a.late["f"]:.0f} ns |')
+                   f'{len(ff)} | {sta.load[b]:.1f} | {a.late[edge]:.0f} ns ({"↓" if edge == "f" else "↑"}) |')
     return out + ['']
 
 

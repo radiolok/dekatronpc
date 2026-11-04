@@ -1,6 +1,6 @@
 # TC-N5: pulse-clocked D flip-flop on a Bonch-Bruevich bistable (SPICE study)
 
-Status: **cell built** (2026-11-04): `sch/logic/DFFP2_J2N16` (KiCad sheets, testbench, page), liberty cell `DFFP_J2N16` (`dont_use`, placed by the RTL). Owner's answers to §7 (2026-11-04): plate chokes yes; two flip-flops per sheet (the tube count is odd); the clock tree is not designed yet, so either edge is fine, but one driver cannot carry every trigger; first use: the panel-key synchronizers. Still open: the D-pin load (§4.5, at most two per net).
+Status: **cell built** (2026-11-04): `sch/logic/DFFP2_J2N16` (KiCad sheets, testbench, page), liberty cell `DFFP_J2N16` (`dont_use`, placed by the RTL). Owner's answers to §7 (2026-11-04): plate chokes yes; two flip-flops per sheet (the tube count is odd); the clock tree is not designed yet, so either edge is fine, but one driver cannot carry every trigger; first use: the panel-key synchronizers, done in TRS v0.52 (7 × `DFFP_J2N16`, 1099.3 → 1069.0 tubes over seeds 0–3, every check passes, STA 8984 ns). Still open: the D-pin load (§4.5, at most two per net).
 
 - Requirements: REQ-MOD-005 (D flip-flop board), REQ-MOD-004 (delays, simulated, not measured), REQ-MOD-012 (levels), REQ-AUTH-* (no silicon: the steering is done by pentodes, not by diodes).
 - Source: the owner, 2026-11-03: "make a new cell on the D LATCH base, using the Bonch-Bruevich trigger, that switches only on the clock edge"; `doc/tube_count_below_1000.md` §6 (TC-N5, −95…−108 tubes).

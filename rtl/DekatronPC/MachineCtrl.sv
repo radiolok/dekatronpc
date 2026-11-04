@@ -191,25 +191,25 @@ module MachineCtrl #(
     // на D сразу нескольких триггеров автомата (биты state, insn_loading,
     // one_step), halt_key — ещё и в ip_valid/ap_valid. Без синхронизатора
     // разные триггеры могут защёлкнуть разные значения
-    // (doc/external_inputs_falling_edge.md §3, §5). По DFF_J2N16 на сигнал,
-    // как key_next_s для +IP в IpLine (TC-N3); задержка — один такт.
+    // (doc/external_inputs_falling_edge.md §3, §5). По импульсному триггеру
+    // DFFP_J2N16 на сигнал (TC-N5, TRS v0.52: 3,5 лампы вместо 7 у
+    // DFF_J2N16), как key_next_s для +IP в IpLine; задержка — один такт.
+    // D триггера — ВВ-вход: каждая входная цепь нагружена одним таким D.
     // Сброса нет: при включении линии сброса держат автомат в S_RST_WAIT
     // дольше одного такта, и к их снятию синхронизаторы уже переписаны.
     // Линии soft_rst/hard_rst снимаются вместе с rst_busy, но в S_RST_WAIT
     // D автомата от них не зависит: выход оттуда — только по rst_busy_s.
     //------------------------------------------------------------------
-    logic halt_key_s, step_key_s, run_key_s;
-    logic key_insn_loading_start_s, key_insn_loading_stop_s;
-    logic rst_busy_s;
+    wire halt_key_s, step_key_s, run_key_s;
+    wire key_insn_loading_start_s, key_insn_loading_stop_s;
+    wire rst_busy_s;
 
-    always_ff @(posedge clk) begin
-        halt_key_s               <= halt_key;
-        step_key_s               <= step_key;
-        run_key_s                <= run_key;
-        key_insn_loading_start_s <= key_insn_loading_start;
-        key_insn_loading_stop_s  <= key_insn_loading_stop;
-        rst_busy_s               <= rst_busy;
-    end
+    DFFP_J2N16 syncHalt   (.C (clk), .D (halt_key),               .Q (halt_key_s),               .QN ());
+    DFFP_J2N16 syncStep   (.C (clk), .D (step_key),               .Q (step_key_s),               .QN ());
+    DFFP_J2N16 syncRun    (.C (clk), .D (run_key),                .Q (run_key_s),                .QN ());
+    DFFP_J2N16 syncLdSta  (.C (clk), .D (key_insn_loading_start), .Q (key_insn_loading_start_s), .QN ());
+    DFFP_J2N16 syncLdStp  (.C (clk), .D (key_insn_loading_stop),  .Q (key_insn_loading_stop_s),  .QN ());
+    DFFP_J2N16 syncRstBsy (.C (clk), .D (rst_busy),               .Q (rst_busy_s),               .QN ());
 
     logic one_step;      // выполняется ровно одна инструкция
     logic [INSN_WIDTH-1:0] op_q;   // код текущей инструкции (op_load)

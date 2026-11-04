@@ -170,6 +170,8 @@ edge. The cheaper alternative, a `LATCH_J2N16` transparent while Clk is high (3.
 changes only in the first half of the cycle), was declined in favour of a cell that the STA and the
 netlist checks already cover.
 
+**Update (TRS v0.52, 2026-11-04):** the synchronizers are now the pulse-clocked `DFFP_J2N16` (3.5 tubes instead of 7, `sch/logic/DFFP2_J2N16`), placed by name in `MachineCtrl` and `IpLine` (`key_next_s`); behaviour and the one-cycle delay are unchanged.
+
 `MachineCtrl` registers `halt_key`, `step_key`, `run_key`, `key_insn_loading_start`,
 `key_insn_loading_stop` and `rst_busy` on the rising edge (`*_s`) and uses only the registered
 copies. A press or a relay release takes effect one cycle later. The registers have no reset: at
