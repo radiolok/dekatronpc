@@ -19,6 +19,7 @@ vhdl/share/
 *_synth.v
 *_ilang.txt
 *.svg
+!sch/logic/*/img/*_schematic.svg
 *.txt
 *.o
 *.a

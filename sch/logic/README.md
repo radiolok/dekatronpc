@@ -57,6 +57,7 @@ Each cell folder `<CELL>/` holds:
 | `<CELL>_tb.kicad_pro`, `<CELL>_tb.kicad_sch` | testbench project (KiCad simulator, or `tools/spice/sim_kicad.sh`) |
 | `README.md` | the cell page |
 | `img/` | figures of the page, rebuilt by `tools/spice/*_plots.py` |
+| `img/<stem>_schematic.svg` | overview schematic of the whole cell on one picture, drawn by `tools/cellschem/build.py` from the sheet's netlist |
 
 - The sheets take the tube models from `sch/libs/` as `${KIPRJMOD}/../../libs/<tube>.sub`, so a cell project sits two levels below `sch/`.
 - DLATCH2_J2N16, DFF_J2N16, DFFRN_J2N16X7 and DFFSN_J2N16X7 use `../RSLATCH_J2N16/RSLATCH_J2N16.kicad_sch` as their sub-sheet. A change to the RS latch changes all of them. DFFP2_J2N16 has its own sub-sheet `DFFP_J2N16.kicad_sch` (other values: plate chokes, Rg2 12k, no Cb).
