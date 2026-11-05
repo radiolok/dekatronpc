@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1230 770" width="1230" height="770" font-family="DejaVu Sans, Arial, sans-serif" role="img" aria-label="DFFP2_J2N16">
+<rect width="1230" height="770" fill="#ffffff"/>
+<text x="20" y="28" font-size="17" font-weight="bold" fill="#22262b">DFFP2_J2N16</text>
+<text x="20" y="47" font-size="12" fill="#5d6670">Two pulse-clocked D flip-flops, rising edge of C  ·  one flip-flop shown, the sheet holds two (2 × 3.5 tubes)</text>
+<line x1="70" y1="64" x2="1160" y2="64" stroke="#5d6670" stroke-width="2.6" stroke-linecap="butt"/>
+<text x="62" y="68" font-size="12" fill="#5d6670" text-anchor="end" font-weight="bold" font-style="normal">+150 V</text>
+<circle cx="60" cy="225" r="3.8" fill="#fff" stroke="#b8232f" stroke-width="1.8"/>
+<text x="51" y="229" font-size="13" fill="#b8232f" text-anchor="end" font-weight="bold" font-style="normal">D</text>
+<line x1="166" y1="199" x2="166" y2="251" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="254" y1="199" x2="254" y2="251" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="166" y1="199" x2="195" y2="199" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="225" y1="199" x2="254" y2="199" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="195" y="193.5" width="30" height="11" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<text x="210" y="188" font-size="11" fill="#22262b" text-anchor="middle" font-weight="bold" font-style="normal">470k</text>
+<text x="210" y="177" font-size="9" fill="#5d6670" text-anchor="middle" font-weight="normal" font-style="normal">R903</text>
+<line x1="166" y1="251" x2="206" y2="251" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="214" y1="251" x2="254" y2="251" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="206" y1="240" x2="206" y2="262" stroke="#22262b" stroke-width="2.2" stroke-linecap="round"/>
+<line x1="214" y1="240" x2="214" y2="262" stroke="#22262b" stroke-width="2.2" stroke-linecap="round"/>
+<text x="210" y="277" font-size="11" fill="#22262b" text-anchor="middle" font-weight="bold" font-style="normal">3.9p</text>
+<text x="210" y="288" font-size="9" fill="#5d6670" text-anchor="middle" font-weight="normal" font-style="normal">C901</text>
+<line x1="300" y1="225" x2="300" y2="240" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="300" y1="270" x2="300" y2="285" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="294.5" y="240" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<text x="311.5" y="256" font-size="11" fill="#22262b" text-anchor="start" font-weight="bold" font-style="normal">200k</text>
+<text x="311.5" y="268" font-size="9" fill="#5d6670" text-anchor="start" font-weight="normal" font-style="normal">R904</text>
+<line x1="300" y1="285" x2="300" y2="291" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="290" y1="291" x2="310" y2="291" stroke="#5d6670" stroke-width="2.6" stroke-linecap="butt"/>
+<text x="300" y="305" font-size="10" fill="#5d6670" text-anchor="middle" font-weight="bold" font-style="normal">−50 V</text>
+<circle cx="392" cy="225" r="31" fill="#f4f1e6" stroke="#22262b" stroke-width="1.5"/>
+<line x1="380" y1="210" x2="404" y2="210" stroke="#22262b" stroke-width="2.4" stroke-linecap="round"/>
+<line x1="392" y1="210" x2="392" y2="175" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="378" y1="225" x2="406" y2="225" stroke="#22262b" stroke-width="1.6" stroke-linecap="butt" stroke-dasharray="5 4"/>
+<line x1="378" y1="225" x2="330" y2="225" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<path d="M382,242 Q392,228 402,242" stroke="#22262b" stroke-width="2.2" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+<line x1="392" y1="241" x2="392" y2="275" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<text x="397" y="185" font-size="9" fill="#8b929a" text-anchor="start" font-weight="normal" font-style="normal">1</text>
+<text x="332" y="220" font-size="9" fill="#8b929a" text-anchor="start" font-weight="normal" font-style="normal">7</text>
+<text x="397" y="269" font-size="9" fill="#8b929a" text-anchor="start" font-weight="normal" font-style="normal">6</text>
+<text x="384" y="189" font-size="10.5" fill="#5d6670" text-anchor="end" font-weight="normal" font-style="normal">Л901a</text>
+<line x1="392" y1="64" x2="392" y2="82" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="392" y1="112" x2="392" y2="130" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="386.5" y="82" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<text x="403.5" y="98" font-size="11" fill="#22262b" text-anchor="start" font-weight="bold" font-style="normal">10k</text>
+<text x="403.5" y="110" font-size="9" fill="#5d6670" text-anchor="start" font-weight="normal" font-style="normal">R901</text>
+<line x1="392" y1="275" x2="392" y2="282" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="381" y1="282" x2="403" y2="282" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="385" y1="286" x2="399" y2="286" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="389" y1="290" x2="395" y2="290" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="450" y1="190" x2="450" y2="215" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="450" y1="245" x2="450" y2="270" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="444.5" y="215" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<text x="461.5" y="231" font-size="11" fill="#22262b" text-anchor="start" font-weight="bold" font-style="normal">150k</text>
+<text x="461.5" y="243" font-size="9" fill="#5d6670" text-anchor="start" font-weight="normal" font-style="normal">R111</text>
+<line x1="450" y1="430" x2="450" y2="450" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="450" y1="480" x2="450" y2="500" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="444.5" y="450" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<text x="461.5" y="466" font-size="11" fill="#22262b" text-anchor="start" font-weight="bold" font-style="normal">62k</text>
+<text x="461.5" y="478" font-size="9" fill="#5d6670" text-anchor="start" font-weight="normal" font-style="normal">R112</text>
+<line x1="450" y1="500" x2="450" y2="506" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="440" y1="506" x2="460" y2="506" stroke="#5d6670" stroke-width="2.6" stroke-linecap="butt"/>
+<text x="450" y="520" font-size="10" fill="#5d6670" text-anchor="middle" font-weight="bold" font-style="normal">−50 V</text>
+<text x="458" y="422" font-size="10.5" fill="#5d6670" text-anchor="start" font-weight="bold" font-style="normal">R</text>
+<line x1="410" y1="590" x2="460" y2="590" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="490" y1="590" x2="540" y2="590" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="460" y="584.5" width="30" height="11" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<text x="475" y="579" font-size="11" fill="#22262b" text-anchor="middle" font-weight="bold" font-style="normal">150k</text>
+<text x="475" y="568" font-size="9" fill="#5d6670" text-anchor="middle" font-weight="normal" font-style="normal">R109</text>
+<line x1="570" y1="238" x2="570" y2="259" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="570" y1="289" x2="570" y2="310" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="564.5" y="259" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<text x="558.5" y="275" font-size="11" fill="#22262b" text-anchor="end" font-weight="bold" font-style="normal">62k</text>
+<text x="558.5" y="287" font-size="9" fill="#5d6670" text-anchor="end" font-weight="normal" font-style="normal">R110</text>
+<line x1="570" y1="238" x2="570" y2="232" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="560" y1="232" x2="580" y2="232" stroke="#5d6670" stroke-width="2.6" stroke-linecap="butt"/>
+<text x="570" y="227" font-size="10" fill="#5d6670" text-anchor="middle" font-weight="bold" font-style="normal">−50 V</text>
+<text x="578" y="328" font-size="10.5" fill="#5d6670" text-anchor="start" font-weight="bold" font-style="normal">S</text>
+<rect x="600" y="260" width="150" height="340" rx="6" fill="#f3f6fb" stroke="#22262b" stroke-width="1.6"/>
+<text x="675" y="280" font-size="12" fill="#22262b" text-anchor="middle" font-weight="bold" font-style="normal">DFFP_J2N16 core</text>
+<text x="675" y="295" font-size="10" fill="#5d6670" text-anchor="middle" font-weight="normal" font-style="normal">pulse-clocked flip-flop</text>
+<circle cx="600" cy="310" r="3.4" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<text x="609" y="314" font-size="11.5" fill="#22262b" text-anchor="start" font-weight="bold" font-style="normal">S</text>
+<circle cx="600" cy="430" r="3.4" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<text x="609" y="434" font-size="11.5" fill="#22262b" text-anchor="start" font-weight="bold" font-style="normal">R</text>
+<circle cx="750" cy="310" r="3.4" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<text x="741" y="314" font-size="11.5" fill="#22262b" text-anchor="end" font-weight="bold" font-style="normal">Q</text>
+<circle cx="750" cy="430" r="3.4" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<text x="741" y="434" font-size="11.5" fill="#22262b" text-anchor="end" font-weight="bold" font-style="normal">QN</text>
+<circle cx="675" cy="600" r="3.4" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<text x="675" y="591" font-size="11.5" fill="#22262b" text-anchor="middle" font-weight="bold" font-style="normal">G</text>
+<circle cx="675" cy="660" r="3.8" fill="#fff" stroke="#b8232f" stroke-width="1.8"/>
+<text x="666" y="664" font-size="13" fill="#b8232f" text-anchor="end" font-weight="bold" font-style="normal">C</text>
+<circle cx="850" cy="310" r="3.8" fill="#fff" stroke="#b8232f" stroke-width="1.8"/>
+<text x="859" y="314" font-size="13" fill="#b8232f" text-anchor="start" font-weight="bold" font-style="normal">Q</text>
+<circle cx="850" cy="430" r="3.8" fill="#fff" stroke="#b8232f" stroke-width="1.8"/>
+<text x="859" y="434" font-size="13" fill="#b8232f" text-anchor="start" font-weight="bold" font-style="normal">QN</text>
+<text x="692" y="640" font-size="10.5" fill="#5d6670" text-anchor="start" font-weight="normal" font-style="normal">inside: Cc 3.9 pF from C to G, 43k to GND, 130k to −50 V</text>
+<path d="M60,225 L118,225" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M118,225 L150,225" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M150,225 L166,225" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M254,225 L270,225" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M270,225 L330,225" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M330,225 L330,225" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M392,130 L392,175" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M392,130 L450,130 L450,190" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M450,270 L450,430" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M450,430 L565,430 a5,5 0 0 1 10,0 L600,430" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M118,225 L118,590 L410,590" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M540,590 L570,590 L570,310 L600,310" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M675,660 L675,600" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M750,310 L850,310" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M750,430 L850,430" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="118" cy="225" r="3.4" fill="#22262b"/>
+<circle cx="166" cy="225" r="3.4" fill="#22262b"/>
+<circle cx="254" cy="225" r="3.4" fill="#22262b"/>
+<circle cx="300" cy="225" r="3.4" fill="#22262b"/>
+<circle cx="392" cy="64" r="3.4" fill="#22262b"/>
+<circle cx="392" cy="130" r="3.4" fill="#22262b"/>
+<circle cx="450" cy="430" r="3.4" fill="#22262b"/>
+<circle cx="118" cy="225" r="3.4" fill="#22262b"/>
+<circle cx="570" cy="310" r="3.4" fill="#22262b"/>
+<text x="20" y="718" font-size="10.5" fill="#5d6670">D and C are HV pins. D reaches S through 150k / 62k with no speed-up capacitor (delay ≈ 150 ns): the bistable needs 100…230 ns to flip, so the new D must not race through the open gate.</text>
+<text x="20" y="732" font-size="10.5" fill="#5d6670">Each flip-flop has its own half of the D inverter Л901 (a for FF1, b for FF2). The core is drawn in full on the DFFP_J2N16 core figure. At most two D pins of this cell on one net (1.2 mA DC each).</text>
+<text x="20" y="746" font-size="10.5" fill="#5d6670">LV (grids): 1 = +10 V, 0 = −20 V.   HV (plates): 1 = +150 V, 0 = +50 V.</text>
+<text x="20" y="760" font-size="10.5" fill="#5d6670">Heater 6.3 V on H1/H2 of every tube, all in parallel, not drawn.</text>
+</svg>
