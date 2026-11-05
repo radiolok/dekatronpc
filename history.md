@@ -159,3 +159,4 @@
 - Собрал тезисы для нового видео из history.md/TRS/doc и 23 транскрипций плейлиста (выборочное чтение, ASR шумный): doc/video_theses.md, с разделом «что поправить из старых утверждений».
 - Обновил корневой README: Loop 2, память данных 100k, 100 кГц, ≈1070 ламп, загрузчик, ссылки на новые документы, раздел «Состояние».
 - PSU 200v §11.4: root cause found, LCR shows 1.5 vs 6.5 mH on the primary halves (≈ 2.1× turns; matches §11.1), likely a winding/pin mix-up (P2+S?); owner rewinds; acceptance checks listed (L match, series phasing, ratio, isolation).
+- Wired-anode experiment (doc/wired_anode.md): wired AOI cells up to 6 inputs give −10.3 tubes (1069.0 → 1058.7); cathode-follower AO/AND cells give 1011.2 only illegally — tools/synth/legalize_followers.py (0 level errors on 48 netlists) brings them to 1058.4, so followers add nothing legal; Ra/Rk not computed, nothing in the flow.
