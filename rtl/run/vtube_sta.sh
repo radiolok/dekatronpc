@@ -6,7 +6,7 @@
 #     options after -- go to vtube_sta.py, e.g. -- -p 33 --derate 1.2
 #
 # 1. synthesis by synt_dpc.tcl as in synth_sim.sh -t: delay model of the
-#    dekatron, phase start delay 33, phases 6 + 6, the same black boxes (tube, OneShot,
+#    dekatron, phase start delay 2500 ns, phases 1000 + 1000 ns (TRS v0.59), the same black boxes (tube, OneShot,
 #    Impulse, Ram, IpMemory, RstTimeRelay);
 # 2. synt_dpc.tcl -flat also writes the netlist flattened through the
 #    board boundaries (DekatronPC_flat.json);
@@ -39,8 +39,8 @@ if [ ${do_synth} -ne 0 ]; then
 	echo "  synth DekatronPC"
 	(cd "${work_dir}" && echo "tcl ${script_dir}/synt_dpc.tcl ${work_dir}/DPC.files DekatronPC \
 		-bb DekatronTubeDelay -bb OneShot -bb Impulse -bb Ram -bb IpMemory -bb RstTimeRelay \
-		-D DEKATRON_PHASE_DELAY_NS=3300 \
-		-D DEKATRON_PHASE1_NS=600 -D DEKATRON_PHASE2_NS=600 -p EN_EMULATOR 0 -flat" \
+		-D DEKATRON_PHASE_DELAY_NS=2500 \
+		-D DEKATRON_PHASE1_NS=1000 -D DEKATRON_PHASE2_NS=1000 -p EN_EMULATOR 0 -flat" \
 		| yosys > synth.log 2>&1) || { tail -n 20 "${work_dir}/synth.log"; exit 1; }
 fi
 python3 "${script_dir}/vtube_liberty.py"

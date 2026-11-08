@@ -27,6 +27,8 @@ import latch_tb as LTB  # noqa: E402
 
 P = TB.P
 RA, RG2, CB = P['Ra'], P['Rg2'], "%dp" % P['Cb']
+LP = (P['L'], P['Rd'])                     # plate choke of the pentode cells (chokes.PENTODE, TRS v0.58)
+LT = TB.L.K.TRIODE                         # of the triode cells (NOR3/4) and of the 6N16B bench drivers
 
 R = {k: U() for k in ("a1", "a211", "a22", "n3", "n4", "o4")}           # testbench root sheets
 S = {k: U() for k in ("a1", "a211", "a22", "n3", "n4", "o4")}           # the DUT sheet instance in each
@@ -50,14 +52,14 @@ pentode(a1, x0, y0 + 30*G, "A2", "B2", "Y2", "SG2", H1)
 t = a1.ref("Л")
 a1.part(N16, (x0 + 25*G, y0), None, "6Н16Б", {"1": "Y1", "7": "C1", **n16_bottom()}, unit=1, props=SIM[N16], hier=H1, refs=t)
 a1.part(N16, (x0 + 25*G, y0 + 30*G), None, "6Н16Б", {"5": "Y2", "3": "C2", "2": "GND"}, unit=2, props=SIM[N16], hier=H1, refs=t)
-a1.part("Device:R", (x0 + 40*G, y0 - 6*G), "R", RA, {"1": "+150V", "2": "Y1"}, hier=H1)
-a1.part("Device:R", (x0 + 40*G, y0 + 24*G), "R", RA, {"1": "+150V", "2": "Y2"}, hier=H1)
+a1.plate_load((x0 + 40*G, y0 - 6*G), RA, LP, "Y1", hier=H1)
+a1.plate_load((x0 + 40*G, y0 + 24*G), RA, LP, "Y2", hier=H1)
 a1.text("A1OOI_N16J2: two AND-OR-INVERT cells (AOI21), Yi = ~((Ai & Bi) | Ci). 3 tubes = 2 cells (liberty: 1.5 per cell).\n"
-        "Each cell: 6Zh2B (Ai on g1, Bi on g3) and one triode of the shared 6N16B (Ci on the grid) on one plate, Ra 15k.\n"
+        "Each cell: 6Zh2B (Ai on g1, Bi on g3) and one triode of the shared 6N16B (Ci on the grid) on one plate, Ra 15k + L 1.5 mH || 15k.\n"
         "Screens Rg2 15k from +150 V; Cb 15 pF on each g3 holds B against the plate swing (g3 Miller, sch/logic/NAND2_J2/README.md).\n"
         "A, B, C: LV (1 = +10 V, 0 = -20 V). Y: HV (1 = +150 V, 0 = +50 V); one divider per output net, 3.9 pF per triode grid.\n"
         "Input divider C1 per grid: A (pentode g1) 2.7 pF, B (g3) 6.8 pF, C (triode) 3.9 pF. An unused cell: inputs on an LV 0.\n"
-        "Simulated, fanout 2/6/10: worst arc 194/312/420 ns, C rising alone 53/61/66 ns.\n"
+        "Delays, limits and power: the cell page (plate chokes since TRS v0.58).\n"
         "Heater 6.3 V: 2 x 0.2 A + 0.4 A on H1/H2. Page: sch/logic/A1OOI_N16J2/README.md", (20*G, 85*G))
 a1.dump(os.path.join(OUT, "A1OOI_N16J2", "A1OOI_N16J2.kicad_sch"), "A1OOI_N16J2 - 2 x AOI21",
         comments=["Yi = ~((Ai&Bi)|Ci); A, B, C: LV; Y: HV", "2 x 6Zh2B + 6N16B; Ra 15k, Rg2 15k, Cb 15p"], paper="A3")
@@ -71,12 +73,12 @@ a2 = Sheet([(PROJ["a22"], f"/{R['a22']}/{S['a22']}", 1)])
 H2 = {"A": "input", "B": "input", "C": "input", "D": "input", "Y": "output", "H1": "passive", "H2": "passive"}
 pentode(a2, x0, y0, "A", "B", "Y", "SG1", H2)
 pentode(a2, x0, y0 + 30*G, "C", "D", "Y", "SG2", H2)
-a2.part("Device:R", (x0 + 25*G, y0 - 6*G), "R", RA, {"1": "+150V", "2": "Y"}, hier=H2)
-a2.text("A2OOI_J2: AND-OR-INVERT (AOI22), Y = ~((A & B) | (C & D)). Two 6Zh2B on one plate, Ra 15k.\n"
+a2.plate_load((x0 + 25*G, y0 - 6*G), RA, LP, "Y", hier=H2)
+a2.text("A2OOI_J2: AND-OR-INVERT (AOI22), Y = ~((A & B) | (C & D)). Two 6Zh2B on one plate, Ra 15k + L 1.5 mH || 15k.\n"
         "A, C on g1; B, D on g3. Screens Rg2 15k from +150 V; Cb 15 pF on each g3 (g3 Miller, sch/logic/NAND2_J2/README.md).\n"
         "A, B, C, D: LV (1 = +10 V, 0 = -20 V). Y: HV (1 = +150 V, 0 = +50 V); one divider per output net.\n"
         "Input divider C1 per grid: A, C (pentode g1) 2.7 pF; B, D (g3) 6.8 pF.\n"
-        "Simulated, fanout 2/6/10: worst arc 209/326/418 ns. Heater 6.3 V: 2 x 0.2 A on H1/H2.\n"
+        "Delays, limits and power: the cell page (plate chokes since TRS v0.58).\n"
         "Page: sch/logic/A2OOI_J2/README.md", (20*G, 85*G))
 a2.dump(os.path.join(OUT, "A2OOI_J2", "A2OOI_J2.kicad_sch"), "A2OOI_J2 - AOI22",
         comments=["Y = ~((A&B)|(C&D)); A-D: LV; Y: HV", "2 x 6Zh2B; Ra 15k, Rg2 15k, Cb 15p"], paper="A3")
@@ -91,13 +93,13 @@ pentode(a3, x0, y0, "A", "B", "Y", "SG1", H2)
 t = a3.ref("Л")
 a3.part(N16, (x0, y0 + 30*G), None, "6Н16Б", {"1": "Y", "7": "C", **n16_bottom()}, unit=1, props=SIM[N16], hier=H2, refs=t)
 a3.part(N16, (x0 + 25*G, y0 + 30*G), None, "6Н16Б", {"5": "Y", "3": "D", "2": "GND"}, unit=2, props=SIM[N16], hier=H2, refs=t)
-a3.part("Device:R", (x0 + 25*G, y0 - 6*G), "R", RA, {"1": "+150V", "2": "Y"}, hier=H2)
+a3.plate_load((x0 + 25*G, y0 - 6*G), RA, LP, "Y", hier=H2)
 a3.text("AOI211_J2N16: AND-OR-INVERT (AOI211), Y = ~((A & B) | C | D). 2 tubes, one cell per sheet.\n"
-        "6Zh2B (A on g1, B on g3) and both triodes of one 6N16B (C, D on the grids) on one plate, Ra 15k to +150 V (2 W).\n"
+        "6Zh2B (A on g1, B on g3) and both triodes of one 6N16B (C, D on the grids) on one plate, Ra 15k (2 W) + L 1.5 mH || 15k to +150 V.\n"
         "Screen Rg2 15k from +150 V; Cb 15 pF on g3 holds B against the plate swing (g3 Miller, sch/logic/NAND2_J2/README.md).\n"
         "A-D: LV (1 = +10 V, 0 = -20 V). Y: HV (1 = +150 V, 0 = +50 V); one divider per output net, 3.9 pF per triode grid.\n"
         "Input divider C1 per grid: A (pentode g1) 2.7 pF, B (g3) 6.8 pF, C, D (triode) 3.9 pF. Unused C or D: tie to the other.\n"
-        "Simulated, fanout 2/6/10: worst arc 217/328/450 ns to Y = 100 V; C, D rising alone 53-83 ns.\n"
+        "Delays, limits and power: the cell page (plate chokes since TRS v0.58).\n"
         "Heater 6.3 V: 0.2 A + 0.4 A on H1/H2. Page: sch/logic/AOI211_J2N16/README.md", (20*G, 85*G))
 a3.dump(os.path.join(OUT, "AOI211_J2N16", "AOI211_J2N16.kicad_sch"), "AOI211_J2N16 - AOI211",
         comments=["Y = ~((A&B)|C|D); A-D: LV; Y: HV", "6Zh2B + 6N16B; Ra 15k, Rg2 15k, Cb 15p"], paper="A3")
@@ -110,16 +112,16 @@ for k, (ga, ya, gb, yb) in enumerate((("A1", "Y1", "B1", "Y1"), ("C1", "Y1", "A2
     t = n3.ref("Л"); xx, yy = (x0, y0 + 30*G * k) if k < 2 else (x0 + 60*G, y0 + 30*G)
     n3.part(N16, (xx, yy), None, "6Н16Б", {"1": ya, "7": ga, **n16_bottom()}, unit=1, props=SIM[N16], hier=H1, refs=t)
     n3.part(N16, (xx + 25*G, yy), None, "6Н16Б", {"5": yb, "3": gb, "2": "GND"}, unit=2, props=SIM[N16], hier=H1, refs=t)
-n3.part("Device:R", (x0 + 40*G, y0 - 6*G), "R", TB.A.params("n3")['Ra'], {"1": "+150V", "2": "Y1"}, hier=H1)
-n3.part("Device:R", (x0 + 100*G, y0 + 24*G), "R", TB.A.params("n3")['Ra'], {"1": "+150V", "2": "Y2"}, hier=H1)
+n3.plate_load((x0 + 40*G, y0 - 6*G), TB.A.params("n3")['Ra'], LT, "Y1", hier=H1)
+n3.plate_load((x0 + 100*G, y0 + 24*G), TB.A.params("n3")['Ra'], LT, "Y2", hier=H1)
 n3.text("NOR3_N16: two three-input NORs, Yi = ~(Ai | Bi | Ci). 3 tubes = 2 cells (liberty: 1.5 per cell).\n"
-        "Л1: A1, B1 -> Y1. Л2 is shared: C1 -> Y1, A2 -> Y2. Л3: B2, C2 -> Y2. Ra 10k to +150 V on each Y (as NOR2_N16), 2 W.\n"
+        "Л1: A1, B1 -> Y1. Л2 is shared: C1 -> Y1, A2 -> Y2. Л3: B2, C2 -> Y2. Ra 10k (2 W) + L 680u || 10k on each Y (as NOR2_N16).\n"
         "A, B, C: LV (1 = +10 V, 0 = -20 V), each on a triode grid (divider C1 3.9 pF per grid). Y: HV; one divider per net.\n"
         "An unused input goes to another input of the same cell; an unused cell: inputs on an LV 0.\n"
-        "Simulated, fanout 2/6/10: Y falls 56-88 ns, rises 104/177/252 ns; VOL 55 V (one input) ... 31 V (all three).\n"
+        "Delays, limits and power: the cell page (plate chokes since TRS v0.58).\n"
         "Heater 6.3 V: 3 x 0.4 A on H1/H2. Page: sch/logic/NOR3_N16/README.md", (20*G, 85*G))
 n3.dump(os.path.join(OUT, "NOR3_N16", "NOR3_N16.kicad_sch"), "NOR3_N16 - 2 x 3NOR on 3 x 6N16B",
-        comments=["Yi = ~(Ai|Bi|Ci); A, B, C: LV; Y: HV", "3 x 6N16B, middle tube shared; Ra 10k"], paper="A3")
+        comments=["Yi = ~(Ai|Bi|Ci); A, B, C: LV; Y: HV", "3 x 6N16B, middle tube shared; Ra 10k + L 680u || 10k"], paper="A3")
 
 
 # ---------------------------------------------------------------- NOR4_N16: two 6N16B, four triodes on one plate
@@ -129,13 +131,13 @@ for k, (ga, gb) in enumerate((("A", "B"), ("C", "D"))):
     t = n4.ref("Л"); yy = y0 + 30*G * k
     n4.part(N16, (x0, yy), None, "6Н16Б", {"1": "Y", "7": ga, **n16_bottom()}, unit=1, props=SIM[N16], hier=H4, refs=t)
     n4.part(N16, (x0 + 25*G, yy), None, "6Н16Б", {"5": "Y", "3": gb, "2": "GND"}, unit=2, props=SIM[N16], hier=H4, refs=t)
-n4.part("Device:R", (x0 + 40*G, y0 - 6*G), "R", TB.A.params("n4")['Ra'], {"1": "+150V", "2": "Y"}, hier=H4)
-n4.text("NOR4_N16: four-input NOR, Y = ~(A | B | C | D). Two 6N16B, all four triode plates on Y, Ra 10k to +150 V (as NOR2_N16).\n"
+n4.plate_load((x0 + 40*G, y0 - 6*G), TB.A.params("n4")['Ra'], LT, "Y", hier=H4)
+n4.text("NOR4_N16: four-input NOR, Y = ~(A | B | C | D). Two 6N16B, all four triode plates on Y, Ra 10k + L 680u || 10k (as NOR2_N16).\n"
         "A, B, C, D: LV (1 = +10 V, 0 = -20 V), each on a triode grid (divider C1 3.9 pF per grid). Y: HV; one divider per net.\n"
-        "Simulated, fanout 2/6/10: Y falls 58-90 ns, rises 120/193/268 ns; VOL 55 V (one input) ... 27 V (all four).\n"
+        "Delays, limits and power: the cell page (plate chokes since TRS v0.58).\n"
         "Heater 6.3 V: 2 x 0.4 A on H1/H2. Page: sch/logic/NOR4_N16/README.md", (20*G, 85*G))
 n4.dump(os.path.join(OUT, "NOR4_N16", "NOR4_N16.kicad_sch"), "NOR4_N16 - 4NOR on 2 x 6N16B",
-        comments=["Y = ~(A|B|C|D); A-D: LV; Y: HV", "2 x 6N16B; Ra 10k"], paper="A3")
+        comments=["Y = ~(A|B|C|D); A-D: LV; Y: HV", "2 x 6N16B; Ra 10k + L 680u || 10k"], paper="A3")
 
 
 # ---------------------------------------------------------------- OR4_N16: two 6N16B, cathode followers, cathodes tied
@@ -152,7 +154,7 @@ o4.text("OR4_N16: four-input OR, Y = A | B | C | D. Two 6N16B as cathode followe
         "owner, 2026-10-29, in place of the diode OR4_N16X7). Plates to +150 V; K -> Rs 2.2k || Cs 100p -> Y -> Rk 12k -> -50 V.\n"
         "Inputs: LV, each from its OWN divider on the driving HV net (470k || 2.7 pF / 200k), never shared with gate grids.\n"
         "Output Y: LV, straight onto gate grids (no divider), never onto another follower or an HV input; fanout 10.\n"
-        "Simulated, fanout 2/6/10 (input grid -5 V -> load plate 100 V): Y up 26/49/75-90 ns, Y down 54/162/262 ns.\n"
+        "Delays, limits and power: the cell page (plate chokes since TRS v0.58).\n"
         "Heater 6.3 V: 2 x 0.4 A on H1/H2. Page: sch/logic/OR4_N16/README.md", (20*G, 85*G))
 o4.dump(os.path.join(OUT, "OR4_N16", "OR4_N16.kicad_sch"), "OR4_N16 - OR4 (cathode followers) on 2 x 6N16B",
         comments=["Y = A|B|C|D; A-D: LV via own dividers (2.7p); Y: LV to gate grids", "2 x 6N16B; Rs 2.2k || 100p, Rk 12k"], paper="A3", passive_plates=True)
@@ -190,7 +192,7 @@ def testbench(key, tb, cell_file, cell_pins, size):
         sh.part(N16, (75*G, y + 6*G), None, "6Н16Б", {"1": f"PD_{k}", "7": f"IS_{k}", **n16_bottom("+6.3V", "GND")},
                 unit=1, props=SIM[N16], refs=t)
         sh.part(N16, (88*G, y + 6*G), None, "6Н16Б", {"5": f"PDX_{k}", "3": "-50V", "2": "GND"}, unit=2, props=SIM[N16], refs=t)
-        sh.part("Device:R", (65*G, y + 2*G), "R", "10k", {"1": "+150V", "2": f"PD_{k}"})
+        sh.plate_load((55*G, y + 2*G), "10k", LT, f"PD_{k}", dx=4)
         sh.part("Device:R", (98*G, y + 2*G), "R", "10k", {"1": "+150V", "2": f"PDX_{k}"})
         divider(sh, 104*G, y + 4*G, f"PD_{k}", k, pf(tb['inputs'][k]))
         y += 26*G
@@ -212,7 +214,7 @@ def testbench(key, tb, cell_file, cell_pins, size):
     yt = max(y, 12*G + 26*G * len(tb['src'])) + 4*G
     sh.text(".tran 5n %gu" % round(tb['stop'], 3), (20*G, yt), 1.5)
     sh.text(f"{tb['name']} testbench (tools/kicad/gen_aoi.py, stimulus and .meas from tools/spice/aoi_tb.py).\n"
-            "STIM_x (HV PWL, ideal) -> divider -> driver triode (Ra 10k) -> divider -> x (LV DUT input): real edges and levels.\n"
+            "STIM_x (HV PWL, ideal) -> divider -> driver triode (Ra 10k + L 680u || 10k) -> divider -> x (LV DUT input): real edges and levels.\n"
             f"The output -> one divider (C1 3.9 pF per grid) -> {list(tb['outputs'])[0]}_LV -> load tubes, both grids on the net.\n"
             + tb['note'] + f"\nThe plain-SPICE run of the same bench: python3 tools/spice/aoi_tb.py {key}", (20*G, yt + 3*G))
     sh.text("\n".join("." + l for l in tb['meas']), (20*G, yt + 12*G), 1.0)

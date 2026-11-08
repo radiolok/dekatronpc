@@ -48,15 +48,15 @@ def cell_net(tb, p):
     s = ""
     if tb['key'] == "a1":
         for i in ("1", "2"):
-            s += f"RA{i} vcc /Y{i} {p['Ra']}\n" + L.penta(i, f"/Y{i}", f"/A{i}", f"/B{i}", p)
+            s += L.K.plate(f"RA{i}", f"/Y{i}", p['Ra'], A.gate_choke(p)) + L.penta(i, f"/Y{i}", f"/A{i}", f"/B{i}", p)
         s += f"XT pt1 /C1 0 pt2 /C2 0 6N16B\nVT1 /Y1 pt1 0\nVT2 /Y2 pt2 0\n"
     elif tb['key'] == "n3":
         # Л1: A1, B1 on Y1; Л2: C1 on Y1, A2 on Y2; Л3: B2, C2 on Y2
-        s += f"RA1 vcc /Y1 {p['Ra']}\nRA2 vcc /Y2 {p['Ra']}\n"
+        s += L.K.plate("RA1", "/Y1", p['Ra'], A.gate_choke(p)) + L.K.plate("RA2", "/Y2", p['Ra'], A.gate_choke(p))
         for t, (ga, ya, gb, yb) in enumerate((("A1", "Y1", "B1", "Y1"), ("C1", "Y1", "A2", "Y2"), ("B2", "Y2", "C2", "Y2")), 1):
             s += f"XT{t} pt{t}a /{ga} 0 pt{t}b /{gb} 0 6N16B\nVT{t}a /{ya} pt{t}a 0\nVT{t}b /{yb} pt{t}b 0\n"
     elif tb['key'] == "a22":
-        s += f"RA vcc /Y {p['Ra']}\n" + L.penta("1", "/Y", "/A", "/B", p) + L.penta("2", "/Y", "/C", "/D", p)
+        s += L.K.plate("RA", "/Y", p['Ra'], A.gate_choke(p)) + L.penta("1", "/Y", "/A", "/B", p) + L.penta("2", "/Y", "/C", "/D", p)
     else:
         s += A.cell_net(tb['cell'], {q: "/" + q for q in tb['cell']['pins']}, "/Y", p)
     return s
@@ -69,7 +69,7 @@ def deck(tb):
     for k, (times, bits) in tb['src'].items():
         pts = " ".join(f"{t:.4f}u {v}" for t, v in pwl_pts(times, bits))
         s += f"VS{k} hs{k} 0 PWL({pts})\n" + L.div(f"s{k}", f"hs{k}", f"is{k}", p, p['C1g'])
-        s += f"XD{k} pd{k} is{k} 0 pdx{k} nb 0 6N16B\nRD{k} vcc pd{k} 10k\nRDX{k} vcc pdx{k} 10k\n"
+        s += f"XD{k} pd{k} is{k} 0 pdx{k} nb 0 6N16B\n" + L.K.plate(f"RD{k}", f"pd{k}", "10k", L.drv_choke(p)) + f"RDX{k} vcc pdx{k} 10k\n"
         s += L.div(f"d{k}", f"pd{k}", f"/{k}", p, tb['inputs'][k])
     for k, net in tb['fixed'].items():
         if net == "LV0": s += f"R0{k} /{k} /LV0 0.001\n"

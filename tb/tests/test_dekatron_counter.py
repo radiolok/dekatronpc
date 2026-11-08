@@ -25,7 +25,7 @@ log = logging.getLogger(__name__)
 
 HS_PER_CLK = 10         # rtl/parameters.sv HSCLK_DIV: hs_clk = 10 x clk
 CLK_NS = 10000          # DEKATRON_CLK_NS default: clk = 100 kHz (TRS v0.24)
-RESET_MIN_HS = HS_PER_CLK // 2   # DekatronCounter default
+WRITE_MIN_HS = HS_PER_CLK // 2   # DekatronCounter default
 
 
 # ============================================================
@@ -67,12 +67,12 @@ async def start_clocks_and_reset(dut):
 
     # rst_n resets the logic only and never moves a discharge (TRS 12.3).
     # The tubes are put to zero by the physical soft_rst line, which the
-    # external time relay holds for at least RESET_MIN_HS hs_clk
+    # external time relay holds for at least WRITE_MIN_HS hs_clk
     # cycles. Without it every test would start from wherever the
     # previous one left the counter.
     await FallingEdge(dut.clk)
     dut.soft_rst.value = 1
-    for _ in range(3 * RESET_MIN_HS):
+    for _ in range(3 * WRITE_MIN_HS):
         await RisingEdge(dut.hs_clk)
     await FallingEdge(dut.clk)
     dut.soft_rst.value = 0

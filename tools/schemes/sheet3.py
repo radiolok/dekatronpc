@@ -33,9 +33,9 @@ def fig_counter():
     f.wire([(850, 22), (850, 40)])
     f.wire([(665, 170), (680, 170)])
     f.box(680, 40, 240, 170, "Линии установки декад",
-          ["wr_set  → SetData", "wr_zero → SetZero", "wr_top  → SetTop",
-           "soft_rst → SetZero всех декад", "hard_rst → SetTop старших",
-           "HARD_RST_D_CNT, SetZero прочих", "in_n держит мастер такт accept"],
+          ["открыта_k = ¬W ∨ sel_k", "запись: WriteLineDec на ячейках", "сброс: K0 = ¬top, K_TOP = ¬zero,",
+           "шина = ¬(zero ∨ top), ячейки на род", "soft_rst → zero всех декад",
+           "hard_rst → top старших декад", "in_n держит мастер такт accept"],
           align="start", bcls="tm")
 
     # подъём подкатодов на время записи и сброса (TRS v0.40)
@@ -56,7 +56,7 @@ def fig_counter():
     f.wire([(800, 210), (800, 268)], "wbus", arrow=False)
     f.dot(800, 268)
     f.wire([(530, 268), (990, 268)], "wbus", arrow=False)
-    f.text(820, 262, "SetData · SetZero · SetTop · in_n", "tn")
+    f.text(820, 262, "LineOpen[9:0] каждой декады", "tn")
 
     D = [(400, "декада 0", "единицы"), (620, "декада 1", "десятки"), (840, "декада 2", "сотни")]
     for x, n1, n2 in D:

@@ -36,7 +36,9 @@ NGRUN = os.path.join(HERE, "ngrun.py")
 LIBS = L.LIBS
 T = L.T
 
-DEFAULT = dict(R1="470k", R2="200k", Ra="15k", Rg2="15k", Cb=15, C1g=3.9, C1p=2.7, C1g3=6.8, C1fol=2.7)
+DEFAULT = dict(R1="470k", R2="200k", Ra="15k", Rg2="15k", Cb=15, C1g=3.9, C1p=2.7, C1g3=6.8, C1fol=2.7,
+               L=L.K.PENTODE[0], Rd=L.K.PENTODE[1],          # plate choke (chokes.py, TRS v0.58)
+               Ld=L.K.TRIODE[0], Ldr=L.K.TRIODE[1])          # the 6N16B drivers of the bench
 
 CELLS = {
     "a1": dict(name="A1OOI_N16J2", pins="ABC", f=lambda a, b, c: 1 - ((a & b) | c),
@@ -73,7 +75,7 @@ CELLS = {
                      (1, 1, 1, 0), (0, 0, 0, 0)]),
     # NOR3_N16: one 6N16B (A, B) + one triode of the shared 6N16B (C) on one plate, Ra as NOR2_N16
     "n3": dict(name="NOR3_N16", pins="ABC", f=lambda a, b, c: 1 - (a | b | c),
-               grid=dict(A="tri", B="tri", C="tri"), p=dict(Ra="10k"),
+               grid=dict(A="tri", B="tri", C="tri"), p=dict(Ra="10k", L=L.K.TRIODE[0], Rd=L.K.TRIODE[1]),
                seq=[(0, 0, 0), (1, 0, 0), (0, 0, 0), (0, 1, 0), (0, 0, 0), (0, 0, 1), (0, 0, 0),
                     (1, 1, 1), (0, 1, 1),                  # all high: lowest VOL
                     (0, 0, 0), (1, 0, 0),
@@ -82,7 +84,7 @@ CELLS = {
                     (0, 0, 0)]),
     # NOR4_N16: two 6N16B, all four triodes on one plate, Ra as NOR2_N16
     "n4": dict(name="NOR4_N16", pins="ABCD", f=lambda a, b, c, d: 1 - (a | b | c | d),
-               grid=dict(A="tri", B="tri", C="tri", D="tri"), p=dict(Ra="10k"),
+               grid=dict(A="tri", B="tri", C="tri", D="tri"), p=dict(Ra="10k", L=L.K.TRIODE[0], Rd=L.K.TRIODE[1]),
                seq=[(0, 0, 0, 0), (1, 0, 0, 0), (0, 0, 0, 0), (0, 1, 0, 0), (0, 0, 0, 0), (0, 0, 1, 0),
                     (0, 0, 0, 0), (0, 0, 0, 1), (0, 0, 0, 0), (1, 1, 1, 1), (0, 1, 1, 1),   # all high: lowest VOL
                     (0, 0, 0, 0), (1, 0, 0, 0),
@@ -109,7 +111,12 @@ def params(key):
 def triode_half(t, plate, grid, p):
     """6N16B: unit A is the gate triode (plate, grid), unit B the other gate of the sheet, idle."""
     return (f"XT{t} pt{t} {grid} 0 ptx{t} nb20 0 6N16B {p.get('MN', '')}\nVT{t} {plate} pt{t} 0\n"
-            f"RTX{t} vcc ptx{t} {p['Ra']}\n")
+            + L.K.plate(f"RTX{t}", f"ptx{t}", p['Ra'], gate_choke(p)))
+
+
+def gate_choke(p):
+    """plate choke of the cell (L || Rd: chokes.PENTODE, NOR3/4 chokes.TRIODE), None without"""
+    return (p['L'], p.get('Rd')) if p.get('L') else None
 
 
 def c1_of(p, kind):
@@ -117,7 +124,7 @@ def c1_of(p, kind):
 
 
 def cell_net(c, ins, y, p):
-    n = f"RA vcc {y} {p['Ra']}\n"
+    n = L.K.plate("RA", y, p['Ra'], gate_choke(p))
     if c['name'] == "A1OOI_N16J2":
         n += L.penta("1", y, ins['A'], ins['B'], p) + triode_half("1", y, ins['C'], p)
     elif c['name'] == "AOI211_J2N16":
@@ -130,7 +137,7 @@ def cell_net(c, ins, y, p):
         # XT1: A, B on Y; XT2: C on Y, the other triode is the other cell of the sheet (grid xg, own Ra)
         n += (f"XT1 pt1 {ins['A']} 0 pt2 {ins['B']} 0 6N16B {p.get('MN', '')}\nVT1 {y} pt1 0\nVT2 {y} pt2 0\n"
               f"XT2 pt3 {ins['C']} 0 ptx3 {p.get('xg', 'nb20')} 0 6N16B {p.get('MN', '')}\nVT3 {y} pt3 0\n"
-              f"RTX3 vcc ptx3 {p['Ra']}\n")
+              + L.K.plate("RTX3", "ptx3", p['Ra'], gate_choke(p)))
     elif c['name'] == "OR4_N16":
         # plates on +150 V, cathodes tied on k (VK measures the cathode current), Rs || Cs -> Y -> Rk -> -50 V
         n = (f"XF1 vcc {ins['A']} kk vcc {ins['B']} kk 6N16B {p.get('MN', '')}\n"

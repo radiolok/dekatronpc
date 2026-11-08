@@ -2,71 +2,35 @@
 <rect width="1330" height="714" fill="#ffffff"/>
 <text x="20" y="28" font-size="17" font-weight="bold" fill="#22262b">DFF_J2N16</text>
 <text x="20" y="47" font-size="12" fill="#5d6670">D flip-flop, falling edge of C: master latch + slave latch + inverters  ·  2 × RSLATCH_J2N16 + one 6N16B</text>
-<line x1="70" y1="64" x2="1300" y2="64" stroke="#5d6670" stroke-width="2.6" stroke-linecap="butt"/>
-<text x="62" y="68" font-size="12" fill="#5d6670" text-anchor="end" font-weight="bold" font-style="normal">+150 V</text>
-<circle cx="200" cy="225" r="31" fill="#f4f1e6" stroke="#22262b" stroke-width="1.5"/>
-<line x1="188" y1="210" x2="212" y2="210" stroke="#22262b" stroke-width="2.4" stroke-linecap="round"/>
-<line x1="200" y1="210" x2="200" y2="175" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="186" y1="225" x2="214" y2="225" stroke="#22262b" stroke-width="1.6" stroke-linecap="butt" stroke-dasharray="5 4"/>
-<line x1="186" y1="225" x2="138" y2="225" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<path d="M190,242 Q200,228 210,242" stroke="#22262b" stroke-width="2.2" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
-<line x1="200" y1="241" x2="200" y2="275" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<text x="205" y="185" font-size="9" fill="#8b929a" text-anchor="start" font-weight="normal" font-style="normal">1</text>
-<text x="140" y="220" font-size="9" fill="#8b929a" text-anchor="start" font-weight="normal" font-style="normal">7</text>
-<text x="205" y="269" font-size="9" fill="#8b929a" text-anchor="start" font-weight="normal" font-style="normal">6</text>
-<text x="192" y="189" font-size="10.5" fill="#5d6670" text-anchor="end" font-weight="normal" font-style="normal">Л901a</text>
-<line x1="200" y1="64" x2="200" y2="87" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="200" y1="117" x2="200" y2="140" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<rect x="194.5" y="87" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
-<text x="211.5" y="103" font-size="11" fill="#22262b" text-anchor="start" font-weight="bold" font-style="normal">10k</text>
-<text x="211.5" y="115" font-size="9" fill="#5d6670" text-anchor="start" font-weight="normal" font-style="normal">R901</text>
-<line x1="200" y1="275" x2="200" y2="282" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="189" y1="282" x2="211" y2="282" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="193" y1="286" x2="207" y2="286" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="197" y1="290" x2="203" y2="290" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
 <circle cx="90" cy="225" r="3.8" fill="#fff" stroke="#1c5fb0" stroke-width="1.8"/>
 <text x="81" y="229" font-size="13" fill="#1c5fb0" text-anchor="end" font-weight="bold" font-style="normal">D</text>
-<circle cx="360" cy="225" r="31" fill="#f4f1e6" stroke="#22262b" stroke-width="1.5"/>
-<line x1="348" y1="210" x2="372" y2="210" stroke="#22262b" stroke-width="2.4" stroke-linecap="round"/>
-<line x1="360" y1="210" x2="360" y2="175" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="346" y1="225" x2="374" y2="225" stroke="#22262b" stroke-width="1.6" stroke-linecap="butt" stroke-dasharray="5 4"/>
-<line x1="346" y1="225" x2="298" y2="225" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<path d="M350,242 Q360,228 370,242" stroke="#22262b" stroke-width="2.2" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
-<line x1="360" y1="241" x2="360" y2="275" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<text x="365" y="185" font-size="9" fill="#8b929a" text-anchor="start" font-weight="normal" font-style="normal">5</text>
-<text x="300" y="220" font-size="9" fill="#8b929a" text-anchor="start" font-weight="normal" font-style="normal">3</text>
-<text x="365" y="269" font-size="9" fill="#8b929a" text-anchor="start" font-weight="normal" font-style="normal">2</text>
-<text x="352" y="189" font-size="10.5" fill="#5d6670" text-anchor="end" font-weight="normal" font-style="normal">Л901b</text>
-<line x1="360" y1="64" x2="360" y2="72" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="360" y1="102" x2="360" y2="110" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<rect x="354.5" y="72" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
-<text x="371.5" y="88" font-size="11" fill="#22262b" text-anchor="start" font-weight="bold" font-style="normal">10k</text>
-<text x="371.5" y="100" font-size="9" fill="#5d6670" text-anchor="start" font-weight="normal" font-style="normal">R902</text>
-<line x1="360" y1="275" x2="360" y2="282" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="349" y1="282" x2="371" y2="282" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="353" y1="286" x2="367" y2="286" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="357" y1="290" x2="363" y2="290" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="454" y1="180" x2="454" y2="205" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="454" y1="235" x2="454" y2="260" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<rect x="448.5" y="205" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
-<text x="442.5" y="221" font-size="11" fill="#22262b" text-anchor="end" font-weight="bold" font-style="normal">470k</text>
-<text x="442.5" y="233" font-size="9" fill="#5d6670" text-anchor="end" font-weight="normal" font-style="normal">R903</text>
-<line x1="506" y1="180" x2="506" y2="216" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="506" y1="224" x2="506" y2="260" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="495" y1="216" x2="517" y2="216" stroke="#22262b" stroke-width="2.2" stroke-linecap="round"/>
-<line x1="495" y1="224" x2="517" y2="224" stroke="#22262b" stroke-width="2.2" stroke-linecap="round"/>
-<text x="521" y="221" font-size="11" fill="#22262b" text-anchor="start" font-weight="bold" font-style="normal">2.7p</text>
-<text x="521" y="233" font-size="9" fill="#5d6670" text-anchor="start" font-weight="normal" font-style="normal">C901</text>
-<line x1="480" y1="430" x2="480" y2="440" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="480" y1="470" x2="480" y2="480" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<rect x="474.5" y="440" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
-<text x="491.5" y="456" font-size="11" fill="#22262b" text-anchor="start" font-weight="bold" font-style="normal">200k</text>
-<text x="491.5" y="468" font-size="9" fill="#5d6670" text-anchor="start" font-weight="normal" font-style="normal">R904</text>
-<line x1="480" y1="480" x2="480" y2="486" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="470" y1="486" x2="490" y2="486" stroke="#5d6670" stroke-width="2.6" stroke-linecap="butt"/>
-<text x="480" y="500" font-size="10" fill="#5d6670" text-anchor="middle" font-weight="bold" font-style="normal">−50 V</text>
+<line x1="170" y1="225" x2="180" y2="225" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<path d="M180,205 L207,225 L180,245 Z" stroke="#22262b" stroke-width="1.6" fill="#f3f6fb" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="212" cy="225" r="4.5" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<line x1="216.5" y1="225" x2="228" y2="225" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<text x="193" y="199" font-size="10.5" fill="#22262b" text-anchor="middle" font-weight="bold" font-style="normal">Inverter</text>
+<text x="193" y="258" font-size="9.5" fill="#5d6670" text-anchor="middle" font-weight="normal" font-style="normal">Л901a</text>
+<text x="193" y="270" font-size="8.5" fill="#5d6670" text-anchor="middle" font-weight="normal" font-style="normal">R901 + L901 ‖ R902</text>
+<text x="236" y="217" font-size="10" fill="#5d6670" text-anchor="start" font-weight="bold" font-style="normal">DN</text>
+<line x1="480" y1="335" x2="480" y2="359.5" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="480" y1="405.5" x2="480" y2="430" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="463" y="359.5" width="34" height="46" rx="4" fill="#fff8ec" stroke="#22262b" stroke-width="1.5"/>
+<text x="480" y="376.5" font-size="15" fill="#22262b" text-anchor="middle" font-weight="bold" font-style="normal">÷</text>
+<text x="480" y="392.5" font-size="7.5" fill="#5d6670" text-anchor="middle" font-weight="normal" font-style="normal">HV</text>
+<text x="480" y="401.5" font-size="7.5" fill="#5d6670" text-anchor="middle" font-weight="normal" font-style="normal">LV</text>
+<text x="457" y="378.5" font-size="10" fill="#22262b" text-anchor="end" font-weight="bold" font-style="normal">Divider</text>
+<text x="457" y="391.5" font-size="9.5" fill="#22262b" text-anchor="end" font-weight="normal" font-style="normal">470k ‖ 2.7p / 200k</text>
+<text x="457" y="403.5" font-size="8.5" fill="#5d6670" text-anchor="end" font-weight="normal" font-style="normal">R905 · C901 · R906</text>
+<text x="488" y="422" font-size="10" fill="#5d6670" text-anchor="start" font-weight="bold" font-style="normal">RM</text>
 <circle cx="90" cy="550" r="3.8" fill="#fff" stroke="#1c5fb0" stroke-width="1.8"/>
 <text x="81" y="554" font-size="13" fill="#1c5fb0" text-anchor="end" font-weight="bold" font-style="normal">C</text>
+<line x1="330" y1="120" x2="340" y2="120" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<path d="M340,100 L367,120 L340,140 Z" stroke="#22262b" stroke-width="1.6" fill="#f3f6fb" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="372" cy="120" r="4.5" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<line x1="376.5" y1="120" x2="388" y2="120" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<text x="353" y="94" font-size="10.5" fill="#22262b" text-anchor="middle" font-weight="bold" font-style="normal">Inverter</text>
+<text x="353" y="153" font-size="9.5" fill="#5d6670" text-anchor="middle" font-weight="normal" font-style="normal">Л901b</text>
+<text x="353" y="165" font-size="8.5" fill="#5d6670" text-anchor="middle" font-weight="normal" font-style="normal">R903 + L902 ‖ R904</text>
 <rect x="600" y="260" width="140" height="340" rx="6" fill="#f3f6fb" stroke="#22262b" stroke-width="1.6"/>
 <text x="670" y="280" font-size="12" fill="#22262b" text-anchor="middle" font-weight="bold" font-style="normal">RSLATCH_J2N16</text>
 <text x="670" y="295" font-size="10" fill="#5d6670" text-anchor="middle" font-weight="normal" font-style="normal">master M</text>
@@ -93,121 +57,56 @@
 <text x="1131" y="314" font-size="11.5" fill="#22262b" text-anchor="end" font-weight="bold" font-style="normal">Q</text>
 <circle cx="1140" cy="430" r="3.4" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
 <text x="1131" y="434" font-size="11.5" fill="#22262b" text-anchor="end" font-weight="bold" font-style="normal">QN</text>
-<line x1="836" y1="524" x2="836" y2="576" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="914" y1="524" x2="914" y2="576" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="836" y1="524" x2="860" y2="524" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="890" y1="524" x2="914" y2="524" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<rect x="860" y="518.5" width="30" height="11" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
-<text x="875" y="513" font-size="11" fill="#22262b" text-anchor="middle" font-weight="bold" font-style="normal">470k</text>
-<text x="875" y="502" font-size="9" fill="#5d6670" text-anchor="middle" font-weight="normal" font-style="normal">R905</text>
-<line x1="836" y1="576" x2="871" y2="576" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="879" y1="576" x2="914" y2="576" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="871" y1="565" x2="871" y2="587" stroke="#22262b" stroke-width="2.2" stroke-linecap="round"/>
-<line x1="879" y1="565" x2="879" y2="587" stroke="#22262b" stroke-width="2.2" stroke-linecap="round"/>
-<text x="875" y="602" font-size="11" fill="#22262b" text-anchor="middle" font-weight="bold" font-style="normal">13.6p</text>
-<text x="875" y="613" font-size="9" fill="#5d6670" text-anchor="middle" font-weight="normal" font-style="normal">C902</text>
-<line x1="930" y1="550" x2="930" y2="560" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="930" y1="590" x2="930" y2="600" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<rect x="924.5" y="560" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
-<text x="941.5" y="576" font-size="11" fill="#22262b" text-anchor="start" font-weight="bold" font-style="normal">200k</text>
-<text x="941.5" y="588" font-size="9" fill="#5d6670" text-anchor="start" font-weight="normal" font-style="normal">R906</text>
-<line x1="930" y1="600" x2="930" y2="606" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="920" y1="606" x2="940" y2="606" stroke="#5d6670" stroke-width="2.6" stroke-linecap="butt"/>
-<text x="930" y="620" font-size="10" fill="#5d6670" text-anchor="middle" font-weight="bold" font-style="normal">−50 V</text>
-<text x="942" y="542" font-size="10.5" fill="#5d6670" text-anchor="start" font-weight="bold" font-style="normal">ES</text>
-<line x1="866" y1="284" x2="866" y2="336" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="934" y1="284" x2="934" y2="336" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="866" y1="284" x2="885" y2="284" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="915" y1="284" x2="934" y2="284" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<rect x="885" y="278.5" width="30" height="11" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
-<text x="900" y="273" font-size="11" fill="#22262b" text-anchor="middle" font-weight="bold" font-style="normal">470k</text>
-<text x="900" y="262" font-size="9" fill="#5d6670" text-anchor="middle" font-weight="normal" font-style="normal">R907</text>
-<line x1="866" y1="336" x2="896" y2="336" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="904" y1="336" x2="934" y2="336" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="896" y1="325" x2="896" y2="347" stroke="#22262b" stroke-width="2.2" stroke-linecap="round"/>
-<line x1="904" y1="325" x2="904" y2="347" stroke="#22262b" stroke-width="2.2" stroke-linecap="round"/>
-<text x="900" y="362" font-size="11" fill="#22262b" text-anchor="middle" font-weight="bold" font-style="normal">2.7p</text>
-<text x="900" y="373" font-size="9" fill="#5d6670" text-anchor="middle" font-weight="normal" font-style="normal">C903</text>
-<line x1="950" y1="260" x2="950" y2="270" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="950" y1="300" x2="950" y2="310" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<rect x="944.5" y="270" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
-<text x="961.5" y="286" font-size="11" fill="#22262b" text-anchor="start" font-weight="bold" font-style="normal">200k</text>
-<text x="961.5" y="298" font-size="9" fill="#5d6670" text-anchor="start" font-weight="normal" font-style="normal">R908</text>
-<line x1="950" y1="260" x2="950" y2="254" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="940" y1="254" x2="960" y2="254" stroke="#5d6670" stroke-width="2.6" stroke-linecap="butt"/>
-<text x="950" y="249" font-size="10" fill="#5d6670" text-anchor="middle" font-weight="bold" font-style="normal">−50 V</text>
-<text x="962" y="326" font-size="10.5" fill="#5d6670" text-anchor="start" font-weight="bold" font-style="normal">SS</text>
-<line x1="866" y1="404" x2="866" y2="456" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="934" y1="404" x2="934" y2="456" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="866" y1="404" x2="885" y2="404" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="915" y1="404" x2="934" y2="404" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<rect x="885" y="398.5" width="30" height="11" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
-<text x="900" y="393" font-size="11" fill="#22262b" text-anchor="middle" font-weight="bold" font-style="normal">470k</text>
-<text x="900" y="382" font-size="9" fill="#5d6670" text-anchor="middle" font-weight="normal" font-style="normal">R909</text>
-<line x1="866" y1="456" x2="896" y2="456" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="904" y1="456" x2="934" y2="456" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="896" y1="445" x2="896" y2="467" stroke="#22262b" stroke-width="2.2" stroke-linecap="round"/>
-<line x1="904" y1="445" x2="904" y2="467" stroke="#22262b" stroke-width="2.2" stroke-linecap="round"/>
-<text x="900" y="482" font-size="11" fill="#22262b" text-anchor="middle" font-weight="bold" font-style="normal">2.7p</text>
-<text x="900" y="493" font-size="9" fill="#5d6670" text-anchor="middle" font-weight="normal" font-style="normal">C904</text>
-<line x1="950" y1="430" x2="950" y2="440" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="950" y1="470" x2="950" y2="480" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<rect x="944.5" y="440" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
-<text x="961.5" y="456" font-size="11" fill="#22262b" text-anchor="start" font-weight="bold" font-style="normal">200k</text>
-<text x="961.5" y="468" font-size="9" fill="#5d6670" text-anchor="start" font-weight="normal" font-style="normal">R910</text>
-<line x1="950" y1="480" x2="950" y2="486" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="940" y1="486" x2="960" y2="486" stroke="#5d6670" stroke-width="2.6" stroke-linecap="butt"/>
-<text x="950" y="500" font-size="10" fill="#5d6670" text-anchor="middle" font-weight="bold" font-style="normal">−50 V</text>
-<text x="962" y="424" font-size="10.5" fill="#5d6670" text-anchor="start" font-weight="bold" font-style="normal">RS</text>
+<text x="396" y="112" font-size="10" fill="#5d6670" text-anchor="start" font-weight="bold" font-style="normal">CN</text>
+<line x1="830" y1="550" x2="863.5" y2="550" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="941.5" y1="550" x2="975" y2="550" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="863.5" y="533" width="78" height="34" rx="4" fill="#fff8ec" stroke="#22262b" stroke-width="1.5"/>
+<text x="902.5" y="547" font-size="10" fill="#22262b" text-anchor="middle" font-weight="bold" font-style="normal">Divider</text>
+<text x="902.5" y="560" font-size="8.5" fill="#5d6670" text-anchor="middle" font-weight="normal" font-style="normal">HV → LV</text>
+<text x="902.5" y="580" font-size="9.5" fill="#22262b" text-anchor="middle" font-weight="bold" font-style="normal">470k ‖ 13.6p / 200k</text>
+<text x="902.5" y="592" font-size="8.5" fill="#5d6670" text-anchor="middle" font-weight="normal" font-style="normal">R907 · C902 · R908</text>
+<text x="978" y="542" font-size="10.5" fill="#5d6670" text-anchor="start" font-weight="bold" font-style="normal">ES</text>
+<line x1="830" y1="310" x2="863.5" y2="310" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="941.5" y1="310" x2="975" y2="310" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="863.5" y="293" width="78" height="34" rx="4" fill="#fff8ec" stroke="#22262b" stroke-width="1.5"/>
+<text x="902.5" y="307" font-size="10" fill="#22262b" text-anchor="middle" font-weight="bold" font-style="normal">Divider</text>
+<text x="902.5" y="320" font-size="8.5" fill="#5d6670" text-anchor="middle" font-weight="normal" font-style="normal">HV → LV</text>
+<text x="902.5" y="340" font-size="9.5" fill="#22262b" text-anchor="middle" font-weight="bold" font-style="normal">470k ‖ 2.7p / 200k</text>
+<text x="902.5" y="352" font-size="8.5" fill="#5d6670" text-anchor="middle" font-weight="normal" font-style="normal">R909 · C903 · R910</text>
+<text x="978" y="302" font-size="10.5" fill="#5d6670" text-anchor="start" font-weight="bold" font-style="normal">SS</text>
+<line x1="830" y1="430" x2="863.5" y2="430" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="941.5" y1="430" x2="975" y2="430" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="863.5" y="413" width="78" height="34" rx="4" fill="#fff8ec" stroke="#22262b" stroke-width="1.5"/>
+<text x="902.5" y="427" font-size="10" fill="#22262b" text-anchor="middle" font-weight="bold" font-style="normal">Divider</text>
+<text x="902.5" y="440" font-size="8.5" fill="#5d6670" text-anchor="middle" font-weight="normal" font-style="normal">HV → LV</text>
+<text x="902.5" y="460" font-size="9.5" fill="#22262b" text-anchor="middle" font-weight="bold" font-style="normal">470k ‖ 2.7p / 200k</text>
+<text x="902.5" y="472" font-size="8.5" fill="#5d6670" text-anchor="middle" font-weight="normal" font-style="normal">R911 · C904 · R912</text>
+<text x="978" y="422" font-size="10.5" fill="#5d6670" text-anchor="start" font-weight="bold" font-style="normal">RS</text>
 <text x="748" y="303" font-size="10" fill="#5d6670" text-anchor="start" font-weight="bold" font-style="normal">QM</text>
 <text x="748" y="423" font-size="10" fill="#5d6670" text-anchor="start" font-weight="bold" font-style="normal">QNM</text>
 <circle cx="1230" cy="310" r="3.8" fill="#fff" stroke="#b8232f" stroke-width="1.8"/>
 <text x="1239" y="314" font-size="13" fill="#b8232f" text-anchor="start" font-weight="bold" font-style="normal">Q</text>
 <circle cx="1230" cy="430" r="3.8" fill="#fff" stroke="#b8232f" stroke-width="1.8"/>
 <text x="1239" y="434" font-size="13" fill="#b8232f" text-anchor="start" font-weight="bold" font-style="normal">QN</text>
-<path d="M200,140 L200,175" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-<path d="M90,225 L138,225" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-<path d="M360,110 L360,175" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M90,225 L170,225" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M130,225 L130,310 L265,310 a5,5 0 0 1 10,0 L475,310 a5,5 0 0 1 10,0 L600,310" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-<path d="M200,140 L355,140 a5,5 0 0 1 10,0 L480,140 L480,180" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-<path d="M454,180 L506,180" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-<path d="M454,260 L506,260" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-<path d="M480,260 L480,430" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M228,225 L265,225 a5,5 0 0 1 10,0 L480,225 L480,335" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M480,430 L600,430" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M90,550 L600,550" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-<path d="M270,550 L270,225 L298,225" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-<path d="M360,110 L820,110 L820,550" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-<path d="M820,550 L836,550" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-<path d="M914,550 L930,550" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-<path d="M930,550 L1000,550" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-<path d="M740,310 L815,310 a5,5 0 0 1 10,0 L850,310" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-<path d="M850,310 L866,310" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-<path d="M934,310 L950,310" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-<path d="M950,310 L1000,310" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-<path d="M740,430 L815,430 a5,5 0 0 1 10,0 L850,430" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-<path d="M850,430 L866,430" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-<path d="M934,430 L950,430" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-<path d="M950,430 L1000,430" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M270,550 L270,120 L330,120" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M388,120 L820,120 L820,550 L830,550" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M975,550 L1000,550" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M740,310 L815,310 a5,5 0 0 1 10,0 L830,310" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M975,310 L1000,310" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M740,430 L815,430 a5,5 0 0 1 10,0 L830,430" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M975,430 L1000,430" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M1140,310 L1230,310" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M1140,430 L1230,430" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
-<circle cx="200" cy="64" r="3.4" fill="#22262b"/>
-<circle cx="200" cy="140" r="3.4" fill="#22262b"/>
-<circle cx="360" cy="64" r="3.4" fill="#22262b"/>
-<circle cx="360" cy="110" r="3.4" fill="#22262b"/>
 <circle cx="130" cy="225" r="3.4" fill="#22262b"/>
-<circle cx="480" cy="180" r="3.4" fill="#22262b"/>
-<circle cx="480" cy="260" r="3.4" fill="#22262b"/>
-<circle cx="480" cy="430" r="3.4" fill="#22262b"/>
 <circle cx="270" cy="550" r="3.4" fill="#22262b"/>
-<circle cx="836" cy="550" r="3.4" fill="#22262b"/>
-<circle cx="914" cy="550" r="3.4" fill="#22262b"/>
-<circle cx="866" cy="310" r="3.4" fill="#22262b"/>
-<circle cx="934" cy="310" r="3.4" fill="#22262b"/>
-<circle cx="866" cy="430" r="3.4" fill="#22262b"/>
-<circle cx="934" cy="430" r="3.4" fill="#22262b"/>
-<text x="20" y="648" font-size="10.5" fill="#5d6670">Master M: S = D, R = ~D, E = C. Slave S: S = QM, R = QNM, E = ~C. Л901a inverts D, Л901b inverts C; each inverter plate reaches its latch through a divider (470k ‖ C / 200k).</text>
-<text x="20" y="662" font-size="10.5" fill="#5d6670">Master outputs reach the slave through their own 2.7 pF dividers; the slave enable divider has 13.6 pF (the clock edge is delayed against D).</text>
-<text x="20" y="676" font-size="10.5" fill="#5d6670">The RS latches are drawn as blocks: their circuit is on the RSLATCH_J2N16 page.</text>
+<text x="20" y="648" font-size="10.5" fill="#5d6670">Master M: S = D, R = ~D, E = C. Slave S: S = QM, R = QNM, E = ~C. Two Inverters (Л901a: D, Л901b: C; Ra 10k + 680 µH ‖ 10k each); each inverter plate reaches its latch through a Divider (470k ‖ C / 200k to −50 V).</text>
+<text x="20" y="662" font-size="10.5" fill="#5d6670">Master outputs reach the slave through their own 2.7 pF Dividers; the slave enable Divider has 13.6 pF (the clock edge is delayed against D).</text>
+<text x="20" y="676" font-size="10.5" fill="#5d6670">The RS latches, Inverters and Dividers are drawn as elements: the latch circuit is on the RSLATCH_J2N16 page.</text>
 <text x="20" y="690" font-size="10.5" fill="#5d6670">LV (grids): 1 = +10 V, 0 = −20 V.   HV (plates): 1 = +150 V, 0 = +50 V.</text>
 <text x="20" y="704" font-size="10.5" fill="#5d6670">Heater 6.3 V on H1/H2 of every tube, all in parallel, not drawn.</text>
 </svg>

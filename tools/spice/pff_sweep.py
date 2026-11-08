@@ -80,7 +80,8 @@ def pff(t, d, ck, q, qn, p):
 def drv_hv(wave, d, p):
     """HV net d: ideal HV source (inverted) -> divider -> 6N16B triode, Ra 10k; d is its plate"""
     return (f"VS{d} hs{d} 0 {wave}\n" + L.div(f"s{d}", f"hs{d}", f"is{d}", p, p['C1g'])
-            + f"XD{d} {d} is{d} 0 pdx{d} nb 0 6N16B\nRD{d} vcc {d} 10k\nRDX{d} vcc pdx{d} 10k\n")
+            + f"XD{d} {d} is{d} 0 pdx{d} nb 0 6N16B\n" + L.K.plate(f"RD{d}", d, "10k", L.drv_choke(p))
+            + f"RDX{d} vcc pdx{d} 10k\n")
 
 
 def clock(ct, cb, p, nm="ck", skew=0.0):
@@ -160,9 +161,11 @@ def fmt(kind, name, n, per, m, ref):
 
 
 # the chosen point (doc/tc_n5_pulse_dff.md §4): HV D pin with slow in-cell dividers 150k / 62k (no C1), plate chokes
-# 1 mH, Rg2 12k, Cc 3.9 pF, g3 rest -12.4 V from 43k / 130k (Thevenin 32.3k). The other keys are the options of §3.
-P = dict(L.BASE, **L.CHOSEN, Cc=3.9, Vr=-12.4, Rth=32.3e3, Cb=0, tr=30, Rs=100, Rd=0, Cd=0.001, Cbd=15, C1rd=1.0,
-         dhv=1, C1a=0.001, C1c=0.001, R1s="150k", R2s="62k", La="1m", Rg2="12k")
+# 1 mH, Rg2 12k (both from latch_sweep.CHOSEN: the RS core of every trigger, chokes.CORE), Cc 3.9 pF, g3 rest -12.4 V
+# from 43k / 130k (Thevenin 32.3k). The other keys are the options of §3.
+P = dict(dict(L.BASE, **L.CHOSEN), Cc=3.9, Vr=-12.4, Rth=32.3e3, Cb=0, tr=30, Rs=100, Rd=0, Cd=0.001, Cbd=15, C1rd=1.0,
+         dhv=1, C1a=0.001, C1c=0.001, R1s="150k", R2s="62k",
+         Li=None)     # the D inverter keeps a plain Ra: a choke shortens the D delay (hold +36 ns at fanout 6, TRS v0.58)
 
 if __name__ == "__main__":
     args = sys.argv[1:]

@@ -63,11 +63,21 @@
 <line x1="439" y1="353" x2="461" y2="353" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
 <line x1="443" y1="357" x2="457" y2="357" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
 <line x1="447" y1="361" x2="453" y2="361" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="320" y1="80" x2="320" y2="105" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="320" y1="135" x2="320" y2="160" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<rect x="314.5" y="105" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
-<text x="331.5" y="121" font-size="11" fill="#22262b" text-anchor="start" font-weight="bold" font-style="normal">15k</text>
-<text x="331.5" y="133" font-size="9" fill="#5d6670" text-anchor="start" font-weight="normal" font-style="normal">R103</text>
+<line x1="320" y1="80" x2="320" y2="84" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="320" y1="114" x2="320" y2="118" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="314.5" y="84" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<text x="308.5" y="100" font-size="11" fill="#22262b" text-anchor="end" font-weight="bold" font-style="normal">15k</text>
+<text x="308.5" y="112" font-size="9" fill="#5d6670" text-anchor="end" font-weight="normal" font-style="normal">R103</text>
+<line x1="320" y1="118" x2="320" y2="123" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="320" y1="155" x2="320" y2="160" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<path d="M320,123 a5,4 0 0 1 0,8 a5,4 0 0 1 0,8 a5,4 0 0 1 0,8 a5,4 0 0 1 0,8" stroke="#22262b" stroke-width="1.6" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="306" y="140" font-size="11" fill="#22262b" text-anchor="end" font-weight="bold" font-style="normal">1.5 m</text>
+<text x="306" y="152" font-size="9" fill="#5d6670" text-anchor="end" font-weight="normal" font-style="normal">L101</text>
+<line x1="354" y1="118" x2="354" y2="124" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="354" y1="154" x2="354" y2="160" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="348.5" y="124" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<text x="365.5" y="140" font-size="11" fill="#22262b" text-anchor="start" font-weight="bold" font-style="normal">15k</text>
+<text x="365.5" y="152" font-size="9" fill="#5d6670" text-anchor="start" font-weight="normal" font-style="normal">R104</text>
 <circle cx="110" cy="160" r="3.8" fill="#fff" stroke="#b8232f" stroke-width="1.8"/>
 <text x="101" y="164" font-size="13" fill="#b8232f" text-anchor="end" font-weight="bold" font-style="normal">Y1</text>
 <line x1="120" y1="380" x2="640" y2="380" stroke="#5d6670" stroke-width="2.6" stroke-linecap="butt"/>
@@ -131,11 +141,21 @@
 <line x1="439" y1="653" x2="461" y2="653" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
 <line x1="443" y1="657" x2="457" y2="657" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
 <line x1="447" y1="661" x2="453" y2="661" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="320" y1="380" x2="320" y2="405" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="320" y1="435" x2="320" y2="460" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<rect x="314.5" y="405" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
-<text x="331.5" y="421" font-size="11" fill="#22262b" text-anchor="start" font-weight="bold" font-style="normal">15k</text>
-<text x="331.5" y="433" font-size="9" fill="#5d6670" text-anchor="start" font-weight="normal" font-style="normal">R104</text>
+<line x1="320" y1="380" x2="320" y2="384" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="320" y1="414" x2="320" y2="418" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="314.5" y="384" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<text x="308.5" y="400" font-size="11" fill="#22262b" text-anchor="end" font-weight="bold" font-style="normal">15k</text>
+<text x="308.5" y="412" font-size="9" fill="#5d6670" text-anchor="end" font-weight="normal" font-style="normal">R105</text>
+<line x1="320" y1="418" x2="320" y2="423" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="320" y1="455" x2="320" y2="460" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<path d="M320,423 a5,4 0 0 1 0,8 a5,4 0 0 1 0,8 a5,4 0 0 1 0,8 a5,4 0 0 1 0,8" stroke="#22262b" stroke-width="1.6" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="306" y="440" font-size="11" fill="#22262b" text-anchor="end" font-weight="bold" font-style="normal">1.5 m</text>
+<text x="306" y="452" font-size="9" fill="#5d6670" text-anchor="end" font-weight="normal" font-style="normal">L102</text>
+<line x1="354" y1="418" x2="354" y2="424" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="354" y1="454" x2="354" y2="460" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="348.5" y="424" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<text x="365.5" y="440" font-size="11" fill="#22262b" text-anchor="start" font-weight="bold" font-style="normal">15k</text>
+<text x="365.5" y="452" font-size="9" fill="#5d6670" text-anchor="start" font-weight="normal" font-style="normal">R106</text>
 <circle cx="110" cy="460" r="3.8" fill="#fff" stroke="#b8232f" stroke-width="1.8"/>
 <text x="101" y="464" font-size="13" fill="#b8232f" text-anchor="end" font-weight="bold" font-style="normal">Y2</text>
 <path d="M108,290 L128,290" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
@@ -143,24 +163,31 @@
 <path d="M324,280 L382,280" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M518,292 L548,292" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M190,240 L190,160 L450,160 L450,234" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M320,118 L354,118" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M354,160 L320,160" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M190,160 L110,160" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M108,590 L128,590" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M324,604 L382,604" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M324,580 L382,580" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M518,592 L548,592" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M190,540 L190,460 L450,460 L450,534" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M320,418 L354,418" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M354,460 L320,460" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M190,460 L110,460" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="352" cy="280" r="3.4" fill="#22262b"/>
 <circle cx="190" cy="160" r="3.4" fill="#22262b"/>
 <circle cx="450" cy="160" r="3.4" fill="#22262b"/>
-<circle cx="320" cy="80" r="3.4" fill="#22262b"/>
+<circle cx="320" cy="118" r="3.4" fill="#22262b"/>
 <circle cx="320" cy="160" r="3.4" fill="#22262b"/>
+<circle cx="320" cy="80" r="3.4" fill="#22262b"/>
 <circle cx="352" cy="580" r="3.4" fill="#22262b"/>
 <circle cx="190" cy="460" r="3.4" fill="#22262b"/>
 <circle cx="450" cy="460" r="3.4" fill="#22262b"/>
-<circle cx="320" cy="380" r="3.4" fill="#22262b"/>
+<circle cx="320" cy="418" r="3.4" fill="#22262b"/>
 <circle cx="320" cy="460" r="3.4" fill="#22262b"/>
-<text x="20" y="742" font-size="10.5" fill="#5d6670">Л103 is one 6N16B bulb: Л103a is the OR input of cell 1, Л103b of cell 2.</text>
+<circle cx="320" cy="380" r="3.4" fill="#22262b"/>
+<text x="20" y="728" font-size="10.5" fill="#5d6670">Л103 is one 6N16B bulb: Л103a is the OR input of cell 1, Л103b of cell 2.</text>
+<text x="20" y="742" font-size="10.5" fill="#5d6670">Plate load: Ra 15k in series with L 1.5 mH ‖ Rd 15k (TRS v0.58): the choke speeds up the rising edge of Y.</text>
 <text x="20" y="756" font-size="10.5" fill="#5d6670">LV (grids): 1 = +10 V, 0 = −20 V.   HV (plates): 1 = +150 V, 0 = +50 V.   Ra = Rg2 = 15k.</text>
 <text x="20" y="770" font-size="10.5" fill="#5d6670">Heater 6.3 V on H1/H2 (6Zh2B pins 4, 5; 6N16B pins 8, 4), all tubes in parallel, not drawn.</text>
 </svg>

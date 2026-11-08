@@ -12,7 +12,7 @@ Cell page. REQ-MOD-005 (D flip-flop board), REQ-MOD-012 (logic levels), REQ-MOD-
 | Outputs (HV) | Q, QN |
 | Reset line | RN = 1: idle at **−20 V** (owner); RN = 0: pulled to **GND** by a relay contact |
 | Heater 6.3 V | 2.3 A (2.0 A + 0.3 A) |
-| RN → Q (asserted, Q below 92 V), fanout 2 / 6 / 10 | 54 / 77 / 100 ns |
+| RN → Q (asserted, Q below 92 V), fanout 2 / 6 / 10 | 54 / 77 / 100 ns (before the plate chokes; the forced output is pulled by the triode, which the choke does not slow) |
 | Recovery: release RN before C falls | ≥ 100 ns (98 ns simulated, any fanout) |
 | Register to register, 1 MHz | as DFF_J2N16: up to fanout 6 |
 | Line current while asserted | up to 1.3 mA per flip-flop (peak) |
@@ -27,6 +27,12 @@ In synthesis, 34 of the 38 flops with an asynchronous reset are clear-on-`rst_n`
   - released while C is low: the master is closed and holds 0;
   - released while C is high: the master follows D, and the next falling edge captures it.
 - **Polarity.** The diode acts on a high line. RN = 0 (reset, the liberty's `clear: "RN'"`) is the line at GND, RN = 1 is −20 V. The line is not an LV net: a relay contact switches it between the −20 V rail and GND. So the active-low `rst_n` of the RTL maps onto RN with no inverter.
+
+## Plate chokes (TRS v0.58)
+
+Owner, 2026-11-08: a plate choke in every cell. The flip-flop inside is `DFF_J2N16` with the new RS core and inverter chokes (see that page): C↓→Q to the thresholds [488, 431] ns at fanout 6, register to register 1.58 / 1.53 / 1.38 MHz at fanout 2 / 6 / 10. `dffr_sweep.py async`: the clear still holds Q low under any C (Q 30…53 V while C toggles), and the flip-flop resumes at the next C fall. The other output (QN) rises in ≈ 300 ns at fanout 6 (`vtube_timing.json` RN→QN 300 ns, was 450). The KiCad bench matches plain SPICE exactly.
+
+Tools: `tools/spice/chokes.py` (the values), `tools/spice/threshold_delays.py --fanout N`, `tools/spice/latch_plots.py`, `tools/spice/kicad_parity.py`. Investigation: `doc/dinv_trigger_board.md`.
 
 ## Schematic
 
@@ -68,6 +74,8 @@ Chosen: 2.7 pF. It works over the whole capacitance range of the diode. The feed
 At −20 V (the owner's choice) the diode also clamps FQN where it would fall below the line: −24 V nodes stop at about −19.5 V. This helps the latch, but the line has to sink the clamp current. On average that is 40–55 µA per diode in normal operation, about 4 mA for 38 flip-flops (76 diodes). At −50 V the diodes never conduct (a few µA of displacement current), but the preset twin fails at fanout 6 with the same Cc. **Chosen: −20 V**, on a rail that can sink about 5 mA. There is no −20 V rail in the supply set yet (Open points).
 
 ## Results
+
+> **Plate choke (TRS v0.58).** The tables of this section were simulated before the plate chokes and stay as the record of the design; the figures of this page are redrawn with them. Current numbers: section *Plate chokes* above and `sch/logic/vtube_timing.json`.
 
 ### Assert, hold, release
 

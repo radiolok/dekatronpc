@@ -16,7 +16,11 @@
 // Шаг задаётся уровнем StepF/StepR на весь такт Clk; показание Out
 // достоверно по окончании такта шага. Признака Valid у модуля нет:
 // длительности известны заранее. Запись/сброс удерживаются заметно
-// дольше WRITE_MIN_HS / RESET_MIN_HS тактов hsClk.
+// дольше WRITE_MIN_HS тактов hsClk.
+//
+// С TRS v0.56 модуль получает уровни катодных линий LineOpen (1 —
+// канал записи открыт). Тест сам играет роль дешифратора: в покое все
+// линии открыты, для записи цифры v открыта только линия v.
 //----------------------------------------------------------------------
 module Dekatron_tb();
 
@@ -63,10 +67,7 @@ ClockDivider #(
 
 reg             StepF    = 1'b0;
 reg             StepR    = 1'b0;
-reg             SetData  = 1'b0;
-reg             SetZero  = 1'b0;
-reg             SetTop   = 1'b0;
-reg [WIDTH-1:0] In       = '0;
+reg [9:0]       LineOpen = 10'h3FF;
 
 wire [WIDTH-1:0] Out;
 wire [WIDTH-1:0] Out_n;          // активным нулём (BinToBcdN, TC-O3)
@@ -108,10 +109,7 @@ DekatronModule #(
     .GuideA  (GuideA),
     .GuideB  (GuideB),
     .En      (1'b1),
-    .In_n    (~In),
-    .SetData (SetData),
-    .SetZero (SetZero),
-    .SetTop  (SetTop),
+    .LineOpen(LineOpen),
     .Out_n   (Out_n),
     .Zero    (Zero),
     .Nine    (Nine),
@@ -136,21 +134,18 @@ endtask
 
 task automatic write_value(input [WIDTH-1:0] v);
     @(posedge Clk);
-    In      <= v;
-    SetData <= 1'b1;
+    LineOpen <= 10'b1 << v;
     repeat (15) @(posedge Clk);     // 15 тактов Clk > WRITE_MIN_HS
-    SetData <= 1'b0;
-    In      <= '0;
+    LineOpen <= 10'h3FF;
     @(negedge Clk);
 endtask
 
 task automatic set_position(input bit top, input bit zero);
+    // Плата полной записи: сброс — та же запись в K0 или K9
     @(posedge Clk);
-    SetTop  <= top;
-    SetZero <= zero;
-    repeat (15) @(posedge Clk);     // 15 тактов Clk > RESET_MIN_HS
-    SetTop  <= 1'b0;
-    SetZero <= 1'b0;
+    LineOpen <= top ? (10'b1 << 9) : (zero ? 10'b1 : 10'h3FF);
+    repeat (15) @(posedge Clk);     // 15 тактов Clk > WRITE_MIN_HS
+    LineOpen <= 10'h3FF;
     @(negedge Clk);
 endtask
 
@@ -167,10 +162,7 @@ initial begin
     Rst_n   <= 1'b0;
     StepF   <= 1'b0;
     StepR   <= 1'b0;
-    SetData <= 1'b0;
-    SetZero <= 1'b0;
-    SetTop  <= 1'b0;
-    In      <= '0;
+    LineOpen <= 10'h3FF;
 
     #2000 Rst_n <= 1'b1;
     check_out(0);

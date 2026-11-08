@@ -117,7 +117,7 @@ def deck(tb):
     for k, (times, bits) in tb['src'].items():
         pts = " ".join(f"{t:.4f}u {v}" for t, v in pwl_pts(times, bits))
         s += f"VS{k} hs{k} 0 PWL({pts})\n" + L.div(f"s{k}", f"hs{k}", f"is{k}", p, p['C1g'])
-        s += f"XD{k} pd{k} is{k} 0 pdx{k} nb 0 6N16B\nRD{k} vcc pd{k} 10k\nRDX{k} vcc pdx{k} 10k\n"
+        s += f"XD{k} pd{k} is{k} 0 pdx{k} nb 0 6N16B\n" + L.K.plate(f"RD{k}", f"pd{k}", "10k", L.drv_choke(p)) + f"RDX{k} vcc pdx{k} 10k\n"
         s += L.div(f"d{k}", f"pd{k}", f"/{k}", p, tb['inputs'][k])
     n = tb['name']
     if n == "RSLATCH_J2N16":

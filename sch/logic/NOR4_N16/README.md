@@ -9,14 +9,28 @@ Cell page. REQ-MOD-003 (NOR4_N16 in the library), REQ-MOD-005 (boards), REQ-MOD-
 | Function | Y = ~(A + B + C + D) |
 | Tubes | two 6N16B (liberty: N16B 2) |
 | Inputs (LV) | A, B, C, D, one triode grid each |
-| Output (HV) | Y, all four plates, Ra 10k to +150 V |
+| Output (HV) | Y, all four plates, Ra 10k + L 680 µH ‖ 10k to +150 V (TRS v0.58) |
 | Supplies | +150 V; −50 V (dividers only); heater 6.3 V, 2 × 0.4 A |
 | Divider C1 per grid on the driving nets | 3.9 pF |
 | Output levels (static) | "1" 145–147 V; "0" 55.7 V (one input), 39.3 (two), 31.5 (three), 26.7 V (all four) |
-| Delay to 100 V, fanout 2 / 6 / 10 | Y falls 58–69 / 66–79 / 73–90 ns; Y rises 120 / 193 / 268 ns |
-| Delay to the thresholds (92 V falling, 118 V rising), fanout 6 | 78–96 / 348 ns |
+| Delay to 100 V, fanout 2 / 6 / 10 | Y falls 42–45 / 48–52 / 53–59 ns; Y rises 105 / 171 / 239 ns (was 58–90 / 120…268 ns) |
+| Delay to the thresholds (92 V falling, 118 V rising), fanout 6 | 55–60 / 288 ns (was 78–96 / 348 ns) |
 | Lowest grid | −35.0 V nominal, −42.2 V with all C1 +10 % (limit −50 V) |
 | Worst static | Ik 10.3 mA, Pa 0.53 W per triode; Ra 1.52 W with all four on (a 2 W resistor) |
+
+## Plate choke (TRS v0.58)
+
+Owner, 2026-11-08: the plate choke of `NOR2_N16` goes into every cell. Y now has Ra 10k (R101) in series with L 680 µH (L101) damped by 10k (R102). The bench drivers carry the same choke.
+
+| Fanout | Y falls / rises to 100 V | to the thresholds (fall 92 V / rise 118 V) | before the choke (thresholds) |
+|---|---|---|---|
+| 2 | 42–45 / 105 ns | 48–52 / 166 ns | — |
+| 6 | 48–52 / 171 ns | **55–60 / 288 ns** | 78–96 / 348 ns |
+| 10 | 53–59 / 239 ns | 62–69 / 419 ns | — |
+
+Levels do not move: VOH 146.7 V, VOL 55.3 V (one input) … 26.6 V (all four). Lowest grid −38.3 V. The KiCad bench matches plain SPICE exactly.
+
+Tools: `tools/spice/chokes.py` (the values), `tools/spice/threshold_delays.py --fanout N` (to the thresholds), the `*_plots.py` of this cell (to 100 V, the figures), `tools/spice/kicad_parity.py` (KiCad bench against plain SPICE). Investigation: `doc/dinv_trigger_board.md`.
 
 ## Circuit and Ra
 
@@ -50,6 +64,8 @@ The KiCad sheet below has the same parts spread out and joined by net labels:
 | H1, H2 | heater | both tubes |
 
 ## Results
+
+> **Plate choke (TRS v0.58).** The tables of this section were simulated before the cell got its plate choke and stay as the record of the design; the figures of this page are redrawn with the choke. Current numbers: section *Plate choke* above and `sch/logic/vtube_timing.json`.
 
 ### Delay against fanout
 

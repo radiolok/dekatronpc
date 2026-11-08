@@ -25,7 +25,7 @@ CELL_DIR = os.path.join(REPO, "sch", "logic", "NAND2_J2")
 CELL_SCH = os.path.join(CELL_DIR, "NAND2_J2_tb.kicad_sch")
 CELL_SHEET_SVG = "NAND2_J2_tb-DUT.svg"          # the DUT page of the testbench export = the cell sheet
 CELL_CROP_MM = (60, 52, 172, 142)               # area of the cell drawing on its A4 page
-PARAMS = dict(R1="470k", R2="200k", C1g=3.9, C1g3=6.8, Cb=15, Ra="15k", Rg2="15k")
+PARAMS = dict(nand2_sweep.CELL)
 GRIDS = (2, 4, 6, 8, 10)
 WAVES = [("IN_A (LV, DUT g1)", "/IN_A", "lv"), ("IN_B (LV, DUT g3)", "/IN_B", "lv"),
          ("OUT (HV, DUT plate)", "/OUT", "hv"), ("OUT_LV (after divider, 10 grids)", "/OUT_LV", "lv")]

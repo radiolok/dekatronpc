@@ -28,8 +28,15 @@
 //   нарезает его на два подкатодных импульса и паузу на сваливание.
 //   Запись (set, set_zero, переход через край) тоже подаётся уровнем:
 //   линия записи на декады — это сам accept, от прихода valid до
-//   фронта. Декатрону её хватает, если WRITE_MIN_HS и RESET_MIN_HS
-//   укладываются в такт за вычетом пути команды (проверка ниже).
+//   фронта. Декатрону её хватает, если WRITE_MIN_HS (запись и сброс по
+//   катоду — одно событие) укладывается в такт за вычетом пути команды
+//   (проверка ниже).
+//
+//   Запись идёт по катодным линиям [TRS v0.56]: счётчик сам строит для
+//   каждой декады уровни линий W0…W9, открыта_k = ¬W ∨ sel_k (в покое
+//   все открыты, при записи открыта только линия цели), и подаёт их на
+//   каналы записи модуля. Дешифратор записи и уровни сброса — клей блока
+//   (doc/board_estimate.md §2.6), общие части у декад одного рода общие.
 //
 //   Показания катодов (out_n, zero, at_top) идут другими линиями и
 //   читаются всегда, но достоверны только на фронте clk, завершающем
@@ -86,23 +93,6 @@
 
 `default_nettype none
 
-`ifndef SYNTH
-`ifdef DEKATRON_DELAY_MODEL
-// Модель ячейки LATCH_J2N16 (sch/logic/DLATCH2_J2N16) для симуляции RTL;
-// в синтезе — ячейка liberty, в нетлисте — sch/logic/vtube_cells.v
-module LATCH_J2N16 (
-    input  wire C,
-    input  wire D,
-    output reg  Q,
-    output wire QN
-);
-    assign QN = ~Q;
-    always @*
-        if (C) Q = D;
-endmodule
-`endif
-`endif
-
 // Задержка начала фаз от фронта Clk, такты hsClk (REQ-PULSE-009): не
 // короче худшего пути команды шага. В RTL вентили без задержки — 0;
 // нетлист с задержками ламп задаёт её через synth_sim.sh -t
@@ -152,11 +142,10 @@ module DekatronCounter #(
     // Временные характеристики декатрона (такты hs_clk, 1 мкс при
     // 100 кГц), оценки до измерений (OPEN-013). Шаг на подкатод и
     // сваливание (200 и 300 нс) округлены вверх до такта hs_clk. Запись
-    // и сброс по катоду обязаны уложиться в такт accept: половина такта
+    // (и сброс) по катоду обязана уложиться в такт accept: половина такта
     parameter unsigned GUIDE_STEP_HS  = 1,
     parameter unsigned FALL_STEP_HS   = 1,
-    parameter unsigned WRITE_MIN_HS   = HS_PER_CLK / 2,
-    parameter unsigned RESET_MIN_HS   = HS_PER_CLK / 2
+    parameter unsigned WRITE_MIN_HS   = HS_PER_CLK / 2
 
 )(
     input  wire             rst_n,      // сброс логики фаз; разряд НЕ двигает
@@ -169,7 +158,7 @@ module DekatronCounter #(
     // обход handshake: разводку по декадам делает счётчик.
     //   soft_rst — все декады в нуль
     //   hard_rst — старшие HARD_RST_D_CNT декад в девятку, остальные в нуль
-    // Длительность держит внешнее реле времени: не менее RESET_MIN_HS
+    // Длительность держит внешнее реле времени: не менее WRITE_MIN_HS
     // тактов hs_clk, иначе разряд не успеет перейти на нужный катод.
     input  wire             soft_rst,
     input  wire             hard_rst,
@@ -259,10 +248,10 @@ module DekatronCounter #(
             logic zero_q;
             logic at_top_q;
 
-            always_ff @(posedge clk) begin
-                zero_q   <= &dek_zero;
-                at_top_q <= &dek_top;
-            end
+            // Явные DFFP_J2N16 (3,5 лампы вместо 7): D с катодов успевает
+            // за T ≥ 7,9 мкс, fanout Q = 1
+            DFFP_J2N16 zeroFF  (.C (clk), .D (&dek_zero), .Q (zero_q),   .QN ());
+            DFFP_J2N16 atTopFF (.C (clk), .D (&dek_top),  .Q (at_top_q), .QN ());
 
             // Только защёлкнутые признаки: живые с катодов изменятся
             // внутри такта операции и оборвут запись (254+1 -> 0)
@@ -294,6 +283,59 @@ module DekatronCounter #(
     // Сброс: в старшие декады девятка, если сброс аппаратный
     wire rst_to_nine = hard_rst;
     wire rst_to_zero = soft_rst & ~hard_rst;
+
+    //------------------------------------------------------------------
+    // Уровни катодных линий плат сброса (WRITE = 0) [TRS v0.56]:
+    // K0 = ¬SetTop, K_TOP = ¬SetZero, общая шина = ¬(SetZero ∨ SetTop).
+    // Одни на род декад — с предустановкой в 9 (HARD_RST_D_CNT старших)
+    // и прочие. Стоят ячейками: отданные ABC, они перестраивали клей
+    // вокруг wr_zero (IpLine +10 ламп, doc/cathode_line_write.md §3)
+    //------------------------------------------------------------------
+    // Часть линий у конкретного счётчика не используется (зависит от
+    // параметров)
+/* verilator lint_off UNUSEDSIGNAL */
+    wire hard_k0, hard_tl, hard_cm;     // декады с предустановкой в 9
+    wire base_k0, base_tl, base_cm;     // прочие декады
+/* verilator lint_on UNUSEDSIGNAL */
+
+    generate
+        if (!WRITE) begin : g_rst_lines
+            if (HARD_RST_D_CNT > 0) begin : g_hard
+                wire to_zero = wr_zero | rst_to_zero;
+                wire to_top  = wr_top  | rst_to_nine;
+                NOT_N16  k0 (.A (to_top),  .Y (hard_k0));
+                NOT_N16  tl (.A (to_zero), .Y (hard_tl));
+                NOR2_N16 cm (.A (to_zero), .B (to_top), .Y (hard_cm));
+            end
+            else begin : g_no_hard
+                assign hard_k0 = 1'b1;
+                assign hard_tl = 1'b1;
+                assign hard_cm = 1'b1;
+            end
+            if (HARD_RST_D_CNT < D_NUM) begin : g_base
+                wire to_zero = wr_zero | rst_to_zero | rst_to_nine;
+                if (TOP_LIMIT_MODE) begin : g_top
+                    NOT_N16  k0 (.A (wr_top),  .Y (base_k0));
+                    NOT_N16  tl (.A (to_zero), .Y (base_tl));
+                    NOR2_N16 cm (.A (to_zero), .B (wr_top), .Y (base_cm));
+                end
+                else begin : g_zero_only
+                    assign base_k0 = 1'b1;
+                    assign base_tl = 1'b1;
+                    NOT_N16  cm (.A (to_zero), .Y (base_cm));
+                end
+            end
+            else begin : g_no_base
+                assign base_k0 = 1'b1;
+                assign base_tl = 1'b1;
+                assign base_cm = 1'b1;
+            end
+        end
+        else begin : g_no_rst_lines
+            assign {hard_k0, hard_tl, hard_cm} = 3'b111;
+            assign {base_k0, base_tl, base_cm} = 3'b111;
+        end
+    endgenerate
 
     // Подъём подкатодов на время записи и сброса (sch/logic/DEKATRON_A110,
     // §9.3): повторитель анодной шины ключей, один на счётчик (GLIFT_N16).
@@ -418,7 +460,7 @@ module DekatronCounter #(
     generate
         genvar e;
         for (e = 1; e < int'(D_NUM); e++) begin : enLatch
-            LATCH_J2N16 enLatch (
+            DFFP_J2N16 enLatch (
                 .C  (cmd_win),
                 .D  (carry_live[e]),
                 .Q  (en_chain[e]),
@@ -462,13 +504,39 @@ module DekatronCounter #(
 
 
             //----------------------------------------------------------
-            // Линии установки для этой декады
+            // Катодные линии декады [TRS v0.56]: открыта_k = ¬W ∨ sel_k.
+            // Полная запись — дешифратор WriteLineDec на ячейках. Плата
+            // сброса — общие линии своего рода декад (см. выше)
             //----------------------------------------------------------
-            // Сюда сходятся оба источника: операции по handshake и
-            // физические линии сброса
-            wire dek_set_zero = wr_zero | rst_to_zero |
-                                (rst_to_nine & ~IS_HARD_DEC);
-            wire dek_set_top  = wr_top  | (rst_to_nine & IS_HARD_DEC);
+            wire [9:0] dek_line_open;
+            if (WRITE) begin : g_dec
+                // Сюда сходятся оба источника: операции по handshake и
+                // физические линии сброса
+                wire dek_set_zero = wr_zero | rst_to_zero |
+                                    (rst_to_nine & ~IS_HARD_DEC);
+                wire dek_set_top  = (wr_top | (rst_to_nine & IS_HARD_DEC)) & EN_RESET_N_D;
+                WriteLineDec #(
+                    .TOP_EN    (EN_RESET_N_D),
+                    .TOP_POS   (RESET_N_POS_D),
+                    .MAX_DIGIT (IS_TOP_DEC ? int'(TOP_VALUE[(d+1)*DW-1 -: DW]) : 9)
+                ) writeLineDec (
+                    .In_n     (in_n[(d+1)*DW-1 -: DW]),
+                    .Set      (wr_set),
+                    .Zero     (dek_set_zero),
+                    .Top      (dek_set_top),
+                    .LineOpen (dek_line_open)
+                );
+            end
+            else begin : g_reset_lines
+                wire k0 = IS_HARD_DEC ? hard_k0 : base_k0;
+                wire tl = IS_HARD_DEC ? hard_tl : base_tl;
+                wire cm = IS_HARD_DEC ? hard_cm : base_cm;
+                for (genvar k = 0; k < 10; k++) begin : g_k
+                    assign dek_line_open[k] =
+                        (k == 0)                                    ? k0 :
+                        (EN_RESET_N_D && k == int'(RESET_N_POS_D))  ? tl : cm;
+                end
+            end
 
             DekatronModule #(
                 .READ            (READ),
@@ -481,7 +549,6 @@ module DekatronCounter #(
                 .GUIDE_STEP_HS   (GUIDE_STEP_HS),
                 .FALL_STEP_HS    (FALL_STEP_HS),
                 .WRITE_MIN_HS    (WRITE_MIN_HS),
-                .RESET_MIN_HS    (RESET_MIN_HS),
                 .HS_PER_CLK      (HS_PER_CLK),
                 .PHASE1_HS       (PHASE1_HS),
                 .PHASE2_HS       (PHASE2_HS),
@@ -493,10 +560,7 @@ module DekatronCounter #(
                 .GuideA   (guide_a),
                 .GuideB   (guide_b),
                 .En       (en_chain[d]),
-                .In_n     (in_n[(d+1)*DW-1 -: DW]),
-                .SetData  (wr_set),
-                .SetZero  (dek_set_zero),
-                .SetTop   (dek_set_top),
+                .LineOpen (dek_line_open),
                 .Out_n    (out_n[(d+1)*DW-1 -: DW]),
                 .Zero     (dek_zero[d]),
                 .Nine     (dek_nine[d]),
@@ -520,17 +584,13 @@ module DekatronCounter #(
         // показание должно установиться до этого фронта: хотя бы один
         // такт hs_clk запаса. В модели на задержках — то же в нс
 `ifdef DEKATRON_DELAY_MODEL
-        if (`DEKATRON_PHASE_DELAY_NS + `DEKATRON_WRITE_MIN_NS >= CLK_PERIOD_NS ||
-            `DEKATRON_PHASE_DELAY_NS + `DEKATRON_RESET_MIN_NS >= CLK_PERIOD_NS)
+        if (`DEKATRON_PHASE_DELAY_NS + `DEKATRON_WRITE_MIN_NS >= CLK_PERIOD_NS)
             $error("DekatronCounter: запись или сброс по катоду после задержки команды не укладывается в такт Clk (%0d нс)",
                    CLK_PERIOD_NS);
 `else
         if (PHASE_DELAY_HS + WRITE_MIN_HS >= HS_PER_CLK)
             $error("DekatronCounter: запись (%0d hs) после задержки команды (%0d hs) не укладывается в такт (%0d hs)",
                    WRITE_MIN_HS, PHASE_DELAY_HS, HS_PER_CLK);
-        if (PHASE_DELAY_HS + RESET_MIN_HS >= HS_PER_CLK)
-            $error("DekatronCounter: сброс по катоду (%0d hs) после задержки команды (%0d hs) не укладывается в такт (%0d hs)",
-                   RESET_MIN_HS, PHASE_DELAY_HS, HS_PER_CLK);
 `endif
         if (WIDTH != D_NUM * DEKATRON_WIDTH)
             $error("DekatronCounter: WIDTH (%0d) не соответствует D_NUM*DEKATRON_WIDTH (%0d)",

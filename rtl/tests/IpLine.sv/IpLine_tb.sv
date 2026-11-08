@@ -341,7 +341,7 @@ endtask
 task automatic pulse_rst(input bit hard);
     @(negedge Clk);
     if (hard) HardRst = 1'b1; else SoftRst = 1'b1;
-    repeat (15) @(posedge Clk);    // реле времени: много тактов > RESET_MIN_HS
+    repeat (15) @(posedge Clk);    // реле времени: много тактов > WRITE_MIN_HS
     @(negedge Clk);
     HardRst = 1'b0;
     SoftRst = 1'b0;

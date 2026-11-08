@@ -169,13 +169,13 @@ task automatic do_op(input bit d);
 endtask
 
 //----------------------------------------------------------------------
-// Физический сброс: линия держится заметно дольше RESET_MIN_HS.
+// Физический сброс: линия держится заметно дольше WRITE_MIN_HS.
 //----------------------------------------------------------------------
 task automatic do_rst(input bit hard, input bit expected_top);
     @(posedge Clk);
     soft_rst <= ~hard;
     hard_rst <=  hard;
-    repeat (3) @(posedge Clk);        // реле времени: 3 такта > RESET_MIN_HS
+    repeat (3) @(posedge Clk);        // реле времени: 3 такта > WRITE_MIN_HS
     soft_rst <= 1'b0;
     hard_rst <= 1'b0;
     @(posedge Clk);

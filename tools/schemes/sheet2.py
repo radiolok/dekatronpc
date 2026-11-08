@@ -74,35 +74,27 @@ def fig_module():
         f.pin_in(12, y, 150, n)
     f.box(150, 44, 180, 100, "GUIDE_EN_J2 × 2",
           ["по лампе J2 на подкатод:", "пентод, 2 упр. сетки", "A = GuideA · En", "B = GuideB · En"])
-    f.pin_in(12, 206, 150, "In_n[3:0]")
-    f.pin_in(12, 230, 150, "SetData")
-    f.box(150, 186, 180, 70, "BcdToBinEn", ["инв. BCD → позиционный", "10 × И, 5-й вход = SetData"],
-          cls="blk-opt")
-    f.text(240, 270, "только при WRITE", "tn", "middle")
-    f.pin_in(12, 300, 410, "SetZero")
-    f.pin_in(12, 344, 150, "SetTop")
-    f.box(150, 328, 180, 32, None, [], cls="blk-opt")
-    f.text(240, 349, "только TOP_LIMIT_MODE", "tn", "middle")
-    f.wire([(330, 344), (410, 344)])
+    f.pin_in(12, 230, 150, "LineOpen[9:0]")
+    f.box(150, 186, 180, 90, "Перемычки платы", ["WRITE: линия k → катод k", "сброс: K0 · общая шина",
+                                                  "· K_TOP (TOP_LIMIT_MODE)", "выше MAX_DIGIT: 0"])
+    f.text(240, 290, "1 — канал открыт; уровни строит счётчик", "tn", "middle")
 
     # каналы записи: счётные ячейки, выход — аналоговый узел B (в нетлисте открыт)
     f.box(150, 392, 260, 72, "WRCH_N16 × 10 / 3 / 2",
           ["½ 6Н16Б: канал записи по перемычкам", "выход — узел B, плата каналов записи",
            "катоды выше MAX_DIGIT без канала (TC-N1)"],
           cls="blk-opt", top=18)
-    f.wire([(260, 256), (260, 280), (120, 280), (120, 420), (150, 420)], "wd")
-    f.text(126, 374, "WritePos · SetZero · SetTop", "tn")
+    f.wire([(120, 230), (120, 420), (150, 420)], "w")
+    f.dot(120, 230)
+    f.text(126, 374, "LineOpen", "tn")
 
     # декатрон
     f.box(410, 44, 200, 330, "DekatronTube", [], top=24)
     f.lines(510, 140, ["V2 (такт) / Delay (синтез)", "кольцо из 30 электродов",
-                       "RESET_N_POS = TOP_PIN_OUT"], "tm", "middle")
+                       "LINES = катоды ≤ MAX_DIGIT"], "tm", "middle")
     f.wire([(330, 80), (410, 80)], "wacc", label="guide_a_i", lx=416, ly=84, lcls="tpi")
     f.wire([(330, 108), (410, 108)], "wacc", label="guide_b_i", lx=416, ly=112, lcls="tpi")
-    f.wire([(330, 210), (410, 210)], label="write_pos_i", lx=416, ly=214, lcls="tpi")
-    f.wire([(330, 232), (410, 232)], label="write_en_i", lx=416, ly=236, lcls="tpi")
-    f.text(416, 304, "reset0_i", "tpi")
-    f.text(416, 348, "resetN_i", "tpi")
+    f.wire([(330, 230), (410, 230)], label="line_open_i", lx=416, ly=234, lcls="tpi")
     f.text(604, 196, "катоды", "tpi", "end")
 
     # диоды чтения

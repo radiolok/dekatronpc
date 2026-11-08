@@ -55,6 +55,7 @@ def tube_lib():
 
 LIBS = {
     "Device:R": embed(f"{SYSLIB}/Device.kicad_sym", "R", "Device"),
+    "Device:L": embed(f"{SYSLIB}/Device.kicad_sym", "L", "Device"),
     "Device:C": embed(f"{SYSLIB}/Device.kicad_sym", "C", "Device"),
     "power:GND": embed(f"{SYSLIB}/power.kicad_sym", "GND", "power"),
     "power:PWR_FLAG": embed(f"{SYSLIB}/power.kicad_sym", "PWR_FLAG", "power"),
@@ -68,6 +69,7 @@ LIBS = {
 
 PINS = {  # lib-space pin coordinates
     "Device:R": {"1": (0, 3.81), "2": (0, -3.81)},
+    "Device:L": {"1": (0, 3.81), "2": (0, -3.81)},
     "Device:C": {"1": (0, 3.81), "2": (0, -3.81)},
     "Simulation_SPICE:VDC": {"1": (0, 5.08), "2": (0, -5.08)},
     "Simulation_SPICE:VPULSE": {"1": (0, 5.08), "2": (0, -5.08)},
@@ -143,7 +145,9 @@ class Sheet:
 # A on g1, B on g3 (owner, 2026-10-24); screen through Rg2 from +150 V; Cb on g3 against the g3 Miller kick.
 sys.path.insert(0, os.path.join(REPO, "tools", "spice"))
 import nand2_sweep as sw
+import chokes
 RA, RG2, CB, R1, R2 = "15k", "15k", "15p", "470k", "200k"
+LA, RD = chokes.PENTODE                          # plate choke in series with Ra and its damping resistor (TRS v0.58)
 C1G, C1G3 = 3.9, 6.8                               # divider C1 per g1 grid / per g3 grid on the LV net
 cell = Sheet()
 tb = Sheet()
@@ -162,6 +166,26 @@ def cpwr(lib, p, ang=0):
 
 G = 2.54
 X0, Y0 = 50*G, 40*G
+
+def plate_load(sheet, refs, x, yp, ra_val, ra_ref, choke, l_ref, rd_ref, top_power):
+    """plate load as NOR2_N16: +150 V -> Ra -> (L || Rd) -> the plate wire at (x, yp); choke = (L, Rd) (chokes.py)"""
+    la = (x, yp - 3*G)
+    sheet.symbol("Device:L", la, 0, refs(l_ref), choke[0])
+    sheet.wire(pin_at("Device:L", la, 0, "2"), (x, yp))
+    rd = (x + 4*G, yp - 3*G)
+    sheet.symbol("Device:R", rd, 0, refs(rd_ref), choke[1])
+    for pin in ("1", "2"):
+        a, b = pin_at("Device:L", la, 0, pin), pin_at("Device:R", rd, 0, pin)
+        dy = -G if pin == "1" else G
+        sheet.wire(b, (b[0], b[1] + dy), (a[0], b[1] + dy))
+        sheet.junction((a[0], b[1] + dy))
+    ra = (x, yp - 7*G)
+    sheet.symbol("Device:R", ra, 0, refs(ra_ref), ra_val)
+    sheet.wire(pin_at("Device:R", ra, 0, "2"), pin_at("Device:L", la, 0, "1"))
+    top = (x, ra[1] - 3*G)
+    sheet.wire(pin_at("Device:R", ra, 0, "1"), top)
+    top_power(top)
+
 T = "vacuum_tube:6Ж2Б"
 tube_props = {"Sim.Library": SIMLIB, "Sim.Name": "6Zh2B", "Sim.Device": "SUBCKT", "Sim.Pins": TUBE_PINS}
 cell.symbol(T, (X0, Y0), 0, refs("Л{k}"), TUBE, props=tube_props, ref_off=(5.08, -6.35), val_off=(5.08, 6.35))
@@ -169,14 +193,9 @@ P = lambda pin: pin_at(T, (X0, Y0), 0, pin)
 # plate: Ra up to +150 V, output Y to the right
 YP = Y0 - 8*G
 cell.wire(P("1"), (X0, YP))
-ra = (X0, YP - 3*G)
-cell.symbol("Device:R", ra, 0, refs("R{k}1"), RA)
-cell.wire(pin_at("Device:R", ra, 0, "2"), (X0, YP))
-top = (X0, ra[1] - 3*G)
-cell.wire(pin_at("Device:R", ra, 0, "1"), top)
-cpwr("power:+150V", top)
-cell.wire((X0, YP), (X0 + 4*G, YP)); cell.junction((X0, YP))
-cell.hlabel("Y", "output", (X0 + 4*G, YP), 0)
+plate_load(cell, refs, X0, YP, RA, "R{k}1", (LA, RD), "L{k}1", "R{k}3", lambda top: cpwr("power:+150V", top))
+cell.wire((X0, YP), (X0 + 7*G, YP)); cell.junction((X0, YP))
+cell.hlabel("Y", "output", (X0 + 7*G, YP), 0)
 # screen: Rg2 up to +150 V
 xs = X0 + 10*G
 cell.wire(P("3"), (xs, Y0))
@@ -214,15 +233,15 @@ for pin, name in (("4", "H1"), ("5", "H2")):
     cell.hlabel(name, "passive", e, 270)
 cell.text("NAND2_J2: Y = ~(A & B). One 6Zh2B (6Ж2Б), dual-control pentode: A on g1, B on g3 (suppressor).\n"
           "Inputs A, B: LV level (1 = +10 V, 0 = -20 V). Output Y: HV level on the plate (1 = +150 V, 0 = +50 V).\n"
-          "Ra 15k, screen Rg2 15k from +150 V (Ug2 <= 96 V while conducting, 150 V cut off),\n"
+          "Ra 15k + L 1.5 mH || 15k, screen Rg2 15k from +150 V (Ug2 <= 96 V while conducting, 150 V cut off),\n"
           "Cb 15 pF holds g3 against the plate fall through Cg3a (Miller kick while B is high).\n"
-          "Simulated: Y = 145 V (1), 44...56 V (0); Ik <= 12.6 mA, Pg2 0.37 W; fanout 2/10: tpHL 185/396 ns, tpLH 136/466 ns (Cg3a 1.8 pF, measured).\n"
+          "Delays, limits and power: the cell page (plate chokes since TRS v0.58).\n"
           "Each HV net that drives grids needs one divider HV -> LV: 470k || C1 from the net to the LV net, 200k to -50 V,\n"
           "C1 = 3.9 pF per g1 grid + 6.8 pF per g3 grid on that net (see NAND2_J2_tb). Inputs only from such a divider.\n"
           "Unused input: tie it to the other input. Supplies: +150 V, -50 V (dividers only), heater 6.3 V 0.2 A on H1/H2.\n"
           "Page: sch/logic/NAND2_J2/README.md", (18*G, 60*G))
 cell.dump(os.path.join(OUT, "NAND2_J2", "NAND2_J2.kicad_sch"), "NAND2_J2 - 2NAND on 6Zh2B",
-          comments=["Y = ~(A & B); A (g1), B (g3): LV (+10/-20 V); Y: HV (+150/+50 V)", "Ra 15k, Rg2 15k, Cb 15p"])
+          comments=["Y = ~(A & B); A (g1), B (g3): LV (+10/-20 V); Y: HV (+150/+50 V)", "Ra 15k + L 1.5m || 15k, Rg2 15k, Cb 15p"])
 # ---------------------------------------------------------------- testbench
 ROOT = "/%s" % tb.uuid
 def r1(ref): return [(ROOT, ref)]

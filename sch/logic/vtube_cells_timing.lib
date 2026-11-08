@@ -97,9 +97,9 @@ library(vtube_cells_lib_timing) {
       timing() {
         related_pin : "A";
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("117.6, 253, 388.4"); }
+        cell_rise(fanout3) { values("86.9, 204, 328"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("74.54, 88, 101.5"); }
+        cell_fall(fanout3) { values("45.98, 55, 64.02"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
     }
@@ -245,17 +245,17 @@ library(vtube_cells_lib_timing) {
       timing() {
         related_pin : "A";
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("226.2, 545, 863.8"); }
+        cell_rise(fanout3) { values("175.9, 430, 685.9"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("262.4, 444, 625.6"); }
+        cell_fall(fanout3) { values("156, 362, 522"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
       timing() {
         related_pin : "B";
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("208.7, 503, 797.3"); }
+        cell_rise(fanout3) { values("172.6, 422, 673.1"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("203.9, 345, 486.1"); }
+        cell_fall(fanout3) { values("99.99, 232, 334.5"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
     }
@@ -364,25 +364,25 @@ library(vtube_cells_lib_timing) {
       timing() {
         related_pin : "A";
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("349.8, 492, 590.9"); }
+        cell_rise(fanout3) { values("198.1, 387, 594"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("317.8, 447, 536.8"); }
+        cell_fall(fanout3) { values("168.9, 372, 529"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
       timing() {
         related_pin : "B";
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("327.1, 460, 552.5"); }
+        cell_rise(fanout3) { values("194, 379, 581.8"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("187.7, 264, 317.1"); }
+        cell_fall(fanout3) { values("81.72, 180, 256"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
       timing() {
         related_pin : "C";
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("355.5, 500, 600.5"); }
+        cell_rise(fanout3) { values("204.8, 400, 614"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("61.86, 87, 104.5"); }
+        cell_fall(fanout3) { values("24.97, 55, 78.21"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
     }
@@ -432,33 +432,33 @@ library(vtube_cells_lib_timing) {
       timing() {
         related_pin : "A";
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("309.9, 538, 764.5"); }
+        cell_rise(fanout3) { values("233.3, 425, 633.2"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("343, 466, 548.9"); }
+        cell_fall(fanout3) { values("202.2, 406, 546.9"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
       timing() {
         related_pin : "B";
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("289.2, 502, 713.3"); }
+        cell_rise(fanout3) { values("228.9, 417, 621.3"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("207.6, 282, 332.2"); }
+        cell_fall(fanout3) { values("96.61, 194, 261.3"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
       timing() {
         related_pin : "C";
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("315.1, 547, 777.3"); }
+        cell_rise(fanout3) { values("242.7, 442, 658.6"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("64.77, 88, 103.7"); }
+        cell_fall(fanout3) { values("28.39, 57, 76.78"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
       timing() {
         related_pin : "D";
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("316.2, 549, 780.1"); }
+        cell_rise(fanout3) { values("243.2, 443, 660.1"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("52.26, 71, 83.64"); }
+        cell_fall(fanout3) { values("25.9, 52, 70.04"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
     }
@@ -507,33 +507,33 @@ library(vtube_cells_lib_timing) {
       timing() {
         related_pin : "A";
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("367.9, 506, 599.6"); }
+        cell_rise(fanout3) { values("211.5, 399, 587.7"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("338.1, 465, 551"); }
+        cell_fall(fanout3) { values("182, 388, 538.9"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
       timing() {
         related_pin : "B";
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("343.9, 473, 560.5"); }
+        cell_rise(fanout3) { values("207.2, 391, 575.9"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("196.3, 270, 319.9"); }
+        cell_fall(fanout3) { values("86.3, 184, 255.6"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
       timing() {
         related_pin : "C";
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("371.5, 511, 605.5"); }
+        cell_rise(fanout3) { values("214.7, 405, 596.6"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("330.1, 454, 538"); }
+        cell_fall(fanout3) { values("179.6, 383, 532"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
       timing() {
         related_pin : "D";
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("372.2, 512, 606.7"); }
+        cell_rise(fanout3) { values("215.2, 406, 598"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("191.9, 264, 312.8"); }
+        cell_fall(fanout3) { values("85.36, 182, 252.8"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
     }
@@ -929,25 +929,25 @@ library(vtube_cells_lib_timing) {
       timing() {
         related_pin : "A";
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("188.2, 320, 455.7"); }
+        cell_rise(fanout3) { values("142.5, 262, 390.4"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("79.89, 93, 104.9"); }
+        cell_fall(fanout3) { values("50, 58, 66.99"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
       timing() {
         related_pin : "B";
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("188.2, 320, 455.7"); }
+        cell_rise(fanout3) { values("143.1, 263, 391.9"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("66.14, 77, 86.86"); }
+        cell_fall(fanout3) { values("46.55, 54, 62.37"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
       timing() {
         related_pin : "C";
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("188.2, 320, 455.7"); }
+        cell_rise(fanout3) { values("143.1, 263, 391.9"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("65.28, 76, 85.73"); }
+        cell_fall(fanout3) { values("45.69, 53, 61.22"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
     }
@@ -987,33 +987,33 @@ library(vtube_cells_lib_timing) {
       timing() {
         related_pin : "A";
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("216.5, 348, 483.4"); }
+        cell_rise(fanout3) { values("165.9, 288, 419"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("84.1, 96, 107.9"); }
+        cell_fall(fanout3) { values("52.02, 60, 69"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
       timing() {
         related_pin : "B";
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("216.5, 348, 483.4"); }
+        cell_rise(fanout3) { values("165.9, 288, 419"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("69.2, 79, 88.8"); }
+        cell_fall(fanout3) { values("47.69, 55, 63.25"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
       timing() {
         related_pin : "C";
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("216.5, 348, 483.4"); }
+        cell_rise(fanout3) { values("165.9, 288, 419"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("69.2, 79, 88.8"); }
+        cell_fall(fanout3) { values("47.69, 55, 63.25"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
       timing() {
         related_pin : "D";
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("216.5, 348, 483.4"); }
+        cell_rise(fanout3) { values("165.9, 288, 419"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("69.2, 79, 88.8"); }
+        cell_fall(fanout3) { values("47.69, 55, 63.25"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
     }
@@ -1302,8 +1302,8 @@ library(vtube_cells_lib_timing) {
       timing() {
         related_pin : "C";
         timing_type : setup_falling;
-        rise_constraint(fanout3) { values("307, 307, 307"); }
-        fall_constraint(fanout3) { values("307, 307, 307"); }
+        rise_constraint(fanout3) { values("194, 194, 194"); }
+        fall_constraint(fanout3) { values("194, 194, 194"); }
       }
       timing() {
         related_pin : "C";
@@ -1321,17 +1321,17 @@ library(vtube_cells_lib_timing) {
       timing() {
         related_pin : "D";
         timing_sense : non_unate;
-        cell_rise(fanout3) { values("480, 480, 480"); }
+        cell_rise(fanout3) { values("174, 313, 473.9"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("374, 374, 374"); }
+        cell_fall(fanout3) { values("130, 208, 324.9"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
       timing() {
         related_pin : "C";
         timing_type : rising_edge;
-        cell_rise(fanout3) { values("442, 442, 442"); }
+        cell_rise(fanout3) { values("171.8, 309, 467.8"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("353, 353, 353"); }
+        cell_fall(fanout3) { values("126.2, 202, 315.5"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
     }
@@ -1344,17 +1344,17 @@ library(vtube_cells_lib_timing) {
       timing() {
         related_pin : "D";
         timing_sense : non_unate;
-        cell_rise(fanout3) { values("374, 374, 374"); }
+        cell_rise(fanout3) { values("115.6, 208, 314.9"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("480, 480, 480"); }
+        cell_fall(fanout3) { values("195.6, 313, 488.9"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
       timing() {
         related_pin : "C";
         timing_type : rising_edge;
-        cell_rise(fanout3) { values("353, 353, 353"); }
+        cell_rise(fanout3) { values("112.3, 202, 305.8"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("442, 442, 442"); }
+        cell_fall(fanout3) { values("193.1, 309, 482.7"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
     }
@@ -1388,8 +1388,8 @@ library(vtube_cells_lib_timing) {
       timing() {
         related_pin : "C";
         timing_type : setup_falling;
-        rise_constraint(fanout3) { values("310, 310, 310"); }
-        fall_constraint(fanout3) { values("310, 310, 310"); }
+        rise_constraint(fanout3) { values("194, 194, 194"); }
+        fall_constraint(fanout3) { values("194, 194, 194"); }
       }
       timing() {
         related_pin : "C";
@@ -1407,9 +1407,9 @@ library(vtube_cells_lib_timing) {
       timing() {
         related_pin : "C";
         timing_type : falling_edge;
-        cell_rise(fanout3) { values("665, 665, 665"); }
+        cell_rise(fanout3) { values("339.2, 488, 651"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("592, 592, 592"); }
+        cell_fall(fanout3) { values("325, 431, 530.1"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
     }
@@ -1422,9 +1422,9 @@ library(vtube_cells_lib_timing) {
       timing() {
         related_pin : "C";
         timing_type : falling_edge;
-        cell_rise(fanout3) { values("592, 592, 592"); }
+        cell_rise(fanout3) { values("299.5, 431, 575"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("665, 665, 665"); }
+        cell_fall(fanout3) { values("368, 488, 600.2"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
     }
@@ -1458,14 +1458,14 @@ library(vtube_cells_lib_timing) {
       timing() {
         related_pin : "C";
         timing_type : setup_rising;
-        rise_constraint(fanout3) { values("527, 527, 527"); }
-        fall_constraint(fanout3) { values("527, 527, 527"); }
+        rise_constraint(fanout3) { values("424, 424, 424"); }
+        fall_constraint(fanout3) { values("424, 424, 424"); }
       }
       timing() {
         related_pin : "C";
         timing_type : hold_rising;
-        rise_constraint(fanout3) { values("0, 0, 0"); }
-        fall_constraint(fanout3) { values("0, 0, 0"); }
+        rise_constraint(fanout3) { values("7, 7, 7"); }
+        fall_constraint(fanout3) { values("7, 7, 7"); }
       }
     }
     pin(Q) {
@@ -1530,8 +1530,8 @@ library(vtube_cells_lib_timing) {
       timing() {
         related_pin : "C";
         timing_type : setup_falling;
-        rise_constraint(fanout3) { values("310, 310, 310"); }
-        fall_constraint(fanout3) { values("310, 310, 310"); }
+        rise_constraint(fanout3) { values("194, 194, 194"); }
+        fall_constraint(fanout3) { values("194, 194, 194"); }
       }
       timing() {
         related_pin : "C";
@@ -1554,9 +1554,9 @@ library(vtube_cells_lib_timing) {
       timing() {
         related_pin : "C";
         timing_type : falling_edge;
-        cell_rise(fanout3) { values("665, 665, 665"); }
+        cell_rise(fanout3) { values("339.2, 488, 651"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("592, 592, 592"); }
+        cell_fall(fanout3) { values("325, 431, 530.1"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
       timing() {
@@ -1576,16 +1576,16 @@ library(vtube_cells_lib_timing) {
       timing() {
         related_pin : "C";
         timing_type : falling_edge;
-        cell_rise(fanout3) { values("592, 592, 592"); }
+        cell_rise(fanout3) { values("299.5, 431, 575"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("665, 665, 665"); }
+        cell_fall(fanout3) { values("368, 488, 600.2"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
       timing() {
         related_pin : "RN";
         timing_type : clear;
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("450, 450, 450"); }
+        cell_rise(fanout3) { values("300, 300, 300"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
       }
     }
@@ -1621,8 +1621,8 @@ library(vtube_cells_lib_timing) {
       timing() {
         related_pin : "C";
         timing_type : setup_falling;
-        rise_constraint(fanout3) { values("310, 310, 310"); }
-        fall_constraint(fanout3) { values("310, 310, 310"); }
+        rise_constraint(fanout3) { values("194, 194, 194"); }
+        fall_constraint(fanout3) { values("194, 194, 194"); }
       }
       timing() {
         related_pin : "C";
@@ -1645,16 +1645,16 @@ library(vtube_cells_lib_timing) {
       timing() {
         related_pin : "C";
         timing_type : falling_edge;
-        cell_rise(fanout3) { values("665, 665, 665"); }
+        cell_rise(fanout3) { values("339.2, 488, 651"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("592, 592, 592"); }
+        cell_fall(fanout3) { values("325, 431, 530.1"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
       timing() {
         related_pin : "SN";
         timing_type : preset;
         timing_sense : negative_unate;
-        cell_rise(fanout3) { values("450, 450, 450"); }
+        cell_rise(fanout3) { values("300, 300, 300"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
       }
     }
@@ -1667,9 +1667,9 @@ library(vtube_cells_lib_timing) {
       timing() {
         related_pin : "C";
         timing_type : falling_edge;
-        cell_rise(fanout3) { values("592, 592, 592"); }
+        cell_rise(fanout3) { values("299.5, 431, 575"); }
         rise_transition(fanout3) { values("0, 0, 0"); }
-        cell_fall(fanout3) { values("665, 665, 665"); }
+        cell_fall(fanout3) { values("368, 488, 600.2"); }
         fall_transition(fanout3) { values("0, 0, 0"); }
       }
       timing() {

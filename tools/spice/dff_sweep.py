@@ -26,7 +26,9 @@ PATTERN = [1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 0, 1, 0, 0]
 def inv(t, a, plate, p, other=None):
     """one 6N16B: inverter a -> plate (Ra 10k); other = (grid, plate) for the second half or None (grid at -50 V)"""
     g2, p2 = other if other else ("nb", f"px{t}")
-    return (f"XI{t} {plate} {a} 0 {p2} {g2} 0 6N16B {p.get('MN', '')}\nRI{t}a vcc {plate} 10k\nRI{t}b vcc {p2} 10k\n")
+    li = (p['Li'], p.get('Lir')) if p.get('Li') else None     # inverter plate choke (chokes.TRIODE)
+    return (f"XI{t} {plate} {a} 0 {p2} {g2} 0 6N16B {p.get('MN', '')}\n" + L.K.plate(f"RI{t}a", plate, "10k", li)
+            + L.K.plate(f"RI{t}b", p2, "10k", li if other else None))
 
 
 def dlatch(t, d, e, q, qn, p):
@@ -60,8 +62,8 @@ def wave(times, bits, t0=0.0):
 def drv(t, times, bits, lv, p, c1):
     """ideal HV source (inverted bits) -> divider -> 6N16B triode -> divider c1 -> lv; as latch_sweep.driver"""
     return (f"VS{t} hs{t} 0 {wave(times, bits)}\n" + L.div(f"s{t}", f"hs{t}", f"is{t}", p, p['C1g'])
-            + f"XD{t} pd{t} is{t} 0 pdx{t} nb 0 6N16B\nRD{t} vcc pd{t} 10k\nRDX{t} vcc pdx{t} 10k\n"
-            + L.div(f"d{t}", f"pd{t}", lv, p, c1))
+            + f"XD{t} pd{t} is{t} 0 pdx{t} nb 0 6N16B\n" + L.K.plate(f"RD{t}", f"pd{t}", "10k", L.drv_choke(p))
+            + f"RDX{t} vcc pdx{t} 10k\n" + L.div(f"d{t}", f"pd{t}", lv, p, c1))
 
 
 def stimulus(kind, per, dly, edge):

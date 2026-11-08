@@ -57,6 +57,7 @@ def tube_lib():
 
 LIBS = {
     "Device:R": embed(f"{SYSLIB}/Device.kicad_sym", "R", "Device"),
+    "Device:L": embed(f"{SYSLIB}/Device.kicad_sym", "L", "Device"),
     "Device:C": embed(f"{SYSLIB}/Device.kicad_sym", "C", "Device"),
     "power:GND": embed(f"{SYSLIB}/power.kicad_sym", "GND", "power"),
     "power:PWR_FLAG": embed(f"{SYSLIB}/power.kicad_sym", "PWR_FLAG", "power"),
@@ -70,6 +71,7 @@ LIBS = {
 
 PINS = {  # lib-space pin coordinates
     "Device:R": {"1": (0, 3.81), "2": (0, -3.81)},
+    "Device:L": {"1": (0, 3.81), "2": (0, -3.81)},
     "Device:C": {"1": (0, 3.81), "2": (0, -3.81)},
     "Simulation_SPICE:VDC": {"1": (0, 5.08), "2": (0, -5.08)},
     "Simulation_SPICE:VPULSE": {"1": (0, 5.08), "2": (0, -5.08)},
@@ -146,7 +148,9 @@ class Sheet:
 # HV -> LV: divider R1 || C1 / R2 to -50 V (ratio 0.3); LV -> HV: the gate itself.
 sys.path.insert(0, os.path.join(REPO, "tools", "spice"))
 import not_sweep as sw
+import chokes
 RA, R1, R2, C1G = "10k", "470k", "200k", 3.9      # C1 = 3.9 pF per grid on the LV net
+LA, RD = chokes.TRIODE                           # plate choke in series with Ra and its damping resistor (TRS v0.58)
 cell = Sheet()
 tb = Sheet()
 INST = ["DUT", "DRV"] + ["LOAD_A%d" % i for i in range(1, 6)] + ["LOAD_B%d" % i for i in range(1, 6)]
@@ -161,18 +165,35 @@ def pwr_refs():
 
 G = 2.54
 Y0 = 40*G
+
+def plate_load(sheet, refs, x, yp, ra_val, ra_ref, choke, l_ref, rd_ref, top_power):
+    """plate load as NOR2_N16: +150 V -> Ra -> (L || Rd) -> the plate wire at (x, yp); choke = (L, Rd) (chokes.py)"""
+    la = (x, yp - 3*G)
+    sheet.symbol("Device:L", la, 0, refs(l_ref), choke[0])
+    sheet.wire(pin_at("Device:L", la, 0, "2"), (x, yp))
+    rd = (x + 4*G, yp - 3*G)
+    sheet.symbol("Device:R", rd, 0, refs(rd_ref), choke[1])
+    for pin in ("1", "2"):
+        a, b = pin_at("Device:L", la, 0, pin), pin_at("Device:R", rd, 0, pin)
+        dy = -G if pin == "1" else G
+        sheet.wire(b, (b[0], b[1] + dy), (a[0], b[1] + dy))
+        sheet.junction((a[0], b[1] + dy))
+    ra = (x, yp - 7*G)
+    sheet.symbol("Device:R", ra, 0, refs(ra_ref), ra_val)
+    sheet.wire(pin_at("Device:R", ra, 0, "2"), pin_at("Device:L", la, 0, "1"))
+    top = (x, ra[1] - 3*G)
+    sheet.wire(pin_at("Device:R", ra, 0, "1"), top)
+    top_power(top)
+
 tube_props = {"Sim.Library": SIMLIB, "Sim.Name": "6N16B", "Sim.Device": "SUBCKT", "Sim.Pins": TUBE_PINS}
 T = "vacuum_tube:6Н16Б"
 for xt, unit, n, ppin, gpin, kpin in ((36*G, 1, 1, "1", "7", "6"), (66*G, 2, 2, "5", "3", "2")):
     cell.symbol(T, (xt, Y0), 0, refs("Л{k}"), "6Н16Б", unit=unit, props=tube_props, ref_off=(3.81, -6.35), val_off=(3.81, 6.35))
     yp = Y0 - 8*G
     cell.wire(pin_at(T, (xt, Y0), 0, ppin, unit), (xt, yp))
-    ra = (xt, yp - 3*G)
-    cell.symbol("Device:R", ra, 0, refs("R{k}%d" % n), RA)
-    cell.wire(pin_at("Device:R", ra, 0, "2"), (xt, yp))
-    top = (xt, ra[1] - 3*G)
-    cell.wire(pin_at("Device:R", ra, 0, "1"), top)
-    cell.symbol("power:+150V", top, 0, pwr_refs(), "+150V", ref_off=(0, 3.81), val_off=(-2.54, -3.81), hide_ref=True, pins=["1"])
+    plate_load(cell, refs, xt, yp, RA, "R{k}%d" % n, (LA, RD), "L{k}%d" % n, "R{k}%d" % (n + 2),
+               lambda top: cell.symbol("power:+150V", top, 0, pwr_refs(), "+150V", ref_off=(0, 3.81), val_off=(-2.54, -3.81),
+                                       hide_ref=True, pins=["1"]))
     cell.wire((xt, yp), (xt + 8*G, yp)); cell.junction((xt, yp))
     cell.hlabel("Y%d" % n, "output", (xt + 8*G, yp), 0)
     g = pin_at(T, (xt, Y0), 0, gpin, unit)
@@ -189,16 +210,17 @@ for pin, name in (("8", "H1"), ("4", "H2")):
     cell.wire(p, e)
     cell.hlabel(name, "passive", e, 270)
 cell.text("NOT_N16: Y1 = ~A1, Y2 = ~A2. One 6N16B (6Н16Б): two independent inverters, each triode with its own Ra.\n"
+          "Plate load: Ra 10k in series with the choke L 680u || 10k (TRS v0.58, as NOR2_N16).\n"
           "Inputs A1, A2: LV level, straight to the grids (1 = +10 V, 0 = -20 V).\n"
           "Outputs Y1, Y2: HV level on the plates (1 = +150 V, 0 = +50 V).\n"
-          "Simulated: Y = 147 / 55 V; fanout 2/10: tpHL 61/83 ns, tpLH 64/211 ns; crosstalk between the halves -2 / +5 V.\n"
+          "Delays, limits and power: the cell page (plate chokes since TRS v0.58).\n"
           "Each HV net that drives grids needs a divider HV -> LV: 470k || C1 from Y to the LV net,\n"
           "200k from the LV net to -50 V, C1 = 3.9 pF per grid on that net (see NOT_N16_tb).\n"
           "LV inputs must come from such a divider (grid current is limited by it), never from a stiff source.\n"
           "Unused half: tie its input to a used LV net or to the other input. Supplies: +150 V, -50 V (dividers only),\n"
           "heater 6.3 V 0.4 A on H1/H2. Page: sch/logic/NOT_N16/README.md", (20*G, 58*G))
 cell.dump(os.path.join(OUT, "NOT_N16", "NOT_N16.kicad_sch"), "NOT_N16 - 2 x NOT on 6N16B",
-          comments=["Y1 = ~A1, Y2 = ~A2; A: LV (+10/-20 V); Y: HV (+150/+50 V)", "Ra 10k to +150 V per triode"])
+          comments=["Y1 = ~A1, Y2 = ~A2; A: LV (+10/-20 V); Y: HV (+150/+50 V)", "Ra 10k + (680u || 10k) to +150 V per triode"])
 
 # ---------------------------------------------------------------- testbench
 ROOT = "/%s" % tb.uuid

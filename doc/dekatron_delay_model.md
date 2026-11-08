@@ -30,6 +30,9 @@ through a continuous assignment with a delay:
 | write  | `{write_en_i, write_pos_i}` | `(WRITE_MIN_HS - WR_SYNC_HS) * HS_NS` |
 | reset  | `{resetN, reset0}`        | `(RESET_MIN_HS - WR_SYNC_HS) * HS_NS` |
 
+TRS v0.56: the write and reset channels are one channel now, the cathode lines `line_open_i`
+held for `WRITE_MIN_NS` (`doc/cathode_line_write.md`); `RESET_MIN_*` is gone.
+
 Verilog continuous-assignment delays are **inertial**: a change of the right
 side cancels the update that is still pending. So the delayed copy equals
 the request only if the request held steady for the whole delay. When it

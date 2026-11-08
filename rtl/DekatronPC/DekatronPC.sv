@@ -307,6 +307,7 @@ module DekatronPC #(
     wire                  insn_loading;
 
     wire [IP_W-1:0]       ip_mem_addr;
+    wire                  clk_ip, clk_ap, clk_ipm, clk_apm;  // тактовое дерево платы такта (MachineCtrl/ClkTree)
     wire [INSN_WIDTH-1:0] ip_mem_wr_data, ip_mem_rd_data;
     wire                  ip_mem_valid, ip_mem_ready, ip_mem_wr;
     wire                  ip_mem_rd_valid, ip_mem_err;
@@ -316,7 +317,7 @@ module DekatronPC #(
         .LOOP_READ         (EN_EMULATOR)
     ) ipLine (
         .rst_n         (rst_n),
-        .clk           (Clk),
+        .clk           (clk_ip),
 `ifndef DEKATRON_DELAY_MODEL
         .hs_clk        (hsClk),
 `endif
@@ -362,7 +363,7 @@ module DekatronPC #(
         .EN_DBG_PORT   (EN_EMULATOR),
         .ADDR_ACTIVE_LOW (1'b1)       // IP с инверсных выходов BinToBcdN (TC-O3)
     ) ipMemory (
-        .clk           (Clk),
+        .clk           (clk_ipm),
         .rst_n         (rst_n),
         .valid         (ip_mem_valid),
         .ready         (ip_mem_ready),
@@ -396,7 +397,7 @@ module DekatronPC #(
         .DATA_TOP_VALUE    (DATA_TOP_VALUE)
     ) apLine (
         .rst_n       (rst_n),
-        .clk         (Clk),
+        .clk         (clk_ap),
 `ifndef DEKATRON_DELAY_MODEL
         .hs_clk      (hsClk),
 `endif
@@ -438,7 +439,7 @@ module DekatronPC #(
         .ADDR_ACTIVE_LOW (1'b1),      // AP и данные — активным нулём (TC-O3)
         .DATA_ACTIVE_LOW (1'b1)
     ) ram (
-        .clk      (Clk),
+        .clk      (clk_apm),
         .rst_n    (rst_n),
         .valid    (ap_mem_valid),
         .ready    (ap_mem_ready),
@@ -466,6 +467,10 @@ module DekatronPC #(
         .EN_EMULATOR   (EN_EMULATOR)
     ) machineCtrl (
         .clk                    (Clk),
+        .clk_ip                 (clk_ip),
+        .clk_ap                 (clk_ap),
+        .clk_ipm                (clk_ipm),
+        .clk_apm                (clk_apm),
         .rst_n                  (rst_n),
 
         .halt_key               (Halt),

@@ -199,6 +199,72 @@ class Sch:
         self.dot(x, y1)
         self.dot(x, y2)
 
+    def plate_load(self, x, y1, y2, ra, la, rd=None, rd_side="right", dx=34):
+        """Plate load (TRS v0.58): Ra from (x, y1), then the choke L, with its damping resistor Rd in parallel
+        dx to one side, down to the plate node (x, y2). ra, la, rd = (ref, value); rd None: a bare choke.
+        Needs y2 - y1 >= 80. Ra and L are labelled on the side away from Rd."""
+        lab = "left" if rd and rd_side == "right" else "right"
+        ym = y1 + 38
+        self.res_v(x, y1, ym, ra[0], ra[1], side=lab)
+        self.ind_v(x, ym, y2, la[0], la[1], side=lab)
+        if rd:
+            sx = x + dx if rd_side == "right" else x - dx
+            self.wire([(x, ym), (sx, ym)], net=("rd", x, ym))
+            self.res_v(sx, ym, y2, rd[0], rd[1], side=rd_side)
+            self.wire([(sx, y2), (x, y2)], net=("rd", x, y2))
+            self.dot(x, ym)
+        self.dot(x, y2)
+
+    def inverter(self, x, y, ref, sub=None, w=58):
+        """The element "Inverter" (half a 6N16B with its plate load): input (x, y) on the left, output (x + w, y).
+        ref, sub: the reference and the part line under the symbol."""
+        h = 40
+        tx = x + w - 12
+        self.line(x, y, x + 10, y)
+        self.path(f"M{x + 10:g},{y - h / 2:g} L{tx - 9:g},{y:g} L{x + 10:g},{y + h / 2:g} Z", sw=1.6, fill="#f3f6fb")
+        self.body.append(f'<circle cx="{tx - 4:g}" cy="{y:g}" r="4.5" fill="#fff" stroke="{INK}" stroke-width="1.5"/>')
+        self.line(tx + 0.5, y, x + w, y)
+        self.text(x + w / 2 - 6, y - h / 2 - 6, "Inverter", 10.5, INK, "middle", "bold")
+        self.text(x + w / 2 - 6, y + h / 2 + 13, ref, 9.5, SUP, "middle")
+        if sub:
+            self.text(x + w / 2 - 6, y + h / 2 + 25, sub, 8.5, SUP, "middle")
+        return {"in": (x, y), "out": (x + w, y)}
+
+    def divider(self, x, y1, y2, refs, vals, side="right", horizontal=False):
+        """The element "Divider": HV in, LV out (R1 || C1 in series, R2 to -50 V inside). Vertical from (x, y1) (HV)
+        to (x, y2) (LV); horizontal from (x, y1) to (y2, y1) when horizontal (y2 is then the right end x).
+        refs, vals: one line each, e.g. "R905 · C901 · R906", "470k ‖ 2.7p / 200k"."""
+        bw, bh = (78, 34) if horizontal else (34, 46)
+        if horizontal:
+            x1, x2, y = x, y2, y1
+            cx = (x1 + x2) / 2
+            self.line(x1, y, cx - bw / 2, y)
+            self.line(cx + bw / 2, y, x2, y)
+            bx, by = cx - bw / 2, y - bh / 2
+        else:
+            cy = (y1 + y2) / 2
+            self.line(x, y1, x, cy - bh / 2)
+            self.line(x, cy + bh / 2, x, y2)
+            self.leads.append((x, y1, cy - bh / 2))
+            self.leads.append((x, cy + bh / 2, y2))
+            bx, by = x - bw / 2, cy - bh / 2
+        self.body.append(f'<rect x="{bx:g}" y="{by:g}" width="{bw}" height="{bh}" rx="4" fill="#fff8ec" '
+                         f'stroke="{INK}" stroke-width="1.5"/>')
+        if horizontal:
+            self.text(bx + bw / 2, by + 14, "Divider", 10, INK, "middle", "bold")
+            self.text(bx + bw / 2, by + 27, "HV → LV", 8.5, SUP, "middle")
+            self.text(bx + bw / 2, by + bh + 13, vals, 9.5, INK, "middle", "bold")
+            self.text(bx + bw / 2, by + bh + 25, refs, 8.5, SUP, "middle")
+        else:
+            self.text(bx + bw / 2, by + 17, "÷", 15, INK, "middle", "bold")
+            self.text(bx + bw / 2, by + 33, "HV", 7.5, SUP, "middle")
+            self.text(bx + bw / 2, by + 42, "LV", 7.5, SUP, "middle")
+            off = bw / 2 + 6
+            anc, xx = ("start", x + off) if side == "right" else ("end", x - off)
+            self.text(xx, (y1 + y2) / 2 - 4, "Divider", 10, INK, anc, "bold")
+            self.text(xx, (y1 + y2) / 2 + 9, vals, 9.5, INK, anc)
+            self.text(xx, (y1 + y2) / 2 + 21, refs, 8.5, SUP, anc)
+
     def cap_h(self, x1, x2, y, ref, val, side="below"):
         cx = (x1 + x2) / 2
         self.line(x1, y, cx - 4, y)

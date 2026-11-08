@@ -76,9 +76,11 @@ module DekatronPhaseGen #(
 
     output wire Phase1,
     output wire Phase2,
-    // Окно команды: от фронта Clk до начала первой фазы. Пока оно поднято,
-    // разряды стоят, и защёлки разрешений декад DekatronCounter прозрачны;
-    // на фазы и сваливание они закрыты (doc/tube_count_1000.md §3)
+    // Импульс начала первой фазы (спад окна команды: от фронта Clk до
+    // начала фаз разряды стоят, команда и dec установились). Его
+    // нарастающим фронтом DekatronCounter снимает разрешения декад в
+    // DFFP_J2N16; между фронтом Clk и этим импульсом триггеры не нужны
+    // (doc/tube_count_1000.md §3)
     output wire CmdWin
 );
 `ifndef SYNTH
@@ -140,7 +142,7 @@ module DekatronPhaseGen #(
                 .En      (ClkRise),
                 .Impulse (WinDelay)
             );
-            assign CmdWin = WinDelay;
+            assign CmdWin = PhaseStart;
 
             Impulse #(
 `ifdef DEKATRON_DELAY_MODEL
@@ -158,7 +160,7 @@ module DekatronPhaseGen #(
         end
         else begin : g_no_delay
             assign PhaseStart = ClkRise;
-            assign CmdWin     = ClkRise;
+            assign CmdWin     = PhaseStart;
         end
     endgenerate
 

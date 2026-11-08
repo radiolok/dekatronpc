@@ -34,13 +34,13 @@ def ngspice(deck):
 def gates(cell):
     """(deck, {meas: (pin, 'rise'|'fall' of Y)})"""
     if cell == "NAND2_J2":
-        p = dict(R1="470k", R2="200k", C1g=3.9, C1g3=6.8, Cb=15, Ra="15k", Rg2="15k")
+        p = dict(NA.CELL)
         return NA.deck(p, FANOUT), {"tphl_a": ("A", "fall"), "tplh_a": ("A", "rise"), "tphl_b": ("B", "fall"), "tplh_b": ("B", "rise")}
     if cell == "NOR2_N16":
         p = dict(R1="470k", R2="200k", C1g=3.9, Ra="10k", L="680u", Rd="10k")
         return NO.deck(p, FANOUT), {"tphl": ("A", "fall"), "tplh": ("A", "rise")}
     if cell == "NOT_N16":
-        p = dict(R1="470k", R2="200k", C1g=3.9, Ra="10k")
+        p = dict(NT.CELL)
         return NT.deck(p, FANOUT), {"tphl_a": ("A", "fall"), "tplh_a": ("A", "rise")}
     key = {"A1OOI_N16J2": "a1", "AOI211_J2N16": "a211", "A2OOI_J2": "a22", "NOR3_N16": "n3", "NOR4_N16": "n4"}[cell]
     c = A.CELLS[key]

@@ -695,7 +695,7 @@
         "uuid": "854891b4-b94b-4e8f-afd0-2208dccb6d24"
       }
     ],
-    "used_designators": "R22,R30,R44,R51-53,D38,D47-48,Q10-24",
+    "used_designators": "R22-23,R30-31,R44-45,R51-53,D38,D47-48,Q10-24",
     "variants": []
   },
   "sheets": [

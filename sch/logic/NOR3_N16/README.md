@@ -9,15 +9,29 @@ Cell page. REQ-MOD-003 (NOR3_N16 in the library), REQ-MOD-005 (boards), REQ-MOD-
 | Function | Y = ~(A + B + C) |
 | Tubes | 1.5 × 6N16B (liberty: N16B 1.5); the sheet: two cells on three tubes |
 | Inputs (LV) | A, B, C, one triode grid each |
-| Output (HV) | Y, three plates, Ra 10k to +150 V |
+| Output (HV) | Y, three plates, Ra 10k + L 680 µH ‖ 10k to +150 V (TRS v0.58) |
 | Supplies | +150 V; −50 V (dividers only); heater 6.3 V, 3 × 0.4 A per sheet |
 | Divider C1 per grid on the driving nets | 3.9 pF |
 | Output levels (static) | "1" 145.6–146.8 V; "0" 55.7 V (one input), 39.3 V (two), 31.5 V (all three) |
-| Delay to 100 V, fanout 2 / 6 / 10 | Y falls 56–67 / 64–78 / 71–88 ns; Y rises 104 / 177 / 252 ns |
-| Delay to the thresholds (92 V falling, 118 V rising), fanout 6 | 76–93 / 320 ns |
+| Delay to 100 V, fanout 2 / 6 / 10 | Y falls 40–43 / 47–50 / 52–57 ns; Y rises 90 / 156 / 224 ns (was 56–88 / 104…252 ns) |
+| Delay to the thresholds (92 V falling, 118 V rising), fanout 6 | 53–58 / 263 ns (was 76–93 / 320 ns) |
 | Lowest grid | −34.8 V nominal, −42.0 V with all C1 +10 % (limit −50 V) |
 | Crosstalk from the other cell | ≤ 1.8 V on Y |
 | Worst static | Ik 10.3 mA, Pa 0.53 W per triode; Ra 1.40 W with all three on (a 2 W resistor) |
+
+## Plate choke (TRS v0.58)
+
+Owner, 2026-11-08: the plate choke of `NOR2_N16` goes into every cell. Each Y now has Ra 10k (R101, R103) in series with L 680 µH (L101, L102) damped by 10k (R102, R104). The bench drivers (6N16B triodes) carry the same choke.
+
+| Fanout | Y falls / rises to 100 V | to the thresholds (fall 92 V / rise 118 V) | before the choke (thresholds) |
+|---|---|---|---|
+| 2 | 40–43 / 90 ns | 46–50 / 143 ns | — |
+| 6 | 47–50 / 156 ns | **53–58 / 263 ns** | 76–93 / 320 ns |
+| 10 | 52–57 / 224 ns | 61–67 / 392 ns | — |
+
+Levels do not move: VOH 146.8 V, VOL 55.3 V (one input) … 31.3 V (all three). Lowest grid −38.9 V (fanout 2, faster driver edges). The KiCad bench agrees with plain SPICE within 0.2 %.
+
+Tools: `tools/spice/chokes.py` (the values), `tools/spice/threshold_delays.py --fanout N` (to the thresholds), the `*_plots.py` of this cell (to 100 V, the figures), `tools/spice/kicad_parity.py` (KiCad bench against plain SPICE). Investigation: `doc/dinv_trigger_board.md`.
 
 ## Schematic
 
@@ -57,6 +71,8 @@ All three inputs of a cell are triode grids, so the cell has one grid type and n
 Chosen: 10k, the same as NOR2_N16 and NOR4_N16. VOL with one input sits on the +50 V nominal. 8.2k would move VOL to 61 V and the hazard to 81 V.
 
 ## Results
+
+> **Plate choke (TRS v0.58).** The tables of this section were simulated before the cell got its plate choke and stay as the record of the design; the figures of this page are redrawn with the choke. Current numbers: section *Plate choke* above and `sch/logic/vtube_timing.json`.
 
 ### Delay against fanout
 

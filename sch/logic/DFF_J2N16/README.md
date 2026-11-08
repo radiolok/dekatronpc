@@ -14,11 +14,27 @@ Cell page. The falling-edge D flip-flop built from two [RSLATCH_J2N16](../RSLATC
 | Outputs (HV) | Q, QN |
 | Heater 6.3 V | 2.0 A (12.6 W) |
 | Output levels | 1: 141.8…143.9 V; 0: 36…55 V (as RSLATCH) |
-| Speed, fanout 2 / 6 / 10 | C↓→Q 340 / 441 / 539 ns; register to register 1.11 / 1.05 / 0.93 MHz |
+| Speed, fanout 2 / 6 / 10 | C↓→Q 246 / 325 / 405 ns; register to register 1.58 / 1.53 / 1.38 MHz with the plate chokes (was 340 / 441 / 539 ns, 1.11 / 1.05 / 0.93 MHz) |
 | Timing limits, fanout 2 / 6 / 10 | hold ≤ 0; race margin ≈ 90 ns at C↑ |
 | Lowest grid | −31.9 V (D) |
 
 A 16-tube board takes two DFF_J2N16, with two tubes spare (owner, 2026-10-27).
+
+## Plate chokes (TRS v0.58)
+
+Owner, 2026-11-08: a plate choke in every cell. Master and slave have the new RS core (La 1 mH, Rg2 12k; RSLATCH_J2N16 page); the D and C inverters (Л901a, Л901b) have Ra 10k in series with L 680 µH damped by 10k (R901 + L901 ‖ R902, R903 + L902 ‖ R904). The divider references moved: DN → RM R905 · C901 · R906, CN → ES R907 · C902 · R908, QM → SS R909 · C903 · R910, QNM → RS R911 · C904 · R912.
+
+| Fanout | C↓→Q to 100 V (Q rising) | C↓→Q to the thresholds [rise, fall] | register to register, shortest period | before the chokes |
+|---|---|---|---|---|
+| 2 | 246 ns | 339, 325 ns | 634 ns, 1.58 MHz | 340 ns; 1.11 MHz |
+| 4 | 285 ns | — | 634 ns, 1.58 MHz | — |
+| 6 | 325 ns | **488, 431 ns** | 654 ns, 1.53 MHz | 441 ns, [665, 592]; 1.05 MHz |
+| 8 | 365 ns | — | 684 ns, 1.46 MHz | — |
+| 10 | 405 ns | 651, 530 ns | 725 ns, 1.38 MHz | 539 ns; 0.93 MHz |
+
+The same register clocked on the rising edge (the option of *The flip-flop: which edge*): 1.36 / 1.10 / 0.80 MHz at fanout 2 / 6 / 10. Setup before C falls: 194 ns at fanout 6 (the latch setup), hold ≤ 0. Levels do not move. The faster C inverter closes the slave earlier at C↑, which only widens the race margin. The KiCad bench agrees with plain SPICE within 0.08 %.
+
+Tools: `tools/spice/chokes.py` (the values), `tools/spice/threshold_delays.py --fanout N`, `tools/spice/latch_plots.py`, `tools/spice/kicad_parity.py`. Investigation: `doc/dinv_trigger_board.md`.
 
 ## Schematic
 
@@ -35,6 +51,8 @@ The KiCad sheet below has the same parts spread out and joined by net labels:
 The master outputs go through separate dividers instead of reusing the feedback dividers, because KiCad keeps one value per sheet file for all instances (`doc/cell_design_method.md` §4): the master and the slave must be the same RSLATCH sheet, `../RSLATCH_J2N16/RSLATCH_J2N16.kicad_sch`.
 
 ## Results
+
+> **Plate choke (TRS v0.58).** The tables of this section were simulated before the plate chokes and stay as the record of the design; the figures of this page are redrawn with them. Current numbers: section *Plate chokes* above and `sch/logic/vtube_timing.json`.
 
 ### Delay against fanout
 
@@ -114,7 +132,7 @@ On iverilog: the failure that decided the flip-flop design is analog. The clock 
 | C | pentode_g3 (two, plus the inverter's triode grid) | 17.5 pF | 4.5 |
 | Q, QN | HV out, max_fanout 6 | | |
 
-- **Timing** (`vtube_timing.json`, SPICE at fanout 6, to the next stage's thresholds (falling output to 92 V, rising to 118 V; owner, 2026-10-29; `tools/spice/threshold_delays.py`)): C↓→Q [rise, fall] 665 / 592 ns (497 / 520 ns to 100 V over the 16-bit pattern), setup 310 ns before C falls, hold 0. `vtube_cells.v` models `DFF_J2N16` on `negedge C`; `rtl/run/vtube_sdf.py` writes `negedge` IOPATHs and SETUPHOLD for it, and `vtube_setuphold` checks it with `NEGEDGE = 1`.
+- **Timing** (`vtube_timing.json`, SPICE at fanout 6, to the next stage's thresholds (falling output to 92 V, rising to 118 V; owner, 2026-10-29; `tools/spice/threshold_delays.py`)): C↓→Q [rise, fall] 488 / 431 ns with the plate chokes (TRS v0.58; 665 / 592 ns before), setup 194 ns before C falls (310 ns before), hold 0; fanout ratios from `threshold_delays.py --fanout 2 / 10`. `vtube_cells.v` models `DFF_J2N16` on `negedge C`; `rtl/run/vtube_sdf.py` writes `negedge` IOPATHs and SETUPHOLD for it, and `vtube_setuphold` checks it with `NEGEDGE = 1`.
 - **Clock inverter.** The RTL clocks on the rising edge. `dfflibmap` puts a `$_NOT_` in front of every falling-edge trigger, and `synt_dpc.tcl` merges them (`opt_merge`) into one `NOT_N16` per clock net and module. Without the merge, ABC kept one output per trigger and drove each through a `BUF_N16` (20 extra followers, 10 tubes, in the first run). In the machine the clock is inverted once at the generator, so these inverters stand for the generator's inverted line; they cost 0.5 tube each in the count (one per counter module: 4 in IpLine + ApLine, 2 tubes).
 - With `max_fanout` 6 the flip-flop meets 1 MHz register to register without logic between the flops. Any logic between them needs a slower clock, or it has to be counted against the 1 µs period.
 - `div_insert.py` counts a pin as one grid, so a D or C pin with two or three grids under-counts the net fanout.

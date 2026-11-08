@@ -19,6 +19,8 @@ Optional parameters: M (6Zh2B instance parameters, e.g. "CG3A=2.5P"), MN (6N16B)
 """
 import subprocess, re, sys, os, tempfile
 from multiprocessing import Pool
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import chokes as K  # noqa: E402
 HERE = os.path.dirname(os.path.abspath(__file__))
 NGRUN = os.path.join(HERE, "ngrun.py")
 LIBS = os.path.join(HERE, "..", "..", "sch", "libs")
@@ -66,7 +68,8 @@ def rslatch(t, s_, r_, e_, q, qn, p, ext=0):
     g = lambda a, b: (a, b) if p['eg'] == 'g3' else (b, a)   # (g1, g3) of a pentode with data a, enable b
     s1, s3 = g(s_, e_); r1, r3 = g(r_, e_)
     n = penta(f"{t}s", qn, s1, s3, p) + penta(f"{t}r", q, r1, r3, p)
-    n += f"RA{t}q vcc {q} {p['Ra']}\nRA{t}n vcc {qn} {p['Ra']}\n"
+    core = (p.get('La'), p.get('Lad'))           # plate chokes of the core (chokes.CORE)
+    n += K.plate(f"RA{t}q", q, p['Ra'], core) + K.plate(f"RA{t}n", qn, p['Ra'], core)
     if p['fb'] == 'int':
         lq, lqn = f"fq{t}", f"fqn{t}"
         n += div(f"{t}q", q, lq, p, p['C1f']) + div(f"{t}n", qn, lqn, p, p['C1f'])
@@ -89,8 +92,13 @@ def driver(t, bits, lv, p, c1):
     """ideal HV pulse -> divider -> one 6N16B triode (Ra 10k) -> divider (c1) -> lv"""
     inv = [1 - b for b in bits]
     return (f"VS{t} hs{t} 0 {pwl(inv, 50, 150)}\n" + div(f"s{t}", f"hs{t}", f"is{t}", p, p['C1g'])
-            + f"XD{t} pd{t} is{t} 0 pdx{t} nb 0 6N16B\nRD{t} vcc pd{t} 10k\nRDX{t} vcc pdx{t} 10k\n"
-            + div(f"d{t}", f"pd{t}", lv, p, c1))
+            + f"XD{t} pd{t} is{t} 0 pdx{t} nb 0 6N16B\n" + K.plate(f"RD{t}", f"pd{t}", "10k", drv_choke(p))
+            + f"RDX{t} vcc pdx{t} 10k\n" + div(f"d{t}", f"pd{t}", lv, p, c1))
+
+
+def drv_choke(p):
+    """choke of a 6N16B driver plate (Ld || Ldr), None without"""
+    return (p['Ld'], p.get('Ldr')) if p.get('Ld') else None
 
 
 def c1_in(p, kind):
@@ -189,7 +197,10 @@ def fmt(name, n, m, seq=SEQ):
 
 
 BASE = dict(R1="470k", R2="200k", C1g=3.9, C1g3=6.8, C1f=3.9, Cb=15, Ra="15k", Rg2="15k", eg="g3", fb="int")
-CHOSEN = dict(Ra="10k", C1p=2.7)
+# plate chokes (chokes.py, TRS v0.58): the core 1 mH with Rg2 12k (as DFFP_J2N16), the bench drivers and the in-cell
+# D / C inverters (dff_sweep) 0.68 mH || 10k
+CHOSEN = dict(Ra="10k", C1p=2.7, La=K.CORE[0], Lad=K.CORE[1], Rg2=K.CORE_RG2,
+              Ld=K.TRIODE[0], Ldr=K.TRIODE[1], Li=K.TRIODE[0], Lir=K.TRIODE[1])
 
 if __name__ == "__main__":
     # usage: latch_sweep.py [cases.py]; a cases file defines CASES = [(name, params), ...] and optionally GRIDS

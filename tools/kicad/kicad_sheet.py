@@ -185,6 +185,16 @@ class Sheet:
             else:
                 self.attach(p, d, net, hier)
         return refs
+    def plate_load(self, pos, ra, choke, net, hier=None, dx=6):
+        """plate load (TRS v0.58): Ra from +150 V at pos, then the choke L (|| its damping resistor) to net, side by
+        side dx grid steps apart; the Ra-L node is a local net <net>_RA. choke = (L, Rd or None), tools/spice/chokes.py"""
+        x, y = pos
+        if not choke or not choke[0]:          # a plain plate resistor
+            self.part("Device:R", (x, y), "R", ra, {"1": "+150V", "2": net}, hier=hier); return
+        mid = net.strip("/") + "_RA"
+        self.part("Device:R", (x, y), "R", ra, {"1": "+150V", "2": mid}, hier=hier)
+        self.part("Device:L", (x + dx*G, y), "L", choke[0], {"1": mid, "2": net}, hier=hier)
+        if choke[1]: self.part("Device:R", (x + 2*dx*G, y), "R", choke[1], {"1": mid, "2": net}, hier=hier)
     def subsheet(self, name, file, pos, size, pins, nets, page_paths, uid, hier=None):
         """pins: [(name, type, side 'L'|'R', row)], nets: pin -> net in this sheet; page_paths: [(project, path, page)]"""
         x, y = pos; w, h = size

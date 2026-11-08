@@ -19,7 +19,7 @@ IMGDIR = 'img/schemes'
 NAMES = ["01_1_decatron_ring", "01_2_decatron_model", "01_3_decatron_timing",
          "02_1_phasegen_pulsesender", "02_2_dekatron_module", "03_1_dekatron_counter",
          "03_2_dekatron_counter_cycle", "04_1_ipline", "04_2_ipline_fsm", "05_1_apline",
-         "05_2_apline_fsm", "06_1_machinectrl", "06_2_machinectrl_fsm", "07_1_dekatronpc_top"]
+         "05_2_apline_fsm", "06_1_machinectrl", "06_2_machinectrl_fsm", "06_3_machinectrl_clktree", "07_1_dekatronpc_top"]
 
 
 def svg_style():

@@ -10,14 +10,28 @@ Cell page. REQ-MOD-005 (2И-НЕ board), REQ-MOD-012 (logic levels), REQ-MOD-004
 | Input B | LV level, grid 3 (suppressor), with Cb 15 pF to GND in the cell |
 | Output Y | HV level, plate |
 | Supplies | +150 V (plate through Ra, screen through Rg2); −50 V (dividers only); heater 6.3 V, 0.2 A |
-| Parts | Ra 15 kΩ, Rg2 15 kΩ, Cb 15 pF; per driven LV net a divider 470 kΩ ‖ C1 / 200 kΩ, C1 = 3.9 pF per g1 grid + 6.8 pF per g3 grid |
+| Parts | Ra 15 kΩ + L 1.5 mH ‖ 15 kΩ (TRS v0.58), Rg2 15 kΩ, Cb 15 pF; per driven LV net a divider 470 kΩ ‖ C1 / 200 kΩ, C1 = 3.9 pF per g1 grid + 6.8 pF per g3 grid |
 | Output levels | Y = 145 V (1); 44 V (0), 38…52 V over MU2 ± 20 % |
-| Delay, fanout 2 … 10 | tpHL 166 … 396 ns, tpLH 122 … 466 ns (both inputs, see Fanout) |
-| Grid, worst transient | −26.0 V (limit −50 V) |
+| Delay, fanout 2 … 10 | tpHL 109 … 360 ns, tpLH 109 … 375 ns with the plate choke (was 166 … 396 / 122 … 466 ns) |
+| Grid, worst transient | −31.7 V with the choke in the drivers (limit −50 V; −26.0 V before) |
 | Cg3a | 1.8 pF, measured by the owner on a 6Ж2Б-В |
 | Ik, Pa, Pg2, worst static | 12.6 mA, 0.33 W, 0.37 W (limits 14 mA, 0.9 W, 0.6 W) |
 
 The owner confirmed on 2026-10-24: A on g1, B on g3, both LV (+10 / −20 V), output HV (+150 / +50 V), one 6Zh2B, supplies +150 / −50 V, the screen fed through a dropping resistor Rg2 from +150 V (no new rail); and, after the first sweep, passive compensation of the g3 Miller effect (Cb in the cell, larger C1 for g3 grids) instead of a cathode follower. The owner then measured Cg3a = 1.8 pF on a 6Ж2Б-В (2026-10-24); all figures on this page use that value.
+
+## Plate choke (TRS v0.58)
+
+Owner, 2026-11-08: a plate choke in every cell. The pentode gates have Ra 15k, so the choke is scaled by the shunt-peaking rule La ∝ Ra² from the `NOR2_N16` value: 0.68 mH × (15/10)² = **1.5 mH, damped by 15k**. Parts: Ra R11 15k, L11 1.5 mH, R13 15k across it. The drivers of the bench are `NAND2_J2` gates and carry the same choke. 0.68 mH ‖ 10k was also tried: it gives about 10 % less (`tools/spice/choke_all.py`).
+
+| Fanout | tpHL A/B, tpLH A/B to 100 V | to the thresholds, A (fall 92 V / rise 118 V) | B | before the choke (thresholds, A / B) |
+|---|---|---|---|---|
+| 2 | 109/115, 114/109 ns | 156 / 176 ns | 132 / 176 ns | — |
+| 6 | 246/198, 251/241 ns | **362 / 430 ns** | **232 / 422 ns** | 444 / 545, 345 / 503 ns |
+| 10 | 360/289, 355/375 ns | 522 / 666 ns | 353 / 686 ns | — |
+
+The rising edge gains 19–21 %; the falling one less: a pentode pull-down is a current slew, which the choke does not touch. Levels do not move (VOH 145.3 V; VOL 53…61 V at fanout 6…10). Lowest grid −31.7 V (A), −25.1 V (B). The KiCad bench agrees with plain SPICE within 0.6 %.
+
+Tools: `tools/spice/chokes.py` (the values), `tools/spice/threshold_delays.py --fanout N` (to the thresholds), the `*_plots.py` of this cell (to 100 V, the figures), `tools/spice/kicad_parity.py` (KiCad bench against plain SPICE). Investigation: `doc/dinv_trigger_board.md`.
 
 ## Logic levels
 
@@ -129,6 +143,8 @@ C1 = 3.9 pF × n1 + 6.8 pF × n3
 A g3 input therefore costs 1.7 times the divider capacitance of a g1 input. For the synthesis flow this means `fanout_load` 1.0 on A and about 1.7 on B (not yet in the liberty).
 
 ## Results
+
+> **Plate choke (TRS v0.58).** The tables of this section were simulated before the cell got its plate choke and stay as the record of the design; the figures of this page are redrawn with the choke. Current numbers: section *Plate choke* above and `sch/logic/vtube_timing.json`.
 
 ### KiCad testbench
 

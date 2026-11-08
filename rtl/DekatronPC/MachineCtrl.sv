@@ -79,7 +79,11 @@
 module MachineCtrl #(
     parameter bit          EN_EMULATOR   = 1'b0   // счётчик выполненных инструкций
 )(
-    input  wire clk,
+    input  wire clk,          // Clk платы такта: генератор или внешний вход (ClkTree)
+    output wire clk_ip,       // тактовое дерево: IpLine
+    output wire clk_ap,       //                  ApLine
+    output wire clk_ipm,      //                  память программ
+    output wire clk_apm,      //                  память данных
     input  wire rst_n,        // только счётчик iret эмулятора; автомат сбрасывают линии (TC-O5)
 
     //------------------------------------------------------------------
@@ -200,17 +204,27 @@ module MachineCtrl #(
     // Линии soft_rst/hard_rst снимаются вместе с rst_busy, но в S_RST_WAIT
     // D автомата от них не зависит: выход оттуда — только по rst_busy_s.
     //------------------------------------------------------------------
+    // Плата такта: семь инверторов от генератора — по одному на IpLine, ApLine
+    // и их ферритовые памяти, три местных на 19 DFFP автомата (7/6/6),
+    // TRS v0.61/v0.62, ClkTree.sv
+    wire [2:0] clk_m;
+    ClkTree clkTree (.clk (clk), .clk_ip (clk_ip), .clk_ap (clk_ap),
+                      .clk_ipm (clk_ipm), .clk_apm (clk_apm), .clk_loc (clk_m));
+
     wire halt_key_s, step_key_s, run_key_s;
     wire key_insn_loading_start_s, key_insn_loading_stop_s;
     wire rst_busy_s;
 
-    DFFP_J2N16 syncHalt   (.C (clk), .D (halt_key),               .Q (halt_key_s),               .QN ());
-    DFFP_J2N16 syncStep   (.C (clk), .D (step_key),               .Q (step_key_s),               .QN ());
-    DFFP_J2N16 syncRun    (.C (clk), .D (run_key),                .Q (run_key_s),                .QN ());
-    DFFP_J2N16 syncLdSta  (.C (clk), .D (key_insn_loading_start), .Q (key_insn_loading_start_s), .QN ());
-    DFFP_J2N16 syncLdStp  (.C (clk), .D (key_insn_loading_stop),  .Q (key_insn_loading_stop_s),  .QN ());
-    DFFP_J2N16 syncRstBsy (.C (clk), .D (rst_busy),               .Q (rst_busy_s),               .QN ());
+    DFFP_J2N16 syncHalt   (.C (clk_m[0]), .D (halt_key),               .Q (halt_key_s),               .QN ());
+    DFFP_J2N16 syncStep   (.C (clk_m[0]), .D (step_key),               .Q (step_key_s),               .QN ());
+    DFFP_J2N16 syncRun    (.C (clk_m[0]), .D (run_key),                .Q (run_key_s),                .QN ());
+    DFFP_J2N16 syncLdSta  (.C (clk_m[0]), .D (key_insn_loading_start), .Q (key_insn_loading_start_s), .QN ());
+    DFFP_J2N16 syncLdStp  (.C (clk_m[0]), .D (key_insn_loading_stop),  .Q (key_insn_loading_stop_s),  .QN ());
+    DFFP_J2N16 syncRstBsy (.C (clk_m[0]), .D (rst_busy),               .Q (rst_busy_s),               .QN ());
 
+    logic [INSN_WIDTH-1:0] op_q_d;
+    logic [3:0] state_d;
+    logic pf_q_d, insn_loading_d, one_step_d, rst_soft_d;
     logic one_step;      // выполняется ровно одна инструкция
     logic [INSN_WIDTH-1:0] op_q;   // код текущей инструкции (op_load)
     logic pf_q;          // следующая инструкция выбрана заранее
@@ -292,9 +306,20 @@ module MachineCtrl #(
     // сторона обязана держать его (REQ-UART-008). От rx_vld не зависит.
     assign rx_rdy = in_wait & is_cin & go;
 
-    // Запрос держится, пока реле времени не подхватит его
-    assign soft_rst_req = in_rst_rq &  rst_soft;
-    assign hard_rst_req = in_rst_rq & ~rst_soft;
+    // Запрос держится, пока реле времени не подхватит его. Реле срабатывает
+    // по любому импульсу, поэтому запрос идёт с выхода триггера, а не с
+    // дешифратора состояния: при переходе S_COUT -> S_DECODE (0110 -> 1010) автомат
+    // мог на ~100 нс пройти через S_RST_REQ, и машина сбрасывалась
+    // (OPEN-019, TRS v0.59, doc/dinv_trigger_board.md §8). Импульсный
+    // DFFP_J2N16 (3,5 лампы): его Q меняется только по фронту такта, когда
+    // состояние уже установилось; задержка запроса — один такт. rst_soft
+    // ставится вместе с переходом в S_RST_REQ, к подъёму rst_rq_q он
+    // устоялся, поэтому И с ним иголок не даёт. Сброса у триггера нет:
+    // в S_RST_WAIT его D — ноль, и такт спустя запрос снят
+    wire rst_rq_q;
+    DFFP_J2N16 latchRstRq (.C (clk_m[0]), .D (in_rst_rq), .Q (rst_rq_q), .QN ());
+    assign soft_rst_req = rst_rq_q &  rst_soft;
+    assign hard_rst_req = rst_rq_q & ~rst_soft;
 
     // Звонок — импульс в такт события; по ошибке — уровень до сброса
     wire decode_run = in_decode & ~insn_loading;
@@ -321,19 +346,26 @@ module MachineCtrl #(
     // Все триггеры сбрасывают линии soft_rst/hard_rst синхронно или они
     // пишутся до чтения; rst_n в ламповой машине нет: его роль играет
     // аппаратный сброс реле времени при включении (REQ-REF-011, TC-O5)
-    always_ff @(posedge clk) begin
+    always_comb begin
+        op_q_d = op_q;
+        pf_q_d = pf_q;
+        state_d = state;
+        insn_loading_d = insn_loading;
+        one_step_d = one_step;
+        rst_soft_d = rst_soft;
+
         begin
-            if (op_load) op_q <= insn;
+            if (op_load) op_q_d = insn;
 
             // Общемашинный сброс по физическим линиям. Работает
             // одинаково и для сброса по инструкции, и для сброса с
             // пульта: линию в обоих случаях удерживает реле времени.
             if (rst_line) begin
-                rst_soft     <= ~hard_rst;
-                insn_loading <= 1'b0;
-                one_step     <= 1'b0;
-                pf_q         <= 1'b0;
-                state        <= S_RST_WAIT;
+                rst_soft_d     = ~hard_rst;
+                insn_loading_d = 1'b0;
+                one_step_d     = 1'b0;
+                pf_q_d         = 1'b0;
+                state_d        = S_RST_WAIT;
             end
             else begin
             case (state)
@@ -342,17 +374,17 @@ module MachineCtrl #(
             S_HALT: begin
                 if (step_key_s | run_key_s | key_insn_loading_start_s) begin
                     if (key_insn_loading_start_s)
-                        insn_loading <= 1'b1;
+                        insn_loading_d = 1'b1;
 
                     if (~one_step) begin
-                        if (step_key_s) one_step <= 1'b1;
-                        state <= S_IDLE;
+                        if (step_key_s) one_step_d = 1'b1;
+                        state_d = S_IDLE;
                     end
                 end
 
                 // Отпускание кнопки шага разрешает следующий шаг
                 if (one_step & ~step_key_s)
-                    one_step <= 1'b0;
+                    one_step_d = 1'b0;
             end
 
             //--------------------------------------------------------------
@@ -360,9 +392,9 @@ module MachineCtrl #(
             // Промотку тела цикла IpLine выполняет самостоятельно.
             //--------------------------------------------------------------
             S_IDLE: begin
-                pf_q <= 1'b0;   // после останова выборка обычная
-                if (halt_key_s)  state <= S_HALT;
-                else if (go)   state <= S_FETCH_W;
+                pf_q_d = 1'b0;   // после останова выборка обычная
+                if (halt_key_s)  state_d = S_HALT;
+                else if (go)   state_d = S_FETCH_W;
             end
 
             // Отдельного признака достоверности опкода нет (TC-O9): сюда
@@ -373,11 +405,11 @@ module MachineCtrl #(
                 if (go) begin
                     // Загрузка программы прерывается кнопкой или остановом
                     if (insn_loading & (key_insn_loading_stop_s | halt_key_s)) begin
-                        insn_loading <= 1'b0;
-                        state        <= S_HALT;
+                        insn_loading_d = 1'b0;
+                        state_d        = S_HALT;
                     end
                     else begin
-                        state <= S_DECODE;
+                        state_d = S_DECODE;
                     end
                 end
             end
@@ -386,20 +418,20 @@ module MachineCtrl #(
             // Декодирование
             //--------------------------------------------------------------
             S_DECODE: begin
-                pf_q <= 1'b0;
+                pf_q_d = 1'b0;
 
                 if (insn_loading & insn_eot) begin
                     //------------------------------------------------------
                     // EOT — конец загрузки. В память он не пишется,
                     // поэтому приходит отдельным признаком, а не в insn
                     //------------------------------------------------------
-                    insn_loading <= 1'b0;
+                    insn_loading_d = 1'b0;
                     if (soft_rst_on_eot) begin
-                        rst_soft <= 1'b1;
-                        state    <= S_RST_REQ;
+                        rst_soft_d = 1'b1;
+                        state_d    = S_RST_REQ;
                     end
                     else begin
-                        state <= S_HALT;
+                        state_d = S_HALT;
                     end
                 end
                 else if (insn_loading) begin
@@ -407,7 +439,7 @@ module MachineCtrl #(
                     // Режим загрузки программы: опкод уже записан в память
                     // (сквозная запись), исполнять нечего
                     //------------------------------------------------------
-                    state <= S_IDLE;
+                    state_d = S_IDLE;
                 end
                 else begin
                     //------------------------------------------------------
@@ -417,7 +449,7 @@ module MachineCtrl #(
                     case (op_q)
 
                     4'h1:                               // HALT
-                        state <= S_HALT;
+                        state_d = S_HALT;
 
                     //--- скобки -------------------------------------------
                     // Промотку делает IpLine, но решение он принимает по
@@ -430,12 +462,12 @@ module MachineCtrl #(
                     // { } (0xE/0xF) проверяют счётчик адреса, он достоверен
                     // всегда: они идут по default
                     4'h6, 4'h7:                         // [ ]
-                        state <= ~data_zero_valid ? S_EXEC
+                        state_d = ~data_zero_valid ? S_EXEC
                                : one_step         ? S_HALT : S_IDLE;
 
                     4'hB: begin                         // LD — начало загрузки
-                        insn_loading <= 1'b1;
-                        state        <= one_step ? S_HALT : S_IDLE;
+                        insn_loading_d = 1'b1;
+                        state_d        = one_step ? S_HALT : S_IDLE;
                     end
 
                     // '.' выводит счётчик данных: ApLine сначала
@@ -444,14 +476,14 @@ module MachineCtrl #(
                     4'h4, 4'h5,                         // > <
                     4'h8,                               // . COUT
                     4'hA, 4'hC, 4'hD:                   // [-] CLRA MemLock
-                        state <= S_EXEC;
+                        state_d = S_EXEC;
 
                     4'h9:                               // , CIN
-                        state <= S_CIN_WAIT;
+                        state_d = S_CIN_WAIT;
 
                     //--- NOP, { } ------------------------------------------
                     default:
-                        state <= one_step ? S_HALT : S_IDLE;
+                        state_d = one_step ? S_HALT : S_IDLE;
                     endcase
                 end
             end
@@ -461,52 +493,61 @@ module MachineCtrl #(
             //--------------------------------------------------------------
             S_EXEC: begin
                 if (go) begin
-                    pf_q  <= ~is_bracket;   // выдана и выборка
-                    state <= S_WAIT;
+                    pf_q_d  = ~is_bracket;   // выдана и выборка
+                    state_d = S_WAIT;
                 end
             end
 
             S_WAIT: begin
                 // Вывод символа, в том числе эхо после ввода
-                if (go) state <= cout_echo ? S_COUT : s_next;
+                if (go) state_d = cout_echo ? S_COUT : s_next;
             end
 
             //--------------------------------------------------------------
             // Ввод символа с терминала: ApLine пишет его в счётчик
             //--------------------------------------------------------------
             S_CIN_WAIT: begin
-                if (halt_key_s)          state <= S_HALT;
-                else if (rx_vld & go)  state <= S_WAIT;
+                if (halt_key_s)          state_d = S_HALT;
+                else if (rx_vld & go)  state_d = S_WAIT;
             end
 
             //--------------------------------------------------------------
             // Вывод символа в терминал
             //--------------------------------------------------------------
             S_COUT: begin
-                if (tx_rdy) state <= s_next;
+                if (tx_rdy) state_d = s_next;
             end
 
             //--------------------------------------------------------------
             // Физический сброс счётчиков
             //--------------------------------------------------------------
             S_RST_REQ: begin
-                if (rst_busy_s) state <= S_RST_WAIT;
+                if (rst_busy_s) state_d = S_RST_WAIT;
             end
 
             S_RST_WAIT: begin
                 if (~rst_busy_s) begin
                     // После аппаратного сброса стартует загрузчик (99990),
                     // после программного — программа с нуля
-                    state <= run_on_rst ? S_IDLE : S_HALT;
+                    state_d = run_on_rst ? S_IDLE : S_HALT;
                 end
             end
 
-            default: state <= S_IDLE;
+            default: state_d = S_IDLE;
             endcase
 
             end   // конец ветки «сброс не активен»
         end
     end
+
+    // Все признаки автомата — импульсные DFFP_J2N16 (3,5 лампы вместо 7).
+    // op_q удерживается мультиплексором op_load (D = op_load ? insn : op_q)
+    DFFP_J2N16 opFF       [INSN_WIDTH-1:0] (.C ({INSN_WIDTH{clk_m[1]}}), .D (op_q_d), .Q (op_q), .QN ());
+    DFFP_J2N16 stateFF    [3:0]            (.C ({4{clk_m[2]}}),          .D (state_d), .Q (state), .QN ());
+    DFFP_J2N16 pfFF                        (.C (clk_m[1]), .D (pf_q_d),         .Q (pf_q),         .QN ());
+    DFFP_J2N16 insnLoadFF                  (.C (clk_m[1]), .D (insn_loading_d), .Q (insn_loading), .QN ());
+    DFFP_J2N16 oneStepFF                   (.C (clk_m[2]), .D (one_step_d),     .Q (one_step),     .QN ());
+    DFFP_J2N16 rstSoftFF                   (.C (clk_m[2]), .D (rst_soft_d),     .Q (rst_soft),     .QN ());
 
     // Счётчик выполненных инструкций, только эмулятор: по rst_n, а не по
     // линиям — программный сброс по EOT его не обнуляет
