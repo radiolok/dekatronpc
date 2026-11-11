@@ -149,7 +149,7 @@ Ram #(
     .err      (MemErr),
     .ovl_hit  (1'b0),
     .ovl_data (10'h0),
-    .dbg_addr (20'h0),
+    .dbg_addr ('0),
     .dbg_data ()
 );
 

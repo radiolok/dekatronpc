@@ -19,7 +19,7 @@
 //   3. переполнение счётчика вложенности, снятие программным сбросом
 //   4. программный сброс: первая выборка без шага
 //   5. останов: шаг IP, ручные шаги вперёд/назад, выборка без шага
-//   6. аппаратный сброс: IP = 99990 (ISA16, doc/isa16.md)
+//   6. аппаратный сброс: IP = 9990 (ISA16, doc/isa16.md)
 //
 // Собственного регистра опкода у IpLine нет: insn — выход памяти. Монитор
 // проверяет, что insn не меняется, пока память не занята (REQ-IPV2-008).
@@ -46,7 +46,7 @@ module IpLine_tb_mem #(
     function automatic int bcd2bin(input [AW-1:0] b);
         int r;
         r = 0;
-        for (int i = 4; i >= 0; i--)
+        for (int i = AW/4-1; i >= 0; i--)
             r = r*10 + b[4*i +: 4];
         return r;
     endfunction
@@ -224,7 +224,7 @@ IpLine #(
     .mem_err      (MemErr)
 );
 
-IpLine_tb_mem mem (
+IpLine_tb_mem #(.AW(IP_DEKATRON_NUM*DEKATRON_WIDTH)) mem (
     .clk      (Clk),
     .rst_n    (Rst_n),
     .valid    (MemValid),
@@ -238,7 +238,7 @@ IpLine_tb_mem mem (
 );
 
 localparam [IP_DEKATRON_NUM*DEKATRON_WIDTH-1:0] BOOTLOADER_ADDR =
-    {4'd9, 4'd9, 4'd9, 4'd9, 4'd0};   // 99990 в BCD
+    {{(IP_DEKATRON_NUM-1){4'd9}}, 4'd0};   // 9990 в BCD (загрузчик, верхняя декада)
 
 initial begin $dumpfile("IpLine_tb.vcd"); $dumpvars(0, IpLine_tb); end
 

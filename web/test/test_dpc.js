@@ -6,7 +6,7 @@
 // 1. Step-by-step trace compare with the C++ golden model dpcrun (-s trace)
 //    on the repo programs. Skipped when no dpcrun binary is given.
 // 2. Assembler: dialects and comments.
-// 3. Loading through the SIMPLEBOOT ROM over SOT/EOT.
+// 3. Loading through the bootloader ROM (0<{0<}NNNS) over SOT/EOT.
 'use strict';
 const fs = require('fs');
 const path = require('path');
@@ -26,15 +26,15 @@ function check(name, cond, info) {
 // dpcrun -s line format (dpcrun.cpp main)
 function traceLine(m, s) {
   const p = (v, n) => String(v).padStart(n, '0');
-  return `IRET:${m.iret} IP:${p(m.ip, 5)} ${DPC.mnemonic(m.insn, m.mode).padEnd(5)} ` +
-    `LOOP:${p(m.loop, 2)} AP:${p(m.ap, 5)} DATA:${String(m.txData()).padStart(3)} ` +
+  return `IRET:${m.iret} IP:${p(m.ip, 4)} ${DPC.mnemonic(m.insn).padEnd(5)} ` +
+    `LOOP:${p(m.loop, 2)} AP:${p(m.ap, 3)} DATA:${String(m.txData()).padStart(3)} ` +
     `ML:${m.lock ? 1 : 0} ${s}`;
 }
 
 // The same run as dpcrun -f: program at 0, HALT after it, Soft Reset, Run,
 // bootloader ROM all NOPs (dpcrun has none without -b).
 function jsTrace(src) {
-  const m = new DPC.Machine({ apTop: 99999 });
+  const m = new DPC.Machine();
   m.setBootRom([]);
   const code = DPC.assemble(src, 'dpc');
   code.push(0x1);
@@ -53,7 +53,7 @@ function jsTrace(src) {
 function compareWithDpcrun(dpcrun) {
   for (const name of ['helloworld', 'looptest', 'program', 'triangle', 'pi', 'fibonachi']) {
     const file = path.join(PROGS, name + '.bfk');
-    const r = spawnSync(dpcrun, ['-f', file, '-s', '-a', '99999', '-n', String(MAX)],
+    const r = spawnSync(dpcrun, ['-f', file, '-s', '-n', String(MAX)],
       { input: '', maxBuffer: 1 << 30 });
     const a = (r.stderr || '').toString().split('\n').filter(l => l.startsWith('IRET:'));
     const b = jsTrace(fs.readFileSync(file, 'latin1'));
@@ -72,33 +72,52 @@ function testAssembler() {
     DPC.assemble('+ // H\n- ; H\n> # H\n<', 'dpc').join(',') === '2,3,4,5');
   check('dpc dialect: block comment',
     DPC.assemble('+/* H E\nS */-', 'dpc').join(',') === '2,3');
-  check('dpc dialect: full table', DPC.assemble('NH0MGPDBESLIARr', 'dpc').join(',') ===
-    '0,1,10,11,12,13,14,15,4,5,8,9,11,12,13');
+  check('dpc dialect: full ISA16 table', DPC.assemble('NH+-><[].,0SAP{}E', 'dpc').join(',') ===
+    '0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,11');
+  check('symbols and mnemonics round-trip', [...Array(16).keys()].every(op =>
+    DPC.assemble(DPC.symbol(op), 'dpc')[0] === op) && DPC.mnemonic(0xD) === 'MEMLOCK');
 }
 
 function testBootLoad() {
   const src = fs.readFileSync(path.join(PROGS, 'helloworld.bfk'), 'latin1');
   const m = new DPC.Machine();
+  m.dataMem.fill(7);                       // ferrite keeps old contents
   m.insnIn = DPC.loadStream(DPC.assemble(src, 'dpc'));
   m.hardReset();
+  check('hard reset: IP at the bootloader decade 9990', m.ip === 9990 && DPC.BOOT_BASE === 9990);
   m.run();
   let s, n = 0;
   while ((s = m.step()) === DPC.OK && n < 1e6) n++;
-  check('SOT/EOT load ends in Soft Reset, halted at IP 0 in BF ISA',
-    s === DPC.HALTED && m.ip === 0 && m.mode === DPC.ISA_BF && !m.loading,
-    `status ${s} ip ${m.ip} mode ${m.mode} loading ${m.loading}`);
+  check('SOT/EOT load ends in Soft Reset, halted at IP 0',
+    s === DPC.HALTED && m.ip === 0 && !m.loading, `status ${s} ip ${m.ip} loading ${m.loading}`);
+  check('bootloader cleared all 1000 data cells', m.dataMem.length === 1000 && m.dataMem.every(v => v === 0));
+  check('ROM decade not overwritten', m.code(9990) === 0xA && m.code(9999) === 0xB);
   m.run();
   while ((s = m.step()) === DPC.OK);
   check('helloworld after SOT/EOT load prints Hello World!', m.tx === 'Hello World!\n', JSON.stringify(m.tx));
 
-  // A pure Brainfuck program without HALT/ISA0/EOT gets them appended.
+  // A pure Brainfuck program without HALT/EOT gets them appended.
   const m2 = new DPC.Machine();
   m2.insnIn = DPC.loadStream(DPC.assemble('++++++++[>++++++++<-]>+.', 'bf'));
   m2.hardReset(); m2.run();
   while ((s = m2.step()) === DPC.OK);
   m2.run();
   while ((s = m2.step()) === DPC.OK);
-  check('appended HALT ISA0 EOT, prints A', m2.tx === 'A', JSON.stringify(m2.tx));
+  check('appended HALT EOT, prints A', m2.tx === 'A', JSON.stringify(m2.tx));
+
+  // AP wraps 0 <-> 999 (3 dekatrons)
+  const m3 = new DPC.Machine();
+  m3.loadCode(DPC.assemble('<.>H', 'dpc'));
+  m3.softReset(); m3.run(); m3.step(); const top = m3.ap;
+  m3.step(); m3.step();
+  check('AP wraps 0 -> 999 -> 0', top === 999 && m3.ap === 0, `ap ${top} then ${m3.ap}`);
+
+  // { } test AP, [ ] the cell; a loop overflow stops without halt (TC-N2)
+  const m4 = new DPC.Machine();
+  m4.loadCode(DPC.assemble('['.repeat(101), 'dpc'));
+  m4.softReset(); m4.run();
+  while ((s = m4.step()) === DPC.OK);
+  check('loop overflow stops the machine, not a halt', s === DPC.HALTED && m4.overflow && !m4.halted);
 }
 
 function testCin() {

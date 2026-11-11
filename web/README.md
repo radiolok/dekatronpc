@@ -1,6 +1,6 @@
 # DekatronPC web simulator
 
-A static web page that runs DekatronPC in the browser: 15 dekatrons (IP 5, Loop 2, AP 5, Data 3), the operator panel of `DekatronPC.sv`, program and data memory strips, the Consul printer with keyboard input, the repo test programs and the Brainfuck-100 set.
+A static web page that runs DekatronPC in the browser: 12 dekatrons of the release machine (IP 4, Loop 2, AP 3, Data 3; TRS v0.63) and the one 4-bit instruction set ISA16, the operator panel of `DekatronPC.sv`, program and data memory strips, the Consul printer with keyboard input, the repo test programs and the Brainfuck-100 set.
 
 | File | What it is |
 |---|---|

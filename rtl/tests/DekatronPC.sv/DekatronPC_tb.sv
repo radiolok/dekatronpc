@@ -445,10 +445,10 @@ initial begin
     wait_relay();
     wait_halted();
 
-    // После включения реле времени даёт аппаратный сброс: IP = 99990
-    if (IpAddress !== 20'h99990) begin
+    // После включения реле времени даёт аппаратный сброс: IP = 9990
+    if (IpAddress !== {{(IP_DEKATRON_NUM-1){4'h9}}, 4'h0}) begin
         errors++;
-        $display("FAIL: IP after power-up = %h, expected 99990", IpAddress);
+        $display("FAIL: IP after power-up = %h, expected top decade 9..90", IpAddress);
     end
 
 `ifdef TRY_PROGRAM

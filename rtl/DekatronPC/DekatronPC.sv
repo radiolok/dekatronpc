@@ -176,7 +176,7 @@ module DekatronPC #(
 
     // Верхние пределы счётчиков
     parameter [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0]
-              AP_TOP_VALUE   = {4'd2, 4'd9, 4'd9, 4'd9, 4'd9},   // 29999
+              AP_TOP_VALUE   = {AP_DEKATRON_NUM{4'd9}},   // 999; не используется: AP оборачивается 0 <-> 999 (OPEN-001 закрыт, TRS v0.63)
     parameter [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0]
               DATA_TOP_VALUE = {4'd2, 4'd5, 4'd5},               // 255
 
@@ -313,7 +313,7 @@ module DekatronPC #(
     wire                  ip_mem_rd_valid, ip_mem_err;
 
     IpLine #(
-        .HARD_RST_D_CNT    (IP_DEKATRON_NUM - 1),   // 99990 — загрузчик
+        .HARD_RST_D_CNT    (IP_DEKATRON_NUM - 1),   // 9990 — загрузчик
         .LOOP_READ         (EN_EMULATOR)
     ) ipLine (
         .rst_n         (rst_n),
@@ -431,7 +431,8 @@ module DekatronPC #(
     wire [MEM_DATA_WIDTH-1:0] ap_dbg_data;
 
     Ram #(
-        .D_NUM         (AP_DEKATRON_NUM),
+        .D_NUM         (32'(AP_DEKATRON_NUM)),
+        .BANK_DIGITS   (AP_DEKATRON_NUM < 4 ? AP_DEKATRON_NUM : 4),
         .DATA_WIDTH    (MEM_DATA_WIDTH),
         .READ_CYCLES   (MEM_READ_CYCLES),
         .WRITE_CYCLES  (MEM_WRITE_CYCLES),

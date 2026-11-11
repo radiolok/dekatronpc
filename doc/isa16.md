@@ -13,7 +13,7 @@ define (§7) the owner decided (2026-11-02):
 - CLRA: useful, keep. CLRL: not needed.
 - `{ }` are needed only by the bootloader and are never interleaved with `[ ]`,
   so the scan does not have to tell the bracket kinds apart.
-- The bootloader is small enough for one decade: start at 99990.
+- The bootloader is small enough for one decade: start at 99990 (9990 since TRS v0.63, IP = 4 dekatrons).
 - MemLock control was there for copying through the data counter: after a move the
   counter still holds the old cell; "set MemLock at the new address and move on"
   is enough. Implemented as the MemLock instruction (0xD, first called STORE; the
@@ -53,6 +53,8 @@ BELL opcode (the automatic bells on CIN/HALT/error stay), Debug CLRD (merged wit
 `[-]`), CLRML, LOAD, separate SOT/EOT.
 
 ## 3. Bootloader
+
+Addresses below are for IP = 5; since TRS v0.63 (IP = 4, AP = 3) the ROM is 9990–9999, the first `<` wraps AP to 999 and the clear loop walks 1000 cells (`doc/width_ip4_ap3.md`).
 
 ```
 99990: 0 < { 0 < }     AP = Data = 0 after Hard Reset; the first < wraps AP to the

@@ -11,31 +11,32 @@ requirements: REQ-GM-001, REQ-LOAD-001..009, REQ-PANEL-001..006, REQ-BELL-007
 
 ## 1. Machine model
 
-`web/dpc.js` is a line-by-line port of `bfutils/dpcrun` (`dpcrun.cpp` at bfutils 651cb62). The semantics are the golden model's, including the "RTL:" places of `doc/dpcrun_golden_model.md` §4. Differences are outside the instruction semantics:
+**[TRS v0.63, 2026-11-11]** The page follows the release machine: 12 dekatrons (IP 4: 0–9999, Loop 2, AP 3: 0–999 with wrap, Data 3) and ISA16, one 4-bit instruction set without modes (`doc/isa16.md`). The earlier version of this page (IP 5, AP 5, ISA0/ISA1 modes) is in git history.
+
+`web/dpc.js` is a line-by-line port of `bfutils/dpcrun` (`dpcrun.cpp` of bfutils branch `ISA16`, with `IP_SIZE = 10000`, `BOOT_BASE = 9990`, `AP_TOP = 999`). The semantics are the golden model's, including the "RTL:" places of `doc/dpcrun_golden_model.md` §4. Differences are outside the instruction semantics:
 
 | Item | dpcrun | web model | Why |
 |---|---|---|---|
-| Bootloader ROM | empty unless `-b` | `SIMPLEBOOT` of `bootloader.sv`: NOPs, ISA0 at 99998, SOT at 99999 | owner: no clear-memory routine in the simulator, memory is cleared with memset |
-| AP limit | 29999 default, `-a` | 99999 | current RTL (ApLine has no top limit, OPEN-001), as `DekatronPC_tb.cpp` builds dpcrun |
-| Panel keys | none | `haltKey()`, `loadingStop()`, `nextIp()`, `prevIp()` | keys of `DekatronPC.sv`; semantics from MachineCtrl/IpLine (S_HALT) |
+| Bootloader ROM | empty unless `-b` | `rtl/programs/bootloader.bfk` (`0<{0<}NNNS`) from power-on | the ROM of the machine: clears 1000 data cells, LD at 9999 loads from 0 |
+| Panel keys | none | `haltKey()`, `loadingStop()`, `nextIp()`, `prevIp()`, `manualStep()` | keys of `DekatronPC.sv`; semantics from MachineCtrl/IpLine (S_HALT) |
 | Loader | one table | two dialects, see §3 | owner decision |
 
-**Check:** `web/test/test_dpc.js` runs the same programs as `dpcrun -f … -s -a 99999` and compares every trace line (IRET, IP, mnemonic, Loop, AP, Data counter, MemLock, status). All match: helloworld 400 steps, looptest 73, program 5 771, triangle 321 969, pi 221 386, fibonachi 400 000 (endless, cut). Plus assembler tests, a full SOT/EOT load of helloworld through the ROM (prints `Hello World!`) and a CIN test on rot13. 15 checks pass.
+A loop overflow stops the machine without a halt (TC-N2): `step()` returns `Halted`, the Overflow lamp is lit, RUN does not restart it, only a reset clears it.
+
+**Check:** `web/test/test_dpc.js` runs the same programs as `dpcrun -f … -s` and compares every trace line (IRET, IP, mnemonic, Loop, AP, Data counter, MemLock, status). All match: helloworld 400 steps, looptest 73, program 5 771, triangle 321 969, pi 221 386, fibonachi 400 000 (endless, cut). Plus assembler tests (full ISA16 table, symbol round trip), a full SOT/EOT load of helloworld through the ROM (the ROM clears all 1000 cells and is not overwritten, prints `Hello World!`), AP wrap 0 → 999 → 0, a loop overflow without halt and a CIN test on rot13: 21 checks pass.
 
 ## 2. Loading: SOT/EOT only
 
-LOAD AND BOOT clears program and data memory, puts the opcode stream on InsnIn and presses Hard Reset and Run. The ROM runs to SOT, the opcodes are written from address 0, EOT gives Soft Reset (SoftRstOnEOT) and the machine waits for RUN unless RunOnSoftRst is on.
+LOAD AND BOOT clears program memory, puts the opcode stream on InsnIn and presses Hard Reset and Run. The ROM clears the data memory (`0<{0<}`, three instructions per cell), runs to LD at 9999, the opcodes are written from address 0, EOT gives Soft Reset (SoftRstOnEOT) and the machine waits for RUN unless RunOnSoftRst is on. The page no longer clears data memory itself (it did with the old SIMPLEBOOT ROM): the HARD RST key only resets, like the machine.
 
-The stream is `ISA1, program, HALT, ISA0, EOT`; HALT/ISA0/EOT are not appended when the program already ends with ISA0, EOT (the repo `.bfk` files end with `HDE`). ISA1 comes first for the same reason as in `DekatronPC_tb.sv`: loading starts in Debug ISA, where `>` (0x4) is EOT.
+The stream is `program, HALT, LD (EOT)`; HALT and EOT are not appended when the program already ends with LD (the repo `.bfk` files end with `HE`). A program fits when it plus HALT take at most 9990 cells. For Brainfuck-100 the page marks programs that don't fit 4-2-3-3 with ✕: `web/build_bf100.py` computes `fits` from `metrics.json` (commands + HALT ≤ 9990, AP span < 1000, loop scan ≤ 99): 78 of 100 fit.
 
-Data memory is cleared at power-on, on LOAD AND BOOT and by the HARD RST key (owner, 2026-10-08; the MEM CLEAN key was dropped). The HRST instruction does not clear memory.
-
-The same load also works from the panel: with RunOnHardRst on, HARD RST starts the ROM, and when SOT puts the machine in load mode with InsnIn empty, the program reader puts the program from the text window on InsnIn (same stream, memory not cleared). With RunOnHardRst off, HARD RST then RUN does the same.
+The same load also works from the panel: with RunOnHardRst on, HARD RST starts the ROM, and when LD puts the machine in load mode with InsnIn empty, the program reader puts the program from the text window on InsnIn (same stream, memory not cleared). With RunOnHardRst off, HARD RST then RUN does the same.
 
 ## 3. Program text: two dialects
 
 - **DekatronPC ISA off (default for pasted text and Brainfuck-100):** only `+ - < > [ ] . ,` are commands, everything else is a comment.
-- **DekatronPC ISA on (repo `.bfk` presets):** the full table of `generate_rom.py`/`dpc::assemble()`, with comments `//`, `;`, `#` to the end of the line and `/* … */`. `generate_rom.py` and `dpc::assemble()` don't know these comments yet; the page only strips them before assembling.
+- **DekatronPC ISA on (repo `.bfk` presets):** the full ISA16 table of `generate_rom.py`/`dpc::assemble()` (`N H + - > < [ ] . , 0 S E A P { }`; S and E are both LD), with comments `//`, `;`, `#` to the end of the line and `/* … */`. `generate_rom.py` and `dpc::assemble()` don't know these comments yet; the page only strips them before assembling.
 
 ## 4. Panel
 

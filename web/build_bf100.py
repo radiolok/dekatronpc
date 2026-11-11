@@ -20,6 +20,22 @@ BF100 = os.path.join(ROOT, 'bfutils', 'programs', 'bf100')
 RTL_PROGS = os.path.join(ROOT, 'rtl', 'programs')
 OUT = os.path.join(ROOT, 'web', 'programs')
 
+# Release machine (rtl/parameters.sv): IP 4 dekatrons with the ROM decade
+# 9990..9999, Loop 2, AP 3 (1000 cells, ring 0 <-> 999), Data 3.
+CODE_CELLS = 9990
+AP_CELLS = 1000
+LOOP_TOP = 99
+
+
+def fits(m):
+    """Program + HALT fit below the ROM, cells fit the AP ring, nesting fits Loop."""
+    if m.get('commands') is None:
+        return None
+    ap_span = (m.get('ap_max') or 0) - min(m.get('ap_min') or 0, 0)
+    return (m['commands'] + 1 <= CODE_CELLS and ap_span < AP_CELLS
+            and (m.get('loop_max_scan') or 0) <= LOOP_TOP)
+
+
 # Repo programs shown first, in this order. Endless and input flags by hand.
 REPO = [
     ('helloworld.bfk', 'Hello World', {}),
@@ -64,7 +80,8 @@ def main():
             item = {k: m.get(k) for k in (
                 'n', 'category', 'name', 'description', 'source_repo', 'source_url',
                 'license', 'commands', 'steps', 'reads_input', 'eof_mode', 'infinite',
-                'fits_5_2_5_3', 'loop_max_scan', 'ap_max')}
+                'loop_max_scan', 'ap_min', 'ap_max')}
+            item['fits'] = fits(m)
             item['dialect'] = 'bf'
             item['file'] = copy(os.path.join(BF100, m['file']), 'bf100/' + m['file']) if m.get('file') else None
             item['input'] = copy(os.path.join(BF100, m['input']), 'bf100/' + m['input']) if m.get('input') else None

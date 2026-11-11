@@ -151,7 +151,7 @@ config() {
 	IpLine)
 		dut=IpLine_tb.ipLine
 		top=IpLine
-		params=(HARD_RST_D_CNT=4 LOOP_READ=1)   # 99990, ISA16 (doc/isa16.md)
+		params=(HARD_RST_D_CNT=3 LOOP_READ=1)   # 9990, ISA16 (doc/isa16.md)
 		runs=("IpLine|${root_dir}/programs/looptest.bfk|") ;;
 	ApLine)
 		dut=ApLine_tb.apLine

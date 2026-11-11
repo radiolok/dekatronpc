@@ -1,17 +1,15 @@
 /* DekatronPC web simulator: machine model.
  *
  * Instruction-level model of DekatronPC, a line-by-line JavaScript port of the
- * golden model bfutils/dpcrun (dpcrun.h, dpcrun.cpp). Like dpcrun it mirrors
- * the RTL as it is, including the places marked "RTL:" in dpcrun.cpp where
- * the RTL and TRS disagree (doc/dpcrun_golden_model.md §4).
+ * golden model bfutils/dpcrun (dpcrun.h, dpcrun.cpp): one 4-bit instruction
+ * set (ISA16, doc/isa16.md) without modes, IP 4 dekatrons (0..9999), AP 3
+ * dekatrons (0..999, wraps 0 <-> 999), Loop 2, Data 3 (0..255). Like dpcrun
+ * it mirrors the RTL as it is (doc/dpcrun_golden_model.md §4).
  *
  * Differences from dpcrun, all outside the instruction semantics:
- *  - The bootloader ROM is the SIMPLEBOOT variant of
- *    rtl/programs/bootloader/bootloader.sv: NOPs, then ISA0 at 99998 and SOT
- *    at 99999. Data memory is cleared by the page (clearData()), not by a
- *    clear-memory routine in the ROM.
- *  - AP limit defaults to 99999, as in the current RTL (ApLine has no top
- *    limit, OPEN-001) and as DekatronPC_tb.cpp builds dpcrun.
+ *  - The bootloader ROM holds rtl/programs/bootloader.bfk (0<{0<}NNNS) from
+ *    power-on: it clears the data memory and loads from address 0. dpcrun
+ *    has an empty ROM unless -b.
  *  - Panel keys that dpcrun has no API for: haltKey(), loadingStop(),
  *    nextIp()/prevIp() (manual IP move while halted), and manualStep(),
  *    the page's INC/DEC keys on a counter picked by the counter selector
@@ -23,22 +21,32 @@
 (function (root) {
   'use strict';
 
-  const IP_SIZE = 100000, BOOT_BASE = 99900, BOOT_SIZE = 100, LOOP_SIZE = 100, DATA_TOP = 255;
-  const ISA_DEBUG = 0, ISA_BF = 1;
+  const IP_SIZE = 10000, BOOT_BASE = 9990, BOOT_SIZE = 10;
+  const AP_SIZE = 1000, LOOP_SIZE = 100, DATA_TOP = 255;
   const PH_FETCH = 0, PH_INSN = 1, PH_CIN = 2;
   const OK = 'Ok', HALTED = 'Halted', WAIT = 'WaitInput';
 
+  // ISA16 opcodes (never renumber, AGENTS.md §3)
+  const OP = {
+    NOP: 0x0, HALT: 0x1, INC: 0x2, DEC: 0x3, AINC: 0x4, ADEC: 0x5, LBEG: 0x6, LEND: 0x7,
+    COUT: 0x8, CIN: 0x9, CLRD: 0xA, LD: 0xB, CLRA: 0xC, MEMLOCK: 0xD, LABEG: 0xE, LAEND: 0xF
+  };
+  const isLoopOpen = (op) => (op & 0x7) === 0x6;
+  const isLoopClose = (op) => (op & 0x7) === 0x7;
+
   //--------------------------------------------------------------------
   // Loader: text -> opcodes. Same table as rtl/run/generate_rom.py and
-  // dpc::symbolToOpcode().
+  // dpc::symbolToOpcode(). S and E are both LD: SOT in a program, EOT in
+  // the load stream.
   //--------------------------------------------------------------------
   const SYMBOLS = {
     'N': 0x0, 'H': 0x1, '+': 0x2, '-': 0x3, '>': 0x4, '<': 0x5, '[': 0x6, ']': 0x7,
-    '.': 0x8, ',': 0x9, '0': 0xA, 'M': 0xB, 'G': 0xC, 'P': 0xD, 'D': 0xE, 'B': 0xF,
-    '\x07': 0x2, 'E': 0x4, 'S': 0x5, '{': 0x6, '}': 0x7, 'L': 0x8, 'I': 0x9,
-    'A': 0xB, 'R': 0xC, 'r': 0xD
+    '.': 0x8, ',': 0x9, '0': 0xA, 'S': 0xB, 'E': 0xB, 'A': 0xC, 'P': 0xD, '{': 0xE, '}': 0xF
   };
   const BF_ONLY = { '+': 0x2, '-': 0x3, '>': 0x4, '<': 0x5, '[': 0x6, ']': 0x7, '.': 0x8, ',': 0x9 };
+
+  // rtl/programs/bootloader.bfk
+  const BOOTLOADER = '0<{0<}NNNS';
 
   // Removes comments of the DekatronPC dialect: "// ...", "; ...", "# ..."
   // to the end of the line and "/* ... */" blocks.
@@ -79,23 +87,18 @@
     return out;
   }
 
-  const BF_SYM = 'NH+-><[].,0MGPDB';
-  const DBG_SYM = 'NH⍾-ES{}LI0ARrDB';
-  const BF_MN = ['NOP', 'HALT', 'INC', 'DEC', 'AINC', 'ADEC', 'LBEG', 'LEND',
-    'COUT', 'CIN', 'CLRD', 'CLRML', 'LOAD', 'STORE', 'ISA0', 'ISA1'];
-  const DBG_MN = ['NOP', 'HALT', 'BELL', 'RSVD', 'EOT', 'SOT', 'LABEG', 'LAEND',
-    'CLRL', 'CLRI', 'CLRD', 'CLRA', 'HRST', 'SRST', 'ISA0', 'ISA1'];
-  const symbol = (op, mode) => (mode === ISA_BF ? BF_SYM : DBG_SYM)[op & 15];
-  const mnemonic = (op, mode) => (mode === ISA_BF ? BF_MN : DBG_MN)[op & 15];
+  // dpc::opcodeToSymbol() and dpc::mnemonic()
+  const SYM = 'NH+-><[].,0SAP{}';
+  const MN = ['NOP', 'HALT', 'INC', 'DEC', 'AINC', 'ADEC', 'LBEG', 'LEND',
+    'COUT', 'CIN', 'CLRD', 'LD', 'CLRA', 'MEMLOCK', 'LABEG', 'LAEND'];
+  const symbol = (op) => SYM[op & 15];
+  const mnemonic = (op) => MN[op & 15];
 
-  // Opcodes sent over InsnIn for a program: ISA1 first (loading starts in
-  // Debug ISA, where '>' = 0x4 is EOT; same as DekatronPC_tb), then the
-  // program, HALT, ISA0, EOT.
+  // Opcodes sent over InsnIn for a program: the program, then HALT and LD
+  // (EOT) unless it already ends with LD. EOT is not stored.
   function loadStream(code) {
-    const s = [0xF].concat(code);
-    const n = code.length;
-    const endsWithEot = n >= 2 && code[n - 2] === 0xE && code[n - 1] === 0x4;
-    if (!endsWithEot) s.push(0x1, 0xE, 0x4);
+    const s = code.slice();
+    if (!s.length || s[s.length - 1] !== OP.LD) s.push(OP.HALT, OP.LD);
     return s;
   }
 
@@ -105,9 +108,10 @@
   class Machine {
     constructor(cfg) {
       this.cfg = Object.assign({
-        apTop: 99999, runOnHardRst: false, runOnSoftRst: false, softRstOnEot: true,
+        apTop: AP_SIZE - 1, runOnHardRst: false, runOnSoftRst: false, softRstOnEot: true,
         echoMode: true, bellOnCin: false, bellOnHalt: false, bellOnError: false
       }, cfg || {});
+      if (!(this.cfg.apTop >= 1 && this.cfg.apTop < AP_SIZE)) throw new RangeError('apTop must be 1..999');
       this.onCout = null;
       this.onBell = null;
       this.onCin = null;     // optional: () => code or -1 when no input
@@ -117,17 +121,15 @@
     powerOn() {
       this.codeRam = new Uint8Array(IP_SIZE);
       this.bootRom = new Uint8Array(BOOT_SIZE);
-      this.bootRom[98] = 0xE;   // ISA0 (SIMPLEBOOT)
-      this.bootRom[99] = 0x5;   // SOT
+      this.setBootRom(assemble(BOOTLOADER, 'dpc'));
       this.dataMem = new Uint8Array(this.cfg.apTop + 1);
       this.memReg = 0;
       this.ip = 0; this.ap = 0; this.loop = 0; this.data = 0;
       this.lock = false; this.memHere = false;
-      this.ipCounted = false; this.insn = 0; this.overflow = false;
-      this.mode = ISA_DEBUG; this.loading = false; this.halted = true; this.phase = PH_FETCH;
+      this.ipCounted = false; this.insn = OP.NOP; this.overflow = false;
+      this.loading = false; this.halted = true; this.phase = PH_FETCH;
       this.iret = 0; this.bells = 0; this.memReads = 0; this.memWrites = 0;
       this.rx = []; this.insnIn = []; this.tx = '';
-      this.lastScan = 0;
     }
 
     clearData() { this.dataMem.fill(0); this.memReg = 0; }
@@ -135,13 +137,14 @@
     setBootRom(ops) { this.bootRom.fill(0); ops.slice(0, BOOT_SIZE).forEach((op, i) => { this.bootRom[i] = op & 15; }); }
 
     //--- Resets and panel keys ------------------------------------------
+    // soft_rst/hard_rst lines: counters to their reset positions, memories
+    // keep their contents, a locked Data counter is not written back.
     resetCounters(hard) {
-      this.ip = hard ? BOOT_BASE : 0;
+      this.ip = hard ? BOOT_BASE : 0;   // HARD_RST_D_CNT = 3 -> 9990
       this.ap = 0; this.loop = 0; this.data = 0;
       this.lock = this.memHere = false;
       this.ipCounted = false; this.overflow = false; this.loading = false;
       this.phase = PH_FETCH;
-      this.mode = hard ? ISA_DEBUG : ISA_BF;
       this.halted = !(hard ? this.cfg.runOnHardRst : this.cfg.runOnSoftRst);
     }
     hardReset() { this.resetCounters(true); }
@@ -196,7 +199,7 @@
 
     //--- Memories --------------------------------------------------------
     readCode(a) { return a >= BOOT_BASE ? this.bootRom[a - BOOT_BASE] : this.codeRam[a]; }
-    writeCode(a, op) { if (a < BOOT_BASE) this.codeRam[a] = op & 15; }
+    writeCode(a, op) { if (a < BOOT_BASE) this.codeRam[a] = op & 15; }   // ROM decade is write-protected
     code(a) { return this.readCode(((a % IP_SIZE) + IP_SIZE) % IP_SIZE); }
     loadCode(ops, base) { base = base || 0; ops.forEach((op, i) => this.writeCode((base + i) % IP_SIZE, op)); }
     cell(a) { return this.dataMem[a]; }
@@ -205,23 +208,25 @@
 
     //--- ApLine ----------------------------------------------------------
     memRead() { this.memReads++; this.memReg = this.dataMem[this.ap]; this.memHere = true; }
+    // Write-through: the output register takes the written value.
     flush() {
       this.memWrites++;
       this.dataMem[this.ap] = this.data;
       this.memReg = this.data;
       this.memHere = true;
     }
-    // MemLock is the only flag: a locked counter is flushed before the address
-    // moves, which releases the lock (REQ-ML-005/007). After STORE this writes
-    // the same value again.
+    // > < and CLRA. MemLock is the only flag: a locked counter is flushed
+    // before the address moves, which releases the lock (REQ-ML-005/007).
+    // After MemLock this writes the counter into the cell MemLock took over.
     apMove(zero, dec) {
       if (this.lock) { this.flush(); this.lock = false; }
       const n = this.cfg.apTop + 1;
       if (zero) this.ap = 0;
       else if (dec) this.ap = (this.ap + n - 1) % n;
       else this.ap = (this.ap + 1) % n;
-      this.memHere = false;
+      this.memHere = false;   // lazy read: the new cell is not read now
     }
+    // + -: MemLock is taken before the first step.
     dataStep(dec) {
       if (!this.lock) { if (!this.memHere) this.memRead(); this.data = this.memReg; }
       this.data = dec ? (this.data + DATA_TOP) % (DATA_TOP + 1) : (this.data + 1) % (DATA_TOP + 1);
@@ -229,12 +234,14 @@
     }
 
     //--- IpLine ----------------------------------------------------------
+    // MachineCtrl: loop_val_zero = op_q[3] ? ap_zero : data_zero
     loopValZero() {
-      if (this.mode === ISA_BF) return (this.lock ? this.data : this.memReg) === 0;
-      return this.ap === 0;
+      if (this.insn & 0x8) return this.ap === 0;                   // { }
+      return (this.lock ? this.data : this.memReg) === 0;          // [ ]
     }
     fetch() {
       if (!this.ipCounted) {
+        // First fetch after reset or halt: read at the current IP
         this.ipCounted = true;
         if (this.loading) this.phase = PH_INSN;
         else this.insn = this.readCode(this.ip);
@@ -246,83 +253,81 @@
         return OK;
       }
       const zero = this.loopValZero();
-      if (this.insn === 0x6 && zero) return this.scan(false);
-      if (this.insn === 0x7 && !zero) return this.scan(true);
+      if (isLoopOpen(this.insn) && zero) return this.scan(false);
+      if (isLoopClose(this.insn) && !zero) return this.scan(true);
       this.ip = (this.ip + 1) % IP_SIZE;
       this.insn = this.readCode(this.ip);
       return OK;
     }
+    // Loop scan: +1 for the starting bracket and every bracket of the same
+    // direction, -1 for every matching one; [ ] and { } are counted together.
+    // Stops ON the matching bracket. Past 99 is the hardware error of
+    // REQ-CNT-007: the machine stands still until a reset (TC-N2, no halt).
     scan(back) {
-      const own = back ? 0x7 : 0x6, TOP = LOOP_SIZE - 1;
+      const TOP = LOOP_SIZE - 1;
       if (this.loop !== TOP) {
         this.loop++;
         for (;;) {
           this.ip = back ? (this.ip + IP_SIZE - 1) % IP_SIZE : (this.ip + 1) % IP_SIZE;
           this.insn = this.readCode(this.ip);
-          this.lastScan++;
-          if (this.insn === own) {
-            if (this.loop === TOP) break;
+          if (back ? isLoopClose(this.insn) : isLoopOpen(this.insn)) {
+            if (this.loop === TOP) break;   // overflow, stand on this bracket
             this.loop++;
-          } else if (this.insn === 0x6 || this.insn === 0x7) {
+          } else if (isLoopOpen(this.insn) || isLoopClose(this.insn)) {
             this.loop--;
-            if (this.loop === 0) return OK;
+            if (this.loop === 0) return OK;   // matching bracket, stand on it
           }
         }
       }
       this.overflow = true;
+      this.phase = PH_FETCH;
       if (this.cfg.bellOnError) this.bell();
-      this.enterHalt();
       return HALTED;
     }
 
     //--- MachineCtrl -----------------------------------------------------
+    // S_INSN_IN: one opcode from InsnIn is written at IP; LD (EOT) is not.
     takeInsn() {
       if (!this.insnIn.length) return false;
       const op = this.insnIn.shift() & 15;
       this.insn = op;
-      if (!(this.mode === ISA_DEBUG && op === 0x4)) this.writeCode(this.ip, op);
+      if (op !== OP.LD) this.writeCode(this.ip, op);
       return true;
     }
+    // Load mode: only LD (EOT) acts; everything else is just stored.
     decodeLoading() {
-      const f = (this.mode << 4) | this.insn;
-      if (f === 0x04) {
+      if (this.insn === OP.LD) {
         this.loading = false;
         if (this.cfg.softRstOnEot) this.resetCounters(false);
         else this.enterHalt();
-      } else if (f === 0x0E || f === 0x1E) this.mode = ISA_DEBUG;
-      else if (f === 0x0F || f === 0x1F) this.mode = ISA_BF;
+      }
     }
     decode() {
       this.iret++;
       if (this.loading) { this.decodeLoading(); return; }
-      const f = (this.mode << 4) | this.insn;
-      switch (f) {
-        case 0x01: case 0x11: if (this.cfg.bellOnHalt) this.bell(); this.enterHalt(); break;
-        case 0x0E: case 0x1E: this.mode = ISA_DEBUG; break;
-        case 0x0F: case 0x1F: this.mode = ISA_BF; break;
-        case 0x06: case 0x07: break;
-        case 0x16: case 0x17: if (!this.lock && !this.memHere) this.memRead(); break;
-        case 0x0A: case 0x1A: this.data = 0; this.lock = true; break;
-        case 0x02: this.bell(); break;
-        case 0x05: this.loading = true; break;
-        case 0x08: this.loop = 0; this.overflow = false; break;
-        case 0x09: this.ip = 0; this.ipCounted = false; break;
-        case 0x0B: this.apMove(true, false); break;
-        case 0x0C: this.resetCounters(true); break;
-        case 0x0D: this.resetCounters(false); break;
-        case 0x12: case 0x13: this.dataStep(this.insn & 1); break;
-        case 0x14: case 0x15: this.apMove(false, this.insn & 1); break;
-        case 0x18:
+      switch (this.insn) {
+        case OP.HALT: if (this.cfg.bellOnHalt) this.bell(); this.enterHalt(); break;
+        // Brackets: IpLine decides at the next fetch. Before [ ] the zero
+        // flag is made valid (AP_TEST); { } test AP.
+        case OP.LBEG: case OP.LEND: if (!this.lock && !this.memHere) this.memRead(); break;
+        case OP.LABEG: case OP.LAEND: break;
+        case OP.CLRD: this.data = 0; this.lock = true; break;     // [-] (REQ-ML-009)
+        case OP.LD: this.loading = true; break;                  // SOT
+        case OP.CLRA: this.apMove(true, false); break;
+        case OP.MEMLOCK: this.lock = true; break;                // flag without a load
+        case OP.INC: case OP.DEC: this.dataStep(this.insn & 1); break;
+        case OP.AINC: case OP.ADEC: this.apMove(false, this.insn & 1); break;
+        case OP.COUT:
+          // Output is always the Data counter: without MemLock the cell is
+          // loaded into it first. MemLock is unchanged (OPEN-017).
           if (!this.lock) { if (!this.memHere) this.memRead(); this.data = this.memReg; }
           this.cout(this.data);
           break;
-        case 0x19: if (this.cfg.bellOnCin) this.bell(); this.phase = PH_CIN; break;
-        case 0x1B: if (this.lock) this.flush(); this.lock = false; break;
-        case 0x1C: if (!this.memHere) this.memRead(); this.data = this.memReg; break;
-        case 0x1D: this.flush(); break;
-        default: break;
+        case OP.CIN: if (this.cfg.bellOnCin) this.bell(); this.phase = PH_CIN; break;
+        default: break;                                          // NOP
       }
     }
+    // S_CIN_WAIT -> AP_CIN -> optional echo
     finishCin() {
       let c = -1;
       if (this.onCin) c = this.onCin();
@@ -337,8 +342,7 @@
 
     // One instruction: one pass through S_DECODE.
     step() {
-      if (this.halted) return HALTED;
-      this.lastScan = 0;
+      if (this.halted || this.overflow) return HALTED;   // halted, or stopped by an overflow
       if (this.phase === PH_CIN) return this.finishCin();
       if (this.phase === PH_FETCH) {
         const s = this.fetch();
@@ -358,8 +362,8 @@
   }
 
   const DPC = {
-    Machine, assemble, stripComments, loadStream, symbol, mnemonic,
-    IP_SIZE, BOOT_BASE, LOOP_SIZE, DATA_TOP, ISA_BF, ISA_DEBUG, OK, HALTED, WAIT
+    Machine, OP, assemble, stripComments, loadStream, symbol, mnemonic, BOOTLOADER,
+    IP_SIZE, BOOT_BASE, AP_SIZE, LOOP_SIZE, DATA_TOP, OK, HALTED, WAIT
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = DPC;
   else root.DPC = DPC;
