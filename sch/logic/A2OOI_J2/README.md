@@ -9,15 +9,29 @@ Cell page. REQ-MOD-003 (AOI22_J2 in the library), REQ-MOD-005 (boards), REQ-MOD-
 | Function | Y = ~((A · B) + (C · D)) |
 | Tubes | two 6Zh2B on one plate (liberty: J2B 2) |
 | Inputs (LV) | A, C: g1 of pentode 1 / 2; B, D: g3 of pentode 1 / 2 (Cb 15 pF to −50 V on each g3) |
-| Output (HV) | Y, the common plate, Ra 15k to +150 V |
+| Output (HV) | Y, the common plate, Ra 15k + L 1.5 mH ‖ 15k to +150 V (TRS v0.58) |
 | Supplies | +150 V (plate; each screen through its own Rg2 15k), −50 V (Cb, dividers), heater 6.3 V 2 × 0.2 A |
 | Divider C1 per grid on the driving nets | A, C 2.7 pF; B, D 6.8 pF |
 | Output levels (static) | "1" 141–145 V; "0" 45.4 V (one pentode), 19.4 V (both) |
-| Delay, fanout 2 / 6 / 10, worst arc | to Y = 100 V: 209 / 326 / 418 ns; **A↑ or C↑ to the next stage's 92 V: 338 / 465 / 551 ns** |
+| Delay, fanout 2 / 6 / 10, worst arc | with the plate choke to Y = 100 V: 142 / 247 / 357 ns (A↑/C↑ to 92 V: 182 / 388 / 539 ns); before it: 209 / 326 / 418 ns; **A↑ or C↑ to the next stage's 92 V: 338 / 465 / 551 ns** |
 | Lowest grid | −34.6 V nominal, −42.2 V with all C1 +10 % (limit −50 V) |
 | Worst static | Ik 12.7 mA, Pa 0.35 W, Pg2 0.37 W per 6Zh2B |
 
 The owner confirmed (2026-10-29) that this is AOI22. The old liberty function ((A·B)+C+D)' was a mistake: two pentodes on one plate give two AND terms, nothing else. Each pentode is a NAND2_J2 stage, and the two share the plate and Ra.
+
+## Plate choke (TRS v0.58)
+
+Owner, 2026-11-08: a plate choke in every cell. Ra is 15k, so the choke is the `NAND2_J2` one: **1.5 mH damped by 15k** (0.68 mH × (15/10)², the shunt-peaking rule). Parts: Ra R103, L101, Rd R104; the Rg2 references moved to R101 (R102). The bench drivers (6N16B triodes) carry the `NOR2_N16` choke, 0.68 mH ‖ 10k.
+
+| | fanout 2 | fanout 6 | fanout 10 |
+|---|---|---|---|
+| worst arc to Y = 100 V, with the choke | 142 ns | 247 ns | 357 ns |
+| the same before | 209 ns | 326 ns | 418 ns |
+| worst fall (92 V) / rise (118 V), with the choke | 182 / 215 ns | **388 / 406 ns** | 539 / 598 ns |
+
+At fanout 6 to the thresholds: before A↑ 465, rise 512 ns, now A↑ 388, rise 406 ns (`vtube_timing.json`). The rising edge gains about 20 %, the falling one through the pentode 13–17 % (a current slew; the gain comes from the faster driver edges). Levels do not move. Lowest grid −35.6 V. The KiCad bench agrees with plain SPICE within 0.6 %.
+
+Tools: `tools/spice/chokes.py` (the values), `tools/spice/threshold_delays.py --fanout N` (to the thresholds), the `*_plots.py` of this cell (to 100 V, the figures), `tools/spice/kicad_parity.py` (KiCad bench against plain SPICE). Investigation: `doc/dinv_trigger_board.md`.
 
 ## Circuit and part values
 
@@ -54,6 +68,8 @@ The KiCad sheet below has the same parts spread out and joined by net labels:
 Parts: Ra 15k, Rg2 15k per screen, Cb 15 pF per g3.
 
 ## Results (plain SPICE)
+
+> **Plate choke (TRS v0.58).** The tables of this section were simulated before the cell got its plate choke and stay as the record of the design; the figures of this page are redrawn with the choke. Current numbers: section *Plate choke* above and `sch/logic/vtube_timing.json`.
 
 `tools/spice/aoi_sweep.py a22`, drivers and loads as on the A1OOI_N16J2 page. 23 states of 2 µs: every arc of every input with the other three at the levels that make it count, B held high on the idle pentode while D swings the plate, and one hazard.
 

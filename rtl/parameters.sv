@@ -13,7 +13,8 @@
 // и самого декатрона [TRS v0.25]:
 //   GUIDE_STEP / FALL_STEP — переход на подкатод и сваливание (оценки;
 //     FALL_STEP 1000 по SPICE-модели А110, doc/dekatron_physics.md [TRS v0.31])
-//   WRITE_MIN / RESET_MIN  — запись и сброс по катоду (оценки, OPEN-013)
+//   WRITE_MIN              — запись по катоду, она же сброс (оценка, OPEN-013;
+//     с TRS v0.56 запись и сброс — одно событие, RESET_MIN убран)
 //   GUIDE_MAX              — предел импульса подкатода (только диагностика)
 //   PHASE_DELAY / PHASE1 / PHASE2 — нарезка такта генератором фаз
 //     (REQ-PULSE-009); ламповую сборку задают synth_sim.sh -o/-w
@@ -30,17 +31,14 @@
 `ifndef DEKATRON_WRITE_MIN_NS
 `define DEKATRON_WRITE_MIN_NS 5000
 `endif
-`ifndef DEKATRON_RESET_MIN_NS
-`define DEKATRON_RESET_MIN_NS 5000
-`endif
 `ifndef DEKATRON_PHASE_DELAY_NS
-`define DEKATRON_PHASE_DELAY_NS 0
+`define DEKATRON_PHASE_DELAY_NS 2500  // DFFP_J2N16 разрешений декад снимает D в конце окна: 0 даёт гонку с dec (TRS v0.60)
 `endif
 `ifndef DEKATRON_PHASE1_NS
-`define DEKATRON_PHASE1_NS 3000
+`define DEKATRON_PHASE1_NS 1000      // [TRS v0.59] было 3000: импульс подкатода 1 мкс (владелец)
 `endif
 `ifndef DEKATRON_PHASE2_NS
-`define DEKATRON_PHASE2_NS 3000
+`define DEKATRON_PHASE2_NS 1000      // [TRS v0.59] было 3000
 `endif
 `ifndef DEKATRON_EDGE_NS
 `define DEKATRON_EDGE_NS 100

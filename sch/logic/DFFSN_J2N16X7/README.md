@@ -8,13 +8,19 @@ Cell page. REQ-MOD-005, REQ-MOD-012, REQ-MOD-004 (simulated, not measured), REQ-
 | Tubes | 8: DFF_J2N16 + 1 × 6Kh7B |
 | Inputs | D, C (LV); SN, the reset line (idle −20 V; GND = asserted) |
 | Outputs (HV) | Q, QN |
-| SN → Q (Q above 118 V), fanout 2 / 6 / 10 | 273–295 / 423–448 / 578–611 ns |
+| SN → Q (Q above 118 V), fanout 2 / 6 / 10 | 170–174 / 296–300 / 432–441 ns with the plate chokes (was 273–295 / 423–448 / 578–611 ns) |
 | Recovery: release SN before C falls | ≥ 100 ns (98 ns simulated) |
 | Register to register, 1 MHz | up to fanout 6 (with Cc 2.7 pF and the −20 V idle) |
 
 The diodes go from SN into FQ of both latches, the grid of the triode on plate QN. SN at GND turns that triode on, QN goes low, and Q rises through its Ra, so preset is slower than clear. Cc 2.7 pF sits across the feedback divider Q → FQ of each latch.
 
 In synthesis the 4 flops that load 1 on reset (preset from `rst_n`) map here with SN on `rst_n` directly; before, they were `DFFSR_n` with S driven by `NOT(rst_n)`.
+
+## Plate chokes (TRS v0.58)
+
+Owner, 2026-11-08: a plate choke in every cell. The flip-flop inside is `DFF_J2N16` with the new RS core and inverter chokes (see that page). `dffr_sweep.py async`: SN → Q 170 / 300 / 441 ns at fanout 2 / 6 / 10 (the Q plate rises through Ra + 1 mH), and the preset holds Q at 135…145 V while C toggles. `vtube_timing.json`: SN→Q 300 ns (was 450). The KiCad bench agrees with plain SPICE within 0.01 %.
+
+Tools: `tools/spice/chokes.py` (the values), `tools/spice/threshold_delays.py --fanout N`, `tools/spice/latch_plots.py`, `tools/spice/kicad_parity.py`. Investigation: `doc/dinv_trigger_board.md`.
 
 ## Schematic
 
@@ -29,6 +35,8 @@ The KiCad sheet below has the same parts spread out and joined by net labels:
 The 6Kh7B Л902 goes SN → FQM and SN → FQS; Cc 2.7 pF goes QM → FQM and Q → FQS.
 
 ## Results
+
+> **Plate choke (TRS v0.58).** The tables of this section were simulated before the plate chokes and stay as the record of the design; the figures of this page are redrawn with them. Current numbers: section *Plate chokes* above and `sch/logic/vtube_timing.json`.
 
 - **Assert / hold / release** (`dffr_sweep.py async`, D = 0, Q was 0): Q rises above 118 V within the times in the table and is held 126–144.5 V while C toggles. After the release the next falling edge of C captures D. Line current up to 1.37 mA per flop.
 - **KiCad testbench**: the DFF bench with SN at GND from 8.2 to 11.7 µs. Every sampled bit is correct, worst sampled levels 131.5 / 77.3 V. KiCad and plain SPICE (`latch_tb.py dffsn`) agree on all 43 values (0.3 % on a grid minimum).

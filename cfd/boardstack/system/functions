@@ -1,0 +1,87 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2206                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      functions;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+board0Vel
+{
+    type            surfaceFieldValue;
+    libs            ("libfieldFunctionObjects.so");
+    writeControl    timeStep;
+    writeInterval   1;
+    writeFields     false;
+    log             true;
+    regionType      patch;
+    name            board0;
+    operation       areaAverage;
+    fields          (mag(U));
+}
+
+board1Vel
+{
+    type            surfaceFieldValue;
+    libs            ("libfieldFunctionObjects.so");
+    writeControl    timeStep;
+    writeInterval   1;
+    writeFields     false;
+    log             true;
+    regionType      patch;
+    name            board1;
+    operation       areaAverage;
+    fields          (mag(U));
+}
+
+board2Vel
+{
+    type            surfaceFieldValue;
+    libs            ("libfieldFunctionObjects.so");
+    writeControl    timeStep;
+    writeInterval   1;
+    writeFields     false;
+    log             true;
+    regionType      patch;
+    name            board2;
+    operation       areaAverage;
+    fields          (mag(U));
+}
+
+board0Tmax
+{
+    type            surfaceFieldValue;
+    libs            ("libfieldFunctionObjects.so");
+    writeControl    timeStep;
+    writeInterval   1;
+    writeFields     false;
+    log             true;
+    regionType      patch;
+    name            board0;
+    operation       max;
+    fields          (T);
+}
+
+outletFlow
+{
+    type            surfaceFieldValue;
+    libs            ("libfieldFunctionObjects.so");
+    writeControl    timeStep;
+    writeInterval   1;
+    writeFields     false;
+    log             true;
+    regionType      patch;
+    name            outlet;
+    operation       sum;
+    fields          (phi);
+}
+
+// ************************************************************************* //

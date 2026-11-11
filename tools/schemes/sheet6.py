@@ -64,7 +64,7 @@ def fig_mctrl():
     # реле времени сброса
     f.box(860, 380, 320, 110, "RstTimeRelay", ["держит линию сброса", "заданное время"],
           cls="blk-opt")
-    f.wire([(460, 450), (860, 450)], label="soft_rst_req · hard_rst_req", lx=470, ly=443)
+    f.wire([(460, 450), (860, 450)], label="soft_rst_req · hard_rst_req (DFFP)", lx=470, ly=443)
     f.wire([(860, 474), (460, 474)], label="rst_busy · soft_rst · hard_rst", lx=470, ly=467)
     return f.render()
 
@@ -124,5 +124,42 @@ def fig_mctrl_fsm():
     f.text(x + 36, y + 12, "s_next", "tl")
     f.text(16, 438, "s_next = (halt_key | one_step) ? S_HALT : pf_q ? S_DECODE : S_IDLE   (pf_q — следующая уже выбрана)", "tl")
     f.text(16, 456, "переполнение вложенности: IpLine снимает ready до сброса, машина стоит в S_FETCH_W (TC-N2, REQ-CTLV2-005)", "tl")
-    f.text(16, 474, "стробы: ip_valid, ap_valid, tx_vld = S_COUT, rx_rdy = S_WAIT · CIN · go, *_rst_req = S_RST_REQ", "tl")
+    f.text(16, 474, "стробы: ip_valid, ap_valid, tx_vld = S_COUT, rx_rdy = S_WAIT · CIN · go, *_rst_req = DFFP(S_RST_REQ), такт спустя", "tl")
+    return f.render()
+
+
+def fig_clktree():
+    f = Fig("ct", 1200, 460,
+            "Тактовое дерево платы такта в MachineCtrl: выходной инвертор генератора, "
+            "семь инверторов — по одному на IpLine, ApLine и их ферритовые памяти, три местных на DFFP автомата. "
+            "В IpLine три инвертора по два DFF_J2N16, в ApLine один на один DFF.")
+    f.text(12, 30, "ПЛАТА ТАКТА (MachineCtrl, ClkTree.sv)", "tf")
+    f.pin_in(12, 225, 120, "Clk")
+    f.text(12, 249, "генератор или внешний", "tl")
+    f.text(12, 263, "вход (тумблер)", "tl")
+    f.box(120, 205, 90, 40, "NOT_N16", ["clkGen"], bcls="tm")
+    f.wire([(210, 225), (330, 225)], label="clk_gen_n", lx=222, ly=241)
+    f.wire([(330, 50), (330, 400)], arrow=False)
+    f.dot(330, 225)
+    rows = ((50, "clkIp", "clk_ip"), (110, "clkAp", "clk_ap"),
+            (170, "clkIpm", "clk_ipm"), (230, "clkApm", "clk_apm"),
+            (300, "clkLoc[0]", "clk_loc[0]"), (350, "clkLoc[1]", "clk_loc[1]"),
+            (400, "clkLoc[2]", "clk_loc[2]"))
+    for y, nm, out in rows:
+        f.wire([(330, y), (400, y)])
+        f.dot(330, y)
+        f.box(400, y - 20, 90, 40, "NOT_N16", [nm], bcls="tm")
+        f.wire([(490, y), (640, y)], "wacc", label=out, lx=500, ly=y - 8)
+    f.box(640, 24, 540, 62, "IpLine", ["5 DFFP на C напрямую; 3 NOT_N16 по 2 DFF_J2N16 (9 сеток)",
+                                        "(state_hi×2 | scanning, halt_pending | overflow, dir)"], cls="blk-opt", top=18)
+    f.box(640, 94, 540, 56, "ApLine", ["6 DFFP на C напрямую (state, mem_here, счётчик данных);",
+                                       "свой NOT_N16 → DFF_J2N16 lock_q"], cls="blk-opt", top=18)
+    f.box(640, 160, 540, 100, "Ферритовые памяти", ["clk_ipm → IpMemory (программы)", "clk_apm → Ram (данные)",
+                                                     "память стартует от фронта своей цепи, а не от порта Clk"], cls="blk-opt", top=18)
+    f.box(640, 276, 540, 140, "MachineCtrl (19 DFFP, 7 / 6 / 6)",
+          ["clk_loc[0]: 6 синхронизаторов пульта и rst_busy, latchRstRq",
+           "clk_loc[1]: opFF[3:0], pfFF, insnLoadFF",
+           "clk_loc[2]: stateFF[3:0], oneStepFF, rstSoftFF",
+           "DFF_J2N16 в блоке нет: второго инвертора не нужно"], cls="blk-opt", top=18)
+    f.text(12, 450, "полярность: генератор выдаёт обратный клок, выход инвертора — прямой Clk машины; рабочий фронт DFFP — нарастающий, DFF_J2N16 берёт его по спаду своего инвертора", "tl")
     return f.render()

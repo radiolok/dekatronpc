@@ -9,13 +9,27 @@ Cell page. REQ-MOD-003 (NOT_N16 in the library), REQ-MOD-005 (boards), REQ-MOD-0
 | Inputs A1, A2 | LV level, straight to the grids |
 | Outputs Y1, Y2 | HV level, each on its own plate |
 | Supplies | +150 V (plates); −50 V (dividers only); heater 6.3 V, 0.4 A |
-| Parts | Ra 10 kΩ per triode; per driven LV net a divider 470 kΩ ‖ C1 / 200 kΩ, C1 = 3.9 pF per grid |
+| Parts | Ra 10 kΩ + L 680 µH ‖ 10 kΩ per triode (TRS v0.58); per driven LV net a divider 470 kΩ ‖ C1 / 200 kΩ, C1 = 3.9 pF per grid |
 | Output levels, fanout 10 | Y = 146.4…146.9 V (1); 55.3 V (0) |
-| Delay, fanout 2 … 10 | tpHL 61 … 83 ns, tpLH 64 … 211 ns |
+| Delay, fanout 2 … 10 | tpHL 40 … 55 ns, tpLH 55 … 187 ns (with the plate choke; was 61 … 83 / 64 … 211 ns) |
 | Crosstalk between the halves | a low output moves −2 V / +5 V (fanout 10; +8 V at fanout 2) while the other half switches; a high one −0.5 V |
 | Grid, worst transient | −34.5 V (limit −50 V) |
 
 The cell is NOR2_N16 with the plates split: each triode gets its own Ra and its own output. One inverter of the cell behaves exactly like NOR2_N16 with one input high, so the levels, the transfer curve and the divider rule are the same. It is faster, because its plate carries one triode instead of two.
+
+## Plate choke (TRS v0.58)
+
+Owner, 2026-11-08: the plate choke of `NOR2_N16` goes into every cell. Each triode now has Ra 10k (R11, R12) in series with L 680 µH (L11, L12) damped by 10k (R13, R14), the values of `NOR2_N16`. The bench driver is a `NOT_N16` too, so it carries the same choke.
+
+| Fanout | tpHL / tpLH to 100 V | to the thresholds (fall 92 V / rise 118 V) | before the choke (thresholds) |
+|---|---|---|---|
+| 2 | 40 / 55 ns | 46 / 87 ns | — |
+| 6 | 48 / 121 ns | **55 / 204 ns** | 88 / 253 ns |
+| 10 | 55 / 187 ns | 64 / 328 ns | — |
+
+Levels do not move (the choke is a short at DC): VOH 146.9 V, VOL 55.3 V. Lowest grid −35.2 V. The KiCad bench agrees with plain SPICE within 0.14 %.
+
+Tools: `tools/spice/chokes.py` (the values), `tools/spice/threshold_delays.py --fanout N` (to the thresholds), the `*_plots.py` of this cell (to 100 V, the figures), `tools/spice/kicad_parity.py` (KiCad bench against plain SPICE). Investigation: `doc/dinv_trigger_board.md`.
 
 ## Logic levels
 
@@ -68,6 +82,8 @@ The bounds were rechecked with an inverter as the driver. Its plate falls 147 �
 A net may be driven by a NOR as well as by a NOT, so C1 keeps the NOR bound. 3.9 pF also leaves 15 V of margin to −50 V here.
 
 ## Results
+
+> **Plate choke (TRS v0.58).** The tables of this section were simulated before the cell got its plate choke and stay as the record of the design; the figures of this page are redrawn with the choke. Current numbers: section *Plate choke* above and `sch/logic/vtube_timing.json`.
 
 ### KiCad testbench
 

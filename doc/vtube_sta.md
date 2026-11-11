@@ -4,6 +4,12 @@ Date: 2026-10-30. Related: OPEN-014 (is the clock achievable), OPEN-013
 (dekatron timing), REQ-PULSE-009 (phase start delay), REQ-VER-025 (timing of
 the netlist), REQ-MOD-004 (cell delays).
 
+> **[TRS v0.59, 2026-11-08]** The cells now have plate chokes (TRS v0.58), and the
+> guide phases are 1000 ns in the RTL and in the tube build (owner); `vtube_sta.sh`
+> and `synth_sim.sh -t` use a phase start delay of 2000 ns. Result: 7358 ns minimum
+> period, 136 kHz; 100 kHz with 2.6 µs of slack (`doc/dinv_trigger_board.md` §10).
+> The numbers below are the record of 2026-10-30.
+
 The question was whether the designed cells can run the machine at 100 kHz
 or faster. **Yes, with the guide phases widened to 600 ns: the netlist with
 SPICE cell delays at the real load of every net runs helloworld and
@@ -173,13 +179,33 @@ pulse); that is a question for the handshake, not checked here.
 `dfflibmap` gives each module one `NOT_N16` on its clock net. Those inverters
 drive 3–14 triggers each, 13.5–63 grids, far past the 10 grids the cell was
 designed for (max_fanout 10). The extrapolated C↓ arrives at 113–280 ns, so
-the clock skew between modules is up to 170 ns. In the machine the clock is
-inverted once at the generator (`synt_dpc.tcl`), so this needs a clock
-distribution design (a driver per board, or the generator itself); the
-present numbers for these nets are extrapolation. With an ideal clock
-(`--ideal-clock`) the phase delay fits at 31 hsClk and the minimum period is
-7.99 µs: the late capture clock of IpLine (250 ns) was helping setup, the
-early launch of the counters was not hurting the step command much.
+the clock skew between modules is up to 170 ns. That was the netlist before the
+clock tree. Since TRS v0.61 the clock board in MachineCtrl (`ClkTree.sv`,
+`doc/clock_tree.md`) feeds seven inverters from the generator: one each to
+IpLine, ApLine and their two ferrite memories, three local ones for the 19 DFFP
+of MachineCtrl (7 / 6 / 6). Every net is now at most 10 grids: the DFFP nets are
+4.2–8.5 grids (C at 209–339 ns) and the six `DFF_J2N16` of IpLine sit on three
+inverters of two (9 grids, 401 ns; they were six on one, 27 grids). The memory
+models launch from the rising edge of their own clock net plus `--mem-ns`. With an
+ideal clock (`--ideal-clock`) the late capture clock of IpLine does not help setup.
+
+### 3.4a Clock instability
+
+`--jitter F` (default **0.05**, 0 = ideal generator) takes the frequency of the
+generator as unstable by the fraction F of the period: a cycle may be shorter than
+the nominal one by F, so every `T ≥` of the report is divided by (1 − F); the
+numbers that do not depend on T (the phase gating slack, hold) stay.
+
+| | as synthesized | fitted (phase delay 2400 ns) | external inputs |
+|---|---|---|---|
+| no tree, ideal generator | 8065 ns, 124 kHz | 7965 ns, 126 kHz | T ≥ 8485 ns |
+| tree v0.62, `--jitter 0` | — | 7955 ns, 126 kHz | T ≥ 8670 ns |
+| **tree v0.62, `--jitter 0.05`** | **8479 ns, 118 kHz** | **8374 ns, 119 kHz** | T ≥ 9126 ns |
+
+100 kHz meets with 1.6 µs to spare. Hold: with the memory output exactly at the
+edge (`--mem-ns 0`) `ipLine.haltPendFF.D` from `ipMemory` is −54 ns (the IpLine DFF
+capture clock is at 401 ns); `--mem-ns 100` gives +46 ns, and the ferrite memory
+answers in microseconds.
 
 ### 3.5 Hold
 

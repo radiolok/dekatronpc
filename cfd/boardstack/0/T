@@ -1,0 +1,76 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2206                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       volScalarField;
+    object      T;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 0 0 1 0 0 0];
+
+internalField   uniform 293.15;
+
+boundaryField
+{
+    inlet
+    {
+        type            fixedValue;
+        value           uniform 293.15;
+    }
+    outlet
+    {
+        type            inletOutlet;
+        inletValue      uniform 293.15;
+        value           uniform 293.15;
+    }
+    sideY0
+    {
+        type            zeroGradient;
+    }
+    sideY1
+    {
+        type            zeroGradient;
+    }
+    sideZ0
+    {
+        type            zeroGradient;
+    }
+    sideZ1
+    {
+        type            zeroGradient;
+    }
+    board0
+    {
+        type            externalWallHeatFluxTemperature;
+        mode            power;
+        Q               uniform 56.32;
+        kappaMethod     fluidThermo;
+        value           uniform 293.15;
+    }
+    board1
+    {
+        type            externalWallHeatFluxTemperature;
+        mode            power;
+        Q               uniform 56.32;
+        kappaMethod     fluidThermo;
+        value           uniform 293.15;
+    }
+    board2
+    {
+        type            externalWallHeatFluxTemperature;
+        mode            power;
+        Q               uniform 56.32;
+        kappaMethod     fluidThermo;
+        value           uniform 293.15;
+    }
+}
+
+// ************************************************************************* //

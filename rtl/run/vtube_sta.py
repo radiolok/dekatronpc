@@ -44,13 +44,16 @@ so an `in` path starts at T/2 (input timing `-i`, the rows below the table):
           cycle: -T/2 + late <= lead and T/2 + early >= trail
 and the hold slack with the input changed AT the rising edge (early - clock at
 C - hold) lists the short paths a rising-edge source would race.
+Clock instability (--jitter, default 5 %, TRS v0.61): a cycle may be shorter than
+the nominal period by that fraction, so every "T >=" below is divided by
+(1 - jitter); slack that does not depend on T (phase gating, hold) is unchanged.
 The first condition sets the phase start delay (REQ-PULSE-009). Unless -p is
 given, the report first shows the netlist as synthesized, then repeats the
 analysis with the smallest DEKATRON_PHASE_DELAY_NS that meets it (in steps
 of FIT_NS).
 
 usage: vtube_sta.py -n flat.json [-l vtube_cells_timing.lib] [-p HS]
-                    [-f KHZ ...] [--paths N] [--ideal-clock] [--mem-ns NS] [-o report.md]
+                    [-f KHZ ...] [--paths N] [--jitter F] [--ideal-clock] [--mem-ns NS] [-o report.md]
 """
 import argparse
 import collections
@@ -66,6 +69,10 @@ from vtube_liberty import parse_liberty  # noqa: E402
 # Step of the fitted phase delay and phase width, ns. All times are in ns:
 # the tube netlist has no hsClk (TRS v0.25)
 FIT_NS = 100
+# A clock that comes this late after the Clk edge is the command window of
+# DekatronPhaseGen, not Clk (its flip-flops capture the data of the same cycle)
+DELAYED_CLK_NS = 500
+
 DATA = ('data', 'tube')
 # Input ports that are not data: the clock and the lines of the reset relay
 NOT_IN = ('Clk', 'rst_n', 'SoftRstKey', 'HardRstKey')
@@ -164,12 +171,13 @@ def short(s, n=70):
 
 
 class Sta:
-    def __init__(self, mod, lib, phase_delay_ns, ideal_clock, mem_ns, derate=1.0, phase_width_ns=None):
+    def __init__(self, mod, lib, phase_delay_ns, ideal_clock, mem_ns, derate=1.0, phase_width_ns=None, jitter=0.0):
         self.index, self.lib = lib
         self.cells = mod['cells']
         self.names = bit_names(mod)
         self.phase_delay_ns = phase_delay_ns
         self.ideal_clock = ideal_clock
+        self.jitter = jitter     # instability of the Clk frequency, fraction (§3.4a)
         self.mem_ns = mem_ns
         self.derate = derate
         self.phase_width_ns = phase_width_ns
@@ -381,12 +389,17 @@ class Sta:
                     for e in 'rf':
                         self.put(ob, 'tube', e, best[0], early, best[1], cn)
         elif t in ('Ram', 'IpMemory'):
+            # the output changes mem_ns after the rising edge of the memory's own
+            # clock (a branch of the clock tree, TRS v0.62); without a tree, at the port
+            cb = conn['clk'][0] if conn.get('clk') else None
+            ca = self.get(cb, 'clk') if isinstance(cb, int) else None
+            cl, ce = (ca.late['r'], ca.early['r']) if ca and ca.late['r'] is not None and not self.ideal_clock else (0.0, 0.0)
             for p, bits in conn.items():
                 if c['port_directions'][p] == 'output':
                     for ob in bits:
                         if isinstance(ob, int):
                             for e in 'rf':
-                                self.put(ob, 'data', e, self.mem_ns, self.mem_ns,
+                                self.put(ob, 'data', e, cl + self.mem_ns, ce + self.mem_ns,
                                          ('start', f'{cn} (memory, ideal)'), cn)
 
     def deps(self, cn):
@@ -401,6 +414,8 @@ class Sta:
             return [conn['En'][0]]
         if t == 'DekatronTubeDelay':
             return [conn['guide_a_i'][0], conn['guide_b_i'][0]]
+        if t in ('Ram', 'IpMemory') and conn.get('clk'):
+            return [conn['clk'][0]]
         return []
 
     def run(self):
@@ -475,7 +490,10 @@ class Sta:
                                         'need': 2 * max(late + su - cap_e, cap_l + ho - a.min_early()),
                                         'rise_slack': a.min_early() - cap_l - ho})
                             continue
-                        if lc['latch'] and cls == 'data':
+                        if (lc['latch'] or cap_e >= DELAYED_CLK_NS) and cls == 'data':
+                            # A trigger on the delayed command clock (the enable
+                            # DFFP of a decade, clocked by the end of the command
+                            # window) takes the data of its own cycle, like a latch.
                             # Same cycle: D settles before C falls (setup), and the
                             # next cycle's D changes after it (T + early >= close):
                             # the gating check, with the closing edge as the pulse
@@ -531,6 +549,16 @@ class Sta:
                         g['slack'] = None
                         g['need'] = late - lead
                     gating.append(g)
+        # Clock instability: the period of one cycle may be shorter than the
+        # nominal one by the jitter fraction, so a path that needs T_need in
+        # the shortest cycle needs T_need / (1 - jitter) nominal. Every 'need'
+        # is such a T (the T/2 of an input path is scaled with it); slack
+        # that does not depend on T stays.
+        k = 1.0 / (1.0 - self.jitter)
+        if k != 1.0:
+            for lst in (setup, gating, ins):
+                for x in lst:
+                    x['need'] *= k
         return setup, hold, gating
 
 
@@ -586,7 +614,8 @@ def report(sta, freqs, npaths, title):
            f'Phase start delay {pd} ns, guide phases {phase_width_of(sta)} ns each; clock '
            f'{"ideal (0 ns at every trigger)" if sta.ideal_clock else "propagated through the clock inverters"}; '
            f'memory outputs {sta.mem_ns:.0f} ns after the edge'
-           + (f'; cell delays × {sta.derate:g}' if sta.derate != 1.0 else '') + '.', '']
+           + (f'; cell delays × {sta.derate:g}' if sta.derate != 1.0 else '')
+           + (f'; Clk instability {sta.jitter * 100:g} % (every T ≥ divided by {1 - sta.jitter:g})' if sta.jitter else '') + '.', '']
     if sta.loops:
         out += [f'Unresolved (loops): {len(sta.loops)}: {", ".join(sta.loops[:5])}', '']
     ok_gate = s['gate_slack'] >= 0
@@ -734,14 +763,15 @@ def main():
     ap.add_argument('--paths', type=int, default=3)
     ap.add_argument('--ideal-clock', action='store_true', help='clock at 0 ns at every trigger')
     ap.add_argument('--mem-ns', type=float, default=0.0, help='memory output delay after the Clk edge')
-    ap.add_argument('--phase-width', type=int, default=None, help='width of each guide phase, ns (RTL: 3000)')
+    ap.add_argument('--phase-width', type=int, default=None, help='width of each guide phase, ns (RTL and the tube build: 1000, TRS v0.59)')
+    ap.add_argument('--jitter', type=float, default=0.05, help='instability of the Clk frequency, fraction of the period (0 = ideal generator)')
     ap.add_argument('--derate', type=float, default=1.0, help='scale every cell delay and setup/hold (tube spread)')
     a = ap.parse_args()
     lib = load_lib(a.l)
     mod = json.load(open(a.n))['modules'][a.t]
 
     def sta(pd):
-        return Sta(mod, lib, pd, a.ideal_clock, a.mem_ns, a.derate, a.phase_width).run()
+        return Sta(mod, lib, pd, a.ideal_clock, a.mem_ns, a.derate, a.phase_width, a.jitter).run()
 
     out = ['# Tube STA', '']
     if a.p is None:

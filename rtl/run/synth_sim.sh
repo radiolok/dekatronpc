@@ -18,7 +18,7 @@
 #           DekatronPC. Output in synth_sim_timing/ (doc/vtube_sdf_timing.md)
 #     -p    power (doc/vtube_power.md): the netlist with the HV -> LV
 #           dividers (synt_dpc.tcl -div), the phase timing of the tube
-#           build (-o 3300 -w 600, as -t), and the VCD of the DUT streamed
+#           build (-o 2500 -w 1000, as -t), and the VCD of the DUT streamed
 #           through a FIFO into vtube_power_vcd (nothing on disk, so pi.bfk
 #           works too); the state times times the cell currents of
 #           sch/logic/vtube_power.json give <run>_power.md: current, voltage
@@ -27,13 +27,13 @@
 #           program.bfk, the default), Pi. Output in synth_sim_power/
 #     -o NS phase start delay after the Clk edge, ns (DEKATRON_PHASE_DELAY_NS,
 #           REQ-PULSE-009): at least the worst step command path. Default
-#           0 (RTL), 3300 under -t: the longest step command with the SPICE
-#           cell delays settles at 3.24 us (vtube_sta.sh fits it,
-#           doc/vtube_sta.md §3)
+#           0 (RTL), 2500 under -t: the longest step command with the SPICE
+#           cell delays and the plate chokes settles within it (vtube_sta.sh
+#           fits it, doc/vtube_sta.md §3; 3300 before TRS v0.59)
 #     -w NS width of each guide phase, ns (DEKATRON_PHASE1_NS /
-#           DEKATRON_PHASE2_NS). Default 3000 (RTL), 600 under -t: a tube
-#           gate of DekatronPulseSender does not pass a pulse shorter than
-#           its own delay (doc/vtube_sta.md §6)
+#           DEKATRON_PHASE2_NS). Default 1000 (RTL and -t, owner, TRS v0.59;
+#           was 3000 / 600): a tube gate of DekatronPulseSender does not pass
+#           a pulse shorter than its own delay (doc/vtube_sta.md §6)
 #     -c NS Clk period in ns of the testbenches (default CLK_PERIOD_NS =
 #           10000, the 100 kHz Clk of TRS v0.24)
 #     test  Dekatron Counter IpLine ApLine MachineCtrl DekatronPC Pi
@@ -88,8 +88,8 @@ done
 shift $((OPTIND - 1))
 tests=("$@")
 [ ${timing} -ne 0 ] && [ ${power} -ne 0 ] && { echo "-t and -p exclude each other"; exit 1; }
-[ $((timing + power)) -ne 0 ] && [ -z "${phase_delay}" ] && phase_delay=3300
-[ $((timing + power)) -ne 0 ] && [ -z "${phase_width}" ] && phase_width=600
+[ $((timing + power)) -ne 0 ] && [ -z "${phase_delay}" ] && phase_delay=2500
+[ $((timing + power)) -ne 0 ] && [ -z "${phase_width}" ] && phase_width=1000
 if [ ${#tests[@]} -eq 0 ]; then
 	tests=("${all_tests[@]}")
 	[ ${timing} -ne 0 ] && tests=(Dekatron Counter DekatronPC)

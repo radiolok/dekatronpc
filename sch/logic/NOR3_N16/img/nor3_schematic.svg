@@ -112,18 +112,38 @@
 <line x1="929" y1="347" x2="951" y2="347" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
 <line x1="933" y1="351" x2="947" y2="351" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
 <line x1="937" y1="355" x2="943" y2="355" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="340" y1="80" x2="340" y2="110" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="340" y1="140" x2="340" y2="170" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<rect x="334.5" y="110" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
-<text x="351.5" y="126" font-size="11" fill="#22262b" text-anchor="start" font-weight="bold" font-style="normal">10k</text>
-<text x="351.5" y="138" font-size="9" fill="#5d6670" text-anchor="start" font-weight="normal" font-style="normal">R101</text>
+<line x1="340" y1="80" x2="340" y2="84" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="340" y1="114" x2="340" y2="118" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="334.5" y="84" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<text x="328.5" y="100" font-size="11" fill="#22262b" text-anchor="end" font-weight="bold" font-style="normal">10k</text>
+<text x="328.5" y="112" font-size="9" fill="#5d6670" text-anchor="end" font-weight="normal" font-style="normal">R101</text>
+<line x1="340" y1="118" x2="340" y2="128" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="340" y1="160" x2="340" y2="170" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<path d="M340,128 a5,4 0 0 1 0,8 a5,4 0 0 1 0,8 a5,4 0 0 1 0,8 a5,4 0 0 1 0,8" stroke="#22262b" stroke-width="1.6" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="326" y="145" font-size="11" fill="#22262b" text-anchor="end" font-weight="bold" font-style="normal">680 µ</text>
+<text x="326" y="157" font-size="9" fill="#5d6670" text-anchor="end" font-weight="normal" font-style="normal">L101</text>
+<line x1="374" y1="118" x2="374" y2="129" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="374" y1="159" x2="374" y2="170" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="368.5" y="129" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<text x="385.5" y="145" font-size="11" fill="#22262b" text-anchor="start" font-weight="bold" font-style="normal">10k</text>
+<text x="385.5" y="157" font-size="9" fill="#5d6670" text-anchor="start" font-weight="normal" font-style="normal">R102</text>
 <circle cx="90" cy="170" r="3.8" fill="#fff" stroke="#b8232f" stroke-width="1.8"/>
 <text x="81" y="174" font-size="13" fill="#b8232f" text-anchor="end" font-weight="bold" font-style="normal">Y1</text>
-<line x1="790" y1="80" x2="790" y2="110" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="790" y1="140" x2="790" y2="170" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<rect x="784.5" y="110" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
-<text x="801.5" y="126" font-size="11" fill="#22262b" text-anchor="start" font-weight="bold" font-style="normal">10k</text>
-<text x="801.5" y="138" font-size="9" fill="#5d6670" text-anchor="start" font-weight="normal" font-style="normal">R102</text>
+<line x1="790" y1="80" x2="790" y2="84" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="790" y1="114" x2="790" y2="118" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="784.5" y="84" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<text x="778.5" y="100" font-size="11" fill="#22262b" text-anchor="end" font-weight="bold" font-style="normal">10k</text>
+<text x="778.5" y="112" font-size="9" fill="#5d6670" text-anchor="end" font-weight="normal" font-style="normal">R103</text>
+<line x1="790" y1="118" x2="790" y2="128" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="790" y1="160" x2="790" y2="170" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<path d="M790,128 a5,4 0 0 1 0,8 a5,4 0 0 1 0,8 a5,4 0 0 1 0,8 a5,4 0 0 1 0,8" stroke="#22262b" stroke-width="1.6" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="776" y="145" font-size="11" fill="#22262b" text-anchor="end" font-weight="bold" font-style="normal">680 µ</text>
+<text x="776" y="157" font-size="9" fill="#5d6670" text-anchor="end" font-weight="normal" font-style="normal">L102</text>
+<line x1="824" y1="118" x2="824" y2="129" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="824" y1="159" x2="824" y2="170" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="818.5" y="129" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<text x="835.5" y="145" font-size="11" fill="#22262b" text-anchor="start" font-weight="bold" font-style="normal">10k</text>
+<text x="835.5" y="157" font-size="9" fill="#5d6670" text-anchor="start" font-weight="normal" font-style="normal">R104</text>
 <circle cx="1040" cy="170" r="3.8" fill="#fff" stroke="#b8232f" stroke-width="1.8"/>
 <text x="1049" y="174" font-size="13" fill="#b8232f" text-anchor="start" font-weight="bold" font-style="normal">Y2</text>
 <path d="M110,290 L128,290" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
@@ -134,19 +154,28 @@
 <path d="M860,290 L878,290" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M190,240 L190,170 L490,170 L490,240" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M340,240 L340,170" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M340,118 L374,118" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M374,170 L340,170" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M190,170 L90,170" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M640,240 L640,170 L940,170 L940,240" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M790,240 L790,170" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M790,118 L824,118" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M824,170 L790,170" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M940,170 L1040,170" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<circle cx="340" cy="170" r="3.4" fill="#22262b"/>
+<circle cx="340" cy="118" r="3.4" fill="#22262b"/>
 <circle cx="340" cy="170" r="3.4" fill="#22262b"/>
 <circle cx="340" cy="80" r="3.4" fill="#22262b"/>
 <circle cx="190" cy="170" r="3.4" fill="#22262b"/>
 <circle cx="490" cy="170" r="3.4" fill="#22262b"/>
 <circle cx="790" cy="170" r="3.4" fill="#22262b"/>
+<circle cx="790" cy="118" r="3.4" fill="#22262b"/>
+<circle cx="790" cy="170" r="3.4" fill="#22262b"/>
 <circle cx="790" cy="80" r="3.4" fill="#22262b"/>
 <circle cx="640" cy="170" r="3.4" fill="#22262b"/>
 <circle cx="940" cy="170" r="3.4" fill="#22262b"/>
-<text x="20" y="412" font-size="10.5" fill="#5d6670">Y1 = triodes Л101a, Л101b, Л102a;  Y2 = Л102b, Л103a, Л103b: 1.5 tubes per cell.</text>
+<text x="20" y="398" font-size="10.5" fill="#5d6670">Y1 = triodes Л101a, Л101b, Л102a;  Y2 = Л102b, Л103a, Л103b: 1.5 tubes per cell.</text>
+<text x="20" y="412" font-size="10.5" fill="#5d6670">Plate load: Ra 10k in series with L 680 µH ‖ Rd 10k (TRS v0.58): the choke speeds up the rising edge of Y.</text>
 <text x="20" y="426" font-size="10.5" fill="#5d6670">LV (grids): 1 = +10 V, 0 = −20 V.   HV (plates): 1 = +150 V, 0 = +50 V.</text>
 <text x="20" y="440" font-size="10.5" fill="#5d6670">Heater 6.3 V on H1/H2 (pins 8, 4), all tubes in parallel, not drawn.</text>
 </svg>

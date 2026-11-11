@@ -9,19 +9,29 @@
 //                        на подкатод: пентод с двумя управляющими
 //                        сетками, на одной импульс шины GuideA/GuideB
 //                        счётчика, на другой En
-//   BcdToOneHotEn      — преобразователь 8-4-2-1 -> позиционный, по WRITE
-//                        (вход In_n — тетрады активным нулём, TC-O3)
+//   WRCH_N16           — каналы записи (лампы в катодных цепях) по
+//                        перемычкам платы: полная запись, сброс в 0,
+//                        сброс в 0/TOP
 //   BinToBcdN          — преобразователь позиционный -> 8-4-2-1 активным
 //                        нулём (ИЛИ-НЕ без инверторов, TC-O3), по READ
 //
 //----------------------------------------------------------------------
 // ЧТО ИЗМЕНИЛОСЬ ОТНОСИТЕЛЬНО ПРЕЖНЕЙ ВЕРСИИ
 //
-// 1. Исчезла сборка InPosDek_n из Set[2:0]. Прежде линии сброса в нуль
-//    и в верхнюю позицию подмешивались в шину записи катодов вручную,
-//    внутри generate-блоков. Теперь у модели декатрона есть выделенные
-//    физические входы reset0_i и resetN_i, поэтому SetZero и SetTop
-//    идут на них напрямую. Ветвление по WRITE стало тривиальным.
+// 1. [TRS v0.56] Запись — по катодным линиям. Модуль получает уровни
+//    LineOpen[9:0] (линии W0…W9 через разъём, sch/logic/DEKATRON_A110/
+//    README.md §3.3): 1 — лампа канала записи открыта, катод на −20 В;
+//    0 — закрыта. В покое все линии 1. Для записи цифры i схема снаружи
+//    держит открытой только линию i: открыта_i = ¬W ∨ sel_i. Сброс в 0 и
+//    в TOP — то же самое. Дешифратор записи и уровни сброса формирует
+//    DekatronCounter (клей блока, doc/board_estimate.md §2.6), модуль
+//    лишь разводит линии по каналам записи своей платы:
+//      WRITE = 1 — 10 каналов, LineOpen[k] на катод k;
+//      WRITE = 0 — канал K0 (LineOpen[0]), канал общей шины остальных
+//                  катодов (LineOpen[COMMON_LINE]) и при TOP_LIMIT_MODE
+//                  канал TOP (LineOpen[TOP_PIN_OUT]).
+//    Прежние входы In_n/SetData/SetZero/SetTop и выделенные сбросы
+//    модели reset0_i/resetN_i убраны: в приборе их нет.
 //
 // 2. Исчез приём с маскированием выхода в X:
 //        OutPos = (~(|_OutPos) | (|Pulses)) ? 10'bx : _OutPos;
@@ -71,11 +81,12 @@
 //   * Линии чтения главных катодов отдельные и читаются всегда, но
 //     показание Out_n достоверно только на фронте Clk, завершающем такт
 //     операции. Пока разряд идёт по подкатодам, позиционный код нулевой.
-//   * SetData/SetZero/SetTop удерживаются не менее WRITE_MIN_HS /
-//     RESET_MIN_HS тактов hsClk, иначе операция не состоится. Запись
-//     по handshake держится один такт Clk [TRS v0.24], поэтому обе
-//     длительности обязаны укладываться в такт (проверяет счётчик).
-//   * Одновременная подача нескольких воздействий недопустима.
+//   * Закрытые линии LineOpen держатся не менее WRITE_MIN_HS тактов
+//     hsClk, иначе разряд не перейдёт. Запись по handshake держится
+//     один такт Clk [TRS v0.24], поэтому WRITE_MIN обязана укладываться
+//     в такт (проверяет счётчик).
+//   * Пока закрыта хоть одна линия, подкатоды молчат. Если линия
+//     горящего катода закрыта, открытой должна остаться ровно одна.
 //======================================================================
 
 `default_nettype none
@@ -124,11 +135,11 @@ endmodule
 module DekatronModule #(
     // Состав обвязки
     parameter bit          READ            = 1'b1,   // ставить BinToBcd
-    parameter bit          WRITE           = 1'b1,   // ставить BcdToOneHotEn
+    parameter bit          WRITE           = 1'b1,   // 10 каналов записи (иначе только сброс)
 
     // Верхний предел счёта
-    parameter bit          TOP_LIMIT_MODE  = 1'b1,   // выводить TopPin и SetTop
-    parameter unsigned TOP_PIN_OUT     = 9,      // номер верхней позиции
+    parameter bit          TOP_LIMIT_MODE  = 1'b1,   // выводить TopPin, свой канал сброса TOP
+    parameter unsigned TOP_PIN_OUT     = 9,      // номер верхней позиции (свой канал сброса)
 
     // Начальное положение разряда после включения питания
     parameter logic [3:0]  INIT_DIGIT      = 4'd0,
@@ -141,8 +152,7 @@ module DekatronModule #(
     parameter unsigned GUIDE_STEP_HS   = 1,
     parameter unsigned FALL_STEP_HS    = 1,
     parameter unsigned GUIDE_MAX_HS    = 20,
-    parameter unsigned WRITE_MIN_HS    = 5,
-    parameter unsigned RESET_MIN_HS    = 5,
+    parameter unsigned WRITE_MIN_HS    = 5,      // запись и сброс по катоду
 
     // Нарезка такта счёта (такты hsClk); только для проверок ниже, сами
     // фазы формирует счётчик
@@ -165,13 +175,11 @@ module DekatronModule #(
     input  wire       GuideB,
     input  wire       En,
 
-    // Установка значения
+    // Катодные линии записи W0…W9: 1 — канал открыт, 0 — закрыт.
+    // При WRITE = 0 используются только линии 0, COMMON_LINE и TOP_PIN_OUT
 /* verilator lint_off UNUSEDSIGNAL */
-    input  wire [3:0] In_n,      // записываемое число, 8-4-2-1 активным нулём
-    input  wire       SetData,   // запись числа со входа In_n (только при WRITE)
-    input  wire       SetTop,    // сброс в позицию TOP_PIN_OUT (при TOP_LIMIT_MODE)
+    input  wire [9:0] LineOpen,
 /* verilator lint_on UNUSEDSIGNAL */
-    input  wire       SetZero,   // сброс в нуль
 
     // Чтение
     output wire [3:0] Out_n,     // текущее число, 8-4-2-1 активным нулём (только при READ)
@@ -187,10 +195,13 @@ module DekatronModule #(
     //------------------------------------------------------------------
     wire [9:0] MainOneHotLine;  // катодные линии декатрона
     wire [9:0] MainOneHot;      // позиционный код за диодами чтения
-    wire [9:0] WritePos;        // позиционный код на усилители записи
+    wire [9:0] CathodeOpen;     // линии, как их видит декатрон
 
     // Катоды выше MAX_DIGIT (TC-N1) остаются без диода и без канала записи
     localparam logic [9:0] DIG_MASK = 10'((1 << (MAX_DIGIT + 1)) - 1);
+    // Линия общей шины платы сброса: первый катод, кроме K0 и TOP
+    localparam int unsigned COMMON_LINE =
+        (TOP_LIMIT_MODE && TOP_PIN_OUT == 1) ? 2 : 1;
     wire       GuideA_d;        // импульсы на подкатоды этой декады
     wire       GuideB_d;
 
@@ -210,44 +221,27 @@ module DekatronModule #(
     );
 
     //------------------------------------------------------------------
-    // Схема записи — только при WRITE.
-    // Это самая дорогая по лампам часть обвязки, поэтому в счётчиках
-    // без записи она не ставится вовсе.
+    // Катодные линии по перемычкам платы. Катоды выше MAX_DIGIT без
+    // канала записи и без цепи возврата: гореть не могут, линия 0
     //------------------------------------------------------------------
-    wire WriteEn;
-
     generate
-        if (WRITE) begin : g_write
-            // Дешифратор берёт инверсные тетрады: литералы те же, полярность
-            // меняет только разводку входов
-            wire [9:0] WritePosAll;
-            BcdToBinEn bcdToOneHot (
-                .In  (~In_n),
-                .En  (SetData),
-                .Out (WritePosAll)
-            );
-            // Выше MAX_DIGIT каналов записи нет (TC-N1)
-            assign WritePos = WritePosAll & DIG_MASK;
-            assign WriteEn = SetData;
-        end
-        else begin : g_no_write
-            assign WritePos = 10'b0;
-            assign WriteEn  = 1'b0;
-        end
-    endgenerate
-
-    //------------------------------------------------------------------
-    // Сброс в верхнюю позицию — только при TOP_LIMIT_MODE.
-    // В модели декатрона это линия resetN с параметром RESET_N_POS.
-    //------------------------------------------------------------------
-    wire ResetTop;
-
-    generate
-        if (TOP_LIMIT_MODE) begin : g_top_set
-            assign ResetTop = SetTop;
-        end
-        else begin : g_no_top_set
-            assign ResetTop = 1'b0;
+        genvar k;
+        for (k = 0; k < 10; k++) begin : g_line
+            if (!DIG_MASK[k]) begin : g_none
+                assign CathodeOpen[k] = 1'b0;
+            end
+            else if (WRITE) begin : g_full
+                assign CathodeOpen[k] = LineOpen[k];
+            end
+            else if (k == 0) begin : g_k0
+                assign CathodeOpen[k] = LineOpen[0];
+            end
+            else if (TOP_LIMIT_MODE && k == int'(TOP_PIN_OUT)) begin : g_top
+                assign CathodeOpen[k] = LineOpen[TOP_PIN_OUT];
+            end
+            else begin : g_common
+                assign CathodeOpen[k] = LineOpen[COMMON_LINE];
+            end
         end
     endgenerate
 
@@ -263,17 +257,14 @@ module DekatronModule #(
         .FALL_STEP_NS     (`DEKATRON_FALL_STEP_NS),
         .GUIDE_MAX_NS     (`DEKATRON_GUIDE_MAX_NS),
         .WRITE_MIN_NS     (`DEKATRON_WRITE_MIN_NS),
-        .RESET_MIN_NS     (`DEKATRON_RESET_MIN_NS),
 `else
     DekatronTubeV2 #(
         .GUIDE_STEP_HS    (GUIDE_STEP_HS),
         .FALL_STEP_HS     (FALL_STEP_HS),
         .GUIDE_MAX_HS     (GUIDE_MAX_HS),
         .WRITE_MIN_HS     (WRITE_MIN_HS),
-        .RESET_MIN_HS     (RESET_MIN_HS),
 `endif
-        .EN_RESETN        (TOP_LIMIT_MODE),
-        .RESET_N_POS      (TOP_PIN_OUT),
+        .LINES            (DIG_MASK),
         .INIT_DIGIT       (INIT_DIGIT),
         .INC_BY_A_THEN_B  (INC_BY_A_THEN_B),
         .EN_SIM_PRESET    (1'b0),
@@ -284,10 +275,7 @@ module DekatronModule #(
 `endif
         .guide_a_i             (GuideA_d),
         .guide_b_i             (GuideB_d),
-        .write_en_i            (WriteEn),
-        .write_pos_i           (WritePos),
-        .reset0_i              (SetZero),
-        .resetN_i              (ResetTop),
+        .line_open_i           (CathodeOpen),
         .sim_preset_en_i       (1'b0),
         .sim_preset_cathodes_i (30'b0),
         .main_onehot_o         (MainOneHotLine),
@@ -310,7 +298,6 @@ module DekatronModule #(
         (10'b10_0000_0001 | (TOP_LIMIT_MODE ? (10'b1 << TOP_PIN_OUT) : 10'b0)));
 
     generate
-        genvar k;
         for (k = 0; k < 10; k++) begin : g_rdd
             if (READ_LINES[k]) begin : g_on
                 RDD_X7 rdd (
@@ -327,24 +314,25 @@ module DekatronModule #(
 
     //------------------------------------------------------------------
     // Каналы записи (WRCH_N16, ½ 6Н16Б), по перемычкам платы:
-    // полная запись — 10; сброс в 0 и 9 — K0, K9, общая шина K1..K8;
-    // сброс в 0 — K0 и общая шина K1..K9. Выход — аналоговый узел записи,
-    // в нетлисте не подключён
+    // полная запись — 10; сброс в 0 и TOP — K0, K_TOP, общая шина
+    // остальных; сброс в 0 — K0 и общая шина K1..K9. Вход — уровень линии
+    // (1 — открыт, спад закрывает лампу через Cс). Выход — аналоговый
+    // узел записи, в нетлисте не подключён
     //------------------------------------------------------------------
     generate
         if (WRITE) begin : g_wrch_full
             for (k = 0; k <= int'(MAX_DIGIT); k++) begin : g_ch
                 /* verilator lint_off PINCONNECTEMPTY */
-                (* keep *) WRCH_N16 wrch (.A (WritePos[k]), .Y ());
+                (* keep *) WRCH_N16 wrch (.A (LineOpen[k]), .Y ());
                 /* verilator lint_on PINCONNECTEMPTY */
             end
         end
         else begin : g_wrch_reset
             /* verilator lint_off PINCONNECTEMPTY */
-            (* keep *) WRCH_N16 wrch_k0     (.A (ResetTop), .Y ());   // K0: закрыт при сбросе в TOP
-            (* keep *) WRCH_N16 wrch_common (.A (SetZero),  .Y ());   // общая шина
+            (* keep *) WRCH_N16 wrch_k0     (.A (LineOpen[0]),           .Y ());
+            (* keep *) WRCH_N16 wrch_common (.A (LineOpen[COMMON_LINE]), .Y ());
             if (TOP_LIMIT_MODE) begin : g_k_top
-                (* keep *) WRCH_N16 wrch_top (.A (SetZero), .Y ());   // катод TOP_PIN_OUT
+                (* keep *) WRCH_N16 wrch_top (.A (LineOpen[TOP_PIN_OUT]), .Y ());
             end
             /* verilator lint_on PINCONNECTEMPTY */
         end
@@ -423,7 +411,9 @@ module DekatronModule #(
             $error("DekatronModule: TOP_PIN_OUT (%0d) must be in range 0..9",
                    TOP_PIN_OUT);
         if (TOP_LIMIT_MODE && !WRITE && (TOP_PIN_OUT == 0))
-            $warning("DekatronModule: TOP_PIN_OUT = 0 duplicates SetZero");
+            $error("DekatronModule: TOP_PIN_OUT = 0 on a reset board is K0 itself");
+        if (!WRITE && MAX_DIGIT < 2)
+            $error("DekatronModule: a reset board needs a common line (MAX_DIGIT >= 2)");
     end
 `endif
 

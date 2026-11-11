@@ -24,9 +24,14 @@ KNOWN_MODULES = {
     'Dekatron' : (1, 0),
     'DekatronCarrySignal' : (7.5, 2400),
     'DekatronPulseSender' : (1.5, 400),
-    'OneShot': (1, 300),
-    'Impulse': (1, 300)
+    # RC timing black boxes of DekatronPhaseGen: OneShot is a one-shot
+    # multivibrator on one 6N16B (400 mA heater), Impulse is a passive RC
+    # differentiator at the input of the next stage, no tube
+    'OneShot': (1, 400),
+    'Impulse': (0, 0)
 }
+# Tubes by type of the black boxes above that hold tubes
+KNOWN_MODULE_TUBES = {'OneShot': {'N16B': 1.0}}
 
 def get_module_name(_modules, _module_name):
     """Remove excess symbols and return module"""
@@ -81,6 +86,8 @@ def get_flat_cells(_modules, _module_name, _acc, _mult=1):
             _acc[_cell] = _acc.get(_cell, 0) + _mult * _count
         elif any(_d in _cell for _d in DEKATRON_MODULES):
             _acc['A110'] = _acc.get('A110', 0) + _mult * _count
+        elif _cell in KNOWN_MODULE_TUBES:
+            _acc[_cell] = _acc.get(_cell, 0) + _mult * _count
         elif _cell not in KNOWN_MODULES:
             get_flat_cells(_modules, _cell, _acc, _mult * _count)
     return _acc
@@ -107,6 +114,11 @@ if __name__ == "__main__":
                  VTUBE_CELLS_DATA[name][_tube] = cell_group.get_group('tubes')[_tube] or 0.0
             _rel = cell_group.get_groups('relays')
             VTUBE_RELAYS[name] = sum((_rel[0][_r] or 0) for _r in KNOWN_RELAYS) if _rel else 0
+
+    for _name, _tubes in KNOWN_MODULE_TUBES.items():
+        VTUBE_CELLS_DATA[_name] = {'area': KNOWN_MODULES[_name][0]}
+        for _tube in KNOWN_TUBES:
+            VTUBE_CELLS_DATA[_name][_tube] = _tubes.get(_tube, 0.0)
 
     CELLS_TOTAL = {}
 
@@ -145,6 +157,7 @@ if __name__ == "__main__":
                   f"{CELLS_TOTAL[cell]}\t"\
                   f"{VTUBE_CELLS[cell][0]*CELLS_TOTAL[cell]}\t"\
                   f"{VTUBE_CELLS[cell][1]*CELLS_TOTAL[cell]/1000}A")
+        if cell in VTUBE_CELLS_DATA:
             for tube in KNOWN_TUBES:
                 TUBES_TOTAL[tube] += VTUBE_CELLS_DATA[cell][tube] * CELLS_TOTAL[cell]
     

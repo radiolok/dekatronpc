@@ -82,11 +82,21 @@
 <line x1="599" y1="353" x2="621" y2="353" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
 <line x1="603" y1="357" x2="617" y2="357" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
 <line x1="607" y1="361" x2="613" y2="361" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="285" y1="80" x2="285" y2="105" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<line x1="285" y1="135" x2="285" y2="160" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
-<rect x="279.5" y="105" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
-<text x="296.5" y="121" font-size="11" fill="#22262b" text-anchor="start" font-weight="bold" font-style="normal">15k</text>
-<text x="296.5" y="133" font-size="9" fill="#5d6670" text-anchor="start" font-weight="normal" font-style="normal">R102</text>
+<line x1="285" y1="80" x2="285" y2="84" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="285" y1="114" x2="285" y2="118" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="279.5" y="84" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<text x="273.5" y="100" font-size="11" fill="#22262b" text-anchor="end" font-weight="bold" font-style="normal">15k</text>
+<text x="273.5" y="112" font-size="9" fill="#5d6670" text-anchor="end" font-weight="normal" font-style="normal">R102</text>
+<line x1="285" y1="118" x2="285" y2="123" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="285" y1="155" x2="285" y2="160" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<path d="M285,123 a5,4 0 0 1 0,8 a5,4 0 0 1 0,8 a5,4 0 0 1 0,8 a5,4 0 0 1 0,8" stroke="#22262b" stroke-width="1.6" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+<text x="271" y="140" font-size="11" fill="#22262b" text-anchor="end" font-weight="bold" font-style="normal">1.5 m</text>
+<text x="271" y="152" font-size="9" fill="#5d6670" text-anchor="end" font-weight="normal" font-style="normal">L101</text>
+<line x1="319" y1="118" x2="319" y2="124" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<line x1="319" y1="154" x2="319" y2="160" stroke="#22262b" stroke-width="1.6" stroke-linecap="round"/>
+<rect x="313.5" y="124" width="11" height="30" fill="#fff" stroke="#22262b" stroke-width="1.5"/>
+<text x="330.5" y="140" font-size="11" fill="#22262b" text-anchor="start" font-weight="bold" font-style="normal">15k</text>
+<text x="330.5" y="152" font-size="9" fill="#5d6670" text-anchor="start" font-weight="normal" font-style="normal">R103</text>
 <circle cx="120" cy="160" r="3.8" fill="#fff" stroke="#b8232f" stroke-width="1.8"/>
 <text x="111" y="164" font-size="13" fill="#b8232f" text-anchor="end" font-weight="bold" font-style="normal">Y</text>
 <path d="M116,290 L138,290" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
@@ -96,14 +106,18 @@
 <path d="M678,292 L708,292" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M200,240 L200,160 L610,160 L610,234" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M370,240 L370,160" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M285,118 L319,118" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
+<path d="M319,160 L285,160" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <path d="M200,160 L120,160" fill="none" stroke="#22262b" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>
 <circle cx="512" cy="280" r="3.4" fill="#22262b"/>
 <circle cx="200" cy="160" r="3.4" fill="#22262b"/>
 <circle cx="370" cy="160" r="3.4" fill="#22262b"/>
 <circle cx="610" cy="160" r="3.4" fill="#22262b"/>
-<circle cx="285" cy="80" r="3.4" fill="#22262b"/>
+<circle cx="285" cy="118" r="3.4" fill="#22262b"/>
 <circle cx="285" cy="160" r="3.4" fill="#22262b"/>
-<text x="20" y="402" font-size="10.5" fill="#5d6670">The two triodes of Л102 are the OR inputs C and D on the pentode's plate.</text>
+<circle cx="285" cy="80" r="3.4" fill="#22262b"/>
+<text x="20" y="388" font-size="10.5" fill="#5d6670">The two triodes of Л102 are the OR inputs C and D on the pentode's plate.</text>
+<text x="20" y="402" font-size="10.5" fill="#5d6670">Plate load: Ra 15k in series with L 1.5 mH ‖ Rd 15k (TRS v0.58): the choke speeds up the rising edge of Y.</text>
 <text x="20" y="416" font-size="10.5" fill="#5d6670">LV (grids): 1 = +10 V, 0 = −20 V.   HV (plates): 1 = +150 V, 0 = +50 V.   Ra = Rg2 = 15k.</text>
 <text x="20" y="430" font-size="10.5" fill="#5d6670">Heater 6.3 V on H1/H2 (6Zh2B pins 4, 5; 6N16B pins 8, 4), all tubes in parallel, not drawn.</text>
 </svg>

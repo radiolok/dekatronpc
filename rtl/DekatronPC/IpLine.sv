@@ -70,11 +70,8 @@
 `default_nettype none
 
 `ifndef SYNTH
-// Модель вентиля сброса автомата (ячейка vtube_cells.lib). В синтезе стоит
-// сама ячейка: ABC не растворяет её в логике переходов (TC-N2)
-module NOR2_N16 (input wire A, input wire B, output wire Y);
-    assign Y = ~(A | B);
-endmodule
+// Модель вентиля сброса автомата NOR2_N16 — rtl/Logic/NOR2_N16.sv. В синтезе
+// стоит сама ячейка: ABC не растворяет её в логике переходов (TC-N2)
 
 // Модель антидребезга кнопки пульта (sch/logic/KEYDB_N16, TC-N3). В синтезе
 // ячейка берётся из vtube_cells.lib: функции у неё нет, ABC её не использует.
@@ -194,6 +191,7 @@ module IpLine #(
     logic [2:0] state_nx;   // следующее состояние без сброса
     logic [2:0] state_d;    // вход D: сброс линиями поверх state_nx
 
+    logic ip_counted_d, scanning_d, halt_pending_d, eot_d, overflow_d, dir_d;
     logic                  ip_counted_q;   // IP уже сдвинут под текущую инструкцию
     logic                  scanning_q;     // идёт промотка тела цикла
     logic                  dir_q;          // направление шага IP: 1 — назад
@@ -354,8 +352,7 @@ module IpLine #(
     // его D — ВВ-выход антидребезга, других нагрузок у этой цепи нет
     DFFP_J2N16 syncNext (.C (clk), .D (key_next_db), .Q (key_next_s), .QN ());
 
-    always_ff @(posedge clk)
-        key_moved_q <= key_prev_s | key_next_s;
+    DFFP_J2N16 keyMovedFF (.C (clk), .D (key_prev_s | key_next_s), .Q (key_moved_q), .QN ());
 
     wire key_step = (key_prev_s | key_next_s) & ~key_moved_q;
 
@@ -452,18 +449,31 @@ module IpLine #(
     wire rst_line = soft_rst | hard_rst;
     NOR2_N16 stateRst [2:0] (.A ({3{rst_line}}), .B (~state_nx), .Y (state_d));
 
-    always_ff @(posedge clk) state <= state_d;
+    // state[0] — DFFP_J2N16 (3,5 лампы вместо 7): D успевает, fanout ≤ 6;
+    // state[1] читает катоды, state[2] с fanout 10 остаются обычными
+    // триггерами (doc/dffp_enable_and_dff_scan.md)
+    logic [2:1] state_hi;
+    logic       state_lo;
+    DFFP_J2N16 state0FF (.C (clk), .D (state_d[0]), .Q (state_lo), .QN ());
+    assign state = {state_hi, state_lo};
 
-    always_ff @(posedge clk) begin
+    always_comb begin
+        ip_counted_d = ip_counted_q;
+        scanning_d = scanning_q;
+        halt_pending_d = halt_pending_q;
+        eot_d = eot_q;
+        overflow_d = overflow_q;
+        dir_d = dir_q;
+
         // Физический сброс счётчиков обнуляет и состояние выборки:
         // адрес ушёл на начало, прочитанная инструкция недостоверна
         if (soft_rst | hard_rst) begin
-            ip_counted_q   <= 1'b0;
-            scanning_q     <= 1'b0;
-            halt_pending_q <= 1'b0;
-            eot_q          <= 1'b0;
-            overflow_q     <= 1'b0;
-            dir_q          <= 1'b0;   // входит в key_prev_s (TC-N3): без X после сброса
+            ip_counted_d   = 1'b0;
+            scanning_d     = 1'b0;
+            halt_pending_d = 1'b0;
+            eot_d          = 1'b0;
+            overflow_d     = 1'b0;
+            dir_d          = 1'b0;   // входит в key_prev_s (TC-N3): без X после сброса
         end
         else begin
             case (state)
@@ -474,37 +484,37 @@ module IpLine #(
                     // При останове продвигаем IP на следующую
                     // инструкцию и снимаем признак выборки, чтобы
                     // после возобновления читать заново
-                    ip_counted_q <= 1'b0;
+                    ip_counted_d = 1'b0;
                     if (ip_counted_q & ~ip_ahead) begin
-                        halt_pending_q <= 1'b1;
-                        dir_q          <= 1'b0;
+                        halt_pending_d = 1'b1;
+                        dir_d          = 1'b0;
                     end
                     else begin
-                        dir_q <= 1'b0;   // в S_HALT dir_q — синхронизатор «назад»
+                        dir_d = 1'b0;   // в S_HALT dir_q — синхронизатор «назад»
                     end
                 end
                 else if (accept) begin
-                    eot_q <= 1'b0;
+                    eot_d = 1'b0;
 
                     if (~ip_counted_q) begin
                         // Первая выборка после сброса: читаем по
                         // текущему адресу, счётчик не двигаем
-                        ip_counted_q <= 1'b1;
-                        dir_q        <= 1'b0;   // в S_INSN_IN — синхронизатор «назад»
+                        ip_counted_d = 1'b1;
+                        dir_d        = 1'b0;   // в S_INSN_IN — синхронизатор «назад»
                     end
                     else if (~insn_loading & scan_req & loop_at_top) begin
                         // Счётчик остался на 99 после прежнего
                         // переполнения: инкремент снова переполнит
-                        overflow_q <= 1'b1;
+                        overflow_d = 1'b1;
                     end
                     else if (~insn_loading & scan_req) begin
                         // Начало промотки: своя скобка учитывается
                         // в счётчике вложенности
-                        scanning_q <= 1'b1;
-                        dir_q      <= scan_back_req;
+                        scanning_d = 1'b1;
+                        dir_d      = scan_back_req;
                     end
                     else begin
-                        dir_q <= 1'b0;
+                        dir_d = 1'b0;
                     end
                 end
             end
@@ -516,10 +526,10 @@ module IpLine #(
             S_IP: begin
                 if (go) begin
                     if (scan_done) begin
-                        scanning_q <= 1'b0;   // стоим на парной скобке
+                        scanning_d = 1'b0;   // стоим на парной скобке
                     end
                     else if (halt_pending_q) begin
-                        halt_pending_q <= 1'b0;
+                        halt_pending_d = 1'b0;
                     end
                     else if (insn_loading & ~scanning_q) begin
                         // в S_INSN_IN (state_nx)
@@ -549,8 +559,8 @@ module IpLine #(
                         // (REQ-CNT-007). Промотку обязательно прервать:
                         // парная скобка уже не найдётся, и машина зависла
                         // бы в бесконечном переборе адресов
-                        overflow_q <= 1'b1;
-                        scanning_q <= 1'b0;
+                        overflow_d = 1'b1;
+                        scanning_d = 1'b0;
                     end
                     // Своя скобка углубляет вложенность, ответная
                     // поднимает; обычная инструкция — шагаем дальше (state_nx)
@@ -578,13 +588,13 @@ module IpLine #(
                 end
                 else if (insn_in_valid) begin
                     if (go) begin
-                        eot_q        <= end_of_transmission;
+                        eot_d        = end_of_transmission;
                     end
                 end
                 // Иначе — ручное перемещение по программе во время
                 // загрузки: шаг счётчика IP прямо отсюда (key_mode, TC-N3)
                 else begin
-                    dir_q <= key_prev_db;
+                    dir_d = key_prev_db;
                 end
             end
 
@@ -596,7 +606,7 @@ module IpLine #(
                     // пуск: в S_IDLE (state_nx)
                 end
                 else begin
-                    dir_q <= key_prev_db;
+                    dir_d = key_prev_db;
                     // Ручной шаг идёт прямо отсюда (key_mode, TC-N3);
                     // после него инструкция читается заново: ip_counted_q
                     // снят при входе в останов
@@ -607,6 +617,24 @@ module IpLine #(
             endcase
         end
     end
+
+    // ip_counted_q и eot_q — DFFP_J2N16; остальные признаки читают входы
+    // пульта (dir_q) или нагружены сильнее, остаются обычными триггерами
+    DFFP_J2N16 ipCountedFF (.C (clk), .D (ip_counted_d), .Q (ip_counted_q), .QN ());
+    DFFP_J2N16 eotFF       (.C (clk), .D (eot_d),        .Q (eot_q),        .QN ());
+
+    // Шесть DFF_J2N16 (по спаду C): вход C — 4,5 сетки, цепь инвертора не
+    // больше 10, поэтому три инвертора по два триггера (9 сеток, TRS v0.62,
+    // doc/clock_tree.md §3). Один инвертор на шесть (27 сеток) давал фронт
+    // 375 нс; dfflibmap такого разбиения не делает, ячейки стоят по имени
+    wire [2:0] clk_dff_n;
+    NOT_N16 dffClkInv [2:0] (.A ({3{clk}}), .Y (clk_dff_n));
+    DFF_J2N16 stateHi1FF (.C (clk_dff_n[0]), .D (state_d[1]),    .Q (state_hi[1]),    .QN ());
+    DFF_J2N16 stateHi2FF (.C (clk_dff_n[0]), .D (state_d[2]),    .Q (state_hi[2]),    .QN ());
+    DFF_J2N16 scanningFF (.C (clk_dff_n[1]), .D (scanning_d),    .Q (scanning_q),     .QN ());
+    DFF_J2N16 haltPendFF (.C (clk_dff_n[1]), .D (halt_pending_d), .Q (halt_pending_q), .QN ());
+    DFF_J2N16 overflowFF (.C (clk_dff_n[2]), .D (overflow_d),    .Q (overflow_q),     .QN ());
+    DFF_J2N16 dirFF      (.C (clk_dff_n[2]), .D (dir_d),         .Q (dir_q),          .QN ());
 
 `ifndef SYNTH
 `ifdef ASSERTIONS

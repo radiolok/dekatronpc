@@ -12,7 +12,7 @@ The SVG files are generated: change the drawing function, not the file. Each cel
 
 | File | What |
 |---|---|
-| `lib.py` | `Sch`: tube symbols (triode, 6Zh2B pentode), R, C, L, diode, supply symbols, pins, wires with automatic hops over crossings, boxes |
+| `lib.py` | `Sch`: tube symbols (triode, 6Zh2B pentode), R, C, L, diode, supply symbols, pins, wires with automatic hops over crossings, boxes; the plate load with its choke (`plate_load`), and the elements "Inverter" (`inverter`) and "Divider" (`divider`) that the trigger figures use instead of drawing every part (owner, 2026-11-08, TRS v0.58) |
 | `cells_nor.py` | NOT_N16, NOR2_N16, NOR3_N16, NOR4_N16 |
 | `cells_aoi.py` | NAND2_J2, A1OOI_N16J2, AOI211_J2N16, A2OOI_J2 |
 | `cells_cf.py` | BUF_N16, OR2_N16, OR4_N16 (cathode followers) |

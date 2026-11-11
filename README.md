@@ -58,7 +58,6 @@
 | [doc/tube_count_below_1000.md](doc/tube_count_below_1000.md) | путь подсчёта ламп: что сделано и что отвергнуто (ранее — `doc/tube_count_reduction.md`, `doc/tube_count_1000.md`) |
 | [sch/logic/README.md](sch/logic/README.md) | библиотека ламповых ячеек: SPICE, схемы KiCad, страницы ячеек; метод — [doc/cell_design_method.md](doc/cell_design_method.md) |
 | [doc/vtube_sta.md](doc/vtube_sta.md), [doc/synth_sim.md](doc/synth_sim.md) | статический анализ времён и симуляция нетлиста с задержками ламп |
-| [doc/video_theses.md](doc/video_theses.md) | что сделано после опубликованных видео |
 | [rtl/DekatronPC/Dekatron/DekatronCounter.md](rtl/DekatronPC/Dekatron/DekatronCounter.md) | устройство декатронного счётчика |
 | [rtl/DekatronPC/emulator_inspection.md](rtl/DekatronPC/emulator_inspection.md) | разбор слоя эмулятора на ПЛИС |
 | [history.md](history.md) | журнал сессий работы над проектом |

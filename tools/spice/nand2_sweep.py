@@ -10,6 +10,8 @@ Optional parameters: C1g3, Cb (pF, g3 to -50 V inside the cell), Rk (cathode res
 M (extra instance parameters of the model, e.g. "MU2=16 CG3A=2.5P")."""
 import subprocess, re, sys, os, tempfile
 from multiprocessing import Pool
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import chokes as K  # noqa: E402
 HERE = os.path.dirname(os.path.abspath(__file__))
 NGRUN = os.path.join(HERE, "ngrun.py")
 MODEL = os.path.join(HERE, "..", "..", "sch", "libs", "6Zh2B.sub")
@@ -18,9 +20,15 @@ SEQ_B = [0, 0, 1, 1, 1, 0, 1, 0]
 # the KiCad testbench (two VPULSE sources): 00 10 11 01 01 11 10 00, every arc once, no hazard state
 KICAD_A = [0, 1, 1, 0, 0, 1, 1, 0]
 KICAD_B = [0, 0, 1, 1, 1, 1, 0, 0]
+# the cell (TRS v0.58: plate choke chokes.PENTODE; the drivers of the bench are NAND2_J2 gates too)
+CELL = dict(R1="470k", R2="200k", C1g=3.9, C1g3=6.8, Cb=15, Ra="15k", Rg2="15k", L=K.PENTODE[0], Rd=K.PENTODE[1])
+
+
 def nand(t, a, b, p):
     k = f"k{t}" if p.get('Rk') else "0"
-    s = f"X{t} p{t} {b} s{t} {k} {a} 6Zh2B {p.get('M', '')}\nRA{t} vcc p{t} {p['Ra']}\nRS{t} vcc s{t} {p['Rg2']}\n"
+    ch = (p['L'], p.get('Rd')) if p.get('L') else None      # plate choke (chokes.PENTODE)
+    s = (f"X{t} p{t} {b} s{t} {k} {a} 6Zh2B {p.get('M', '')}\n" + K.plate(f"RA{t}", f"p{t}", p['Ra'], ch)
+         + f"RS{t} vcc s{t} {p['Rg2']}\n")
     if p.get('Rk'): s += f"RK{t} k{t} 0 {p['Rk']}\n"
     if p.get('Cb'): s += f"CB{t} {b} nb {p['Cb']}p\n"
     return s
@@ -102,7 +110,7 @@ def fmt(name, n, m):
 if __name__ == "__main__":
     # usage: nand2_sweep.py [--kicad] [cases.py]; a cases file defines CASES = [(name, params), ...] and optionally GRIDS;
     # --kicad runs the input sequence of the KiCad testbench (fanout 10 there)
-    CASES = [("NAND2_J2", dict(R1="470k", R2="200k", C1g=3.9, C1g3=6.8, Cb=15, Ra="15k", Rg2="15k"))]
+    CASES = [("NAND2_J2", CELL)]
     GRIDS = (2, 4, 6, 8, 10)
     args = sys.argv[1:]
     if "--kicad" in args:

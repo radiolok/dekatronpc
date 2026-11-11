@@ -9,14 +9,28 @@ Cell page. REQ-MOD-003 (AOI211_J2N16 in the library), REQ-MOD-005 (boards), REQ-
 | Function | Y = ~((A · B) + C + D) |
 | Tubes | one 6Zh2B + one 6N16B (liberty: J2B 1, N16B 1); one cell per sheet |
 | Inputs (LV) | A: 6Zh2B g1; B: 6Zh2B g3 (Cb 15 pF to −50 V in the cell); C, D: triode grids |
-| Output (HV) | Y, the common plate, Ra 15k to +150 V |
+| Output (HV) | Y, the common plate, Ra 15k + L 1.5 mH ‖ 15k to +150 V (TRS v0.58) |
 | Supplies | +150 V (plate; screen through Rg2 15k), −50 V (Cb, dividers), heater 6.3 V: 0.2 A + 0.4 A |
 | Divider C1 per grid on the driving nets | A 2.7 pF, B 6.8 pF, C and D 3.9 pF |
 | Output levels (static) | "1" 139.8–145.2 V (fanout 10 … 2); "0" 45.4 V (pentode alone), 45.7 V (one triode), 31.5 V (both triodes), 20.4 V (all) |
-| Delay to Y = 100 V, fanout 2 / 6 / 10, worst arc | 217 / 328 / 450 ns; C↑ or D↑ alone 53 … 83 ns |
-| Delay to the thresholds (92 V falling, 118 V rising), fanout 6 | A↑ 466 ns, B↑ 282 ns, C↑/D↑ 71 … 88 ns; Y rises 502 … 549 ns |
+| Delay to Y = 100 V, fanout 2 / 6 / 10, worst arc | 161 / 275 / 396 ns with the plate choke (was 217 / 328 / 450 ns); C↑ or D↑ alone 53 … 83 ns |
+| Delay to the thresholds (92 V falling, 118 V rising), fanout 6 | A↑ 406 ns, B↑ 194 ns, C↑/D↑ 52 … 57 ns; Y rises 417 … 443 ns (was 466 / 282 / 71…88 / 502…549 ns) |
 | Lowest grid | −35.1 V nominal, −42.2 V with all C1 +10 % (limit −50 V) |
 | Worst static | 6Zh2B Ik 12.7 mA, Pa 0.35 W, Pg2 0.37 W; triode Ik 7.4 mA, Pa 0.32 W; Ra 1.12 W (2 W resistor) |
+
+## Plate choke (TRS v0.58)
+
+Owner, 2026-11-08: a plate choke in every cell. Ra is 15k, so the choke is the `NAND2_J2` one: **1.5 mH damped by 15k** (0.68 mH × (15/10)², the shunt-peaking rule). Parts: Ra R102, L101, Rd R103; the Rg2 references moved to R101 (R102). The bench drivers (6N16B triodes) carry the `NOR2_N16` choke, 0.68 mH ‖ 10k.
+
+| | fanout 2 | fanout 6 | fanout 10 |
+|---|---|---|---|
+| worst arc to Y = 100 V, with the choke | 161 ns | 275 ns | 396 ns |
+| the same before | 217 ns | 328 ns | 450 ns |
+| worst fall (92 V) / rise (118 V), with the choke | 202 / 243 ns | **406 / 443 ns** | 547 / 660 ns |
+
+At fanout 6 to the thresholds: before A↑ 466, rise 549 ns, now A↑ 406, rise 443 ns (`vtube_timing.json`). The rising edge gains about 20 %, the falling one through the pentode 13–17 % (a current slew; the gain comes from the faster driver edges). Levels do not move. Lowest grid −38.3 V. The KiCad bench agrees with plain SPICE within 0.6 %.
+
+Tools: `tools/spice/chokes.py` (the values), `tools/spice/threshold_delays.py --fanout N` (to the thresholds), the `*_plots.py` of this cell (to 100 V, the figures), `tools/spice/kicad_parity.py` (KiCad bench against plain SPICE). Investigation: `doc/dinv_trigger_board.md`.
 
 ## Circuit and part values
 
@@ -58,6 +72,8 @@ The KiCad sheet below has the same parts spread out and joined by net labels:
 Parts: Ra 15k 2 W, Rg2 15k (R101, screen from +150 V), Cb 15 pF. C and D are interchangeable; an unused one goes to the other.
 
 ## Results (plain SPICE)
+
+> **Plate choke (TRS v0.58).** The tables of this section were simulated before the cell got its plate choke and stay as the record of the design; the figures of this page are redrawn with the choke. Current numbers: section *Plate choke* above and `sch/logic/vtube_timing.json`.
 
 `tools/spice/aoi_sweep.py a211`: each input from an ideal HV pulse → divider → 6N16B triode driver with Ra 10k (the fastest driver) → the divider of its grid type → the DUT. Y → one divider (C1 = 3.9 pF × grids) → triode loads. 22 states of 2 µs: every arc of every input with the other inputs at the levels that make it count, C and D with B held high (g3 sees the plate swing), and two hazards.
 

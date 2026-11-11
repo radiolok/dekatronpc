@@ -9,14 +9,22 @@ plate-to-plate capacitance (model CPP = datasheet Ca1a2, 0.5 pF) shows up as cro
 Optional parameter: M (extra model parameters, e.g. "MU=20.8 CPP=0.65P")."""
 import subprocess, re, sys, os, tempfile
 from multiprocessing import Pool
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import chokes as K  # noqa: E402
 HERE = os.path.dirname(os.path.abspath(__file__))
 NGRUN = os.path.join(HERE, "ngrun.py")
 MODEL = os.path.join(HERE, "..", "..", "sch", "libs", "6N16B.sub")
 SEQ_A = [0, 1, 1, 0, 0]
 SEQ_B = [0, 0, 1, 1, 0]
+# the cell (TRS v0.58: plate choke chokes.TRIODE; the driver of the bench is a NOT_N16 too)
+CELL = dict(R1="470k", R2="200k", C1g=3.9, Ra="10k", L=K.TRIODE[0], Rd=K.TRIODE[1])
+
+
 def tube(t, ga, gb, p):
     """one 6N16B: two inverters, plates p{t}a / p{t}b, each with its own Ra"""
-    s = f"X{t} p{t}a {ga} 0 p{t}b {gb} 0 6N16B {p.get('M', '')}\nRA{t}a vcc p{t}a {p['Ra']}\nRA{t}b vcc p{t}b {p['Ra']}\n"
+    ch = (p['L'], p.get('Rd')) if p.get('L') else None      # plate choke (chokes.TRIODE)
+    s = (f"X{t} p{t}a {ga} 0 p{t}b {gb} 0 6N16B {p.get('M', '')}\n"
+         + K.plate(f"RA{t}a", f"p{t}a", p['Ra'], ch) + K.plate(f"RA{t}b", f"p{t}b", p['Ra'], ch))
     return s
 def div(t, hv, lv, p, ngrid):
     return f"R1{t} {hv} {lv} {p['R1']}\nC1{t} {hv} {lv} {p['C1g'] * ngrid}p\nR2{t} {lv} nb {p['R2']}\n"
@@ -79,7 +87,7 @@ def fmt(name, n, m):
             f" LV->LV {g('lv_hl',1e9):3.0f}/{g('lv_lh',1e9):3.0f} ns")
 if __name__ == "__main__":
     # usage: not_sweep.py [cases.py]; a cases file defines CASES = [(name, params), ...] and optionally GRIDS
-    CASES = [("NOT_N16", dict(R1="470k", R2="200k", C1g=3.9, Ra="10k"))]
+    CASES = [("NOT_N16", CELL)]
     GRIDS = (2, 4, 6, 8, 10)
     if len(sys.argv) > 1: exec(open(sys.argv[1]).read())
     jobs = [(nm, p, n) for nm, p in CASES for n in GRIDS]

@@ -148,6 +148,8 @@ module ApLine #(
     // а триггер стоит 7 ламп (doc/tube_count_reduction.md §17.2)
     (* fsm_encoding = "binary" *) logic [2:0] state;
 
+    logic [2:0] state_d;
+    logic       lock_d, mem_here_d;
     logic       lock_q;        // MemLock: счётчик владеет ячейкой
     logic       mem_here_q;    // регистр памяти относится к текущему адресу
 
@@ -292,13 +294,17 @@ module ApLine #(
     // Все триггеры сбрасывают линии soft_rst/hard_rst синхронно или они
     // пишутся до чтения; rst_n в ламповой машине нет: его роль играет
     // аппаратный сброс реле времени при включении (REQ-REF-011, TC-O5)
-    always_ff @(posedge clk) begin
+    always_comb begin
+        state_d      = state;
+        lock_d       = lock_q;
+        mem_here_d   = mem_here_q;
+
         // Физический сброс счётчиков: адрес ушёл в нуль, содержимое
         // выходного регистра памяти к нему не относится
         if (soft_rst | hard_rst) begin
-            state      <= S_IDLE;
-            lock_q     <= 1'b0;
-            mem_here_q <= 1'b0;
+            state_d      = S_IDLE;
+            lock_d     = 1'b0;
+            mem_here_d = 1'b0;
         end
         else begin
             case (state)
@@ -308,37 +314,37 @@ module ApLine #(
                 if (accept) begin
                     // Счётчик, владеющий ячейкой, сначала выгружается
                     if (op_ap_step | op_ap_zero)
-                        state <= lock_q ? S_FLUSH : S_AP;
+                        state_d = lock_q ? S_FLUSH : S_AP;
 
                     if (op_data_step) begin
-                        if (lock_q)          state <= S_DOP;
-                        else if (mem_here_q) state <= S_DSET;  // значение уже в регистре памяти
-                        else                 state <= S_READ;
+                        if (lock_q)          state_d = S_DOP;
+                        else if (mem_here_q) state_d = S_DSET;  // значение уже в регистре памяти
+                        else                 state_d = S_READ;
                     end
 
                     if (op_data_zero)
-                        state <= S_DOP;
+                        state_d = S_DOP;
 
                     if (op_cin) begin
-                        lock_q  <= 1'b1;
-                        state   <= S_DSET;
+                        lock_d  = 1'b1;
+                        state_d   = S_DSET;
                     end
 
                     // Выводится счётчик: без MemLock ячейку надо в него
                     // загрузить. MemLock не меняется: иначе шаг адреса
                     // без выгрузки оставил бы lock на чужой ячейке
                     if (op_cout & ~lock_q)
-                        state <= mem_here_q ? S_DSET : S_READ;
+                        state_d = mem_here_q ? S_DSET : S_READ;
 
                     // Достаточно, чтобы значение было доступно:
                     // в счётчике либо в регистре памяти
                     if (op_test & ~(lock_q | mem_here_q))
-                        state <= S_READ;
+                        state_d = S_READ;
 
                     // Счётчик забирает ячейку как есть, без загрузки:
                     // её значением становится его прежнее содержимое
                     if (op_memlock)
-                        lock_q <= 1'b1;
+                        lock_d = 1'b1;
                 end
             end
 
@@ -347,8 +353,8 @@ module ApLine #(
             //----------------------------------------------------------
             S_READ: begin
                 if (go) begin
-                    mem_here_q <= 1'b1;
-                    state <= op_test ? S_IDLE : S_DSET;   // +, COUT
+                    mem_here_d = 1'b1;
+                    state_d = op_test ? S_IDLE : S_DSET;   // +, COUT
                 end
             end
 
@@ -358,10 +364,10 @@ module ApLine #(
             //----------------------------------------------------------
             S_FLUSH: begin
                 if (go) begin
-                    mem_here_q <= 1'b1;
+                    mem_here_d = 1'b1;
                     // Выгрузка бывает только перед сменой адреса
-                    lock_q <= 1'b0;
-                    state  <= S_AP;
+                    lock_d = 1'b0;
+                    state_d  = S_AP;
                 end
             end
 
@@ -372,8 +378,8 @@ module ApLine #(
             //----------------------------------------------------------
             S_AP: begin
                 if (go) begin
-                    mem_here_q <= 1'b0;
-                    state      <= S_IDLE;
+                    mem_here_d = 1'b0;
+                    state_d      = S_IDLE;
                 end
             end
 
@@ -383,7 +389,7 @@ module ApLine #(
             //----------------------------------------------------------
             S_DSET: begin
                 if (go)
-                    state <= op_data_step ? S_DOP : S_IDLE;
+                    state_d = op_data_step ? S_DOP : S_IDLE;
             end
 
             //----------------------------------------------------------
@@ -392,15 +398,22 @@ module ApLine #(
             //----------------------------------------------------------
             S_DOP: begin
                 if (go) begin
-                    lock_q  <= 1'b1;
-                    state   <= S_IDLE;
+                    lock_d  = 1'b1;
+                    state_d   = S_IDLE;
                 end
             end
 
-            default: state <= S_IDLE;
+            default: state_d = S_IDLE;
             endcase
         end
     end
+
+    // Явные импульсные DFFP_J2N16 (3,5 лампы вместо 7): state и mem_here_q
+    // читаются с запасом по setup и держатся по fanout ≤ 6. lock_q (fanout 8)
+    // остаётся обычным триггером (doc/dffp_enable_and_dff_scan.md)
+    DFFP_J2N16 stateFF [2:0] (.C ({3{clk}}), .D (state_d), .Q (state), .QN ());
+    DFFP_J2N16 memHereFF     (.C (clk), .D (mem_here_d), .Q (mem_here_q), .QN ());
+    always_ff @(posedge clk) lock_q <= lock_d;
 
 `ifndef SYNTH
 `ifdef ASSERTIONS

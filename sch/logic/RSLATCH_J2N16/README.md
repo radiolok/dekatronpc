@@ -14,9 +14,25 @@ Cell page of the gated RS latch. It is the base of two more cells, which use it 
 | Outputs (HV) | Q, QN |
 | Heater 6.3 V | 0.8 A (5.0 W) |
 | Output levels | 1: 141.8…143.9 V; 0: 36…55 V |
-| Speed, fanout 2 / 6 / 10 | E→Q 195 / 286 / 380 ns; S→Q 170 / 282 / 392 ns |
-| Timing limits, fanout 2 / 6 / 10 | E pulse ≥ 216 / 333 / 454 ns; setup 182 / 307 / 432 ns; hold ≤ 0 |
-| Lowest grid | −34.5 V (S/R g1), −23 V (E) |
+| Speed, fanout 2 / 6 / 10 | E→Q 118 / 197 / 277 ns; S→Q 101 / 173 / 249 ns with the plate chokes (was 195 / 286 / 380, 170 / 282 / 392 ns) |
+| Timing limits, fanout 2 / 6 / 10 | E pulse ≥ 135 / 228 / 326 ns; setup 104 / 194 / 299 ns; hold ≤ 0 (was 216 / 333 / 454; 182 / 307 / 432 ns) |
+| Lowest grid | −34.7 V (S/R g1), −24 V (E) |
+
+## Plate chokes (TRS v0.58)
+
+Owner, 2026-11-08: a plate choke in every cell, and the RS core of all triggers the same as `DFFP_J2N16` (one core for the universal trigger board, `doc/trigger_board.md`). The core takes the best simple option of *Speed-up options* below: **La 1 mH in series with each Ra 10k (L101 on QN, L102 on Q), no damping resistor, screens Rg2 12k (R103, R104)**. The bench drivers carry the `NOR2_N16` choke, 0.68 mH ‖ 10k.
+
+| Fanout | E→Q (worst of Q, QN) | S→Q | shortest E pulse | setup | hold | before the chokes: E→Q / E pulse / setup |
+|---|---|---|---|---|---|---|
+| 2 | 115…118 ns | 84…101 ns | 135 ns | 104 ns | −131 ns | 195 / 216 / 182 ns |
+| 4 | 144…158 ns | 116…137 ns | 181 ns | 147 ns | −181 ns | — |
+| 6 | 173…197 ns | 151…173 ns | 228 ns | 194 ns | −235 ns | 286 / 333 / 307 ns |
+| 8 | 203…237 ns | 191…211 ns | 275 ns | 245 ns | −295 ns | — |
+| 10 | 234…277 ns | 236…249 ns | 326 ns | 299 ns | −364 ns | 380 / 454 / 432 ns |
+
+Levels do not move: VOH 143.9 V, VOL 34.7…55.1 V, no glitch beyond 55.7 V in the hold states. Lowest grid −34.7 V (R g1), −24.0 V (E). Input thresholds: −2.9 V (S, E), as before. Screen dissipation with Rg2 12k: Pg2 0.47 W (limit 0.6 W, *Speed-up options*). The KiCad bench matches plain SPICE exactly (`kicad_parity.py`). The KiCad sheet was regenerated (`tools/kicad/gen_latch_j2n16.py`), which also restored the net label SG1 lost in a KiCad save.
+
+Tools: `tools/spice/chokes.py` (the values), `tools/spice/threshold_delays.py --fanout N`, `tools/spice/latch_plots.py`, `tools/spice/kicad_parity.py`. Investigation: `doc/dinv_trigger_board.md`.
 
 ## Logic levels and structure
 
@@ -63,7 +79,7 @@ The KiCad sheet below has the same parts spread out and joined by net labels:
 | H1, H2 | heater | all three tubes in parallel |
 | FQ, FQN | passive | the cross-coupled triode grids; open in DLATCH2 / DFF, the reset diodes of DFFRN / DFFSN sit here |
 
-Parts: Ra 10k ×2, Rg2 15k ×2 (screens from +150 V, as in NAND2_J2), Cb 15 pF ×2, and two feedback dividers (470k, 3.9 pF, 200k).
+Parts: Ra 10k ×2 in series with L 1 mH ×2 (TRS v0.58), Rg2 12k ×2 (screens from +150 V; 15k before the chokes), Cb 15 pF ×2, and two feedback dividers (470k, 3.9 pF, 200k).
 
 ## How the values were found
 
@@ -118,6 +134,8 @@ Chosen: 2.7 pF. The nominal value keeps the 10 V margin, and the C1 tolerance st
 The internal divider is slightly faster and keeps the cell boundary clean (HV out, as every cell). It costs 3 V of VOH, because the plate carries two dividers.
 
 ## Results
+
+> **Plate choke (TRS v0.58).** The tables of this section were simulated before the plate chokes and stay as the record of the design; the figures of this page are redrawn with them. Current numbers: section *Plate chokes* above and `sch/logic/vtube_timing.json`.
 
 ### Testbench
 
@@ -208,7 +226,7 @@ Cg3a matters much less than in NAND2_J2 (+8 ns at 2.5 pF against +100 ns there).
 
 The D latch and flip-flop options are on their pages.
 
-## Speed-up options (2026-11-01, study, not applied)
+## Speed-up options (2026-11-01 study; La 1 mH + Rg2 12k applied in TRS v0.58)
 
 Owner, 2026-11-01: try anode chokes and anything else that speeds up the latches. `tools/spice/latch_peaking.py` reuses the `latch_sweep.py` bench (12 states, both outputs, all arcs). The 6N16B drivers carry the NOR2_N16 choke where noted. "Worst" is the slowest Q/QN arc of the sequence, input −5 V to output 100 V.
 
@@ -232,7 +250,7 @@ Checks of "La 1 mH + Rg2 12k" (fanout 6, static values at the end of each state)
 - Tolerance: C1 +10 % → worst 120 / 206 / 294 ns, S grid −42.4 V; La 0.8 / 1.2 mH → 294 / 268 ns at fanout 10 (undamped drivers); with plain drivers → 146 / 219 / 301 ns.
 - Levels unchanged: VOH 143.9 V, VOL 34.7…55.1 V; no glitch beyond 55.7 V in the hold states.
 
-Not done: applying it to the cell, DLATCH2_J2N16, DFF_J2N16 and DFFRN/DFFSN (KiCad sheets, testbenches, timing), and a damping resistor across the plate chokes (the latch plates did not ring with 1 mH at fanout 2–10). That is the owner's call: two chokes per latch, 4 per DLATCH2, 4 per DFF.
+Applied in TRS v0.58 (owner, 2026-11-08) to the cell, DLATCH2_J2N16, DFF_J2N16 and DFFRN/DFFSN: KiCad sheets, testbenches, timing (section *Plate chokes*). Still not done: a damping resistor across the plate chokes (the latch plates did not ring with 1 mH at fanout 2–10). That is the owner's call: two chokes per latch, 4 per DLATCH2, 4 per DFF.
 
 ## Proposed liberty entry (not applied)
 

@@ -50,10 +50,21 @@
 // НАЧАЛЬНОЕ ПОЛОЖЕНИЕ
 //
 // `define DEKATRON_RANDOM_INIT: после включения питания разряд стоит на
-// случайном главном катоде ($urandom), как у настоящего прибора
+// случайном главном катоде из LINES ($urandom), как у настоящего прибора
 // (Harwell 1951: «the Dekatron tubes may light in any position»). Привести
 // машину в известное состояние может только сброс по катодам
 // (doc/harwell_1951_review.md §3). INIT_DIGIT тогда не действует.
+//
+// ЗАПИСЬ ПО КАТОДАМ [TRS v0.56]
+//
+// Вход записи — катодные линии line_open_i: 1 — лампа канала записи
+// открыта (катод может гореть), 0 — закрыта. Если линия горящего катода
+// закрыта не меньше WRITE_MIN_HS, разряд переходит на единственную
+// открытую линию; иначе ничего не происходит. Открытых линий нет или
+// больше одной при закрытом горящем катоде — недопустимое воздействие
+// (invalid_dbg_o), разряд остаётся. Сброс в 0 и в верхнюю позицию — то же
+// событие, линии для них закрывает схема снаружи. LINES — катоды с цепью
+// возврата (TC-N1: выше MAX_DIGIT её нет, линия всегда 0).
 //
 // ФИЗИЧЕСКИЙ КОНТРАКТ (TRS v0.1 §2.2)
 //
@@ -79,21 +90,13 @@ module DekatronTubeV2 #(
     // Предельная длительность подкатодного импульса (только для assertion)
     parameter unsigned GUIDE_MAX_HS     = 20,
 
-    // Запись числа по катоду, такты hsClk (1 мкс при Clk 100 кГц). Оценка
-    // до измерений (OPEN-013): запись по handshake держится один такт Clk
-    // [TRS v0.24]
+    // Запись по катоду (и сброс — то же событие), такты hsClk (1 мкс при
+    // Clk 100 кГц). Оценка до измерений (OPEN-013): запись по handshake
+    // держится один такт Clk [TRS v0.24]
     parameter unsigned WRITE_MIN_HS     = 5,
-    //parameter unsigned WRITE_MAX_HS     = 200,
 
-    // Сброс импульсом по катоду
-    parameter unsigned RESET_MIN_HS     = 5,
-    //parameter unsigned RESET_MAX_HS     = 200,
-
-    // Сброс в произвольный «верхний» катод.
-    // RESET_N_POS = 9 соответствует reset9 из TRS v0.1;
-    // RESET_N_POS = 5 — линия сброса в 5 для счётчика данных до 255.
-    parameter bit          EN_RESETN        = 1'b0,
-    parameter unsigned RESET_N_POS      = 9,
+    // Катоды с цепью возврата (TC-N1)
+    parameter logic [9:0]  LINES            = 10'h3FF,
 
     // Начальное положение разряда после включения питания
     parameter logic [3:0]  INIT_DIGIT       = 4'd0,
@@ -113,13 +116,8 @@ module DekatronTubeV2 #(
     input  wire         guide_a_i,
     input  wire         guide_b_i,
 
-    // Запись числа по катоду
-    input  wire         write_en_i,
-    input  wire [9:0]   write_pos_i,      // one-hot
-
-    // Сбросы импульсом по катоду
-    input  wire         reset0_i,         // в катод 0
-    input  wire         resetN_i,         // в катод RESET_N_POS
+    // Катодные линии: 1 — открыта (катод может гореть), 0 — закрыта
+    input  wire [9:0]   line_open_i,
 
     // Прямая установка кольца (не физическая, см. EN_SIM_PRESET)
     input  wire         sim_preset_en_i,
@@ -152,8 +150,7 @@ module DekatronTubeV2 #(
     logic [1:0]       move_dir_q;     // последнее направление перемещения
     logic [CNT_W-1:0] wr_timer_q;
     logic             wr_settled_q;
-    logic [9:0]       wr_pos_latched_q;
-    logic [29:0]      wr_target_q;      // цель текущей операции
+    logic [9:0]       wr_lines_q;       // линии текущей операции
     logic             wr_active_q;      // операция шла на прошлом такте
     //verilator lint_off UNUSEDSIGNAL
     logic             illegal_q;
@@ -204,48 +201,30 @@ module DekatronTubeV2 #(
     wire ga = INC_BY_A_THEN_B ? guide_a_i : guide_b_i;
     wire gb = INC_BY_A_THEN_B ? guide_b_i : guide_a_i;
 
-    wire resetN_enabled = EN_RESETN && resetN_i;
+    logic [9:0] main_now;
+    always_comb
+        for (int i = 0; i < 10; i++) main_now[i] = cathodes_q[3*i];
 
-    wire wr_any_active = write_en_i || reset0_i || resetN_enabled;
-
-    wire wr_conflict = (write_en_i && reset0_i)      ||
-                       (write_en_i && resetN_enabled) ||
-                       (reset0_i   && resetN_enabled);
-
-    wire resetN_illegal_disabled = (!EN_RESETN) && resetN_i;
+    // Закрыта хоть одна линия: идёт запись, подкатоды должны молчать
+    wire wr_any_active = |(~line_open_i & LINES);
+    // Линия горящего катода закрыта: разряд обязан перейти. С подкатода
+    // разряд уходит на цель записи
+    wire wr_needed     = on_main ? |(main_now & ~line_open_i) : wr_any_active;
 
     wire guides_both = guide_a_i && guide_b_i;
     // Перекрытие фаз допустимо, пока разряд на подкатоде (см. шапку)
     wire guides_both_bad = guides_both && on_main;
 
-    // Цель операции записи/сброса
-    logic [29:0] wr_target_ring;
-    logic        wr_target_valid;
-    always_comb begin
-        wr_target_ring  = 30'd0;
-        wr_target_valid = 1'b0;
-        if (write_en_i && !reset0_i && !resetN_enabled) begin
-            wr_target_ring  = main_to_ring(write_pos_i);
-            wr_target_valid = is_onehot10(write_pos_i);
-        end
-        else if (reset0_i && !write_en_i && !resetN_enabled) begin
-            wr_target_ring  = 30'd1;                       // катод 0
-            wr_target_valid = 1'b1;
-        end
-        else if (resetN_enabled && !write_en_i && !reset0_i) begin
-            wr_target_ring  = 30'd1 << (3*RESET_N_POS);    // катод RESET_N_POS
-            wr_target_valid = 1'b1;
-        end
-    end
+    // Цель записи — единственная открытая линия
+    wire [29:0] wr_target_ring  = main_to_ring(line_open_i);
+    wire        wr_target_valid = is_onehot10(line_open_i & LINES);
 
     //------------------------------------------------------------------
-    // Минимальная длительность воздействия. Прежде из неё вычиталась
-    // задержка квалификации запроса (WR_SYNC_HS): окно записи счётчика
-    // выставлялось на такт Clk позже. С TRS v0.24 линия записи — это сам
-    // такт accept, и модель считает чистую физическую длительность.
+    // Минимальная длительность воздействия. С TRS v0.24 линия записи —
+    // это сам такт accept, и модель считает чистую физическую
+    // длительность.
     //------------------------------------------------------------------
-    wire [CNT_W-1:0] wr_min_hs = write_en_i ? CNT_W'(WRITE_MIN_HS)
-                                            : CNT_W'(RESET_MIN_HS);
+    wire [CNT_W-1:0] wr_min_hs = CNT_W'(WRITE_MIN_HS);
 
     //------------------------------------------------------------------
     // Требуемое перемещение разряда
@@ -302,9 +281,6 @@ module DekatronTubeV2 #(
     wire ga_too_long = guide_a_i && ((ga_high_q + CNT_W'(1)) > CNT_W'(GUIDE_MAX_HS));
     wire gb_too_long = guide_b_i && ((gb_high_q + CNT_W'(1)) > CNT_W'(GUIDE_MAX_HS));
 
-    wire write_pos_changed = write_en_i && wr_settled_q &&
-                             (write_pos_i != wr_pos_latched_q);
-
     //------------------------------------------------------------------
     // Начальное состояние (не физический сброс, а состояние после
     // включения питания и зажигания разряда)
@@ -312,14 +288,18 @@ module DekatronTubeV2 #(
     initial begin
         cathodes_q       = 30'd1 << (3*INIT_DIGIT);
 `ifdef DEKATRON_RANDOM_INIT
-        cathodes_q       = 30'd1 << (3*($urandom % 10));
+        begin
+            int unsigned d;
+            d = $urandom % 10;
+            while (!LINES[d]) d = $urandom % 10;
+            cathodes_q = 30'd1 << (3*d);
+        end
 `endif
         move_timer_q     = '0;
         move_dir_q       = MOVE_NONE;
         wr_timer_q       = '0;
         wr_settled_q     = 1'b0;
-        wr_pos_latched_q = '0;
-        wr_target_q      = '0;
+        wr_lines_q       = '1;
         wr_active_q      = 1'b0;
         illegal_q        = 1'b0;
         ga_high_q        = '0;
@@ -341,16 +321,14 @@ module DekatronTubeV2 #(
         end else gb_high_q <= '0;
 
         // --- диагностика недопустимых воздействий
-        illegal_q <= wr_conflict || guides_both_bad || resetN_illegal_disabled ||
+        illegal_q <= guides_both_bad ||
                      ga_too_long || gb_too_long ||
                      (wr_any_active && (guide_a_i || guide_b_i)) ||
-                     (write_en_i && !is_onehot10(write_pos_i)) ||
-                     write_pos_changed ||
                      !is_onehot30(cathodes_q);
 
         //--------------------------------------------------------------
-        // Запись / сброс: удержание не менее MIN тактов переносит
-        // разряд на целевой главный катод. Остальные главные катоды
+        // Запись: линия горящего катода закрыта не менее MIN тактов —
+        // разряд переходит на единственную открытую линию. Подкатоды
         // на это время заблокированы.
         //--------------------------------------------------------------
         if (wr_any_active) begin
@@ -358,13 +336,10 @@ module DekatronTubeV2 #(
             move_dir_q   <= MOVE_NONE;
             wr_active_q  <= 1'b1;
 
-            if (write_en_i) wr_pos_latched_q <= write_pos_i;
-
-            if (!wr_active_q || (wr_target_ring != wr_target_q)) begin
-                // Начало новой операции. Смена цели без снятия воздействия
-                // (например, импульс сброса в 0 сразу после сброса в 9)
-                // — это тоже новая операция: отсчёт начинается заново.
-                wr_target_q  <= wr_target_ring;
+            if (!wr_active_q || (line_open_i != wr_lines_q)) begin
+                // Начало новой операции. Смена линий без снятия
+                // воздействия — тоже новая операция: отсчёт заново.
+                wr_lines_q   <= line_open_i;
                 wr_timer_q   <= CNT_W'(1);
                 wr_settled_q <= 1'b0;
             end
@@ -373,9 +348,13 @@ module DekatronTubeV2 #(
 
                 // Операция засчитывается ровно на MIN-м такте удержания;
                 // повторного срабатывания каждый такт не происходит.
-                if (!wr_conflict && wr_target_valid &&
-                    ((wr_timer_q + CNT_W'(1)) >= wr_min_hs)) begin
-                    cathodes_q   <= wr_target_q;
+                if ((wr_timer_q + CNT_W'(1)) >= wr_min_hs) begin
+                    // Горящий катод закрыт, а открыта не одна линия:
+                    // разряд зажёгся бы где придётся
+                    if (wr_needed && wr_target_valid)
+                        cathodes_q <= wr_target_ring;
+                    else if (wr_needed)
+                        illegal_q  <= 1'b1;
                     wr_settled_q <= 1'b1;
                 end
             end
@@ -385,7 +364,7 @@ module DekatronTubeV2 #(
             wr_timer_q   <= '0;
             wr_settled_q <= 1'b0;
             wr_active_q  <= 1'b0;
-            wr_target_q  <= '0;
+            wr_lines_q   <= '1;
 
             //----------------------------------------------------------
             // Перемещение разряда по кольцу
@@ -416,7 +395,7 @@ module DekatronTubeV2 #(
             wr_timer_q   <= '0;
             wr_settled_q <= 1'b0;
             wr_active_q  <= 1'b0;
-            wr_target_q  <= '0;
+            wr_lines_q   <= '1;
         end
     end
 
@@ -443,8 +422,7 @@ module DekatronTubeV2 #(
             assign moving_dbg_o         = (move_dir != MOVE_NONE);
             assign in_write_reset_dbg_o = wr_any_active;
             assign settled_dbg_o        = wr_any_active && wr_settled_q;
-            assign invalid_dbg_o        = illegal_q || wr_conflict ||
-                                          guides_both_bad || resetN_illegal_disabled;
+            assign invalid_dbg_o        = illegal_q || guides_both_bad;
         end
         else begin : g_dbg_off
             assign cathodes_dbg_o       = 30'b0;
@@ -461,15 +439,12 @@ module DekatronTubeV2 #(
     //------------------------------------------------------------------
 `ifdef ASSERTIONS
     DekatronTubeV2_assertions #(
-        .EN_RESETN (EN_RESETN)
+        .LINES (LINES)
     ) u_assertions (
         .hsClk       (hsClk),
         .guide_a_i   (guide_a_i),
         .guide_b_i   (guide_b_i),
-        .write_en_i  (write_en_i),
-        .write_pos_i (write_pos_i),
-        .reset0_i    (reset0_i),
-        .resetN_i    (resetN_i),
+        .line_open_i (line_open_i),
         .cathodes_q  (cathodes_q)
     );
 `endif

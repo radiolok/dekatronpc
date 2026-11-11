@@ -3,8 +3,8 @@
 #
 # Generates a Quartus project in rtl/quartus_build/ from rtl/quartus/Emulator.qsf (device, pins,
 # partitions) and the same source lists the simulators use (Emulator/Emul.files, DekatronPC/DPC.files),
-# so the stale file list in Emulator.qsf never leaks into the build. The GUI project in rtl/quartus/
-# is not touched.
+# so the GUI project can never leak a stale file list into the build. The GUI project in rtl/quartus/
+# is only written by the sync-qsf stage, which puts the same file list into it.
 #
 # The build directory must sit directly under rtl/: the file lists use ../X paths and FirmwareLoader /
 # MS6205 call $readmemh("../...hex"), which Quartus resolves relative to the project directory.
@@ -43,6 +43,8 @@ Stages (default: compile):
   syn       analysis & synthesis (quartus_map)
   compile   syn + fit + asm + sta -> quartus_build/output_files/${rev}.sof
   program   program an existing .sof over JTAG, no rebuild
+  sync-qsf  rewrite the file list of the GUI project quartus/Emulator.qsf from the same
+            source lists (run it after adding or removing an RTL file)
 
 Options:
   -q, --quartus DIR   Quartus bin directory (default: \$QUARTUS_BIN, PATH,
@@ -83,7 +85,7 @@ parse_params() {
 		shift
 	done
 	case "${stage}" in
-	elab | syn | compile | program | list-cables) ;;
+	elab | syn | compile | program | list-cables | sync-qsf) ;;
 	*) die "unknown stage: ${stage} (see --help)" ;;
 	esac
 }
@@ -127,6 +129,48 @@ gen_firmware() {
 	python3 "${gen}" -f "${p}/pi.bfk" -o "${root_dir}/load_firmware_pi.hex" --hex >/dev/null
 }
 
+# Source files, SDC and the loop limit as qsf lines; $1 is the SDC path relative to the project.
+emit_sources() {
+	# RamBank zero-init loops over a whole bank (10^4 cells in IpMemory); Quartus default is 5000
+	echo "set_global_assignment -name VERILOG_CONSTANT_LOOP_LIMIT 100000"
+	echo "set_global_assignment -name SDC_FILE $1"
+	local f
+	# DPC first: parameters.sv defines the package the Emulator layer imports
+	for f in $(cat "${root_dir}/DekatronPC/DPC.files" "${root_dir}/Emulator/Emul.files"); do
+		case "${f}" in
+		*_assertions.sv) continue ;;   # only bound under ASSERTIONS, simulation-only
+		*.sv) echo "set_global_assignment -name SYSTEMVERILOG_FILE ${f}" ;;
+		*.v) echo "set_global_assignment -name VERILOG_FILE ${f}" ;;
+		*) die "unknown source type: ${f}" ;;
+		esac
+		[ -f "${root_dir}/quartus/${f}" ] || die "missing source: ${f}"
+	done
+}
+
+# sync-qsf: the GUI project keeps its own settings; its file lines are replaced in place
+# (where the first one stood) by the list emit_sources writes.
+sync_qsf() {
+	local tmp=${qsf_src}.tmp
+	QSF_SOURCES=$(emit_sources Emulator.sdc) || exit 1
+	export QSF_SOURCES
+	# Quartus on Windows writes the qsf with CRLF and no final newline: keep both as found
+	awk '
+		{ if (sub(/\r$/, "")) crlf = 1; if (!seen++ && crlf) eol = "\r\n" }
+		/-name (SYSTEMVERILOG_FILE|VERILOG_FILE|SDC_FILE|VERILOG_CONSTANT_LOOP_LIMIT) / {
+			if (!done) { n = split(ENVIRON["QSF_SOURCES"], src, "\n"); for (i = 1; i <= n; i++) out[++k] = src[i]; done = 1 }
+			next
+		}
+		{ out[++k] = $0 }
+		END {
+			if (!eol) eol = "\n"
+			if (!done) { n = split(ENVIRON["QSF_SOURCES"], src, "\n"); for (i = 1; i <= n; i++) out[++k] = src[i] }
+			for (i = 1; i <= k; i++) printf "%s%s", out[i], (i < k ? eol : "")
+		}
+	' "${qsf_src}" >"${tmp}"
+	mv "${tmp}" "${qsf_src}"
+	msg "Updated: ${qsf_src} ($(grep -cE -- '-name (SYSTEM)?VERILOG_FILE ' "${qsf_src}") source files)"
+}
+
 gen_project() {
 	mkdir -p "${build_dir}"
 	cat >"${build_dir}/${rev}.qpf" <<EOF
@@ -140,37 +184,25 @@ EOF
 		echo
 		echo "set_global_assignment -name NUM_PARALLEL_PROCESSORS ${jobs}"
 		echo "set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files"
-		# RamBank zero-init loops over a whole bank (10^4 cells in IpMemory); Quartus default is 5000
-		echo "set_global_assignment -name VERILOG_CONSTANT_LOOP_LIMIT 100000"
 		echo "set_global_assignment -name VERILOG_MACRO \"EMULATOR=True\""
 		for m in "${macros[@]}"; do
 			echo "set_global_assignment -name VERILOG_MACRO \"${m}\""
 		done
-		echo "set_global_assignment -name SDC_FILE ${sdc_src}"
-		local f
-		# DPC first: parameters.sv defines the package the Emulator layer imports
-		for f in $(cat "${root_dir}/DekatronPC/DPC.files" "${root_dir}/Emulator/Emul.files"); do
-			case "${f}" in
-			*_assertions.sv) continue ;;   # only bound under ASSERTIONS, simulation-only
-			*.sv) echo "set_global_assignment -name SYSTEMVERILOG_FILE ${f}" ;;
-			*.v) echo "set_global_assignment -name VERILOG_FILE ${f}" ;;
-			*) die "unknown source type: ${f}" ;;
-			esac
-			[ -f "${build_dir}/${f}" ] || die "missing source: ${f}"
-		done
+		emit_sources "${sdc_src}"
 	} >"${build_dir}/${rev}.qsf"
 }
 
 summary() {
 	local o=${build_dir}/output_files
 	[ ${dry_run} -eq 1 ] && return 0
+	# only the reports of this run: a failed stage leaves the previous build's files behind
 	for s in map fit sta; do
-		if [ -f "${o}/${rev}.${s}.summary" ]; then
+		if [ "${o}/${rev}.${s}.summary" -nt "${run_stamp}" ]; then
 			msg "---- ${rev}.${s}.summary"
 			tr -d '\r' <"${o}/${rev}.${s}.summary" >&2
 		fi
 	done
-	[ -f "${o}/${rev}.sof" ] && msg "---- bitstream: ${o}/${rev}.sof"
+	[ "${o}/${rev}.sof" -nt "${run_stamp}" ] && msg "---- bitstream: ${o}/${rev}.sof"
 	return 0
 }
 
@@ -181,6 +213,10 @@ do_program() {
 }
 
 parse_params "$@"
+if [ "${stage}" = sync-qsf ]; then
+	sync_qsf
+	exit 0
+fi
 find_quartus
 msg "Quartus: ${quartus_bin}"
 
@@ -198,6 +234,8 @@ esac
 [ ${gen_fw} -eq 1 ] && gen_firmware
 gen_project
 msg "Project: ${build_dir}/${rev}.qsf"
+run_stamp=${build_dir}/.run_stamp
+touch "${run_stamp}"
 
 trap summary EXIT
 case "${stage}" in

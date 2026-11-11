@@ -4,7 +4,7 @@ Tool: `rtl/run/build_fpga.sh`. Target: the Emulator top (`rtl/Emulator/Emulator.
 
 ## 1. Why a separate build project
 
-The GUI project `rtl/quartus/Emulator.qsf` has a hand-kept file list that has fallen behind the RTL. It still lists `Dekatron.sv`, `DekatronPulseAllow`, `InsnDecoder` and `RsLatch`, and it lacks `MachineCtrl.sv`, `DekatronTubeV2.sv`, `DekatronPhaseGen.sv`, `FirmwareLoader.sv` and the UART. The script builds a fresh project in `rtl/quartus_build/` (gitignored) on every run:
+The GUI project `rtl/quartus/Emulator.qsf` used to have a hand-kept file list that fell behind the RTL (it listed `Dekatron.sv`, `DekatronPulseAllow`, `InsnDecoder`, `RsLatch` and lacked `MachineCtrl.sv`, `ClkTree.sv`, the TubeV2 stack, `FirmwareLoader.sv` and the UART). Since 2026-11-11 `./build_fpga.sh sync-qsf` writes the same list into it (see below). The script builds a fresh project in `rtl/quartus_build/` (gitignored) on every run:
 
 - device, pins, partitions and other settings come from `rtl/quartus/Emulator.qsf`; its file, SDC and macro lines are dropped;
 - sources come from `rtl/DekatronPC/DPC.files` and `rtl/Emulator/Emul.files`, the same lists Verilator uses in `run_emul.sh`, so simulation and FPGA build one file set. `*_assertions.sv` files are skipped because they are bound only under `ASSERTIONS`;
@@ -13,7 +13,7 @@ The GUI project `rtl/quartus/Emulator.qsf` has a hand-kept file list that has fa
 
 The build directory has to sit directly under `rtl/`. The file lists use `../X` paths, and `FirmwareLoader`/`MS6205` call `$readmemh("../….hex")`, which Quartus resolves relative to the project directory. Before each build the script regenerates the firmware images (`rtl/firmware.hex`, `rtl/load_firmware*.hex`) from `rtl/programs/*.bfk` with `generate_rom.py`, the same way `run_emul.sh` does.
 
-The GUI project is left untouched.
+The compile stages leave the GUI project untouched. `./build_fpga.sh sync-qsf` (no Quartus needed) replaces the file, SDC and loop-limit lines of `rtl/quartus/Emulator.qsf` in place with the list the build uses, keeping all other settings and the CRLF format Quartus writes; run it after adding or removing an RTL file so the GUI project opens the current design.
 
 ## 2. Usage
 
@@ -24,13 +24,14 @@ cd rtl/run
 ./build_fpga.sh syn             # analysis & synthesis only
 ./build_fpga.sh -p              # compile, then program the FPGA over JTAG
 ./build_fpga.sh program         # program the existing .sof, no rebuild
+./build_fpga.sh sync-qsf        # put the build's file list into rtl/quartus/Emulator.qsf (no Quartus run)
 ./build_fpga.sh --rbf           # also write Emulator.rbf (compressed, for loading from HPS Linux)
 ./build_fpga.sh --list-cables   # JTAG cables seen by quartus_pgm
 ./build_fpga.sh -n              # write the project, print the Quartus commands, run nothing
 ./build_fpga.sh -D CONSUL=1     # extra Verilog macro (repeatable)
 ```
 
-The exit code is the verdict. After a run the script prints the `map`/`fit`/`sta` summaries.
+The exit code is the verdict. After a run the script prints the `map`/`fit`/`sta` summaries of that run only (a failed stage no longer shows the previous build's reports).
 
 Programming uses JTAG device index 2: on DE0-Nano-SoC the chain is HPS (1) then FPGA (2). Override it with `-i`, and pick the cable with `-c`.
 
@@ -47,6 +48,9 @@ The script checks, in order: `--quartus DIR`, `$QUARTUS_BIN`, `quartus_sh` on `P
 | `elab` | Successful, 0 errors, 212 warnings, 58 s, peak about 4.8 GB virtual memory. |
 | `syn` / `compile` before the RamBank fix | `Error (276003)` in Analysis & Synthesis (35 s, peak 4.96 GB), see §5. |
 | `syn` / `compile` after the fix | Successful (2026-11-04): 0 errors, Flow Status Successful (see §6.1 for the struct-literal fix that unblocked it). |
+| `compile` after the cathode-line write (TRS v0.56) | `Error (10170)` in `DekatronCounter.sv`: Quartus 23.1 does not parse `for (genvar k …)` inside a nested generate block. Fixed 2026-11-11 with a separate `genvar k;` (no logic change, Yosys count the same). |
+| `compile` 2026-11-11 | Successful: 0 errors in map/fit/asm/sta, slack positive on every clock (setup `Clk_50MHz` +15.8 ns, hold ≥ +0.3 ns). |
+| GUI project after `sync-qsf` | `quartus_map --analysis_and_elaboration` in `rtl/quartus/`: successful, 0 errors. |
 
 Full compile (`map`+`fit`+`asm`+`sta`) on the Windows Quartus 23.1std.0: 0 errors in every stage, `Emulator.sof` written, STA meets timing (worst slack positive). The only Critical Warnings are the harmless memory-depth mismatches (127005, §5) and 19 pins without exact locations (169085, carried over from `Emulator.qsf`).
 

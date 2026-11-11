@@ -1,0 +1,14 @@
+# OpenFOAM generated data (large)
+*/constant/polyMesh/
+*/constant/triSurface/
+*/geometry/
+*/processor*/
+*/VTK/
+*/[1-9][0-9]*/
+*/log.*
+*/postProcessing/
+*.foam
+*.OpenFOAM
+# snappyHexMesh refinement fields written into the time dir
+*/0/cellLevel
+*/0/pointLevel

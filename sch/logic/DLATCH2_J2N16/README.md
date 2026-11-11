@@ -14,11 +14,27 @@ Cell page. Two D latches built from two [RSLATCH_J2N16](../RSLATCH_J2N16/README.
 | Outputs (HV) | Q1, QN1, Q2, QN2 |
 | Heater 6.3 V | 2.0 A (12.6 W) |
 | Output levels | 1: 141.8…143.9 V; 0: 36…55 V (as RSLATCH) |
-| Speed, fanout 2 / 6 / 10 | as RSLATCH, D falling +inverter |
-| Timing limits, fanout 2 / 6 / 10 | as RSLATCH: E pulse ≥ 216 / 333 / 454 ns; setup 182 / 307 / 432 ns; hold ≤ 0 |
+| Speed, fanout 2 / 6 / 10 | as RSLATCH (with the plate chokes), D falling + inverter; to the thresholds at fanout 6: D→Q 313 / 208 ns, C→Q 309 / 202 ns |
+| Timing limits, fanout 2 / 6 / 10 | as RSLATCH: E pulse ≥ 135 / 228 / 326 ns; setup 104 / 194 / 299 ns; hold ≤ 0 |
 | Lowest grid | −31.6 V (D) |
 
 A 16-tube board takes two DLATCH2_J2N16 (four latches), with two tubes spare (owner, 2026-10-27).
+
+## Plate chokes (TRS v0.58)
+
+Owner, 2026-11-08: a plate choke in every cell. Both latches have the new RS core (La 1 mH, Rg2 12k; RSLATCH_J2N16 page). The D inverters (Л901, plates DN1, DN2) have Ra 10k in series with L 680 µH damped by 10k, as `NOT_N16`: R901 + L901 ‖ R902, R903 + L902 ‖ R904. The DN dividers are now R905 · C901 · R906 and R907 · C902 · R908.
+
+To the next stage's thresholds (`vtube_timing.json`, fall 92 V / rise 118 V):
+
+| Fanout | D→Q [rise, fall] | C↑→Q [rise, fall] | before the chokes |
+|---|---|---|---|
+| 2 | 171, 122 ns | 174, 130 ns | — |
+| 6 | **313, 208 ns** | **309, 202 ns** | 480, 374 / 442, 353 ns |
+| 10 | 474, 325 ns | 454, 282 ns | — |
+
+The KiCad bench agrees with plain SPICE within 0.01 %.
+
+Tools: `tools/spice/chokes.py` (the values), `tools/spice/threshold_delays.py --fanout N`, `tools/spice/latch_plots.py`, `tools/spice/kicad_parity.py`. Investigation: `doc/dinv_trigger_board.md`.
 
 ## Schematic
 
@@ -57,7 +73,7 @@ Delays and timing limits against fanout: the RSLATCH table ([RSLATCH_J2N16](../R
 | C | pentode_g3 (two) | 13.6 pF | 3.5 |
 | Q, QN | HV out, max_fanout 6 | | |
 
-`vtube_timing.json` (SPICE, fanout 6, to the next stage's thresholds (falling output to 92 V, rising to 118 V; owner, 2026-10-29; `tools/spice/threshold_delays.py`)), [Q rise, Q fall]: D→Q 480 / 374 ns, C↑→Q 442 / 353 ns, measured with D toggling while C is high. `vtube_cells.v` has the model `LATCH_J2N16`. The setup of 0.31 µs before C falls is not checked in netlist simulation (no checker for latches). `div_insert.py` counts a pin as one grid, so a D or C pin with two or three grids under-counts the net fanout.
+`vtube_timing.json` (SPICE, fanout 6, to the next stage's thresholds (falling output to 92 V, rising to 118 V; owner, 2026-10-29; `tools/spice/threshold_delays.py`)), [Q rise, Q fall]: D→Q 313 / 208 ns, C↑→Q 309 / 202 ns (TRS v0.58, with the plate chokes; 480 / 374 and 442 / 353 ns before), measured with D toggling while C is high. `vtube_cells.v` has the model `LATCH_J2N16`. The setup of 0.19 µs before C falls (0.31 µs before the chokes) is not checked in netlist simulation (no checker for latches). `div_insert.py` counts a pin as one grid, so a D or C pin with two or three grids under-counts the net fanout.
 
 ## Files and how to run
 

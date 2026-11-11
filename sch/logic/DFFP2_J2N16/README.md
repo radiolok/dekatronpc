@@ -16,12 +16,23 @@ Cell page. Two edge-triggered D flip-flops, each one Bonch-Bruevich bistable (a 
 | Output levels | 1: 143.9 V; 0: 55.1 V |
 | C→Q to 100 V, fanout 2 / 4 / 6 | 51…95 / 81…126 / 122…158 ns |
 | C→Q to the next stage's thresholds (fanout 6) | Q rises to 118 V 261 ns, falls to 92 V 181 ns |
-| Setup / hold, fanout 2 / 4 / 6 | 341 / 420 / 527 ns; −150 / −91 / −3 ns |
-| Race margin | ≈ 54 ns (fastest C→Q 51 ns − worst hold −3 ns): the clock skew allowed inside one clock net |
+| Setup / hold, fanout 2 / 4 / 6 | 277 / 343 / 424 ns; −140 / −81 / +7 ns (TRS v0.58: the bench driver with its plate choke; was 341 / 420 / 527, −150 / −91 / −3 ns) |
+| Race margin | ≈ 44 ns (fastest C→Q 51 ns − worst hold +7 ns; 54 ns before): the clock skew allowed inside one clock net |
 | Register to register | 0.83 MHz at fanout 6, ≥ 1 MHz at fanout 2–4 (no logic between) |
 | Lowest grid | −40.2 V (g3, on the falling clock edge) |
 
 `DFF_J2N16` (7 tubes, falling edge, LV inputs) stays the default trigger of the synthesis. `DFFP_J2N16` carries `dont_use` and is placed by name in the RTL where its pins fit; the first ones are the seven panel-key synchronizers (TRS v0.52): `halt_key_s`, `step_key_s`, `run_key_s`, `key_insn_loading_start_s`, `key_insn_loading_stop_s`, `rst_busy_s` in `MachineCtrl` and `key_next_s` in `IpLine`, each the only D pin on its input net. The RTL model is `rtl/Logic/DFFP_J2N16.sv` (under `` `ifndef SYNTH ``).
+
+## Plate chokes (TRS v0.58)
+
+Owner, 2026-11-08: a plate choke in every cell. The core already had its chokes (La 1 mH, Rg2 12k): it is now the RS core of every trigger. Two things changed:
+
+- **The D inverter keeps a plain Ra 10k.** With the `NOT_N16` choke (0.68 mH ‖ 10k) DN reaches R faster, and the hold at fanout 6 grows from +7 to **+36 ns**: the race margin would drop from 44 to ≈ 15 ns. The inverter and the slow dividers are the D delay that keeps a new D off the open gate, so here the choke works against the cell (`pff_timing.py hold`, `Li=`). On the universal trigger board this is a jumper across the inverter's choke (`doc/trigger_board.md`).
+- **The bench driver of D1 carries its choke** (a gate of the machine has one now). Its faster edge moves setup and hold: setup 277 / 343 / 424 ns, hold −140 / −81 / +7 ns at fanout 2 / 4 / 6 (was 341 / 420 / 527, −150 / −91 / −3 ns). `vtube_timing.json`: setup 424, hold 7 ns.
+
+C→Q does not change (95 / 158 ns to 100 V at fanout 2 / 6; to the thresholds 261 / 181 ns at fanout 6). The testbench passes every sample (89 values, KiCad = plain SPICE within 0.01 %).
+
+Tools: `tools/spice/chokes.py` (the values), `tools/spice/threshold_delays.py --fanout N`, `tools/spice/latch_plots.py`, `tools/spice/kicad_parity.py`. Investigation: `doc/dinv_trigger_board.md`.
 
 ## How it works
 
@@ -76,9 +87,11 @@ Parts per flip-flop:
 | feedback dividers | 470k ‖ 3.9 pF / 200k, ×2 | Q → FQ, QN → FQN (as `RSLATCH_J2N16`) |
 | slow dividers | 150k / 62k, ×2, **no C1** | D → S, DN → R |
 | pulse network | Cc 3.9 pF; 43k to GND, 130k to −50 V | C → G |
-| inverter (on the parent) | ½ 6N16B, Ra 10k, 470k ‖ 3.9 pF / 200k | D → DN |
+| inverter (on the parent) | ½ 6N16B, Ra 10k **without a choke** (part of the D delay), 470k ‖ 3.9 pF / 200k | D → DN |
 
 ## Results
+
+> **Plate choke (TRS v0.58).** The tables of this section were simulated before the plate chokes and stay as the record of the design; the figures of this page are redrawn with them. Current numbers: section *Plate chokes* above and `sch/logic/vtube_timing.json`.
 
 ### Testbench (500 kHz, fanout 6)
 

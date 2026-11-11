@@ -21,7 +21,8 @@ CELL = dict(Ra="10k", La="1m", Rg2="12k",                 # plates and screens
             R1s="150k", R2s="62k",                        # slow dividers to the pentode g1 (no C1: the delay)
             R1i="470k", C1i="3.9p", R2i="200k",           # D -> inverter grid
             Cc="3.9p", Rt="43k", Rb="130k",               # clock pulse network on g3: rest -12.4 V, Thevenin 32.3k
-            Rinv="10k")                                   # inverter plate
+            Rinv="10k", Linv=None)                       # inverter plate: no choke, it is part of the D delay
+                                                          # (hold +36 ns with one, doc/dinv_trigger_board.md §7)
 PER = 2.0          # clock period, us
 FAN = 6            # grids on each output net (Q1: FF2.D plus 4 grids)
 
@@ -46,7 +47,7 @@ def dffp2(pre, d1, d2, c1, c2, q1, qn1, q2, qn2, x=CELL):
     """the cell sheet DFFP2_J2N16: the inverter tube, its two grid dividers and two cores"""
     n = lambda s: pre + s
     s = (f"XI{pre} {n('DN1')} {n('DI1')} 0 {n('DN2')} {n('DI2')} 0 6N16B\n"
-         f"RI{pre}1 vcc {n('DN1')} {x['Rinv']}\nRI{pre}2 vcc {n('DN2')} {x['Rinv']}\n")
+         + L.K.plate(f"RI{pre}1", n('DN1'), x['Rinv'], x['Linv']) + L.K.plate(f"RI{pre}2", n('DN2'), x['Rinv'], x['Linv']))
     for i, d in ((1, d1), (2, d2)):
         s += (f"R1{pre}i{i} {d} {n(f'DI{i}')} {x['R1i']}\nC1{pre}i{i} {d} {n(f'DI{i}')} {x['C1i']}\n"
               f"R2{pre}i{i} {n(f'DI{i}')} nb {x['R2i']}\n")
@@ -104,7 +105,7 @@ def deck(tb):
     s += "VSCK /CK 0 PWL(%s)\n" % " ".join(f"{t:.4f}u {v}" for t, v in clock_pts(*tb['clock']))
     s += "VSD /STIM_D 0 PWL(%s)\n" % " ".join(f"{t:.4f}u {v}" for t, v in d_pts(*tb['d']))
     s += L.div("sd", "/STIM_D", "/IS_D", p, p['C1g'])
-    s += "XDD /D1 /IS_D 0 /PDX_D nb 0 6N16B\nRDD vcc /D1 10k\nRDXD vcc /PDX_D 10k\n"
+    s += "XDD /D1 /IS_D 0 /PDX_D nb 0 6N16B\n" + L.K.plate("RDD", "/D1", "10k", L.drv_choke(p)) + "RDXD vcc /PDX_D 10k\n"
     s += dffp2("/DUT/", "/D1", "/Q1", "/CK", "/CK", "/Q1", "/QN1", "/Q2", "/QN2")
     for o, ng in tb['outputs'].items():
         s += L.div(f"y{o}", f"/{o}", f"/{o}_LV", p, p['C1g'] * ng) + L.loads(f"/{o}_LV", p, ng, o)

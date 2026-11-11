@@ -14,8 +14,12 @@
 //   Icarus не подходит: не принимает именованные аргументы задач
 //   (do_step(.inc(1))).
 //
-// ВАЖНО: часть тестов — негативные (UT-GUIDE-001, UT-WR-006/009,
-// UT-RST0-006/007, UT-RSTN-005). В них СПЕЦИАЛЬНО подаются недопустимые
+// С TRS v0.56 вход записи — катодные линии line_open_i (1 — открыта):
+// запись цифры d — открыта только линия d, сброс в 0 и в RESET_N_POS —
+// та же запись. RESET_MIN и EN_RESETN у модели больше нет.
+//
+// ВАЖНО: часть тестов — негативные (UT-GUIDE-001, UT-WR-006/009/011,
+// UT-RST0-006/007, UT-RSTN-006). В них СПЕЦИАЛЬНО подаются недопустимые
 // комбинации входов, поэтому сообщения assertions в этих секциях
 // ОЖИДАЕМЫ. Признак провала — только счётчик ошибок в итоговом отчёте.
 //
@@ -33,12 +37,10 @@ module DekatronTubeV2_tb_core #(
     parameter unsigned FALL_STEP_HS  = 3,
     parameter unsigned GUIDE_MAX_HS  = 20,
     parameter unsigned WRITE_MIN_HS  = 100,
-    parameter unsigned RESET_MIN_HS  = 100,
-    parameter bit          EN_RESETN     = 1'b1,
     parameter unsigned RESET_N_POS   = 9,
     parameter logic [3:0]  INIT_DIGIT    = 4'd0,
     parameter bit          INC_BY_A_THEN_B = 1'b1,
-    parameter unsigned SUITE         = 0,  // 0=FULL 1=DIR 2=NO_RSTN 3=RSTN5
+    parameter unsigned SUITE         = 0,  // 0=FULL 1=DIR 3=RSTN5
     parameter string       NAME          = "FULL"
 )(
     output int err_count,
@@ -51,9 +53,7 @@ module DekatronTubeV2_tb_core #(
     logic hsClk;
 
     logic        guide_a, guide_b;
-    logic        write_en;
-    logic [9:0]  write_pos;
-    logic        reset0, resetN;
+    logic [9:0]  line_open;
     logic        sim_preset_en;
     logic [29:0] sim_preset_cathodes;
 
@@ -67,9 +67,6 @@ module DekatronTubeV2_tb_core #(
         .FALL_STEP_HS     (FALL_STEP_HS),
         .GUIDE_MAX_HS     (GUIDE_MAX_HS),
         .WRITE_MIN_HS     (WRITE_MIN_HS),
-        .RESET_MIN_HS     (RESET_MIN_HS),
-        .EN_RESETN        (EN_RESETN),
-        .RESET_N_POS      (RESET_N_POS),
         .INIT_DIGIT       (INIT_DIGIT),
         .INC_BY_A_THEN_B  (INC_BY_A_THEN_B),
         .EN_SIM_PRESET    (1'b1),
@@ -78,10 +75,7 @@ module DekatronTubeV2_tb_core #(
         .hsClk                 (hsClk),
         .guide_a_i             (guide_a),
         .guide_b_i             (guide_b),
-        .write_en_i            (write_en),
-        .write_pos_i           (write_pos),
-        .reset0_i              (reset0),
-        .resetN_i              (resetN),
+        .line_open_i           (line_open),
         .sim_preset_en_i       (sim_preset_en),
         .sim_preset_cathodes_i (sim_preset_cathodes),
         .main_onehot_o         (main_onehot),
@@ -159,8 +153,7 @@ module DekatronTubeV2_tb_core #(
 
     task automatic idle_all(input int n = 20);
         @(negedge hsClk);
-        guide_a = 0; guide_b = 0; write_en = 0; write_pos = '0;
-        reset0 = 0; resetN = 0; sim_preset_en = 0;
+        guide_a = 0; guide_b = 0; line_open = '1; sim_preset_en = 0;
         wait_hs(n);
     endtask
 
@@ -176,27 +169,21 @@ module DekatronTubeV2_tb_core #(
         @(negedge hsClk); guide_b = 0;
     endtask
 
-    task automatic do_write(input logic [9:0] pos, input int duration_hs);
-        @(negedge hsClk); write_pos = pos; write_en = 1;
+    // Открыть только линии open, остальные закрыть
+    task automatic do_write(input logic [9:0] open, input int duration_hs);
+        @(negedge hsClk); line_open = open;
         wait_hs(duration_hs);
-        @(negedge hsClk); write_en = 0;
-        wait_hs(3);
-        @(negedge hsClk); write_pos = '0;
+        @(negedge hsClk); line_open = '1;
         wait_hs(SETTLE);
     endtask
 
+    // Сброс — та же запись (плата сброса закрывает все линии, кроме цели)
     task automatic do_reset0(input int duration_hs);
-        @(negedge hsClk); reset0 = 1;
-        wait_hs(duration_hs);
-        @(negedge hsClk); reset0 = 0;
-        wait_hs(SETTLE);
+        do_write(10'b1, duration_hs);
     endtask
 
     task automatic do_resetN(input int duration_hs);
-        @(negedge hsClk); resetN = 1;
-        wait_hs(duration_hs);
-        @(negedge hsClk); resetN = 0;
-        wait_hs(SETTLE);
+        do_write(10'b1 << RESET_N_POS, duration_hs);
     endtask
 
     task automatic set_digit(input int d);
@@ -464,12 +451,27 @@ module DekatronTubeV2_tb_core #(
         chk_digit(6, "UT-WR-005 длинная запись -> одна запись");
         chk(saw_settled, "UT-WR-005 settled_dbg_o поднимался внутри операции");
 
-        neg_banner("UT-WR-006 write_pos_i не one-hot");
+        neg_banner("UT-WR-006 открыты две линии");
         set_digit(3); mon_reset();
         do_write(10'b0000000011, WRITE_MIN_HS);
         idle_all(SETTLE+10);
-        chk(saw_invalid, "UT-WR-006 не-one-hot write_pos -> invalid_dbg_o == 1");
+        chk(saw_invalid, "UT-WR-006 две открытые линии -> invalid_dbg_o == 1");
         chk_digit(3, "UT-WR-006 запись не выполняется");
+
+        // Линия горящего катода открыта: разряд не гаснет (так стояла
+        // плата 0/9 до TRS v0.56: SetTop закрывал только K0)
+        set_digit(5); mon_reset();
+        do_write(~10'b1, WRITE_MIN_HS);
+        idle_all(SETTLE+10);
+        chk(!saw_invalid, "UT-WR-010 горящий катод открыт -> воздействие допустимо");
+        chk_digit(5, "UT-WR-010 разряд остаётся на месте");
+
+        neg_banner("UT-WR-011 закрыт только горящий катод");
+        set_digit(0); mon_reset();
+        do_write(~10'b1, WRITE_MIN_HS);
+        idle_all(SETTLE+10);
+        chk(saw_invalid, "UT-WR-011 девять открытых линий -> invalid_dbg_o == 1");
+        chk_digit(0, "UT-WR-011 разряд остаётся");
 
         // Запись, когда разряд находится на подкатоде
         set_digit(3);
@@ -479,13 +481,13 @@ module DekatronTubeV2_tb_core #(
 
         neg_banner("UT-WR-009 / UT-ISO-001 подкатодный импульс во время записи");
         set_digit(3); mon_reset();
-        @(negedge hsClk); write_pos = 10'b1 << 5; write_en = 1;
+        @(negedge hsClk); line_open = 10'b1 << 5;
         wait_hs(5);
         @(negedge hsClk); guide_a = 1;
         wait_hs(3);
         @(negedge hsClk); guide_a = 0;
         wait_hs(WRITE_MIN_HS);
-        @(negedge hsClk); write_en = 0; write_pos = '0;
+        @(negedge hsClk); line_open = '1;
         idle_all(SETTLE+10);
         chk(saw_invalid, "UT-WR-009 guide во время записи -> invalid_dbg_o == 1");
         chk_digit(5, "UT-ISO-001 запись завершилась в целевой катод");
@@ -496,80 +498,67 @@ module DekatronTubeV2_tb_core #(
     task automatic suite_reset0();
         banner("UT-RST0: сброс в катод 0");
 
-        set_digit(5); do_reset0(RESET_MIN_HS);
+        set_digit(5); do_reset0(WRITE_MIN_HS);
         chk_digit(0, "UT-RST0-001 сброс в 0 из позиции 5");
-        set_digit(0); do_reset0(RESET_MIN_HS);
+        set_digit(0); do_reset0(WRITE_MIN_HS);
         chk_digit(0, "UT-RST0-002 сброс в 0 из позиции 0");
 
         set_digit(5);
         pulse_guide_a(GUIDE_STEP_HS);
-        do_reset0(RESET_MIN_HS);
+        do_reset0(WRITE_MIN_HS);
         chk_digit(0, "UT-RST0-003 сброс в 0 с подкатода");
 
-        set_digit(5); do_reset0(RESET_MIN_HS-1);
+        set_digit(5); do_reset0(WRITE_MIN_HS-1);
         chk_digit(5, "UT-RST0-004 короткий сброс -> не выполняется");
 
-        set_digit(5); do_reset0(2*RESET_MIN_HS);
+        set_digit(5); do_reset0(2*WRITE_MIN_HS);
         chk_digit(0, "UT-RST0-005 длинный сброс -> один сброс");
 
         neg_banner("UT-RST0-006 подкатодный импульс во время сброса");
         set_digit(5); mon_reset();
-        @(negedge hsClk); reset0 = 1;
+        @(negedge hsClk); line_open = 10'b1;
         wait_hs(5);
         @(negedge hsClk); guide_a = 1;
         wait_hs(3);
         @(negedge hsClk); guide_a = 0;
-        wait_hs(RESET_MIN_HS);
-        @(negedge hsClk); reset0 = 0;
+        wait_hs(WRITE_MIN_HS);
+        @(negedge hsClk); line_open = '1;
         idle_all(SETTLE+10);
         chk(saw_invalid, "UT-RST0-006 guide во время сброса -> invalid_dbg_o == 1");
         chk_digit(0, "UT-ISO-002 сброс завершился в 0, утечки на катод 1 нет");
         chk(!main_leaked, "UT-ISO-002 под сбросом main_onehot_o показывает не больше одного катода");
 
-        neg_banner("UT-RST0-007 одновременные reset0 и write_en");
+        neg_banner("UT-RST0-007 сброс в 0 и запись 2 вместе (открыты K0 и K2)");
         set_digit(5); mon_reset();
-        @(negedge hsClk); reset0 = 1; write_en = 1; write_pos = 10'b1 << 2;
-        wait_hs(RESET_MIN_HS + 10);
-        @(negedge hsClk); reset0 = 0; write_en = 0; write_pos = '0;
+        do_write(10'b0000000101, WRITE_MIN_HS + 10);
         idle_all(SETTLE+10);
-        chk(saw_invalid, "UT-RST0-007 конфликт reset0/write -> invalid_dbg_o == 1");
+        chk(saw_invalid, "UT-RST0-007 конфликт сброса и записи -> invalid_dbg_o == 1");
         chk_digit(5, "UT-RST0-007 операция не выполнена, позиция сохранена");
     endtask
 
     task automatic suite_resetN();
         banner($sformatf("UT-RSTN: сброс в катод %0d", RESET_N_POS));
 
-        set_digit(0); do_resetN(RESET_MIN_HS);
+        set_digit(0); do_resetN(WRITE_MIN_HS);
         chk_digit(int'(RESET_N_POS), "UT-RSTN-001 сброс в целевой катод из 0");
 
-        do_resetN(RESET_MIN_HS);
+        do_resetN(WRITE_MIN_HS);
         chk_digit(int'(RESET_N_POS), "UT-RSTN-002 повторный сброс из той же позиции");
 
         set_digit(3);
         pulse_guide_a(GUIDE_STEP_HS);
-        do_resetN(RESET_MIN_HS);
+        do_resetN(WRITE_MIN_HS);
         chk_digit(int'(RESET_N_POS), "UT-RSTN-003 сброс с подкатода");
 
-        set_digit(3); do_resetN(RESET_MIN_HS-1);
+        set_digit(3); do_resetN(WRITE_MIN_HS-1);
         chk_digit(3, "UT-RSTN-004 короткий сброс -> не выполняется");
 
-        neg_banner("UT-RSTN-006 одновременные reset0 и resetN");
+        neg_banner("UT-RSTN-006 одновременные сбросы в 0 и в RESET_N_POS");
         set_digit(4); mon_reset();
-        @(negedge hsClk); reset0 = 1; resetN = 1;
-        wait_hs(RESET_MIN_HS + 10);
-        @(negedge hsClk); reset0 = 0; resetN = 0;
+        do_write(10'b1 | (10'b1 << RESET_N_POS), WRITE_MIN_HS + 10);
         idle_all(SETTLE+10);
-        chk(saw_invalid, "UT-RSTN-006 конфликт reset0/resetN -> invalid_dbg_o == 1");
+        chk(saw_invalid, "UT-RSTN-006 конфликт двух сбросов -> invalid_dbg_o == 1");
         chk_digit(4, "UT-RSTN-006 позиция сохранена");
-    endtask
-
-    task automatic suite_resetN_disabled();
-        neg_banner("UT-RSTN-005: активность resetN_i при EN_RESETN = 0");
-        set_digit(3); mon_reset();
-        do_resetN(RESET_MIN_HS);
-        idle_all(SETTLE+10);
-        chk(saw_invalid, "UT-RSTN-005 resetN при EN_RESETN=0 -> invalid_dbg_o == 1");
-        chk_digit(3, "UT-RSTN-005 операция не выполняется");
     endtask
 
     task automatic suite_sim_preset();
@@ -627,7 +616,7 @@ module DekatronTubeV2_tb_core #(
         set_digit(4); do_step(.inc(1));
         chk_digit(5, "UT-PERF-004 запись, затем сразу инкремент");
 
-        do_reset0(RESET_MIN_HS); do_step(.inc(0));
+        do_reset0(WRITE_MIN_HS); do_step(.inc(0));
         chk_digit(9, "UT-PERF-005 сброс, затем сразу декремент");
 
         // Проверка бюджета времени: полный шаг должен укладываться
@@ -674,13 +663,13 @@ module DekatronTubeV2_tb_core #(
         idle_all(SETTLE+10);
         chk_digit(2, "UT-DBG-002 после снятия разряд вернулся на исходный катод");
 
-        @(negedge hsClk); write_pos = 10'b1 << 6; write_en = 1;
+        @(negedge hsClk); line_open = 10'b1 << 6;
         wait_hs(3);
         chk(in_write_reset_dbg == 1, "UT-DBG-003 запись активна: in_write_reset_dbg_o == 1");
         chk(settled_dbg == 0, "UT-DBG-004 до WRITE_MIN_HS: settled_dbg_o == 0");
         wait_hs(WRITE_MIN_HS);
         chk(settled_dbg == 1, "UT-DBG-004 после WRITE_MIN_HS: settled_dbg_o == 1");
-        @(negedge hsClk); write_en = 0; write_pos = '0;
+        @(negedge hsClk); line_open = '1;
         idle_all(SETTLE+10);
         chk_digit(6, "UT-DBG-004 запись завершена корректно");
 
@@ -697,8 +686,7 @@ module DekatronTubeV2_tb_core #(
     initial begin
         errors = 0; checks = 0; done = 0; mon_arm = 0;
         saw_invalid = 0; saw_settled = 0; main_leaked = 0; ring_broken = 0;
-        guide_a = 0; guide_b = 0; write_en = 0; write_pos = '0;
-        reset0 = 0; resetN = 0;
+        guide_a = 0; guide_b = 0; line_open = '1;
         sim_preset_en = 0; sim_preset_cathodes = '0;
 
         $display("");
@@ -706,9 +694,9 @@ module DekatronTubeV2_tb_core #(
         $display("[%0s] DekatronTubeV2 (кольцевая модель)", NAME);
         $display("[%0s]   GUIDE_STEP=%0d FALL_STEP=%0d GUIDE_MAX=%0d",
                  NAME, GUIDE_STEP_HS, FALL_STEP_HS, GUIDE_MAX_HS);
-        $display("[%0s]   WRITE_MIN=%0d RESET_MIN=%0d", NAME, WRITE_MIN_HS, RESET_MIN_HS);
-        $display("[%0s]   EN_RESETN=%0b RESET_N_POS=%0d INC_BY_A_THEN_B=%0b",
-                 NAME, EN_RESETN, RESET_N_POS, INC_BY_A_THEN_B);
+        $display("[%0s]   WRITE_MIN=%0d", NAME, WRITE_MIN_HS);
+        $display("[%0s]   RESET_N_POS=%0d INC_BY_A_THEN_B=%0b",
+                 NAME, RESET_N_POS, INC_BY_A_THEN_B);
         $display("==================================================");
 
         mon_reset();
@@ -716,7 +704,6 @@ module DekatronTubeV2_tb_core #(
 
         case (SUITE)
             1: suite_direction();
-            2: suite_resetN_disabled();
             3: begin
                    suite_resetN();
                    suite_sim_preset();
@@ -729,7 +716,7 @@ module DekatronTubeV2_tb_core #(
                 suite_guide_conflicts();
                 suite_write();
                 suite_reset0();
-                if (EN_RESETN) suite_resetN();
+                suite_resetN();
                 suite_sim_preset();
                 suite_perf();
                 suite_debug();
@@ -750,44 +737,37 @@ endmodule
 //----------------------------------------------------------------------
 module DekatronTubeV2_tb;
 
-    int err_full, err_fast, err_dir, err_norstn, err_rstn5;
-    bit done_full, done_fast, done_dir, done_norstn, done_rstn5;
+    int err_full, err_fast, err_dir, err_rstn5;
+    bit done_full, done_fast, done_dir, done_rstn5;
 
     // Полный набор, базовые параметры
     DekatronTubeV2_tb_core #(
         .GUIDE_STEP_HS (2), .FALL_STEP_HS (3), .GUIDE_MAX_HS (20),
-        .WRITE_MIN_HS (100), .RESET_MIN_HS (100),
-        .EN_RESETN (1'b1), .RESET_N_POS (9),
+        .WRITE_MIN_HS (100), .RESET_N_POS (9),
         .INC_BY_A_THEN_B (1'b1), .SUITE (0), .NAME ("FULL")
     ) u_full (.err_count(err_full), .done(done_full));
 
     // Тот же набор на других временных параметрах
     DekatronTubeV2_tb_core #(
         .GUIDE_STEP_HS (3), .FALL_STEP_HS (5), .GUIDE_MAX_HS (30),
-        .WRITE_MIN_HS (20), .RESET_MIN_HS (20),
-        .EN_RESETN (1'b1), .RESET_N_POS (9),
+        .WRITE_MIN_HS (20), .RESET_N_POS (9),
         .INC_BY_A_THEN_B (1'b1), .SUITE (0), .NAME ("FAST")
     ) u_fast (.err_count(err_fast), .done(done_fast));
 
     // Обратное направление подкатодов
     DekatronTubeV2_tb_core #(
-        .EN_RESETN (1'b1), .INC_BY_A_THEN_B (1'b0),
+        .INC_BY_A_THEN_B (1'b0),
         .SUITE (1), .NAME ("DIR_REV")
     ) u_dir (.err_count(err_dir), .done(done_dir));
 
-    // resetN запрещён параметром
-    DekatronTubeV2_tb_core #(
-        .EN_RESETN (1'b0), .SUITE (2), .NAME ("NO_RSTN")
-    ) u_norstn (.err_count(err_norstn), .done(done_norstn));
-
     // Линия сброса в катод 5 — для счётчика данных до 255
     DekatronTubeV2_tb_core #(
-        .EN_RESETN (1'b1), .RESET_N_POS (5),
+        .RESET_N_POS (5),
         .SUITE (3), .NAME ("RSTN_5")
     ) u_rstn5 (.err_count(err_rstn5), .done(done_rstn5));
 
     initial begin
-        wait (done_full && done_fast && done_dir && done_norstn && done_rstn5);
+        wait (done_full && done_fast && done_dir && done_rstn5);
         #1000;
         $display("");
         $display("==================================================");
@@ -796,14 +776,13 @@ module DekatronTubeV2_tb;
         $display("  FULL     : %0d ошибок", err_full);
         $display("  FAST     : %0d ошибок", err_fast);
         $display("  DIR_REV  : %0d ошибок", err_dir);
-        $display("  NO_RSTN  : %0d ошибок", err_norstn);
         $display("  RSTN_5   : %0d ошибок", err_rstn5);
         $display("--------------------------------------------------");
-        if ((err_full + err_fast + err_dir + err_norstn + err_rstn5) == 0)
+        if ((err_full + err_fast + err_dir + err_rstn5) == 0)
             $display("  РЕЗУЛЬТАТ: ВСЕ ТЕСТЫ ПРОЙДЕНЫ");
         else
             $display("  РЕЗУЛЬТАТ: ЕСТЬ ОШИБКИ (%0d)",
-                     err_full + err_fast + err_dir + err_norstn + err_rstn5);
+                     err_full + err_fast + err_dir + err_rstn5);
         $display("==================================================");
         $finish;
     end

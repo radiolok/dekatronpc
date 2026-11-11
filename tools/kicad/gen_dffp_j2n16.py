@@ -58,7 +58,7 @@ core.text("DFFP_J2N16: pulse-clocked D flip-flop (one half of DFFP2_J2N16; its D
           "the g3 grid-current clamp for ~400 ns (above -5 V); the pentode whose g1 is high pulls its plate, the bistable finishes by regeneration.\n"
           "D and DN are HV: 150k / 62k dividers WITHOUT C1 into S and R. The g1 node (~5 pF) delays the data by ~150 ns, so a new D\n"
           "from the next flip-flop cannot reach the gate while the pulse lasts (the race margin). Each D pin loads its net by ~1.2 mA DC.\n"
-          "Simulated, fanout 2/6: C -> Q 51-95 / 122-158 ns; setup 341/527 ns, hold -150/-3 ns; lowest grid -40 V (G, falling clock edge).\n"
+          "Delays, limits and power: the cell page (plate chokes since TRS v0.58).\n"
           "Heater 6.3 V: 2 x 0.2 A + 0.4 A. Page: sch/logic/DFFP2_J2N16/README.md", (10*G, 84*G))
 core.dump(os.path.join(OUT, CELL, "DFFP_J2N16.kicad_sch"), "DFFP_J2N16 - pulse-clocked D flip-flop",
           comments=["Q <= D at the rising edge of C; D, DN, C: HV; Q, QN: HV", "2 x 6Zh2B + 6N16B; Ra 10k + La 1 mH, Rg2 12k"], paper="A3")
@@ -74,8 +74,8 @@ HC = {"D1": "input", "D2": "input", "C1": "input", "C2": "input", "Q1": "output"
 t = cell.ref("Л")
 cell.part(N16, (40*G, 25*G), None, "6Н16Б", {"1": "DN1", "7": "DI1", **n16_bottom()}, unit=1, props=SIM[N16], hier=HC, refs=t)
 cell.part(N16, (40*G, 50*G), None, "6Н16Б", {"5": "DN2", "3": "DI2", "2": "GND"}, unit=2, props=SIM[N16], hier=HC, refs=t)
-cell.part("Device:R", (52*G, 19*G), "R", X['Rinv'], {"1": "+150V", "2": "DN1"}, hier=HC)
-cell.part("Device:R", (52*G, 44*G), "R", X['Rinv'], {"1": "+150V", "2": "DN2"}, hier=HC)
+cell.plate_load((52*G, 19*G), X['Rinv'], X['Linv'], "DN1", hier=HC)
+cell.plate_load((52*G, 44*G), X['Rinv'], X['Linv'], "DN2", hier=HC)
 divider(cell, 12*G, 27*G, "D1", "DI1", X['C1i'], hier=HC)
 divider(cell, 12*G, 52*G, "D2", "DI2", X['C1i'], hier=HC)
 for i, (uid, yy) in enumerate(((FF1, 20*G), (FF2, 45*G)), 1):
@@ -83,7 +83,7 @@ for i, (uid, yy) in enumerate(((FF1, 20*G), (FF2, 45*G)), 1):
     cell.subsheet(f"FF{i}", "DFFP_J2N16.kicad_sch", (80*G, yy), CORE_SIZE, CORE_PINS, nets,
                   [(PROJ, f"/{ROOT}/{DUT}", str(2 + i))], uid, hier=HC)
 cell.text("DFFP2_J2N16: two pulse-clocked D flip-flops, Qi takes Di at the RISING edge of Ci. 7 tubes: 2 x DFFP_J2N16 + one 6N16B.\n"
-          "The 6N16B inverts D1 and D2 (Ra 10k, grid through 470k || 3.9 pF / 200k); its plates DN1, DN2 go to the slow R dividers.\n"
+          "The 6N16B inverts D1 and D2 (Ra 10k, no choke: part of the D delay; grid through 470k || 3.9 pF / 200k); its plates DN1, DN2 go to the slow R dividers.\n"
           "D1, D2: HV pins (the cell has its own dividers; ~1.2 mA DC each, at most two such pins per net). C1, C2: HV clock lines\n"
           "(3.9 pF each, edges up to 300 ns). Q, QN: HV, max fanout 6. Liberty: DFFP_J2N16 = one flip-flop, 3.5 tubes.\n"
           "Page: sch/logic/DFFP2_J2N16/README.md; study: doc/tc_n5_pulse_dff.md", (10*G, 72*G))
@@ -117,7 +117,7 @@ divider(sh, 38*G, y + 4*G, "STIM_D", "IS_D", "3.9p")
 t = sh.ref("Л")
 sh.part(N16, (75*G, y + 6*G), None, "6Н16Б", {"1": "D1", "7": "IS_D", **n16_bottom("+6.3V", "GND")}, unit=1, props=SIM[N16], refs=t)
 sh.part(N16, (88*G, y + 6*G), None, "6Н16Б", {"5": "PDX_D", "3": "-50V", "2": "GND"}, unit=2, props=SIM[N16], refs=t)
-sh.part("Device:R", (65*G, y + 2*G), "R", "10k", {"1": "+150V", "2": "D1"})
+sh.plate_load((55*G, y + 2*G), "10k", TB.L.K.TRIODE, "D1", dx=4)     # bench driver: a gate with its choke
 sh.part("Device:R", (98*G, y + 2*G), "R", "10k", {"1": "+150V", "2": "PDX_D"})
 # DUT: FF1.Q -> FF2.D, both clocks on CK
 dut_pins = [("D1", "input", "L", 1), ("D2", "input", "L", 3), ("C1", "input", "L", 5), ("C2", "input", "L", 7),
@@ -141,7 +141,7 @@ for o, ng in tb['outputs'].items():
 yt = y + 4*G
 sh.text(".options method=gear\n.tran 5n %gu" % round(tb['stop'], 3), (20*G, yt), 1.5)
 sh.text(f"{tb['name']} testbench (tools/kicad/gen_dffp_j2n16.py, stimulus, part values and .meas from tools/spice/pff_tb.py).\n"
-        "STIM_D (HV PWL, ideal) -> divider -> driver triode (Ra 10k): its plate is the HV net D1. CK: the HV clock line, 30 ns edges.\n"
+        "STIM_D (HV PWL, ideal) -> divider -> driver triode (Ra 10k + L 680u || 10k): its plate is the HV net D1. CK: the HV clock line, 30 ns edges.\n"
         "The two flip-flops form a shift register: Q1 drives D2 and a divider with 4 grids; QN1, Q2, QN2 a divider with 6 grids each.\n"
         + tb['note'] + "\nThe plain-SPICE run of the same bench: python3 tools/spice/pff_tb.py", (20*G, yt + 6*G))
 sh.text("\n".join("." + l for l in tb['meas']), (20*G, yt + 15*G), 1.0)
