@@ -69,4 +69,4 @@ MachineCtrl не зависит от ширины. Разброс ABC по си�
 | `emul IpLine`, `emul ApLine` после правки тестбенчей | PASS, без предупреждений о ширине портов |
 | `node web/test/test_dpc.js dpcrun` | 21/21, трассы 6 программ совпадают с dpcrun |
 
-Quartus не запускался.
+| Quartus 23.1std `build_fpga.sh compile` (после исправления `genvar`, `4328ac3`) | 0 ошибок, slack на всех клоках положительный; 3030 ALM (19 %), 7 блоков RAM (при 5/5 было 171) |
