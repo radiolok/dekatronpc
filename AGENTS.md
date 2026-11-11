@@ -99,7 +99,7 @@ CI is .github/workflows/*.yml and runs inside the Docker image from ./Dockerfile
 - `./run_tests.sh -d`: the same flow with the delay model.
 - `./run_tests.sh -s`: Yosys synthesis with the tube count, by tube type and with the dekatrons (A110) on a line of their own; the dekatron module is counted through the cells WRCH_N16 / RDD_X7 / GLIFT_N16. dpc_stat.py needs the liberty parser: run_tests.sh and synth_seeds.sh take rtl/run/.venv, else /var/venv (CI). ABC drifts by ±10 tubes, so compare small changes over several seeds: `./synth_seeds.sh -s "0 1 2 3" IpLine ApLine MachineCtrl`. Synthesis keeps only boards and boxes (DekatronModule, relays, IpLine/ApLine/MachineCtrl); counters are flattened into their block.
 - `./synth_sim.sh [-d] [-t [-c NS]] [test…]`: netlist simulation (doc/synth_sim.md, doc/vtube_sdf_timing.md). Keep sch/logic/vtube_cells.v one to one with vtube_cells.lib. Cell timing lives only in sch/logic/vtube_timing.json. Plate chokes (every cell, TRS v0.58) live only in tools/spice/chokes.py; the SPICE benches and tools/kicad/gen_*.py read them, and tools/spice/kicad_parity.py checks KiCad against plain SPICE.
-- `./build_fpga.sh [elab|syn|compile|program]`: Quartus build (doc/fpga_build.md). The file list in rtl/quartus/ is stale.
+- `./build_fpga.sh [elab|syn|compile|program]`: Quartus build (doc/fpga_build.md). After adding or removing an RTL file, run `./build_fpga.sh sync-qsf` so the GUI project rtl/quartus/Emulator.qsf gets the same file list.
 - `cd tb && make <target> SIM=icarus`: cocotb (needs cocotb ≥ 2.0, pyuvm and pytest; venv ~/.venvs/dekatronpc). Never install cocotb-coverage: it pins cocotb < 2.
 
 Gotchas:

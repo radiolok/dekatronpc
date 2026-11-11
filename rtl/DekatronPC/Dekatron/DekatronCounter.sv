@@ -531,7 +531,10 @@ module DekatronCounter #(
                 wire k0 = IS_HARD_DEC ? hard_k0 : base_k0;
                 wire tl = IS_HARD_DEC ? hard_tl : base_tl;
                 wire cm = IS_HARD_DEC ? hard_cm : base_cm;
-                for (genvar k = 0; k < 10; k++) begin : g_k
+                // genvar объявлен отдельно: Quartus 23.1 не разбирает for (genvar …)
+                // во вложенном generate (Error 10170)
+                genvar k;
+                for (k = 0; k < 10; k++) begin : g_k
                     assign dek_line_open[k] =
                         (k == 0)                                    ? k0 :
                         (EN_RESET_N_D && k == int'(RESET_N_POS_D))  ? tl : cm;
