@@ -11,9 +11,9 @@
 // Build: rtl/run/run_tests.sh (veremul). Needs -GEN_EMULATOR=1, otherwise
 // IRET and LoopCount are not driven. -n turns the VCD dump off: long
 // programs (pi.bfk, ~3M clk) would write tens of GB.
-// The AP counter in ApLine has no top limit and the data RAM has 100k
-// cells, so the RTL wraps AP 0 <-> 99999 and the model is built with the
-// same limit (OPEN-001 stays open; -a sets another one).
+// The AP counter in ApLine has no top limit and the data RAM has 1000
+// cells (AP = 3 dekatrons), so the RTL wraps AP 0 <-> 999 and the model is
+// built with the same limit (OPEN-001 closed, TRS v0.63; -a sets another one).
 
 #include <stdlib.h>
 #include <math.h>
@@ -282,12 +282,12 @@ static int compareStates(const VerilogMachine& state, const dpc::Machine& cpp, b
     // After a prefetch IP is one ahead of the model, which points at the
     // retired instruction
     uint32_t ipExpected = cpp.ip() + (ipAhead ? 1 : 0);
-    if (!halted && static_cast<uint32_t>(BcdToInt(DPC_IP(state.dut), 5)) != ipExpected){
-        printf("FATAL: IpAddress %d != model %u\n", BcdToInt(DPC_IP(state.dut), 5), ipExpected);
+    if (!halted && static_cast<uint32_t>(BcdToInt(DPC_IP(state.dut), 4)) != ipExpected){
+        printf("FATAL: IpAddress %d != model %u\n", BcdToInt(DPC_IP(state.dut), 4), ipExpected);
         err = -1;
     }
-    if (static_cast<uint32_t>(BcdToInt(DPC_AP(state.dut), 5)) != cpp.ap()){
-        printf("FATAL: ApAddress %d != model %u\n", BcdToInt(DPC_AP(state.dut), 5), cpp.ap());
+    if (static_cast<uint32_t>(BcdToInt(DPC_AP(state.dut), 3)) != cpp.ap()){
+        printf("FATAL: ApAddress %d != model %u\n", BcdToInt(DPC_AP(state.dut), 3), cpp.ap());
         err = -1;
     }
     if (BcdToInt(DPC_TX(state.dut), 3) != cpp.txData()){
@@ -311,7 +311,7 @@ int main(int argc, char** argv, char** env) {
     int stepMode = 0;
     bool noTrace = false;
     dpc::Config cfg;
-    cfg.apTop = 99999;
+    cfg.apTop = 999;
     char *filePath = NULL;
     while((c = getopt(argc, argv, "f:a:snth")) != -1){
         switch(c)
@@ -319,7 +319,7 @@ int main(int argc, char** argv, char** env) {
         case 'h':
             std::cout << "VDekatronPC -f <file>" << std::endl;
             std::cout << "use -s to compare with the golden model after every instruction" << std::endl;
-            std::cout << "use -a <top> to set the model's AP limit (default 99999, as the RTL)" << std::endl;
+            std::cout << "use -a <top> to set the model's AP limit (default 999, as the RTL)" << std::endl;
             std::cout << "use -n to skip the VCD dump" << std::endl;
             std::cout << "use -h to show this menu" << std::endl;
             return 0;

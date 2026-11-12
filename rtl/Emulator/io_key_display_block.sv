@@ -62,6 +62,8 @@ generate
     end
 endgenerate
 
+wire [19:0] apAddr20 = 20'(apAddress);
+
 always_comb begin
     case(anodeCount)
         4'd0: begin
@@ -82,23 +84,23 @@ always_comb begin
         end
         4'd4: begin
             cathodeHigh = inIPHigh[1];
-            cathodeLow = apAddress[3:0];
+            cathodeLow = apAddr20[3:0];
         end
         4'd5: begin
             cathodeHigh = inIPHigh[2];
-            cathodeLow = apAddress[7:4];
+            cathodeLow = apAddr20[7:4];
         end
         4'd6: begin
             cathodeHigh = inIPHigh[3];
-            cathodeLow = apAddress[11:8];
+            cathodeLow = apAddr20[11:8];
         end
         4'd7: begin
             cathodeHigh = inIPHigh[4];
-            cathodeLow = apAddress[15:12];
+            cathodeLow = apAddr20[15:12];
         end
         4'd8: begin
             cathodeHigh = inIPHigh[5];
-            cathodeLow = apAddress[19:16];
+            cathodeLow = apAddr20[19:16];
         end
         default: begin
             cathodeHigh = 4'b0;

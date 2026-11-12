@@ -1,7 +1,7 @@
 module bootloader #(
-// programs/bootloader.bfk, ISA16 (doc/isa16.md): one decade, 99990..99999.
+// programs/bootloader.bfk, ISA16 (doc/isa16.md): one decade, 9990..9999.
 // After a Hard Reset AP = Data = 0: 0<{0<} clears all data memory (the first
-// '<' wraps AP 0 -> 99999), then LD on 99999 starts loading (IP wraps to 0)
+// '<' wraps AP 0 -> 999), then LD on 9999 starts loading (IP wraps to 0)
 parameter portSize = 4,
 parameter dataSize = 4)(
 /* verilator lint_off UNUSEDSIGNAL */

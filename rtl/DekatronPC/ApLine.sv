@@ -59,7 +59,7 @@ module ApLine #(
     parameter unsigned MEM_DATA_WIDTH    = 10,
 
     parameter [AP_DEKATRON_NUM*DEKATRON_WIDTH-1:0]
-              AP_TOP_VALUE   = {4'd2, 4'd9, 4'd9, 4'd9, 4'd9},   // 29999
+              AP_TOP_VALUE   = {AP_DEKATRON_NUM{4'd9}},   // 999; не используется: AP оборачивается 0 <-> 999 (OPEN-001 закрыт, TRS v0.63)
     parameter [DATA_DEKATRON_NUM*DEKATRON_WIDTH-1:0]
               DATA_TOP_VALUE = {4'd2, 4'd5, 4'd5}                // 255
 )(

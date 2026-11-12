@@ -49,7 +49,7 @@ The script checks, in order: `--quartus DIR`, `$QUARTUS_BIN`, `quartus_sh` on `P
 | `syn` / `compile` before the RamBank fix | `Error (276003)` in Analysis & Synthesis (35 s, peak 4.96 GB), see §5. |
 | `syn` / `compile` after the fix | Successful (2026-11-04): 0 errors, Flow Status Successful (see §6.1 for the struct-literal fix that unblocked it). |
 | `compile` after the cathode-line write (TRS v0.56) | `Error (10170)` in `DekatronCounter.sv`: Quartus 23.1 does not parse `for (genvar k …)` inside a nested generate block. Fixed 2026-11-11 with a separate `genvar k;` (no logic change, Yosys count the same). |
-| `compile` 2026-11-11 | Successful: 0 errors in map/fit/asm/sta, slack positive on every clock (setup `Clk_50MHz` +15.8 ns, hold ≥ +0.3 ns). |
+| `compile` 2026-11-11 | Successful: 0 errors in map/fit/asm/sta, slack positive on every clock (setup `Clk_50MHz` +15.8 ns, hold ≥ +0.3 ns). On IP = 4 / AP = 3 (TRS v0.63): 3030 ALMs (19 %), 7 RAM blocks (5/5 took 171). |
 | GUI project after `sync-qsf` | `quartus_map --analysis_and_elaboration` in `rtl/quartus/`: successful, 0 errors. |
 
 Full compile (`map`+`fit`+`asm`+`sta`) on the Windows Quartus 23.1std.0: 0 errors in every stage, `Emulator.sof` written, STA meets timing (worst slack positive). The only Critical Warnings are the harmless memory-depth mismatches (127005, §5) and 19 pins without exact locations (169085, carried over from `Emulator.qsf`).

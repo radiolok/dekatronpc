@@ -28,7 +28,7 @@ def fig_ipline():
     f.wire([(420, 70), (560, 70)], label="valid · dec", lx=428, ly=63)
     f.wire([(560, 108), (420, 108)], label="ready", lx=428, ly=101)
     f.box(560, 40, 210, 100, "DekatronCounter · IP",
-          ["5 декад, 0…99999", "HARD_RST_D_CNT = 4", "hard_rst → 99990", "soft_rst → 00000"])
+          ["4 декады, 0…9999", "HARD_RST_D_CNT = 3", "hard_rst → 9990", "soft_rst → 0000"])
 
     # счётчик циклов
     f.wire([(420, 186), (560, 186)], label="valid · dec", lx=428, ly=179)

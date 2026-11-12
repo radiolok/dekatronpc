@@ -167,21 +167,24 @@ always_ff @(negedge Clock_1ms, negedge Rst_n) begin
     end
 end
 
+wire [19:0] ipAddr20 = 20'(ipAddress1);
+wire [19:0] apAddr20 = 20'(apAddress1);
+
 always_comb begin
     case (ms6205_currentView)
         (MS6205_IRAM): begin
             case (ms6205Pos[3:0])
                 (0): begin
-                    stdioNextData = {4'b0, ipAddress1[19:16]} + 8'h30;
+                    stdioNextData = {4'b0, ipAddr20[19:16]} + 8'h30;
                 end
                 (1): begin
-                    stdioNextData = {4'b0, ipAddress1[15:12]} + 8'h30;
+                    stdioNextData = {4'b0, ipAddr20[15:12]} + 8'h30;
                 end
                 (2): begin
-                    stdioNextData = {4'b0, ipAddress1[11:8]} + 8'h30;
+                    stdioNextData = {4'b0, ipAddr20[11:8]} + 8'h30;
                 end
                 (3): begin
-                    stdioNextData = {4'b0, ipAddress1[7:4]} + 8'h30;
+                    stdioNextData = {4'b0, ipAddr20[7:4]} + 8'h30;
                 end
                 (4): begin
                     stdioNextData = 8'h30;
@@ -198,16 +201,16 @@ always_comb begin
             if (ms6205Pos < 80) begin
                 case (ms6205Pos[3:0])
                     (0): begin
-                        stdioNextData = {4'b0, apAddress1[19:16]} + 8'h30;
+                        stdioNextData = {4'b0, apAddr20[19:16]} + 8'h30;
                     end
                     (1): begin
-                        stdioNextData = {4'b0, apAddress1[15:12]} + 8'h30;
+                        stdioNextData = {4'b0, apAddr20[15:12]} + 8'h30;
                     end
                     (2): begin
-                        stdioNextData = {4'b0, apAddress1[11:8]} + 8'h30;
+                        stdioNextData = {4'b0, apAddr20[11:8]} + 8'h30;
                     end
                     (3): begin
-                        stdioNextData = {4'b0, apAddress1[7:4]} + 8'h30;
+                        stdioNextData = {4'b0, apAddr20[7:4]} + 8'h30;
                     end
                     (4): begin
                         stdioNextData = {3'b0, ms6205Pos[7:4], 1'b0} + 8'h30;

@@ -33,7 +33,7 @@ python3 tools/schemes/build.py
 
 ```python
 f = Fig("ipl", 1200, 470, "Линия выборки: ...")
-f.box(560, 40, 210, 100, "DekatronCounter · IP", ["5 декад, 0…99999"])
+f.box(560, 40, 210, 100, "DekatronCounter · IP", ["4 декады, 0…9999"])
 f.wire([(420, 70), (560, 70)], label="valid · dec", lx=428, ly=63)
 f.state("IDLE", 400, 60, "S_IDLE")             # автомат: состояние
 f.edge("IDLE", "r", "FETCH", "l", label="...") # переход между сторонами состояний

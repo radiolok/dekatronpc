@@ -298,7 +298,7 @@ endmodule
 module Ram #(
     parameter unsigned D_NUM         = 5'd5,      // декатронов адреса
     parameter unsigned DATA_WIDTH    = 10,
-    parameter unsigned BANK_DIGITS   = 4,      // 2 — физическая модель, 4 — ПЛИС
+    parameter unsigned BANK_DIGITS   = (D_NUM < 4) ? D_NUM : 4,     // 2 — физическая модель, 4 — ПЛИС
     parameter unsigned CELLS         = 10**D_NUM,
     parameter unsigned READ_CYCLES   = 1,
     parameter unsigned WRITE_CYCLES  = 1,

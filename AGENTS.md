@@ -23,11 +23,11 @@ A Brainfuck computer built from A110 dekatrons and vacuum tubes, plus an FPGA em
 ## 3. Architecture invariants
 
 - Harvard architecture with four reversible BCD dekatron counters (widths in rtl/parameters.sv):
-  - IP: 5 dekatrons, 0–99999.
+  - IP: 4 dekatrons, 0–9999 (release width, TRS v0.63).
   - Loop: 2 dekatrons, 0–99. Overflow is a hardware error that must abort the scan and halt the machine (REQ-CNT-007).
-  - AP: 5 dekatrons. The RTL wraps 0 ↔ 99999 (no top limit); the 29999 option is OPEN-001.
+  - AP: 3 dekatrons, wraps 0 ↔ 999 (no top limit; OPEN-001 closed in TRS v0.63).
   - Data: 3 dekatrons, 0–255.
-- **Memory**: program memory is 100k × 4-bit opcodes; data memory is 100k × 10-bit cells {hundreds[1:0], tens, ones}. It is a recursive bank tree with BANK_DIGITS = 2 for the real machine and 4 for the FPGA. Addresses are BCD tetrads compared directly, with no binary arithmetic; tetrads A..F raise err. **Value buses are BCD active-low** (TC-O3): counter outputs come from BinToBcdN (NOR, no output inverters), so memory addresses and data, the terminal buses and the emulator status ports carry inverted tetrads (zero = 4'hF). The memories invert on their ports (ADDR_ACTIVE_LOW / DATA_ACTIVE_LOW) and keep the direct code inside; the emulator inverts at the DekatronPC instance in Emulator.sv; testbenches compare in the direct code. The bootloader is the top decade, 99990–99999: write-protected, with the ovl_hit/ovl_data overlay.
+- **Memory**: program memory is 10k × 4-bit opcodes; data memory is 1k × 10-bit cells (the ferrite memories are built to these sizes) {hundreds[1:0], tens, ones}. It is a recursive bank tree with BANK_DIGITS = 2 for the real machine and min(D_NUM, 4) for the FPGA. Addresses are BCD tetrads compared directly, with no binary arithmetic; tetrads A..F raise err. **Value buses are BCD active-low** (TC-O3): counter outputs come from BinToBcdN (NOR, no output inverters), so memory addresses and data, the terminal buses and the emulator status ports carry inverted tetrads (zero = 4'hF). The memories invert on their ports (ADDR_ACTIVE_LOW / DATA_ACTIVE_LOW) and keep the direct code inside; the emulator inverts at the DekatronPC instance in Emulator.sv; testbenches compare in the direct code. The bootloader is the top decade, 9990–9999: write-protected, with the ovl_hit/ovl_data overlay.
 - **Clocks**: hsClk exists only for the clocked dekatron model (DekatronTubeV2), so that the complex model runs without delays on the FPGA and in Verilator/Icarus RTL runs. It is always 10 × Clk (HSCLK_DIV = 10; one *_HS unit = Clk/10). Clk = 100 kHz by default (build macro DEKATRON_CLK_NS in rtl/parameters.sv → CLK_PERIOD_NS, HSCLK_NS for testbench clocks). Synthesis and every delay simulation have no hsClk signal at all (TRS v0.25). Clk reaches IpLine/ApLine and the MachineCtrl triggers only through ClkTree (clock board in MachineCtrl: generator inverter + 7 `NOT_N16`: IpLine, ApLine, their two memories, 3 local; a clock net is at most 10 grids, so DFF_J2N16 go two per inverter, TRS v0.62); STA assumes 5 % clock instability (`vtube_sta.py --jitter`).
 
 ### ISA16 (TRS v0.42, doc/isa16.md; never renumber these codes)
@@ -46,8 +46,8 @@ One 4-bit instruction set: there is no insn_mode and no ISA switch. Decode on th
 | 0x7 | LEND ] (repeat if data!=0) | 0xF | LAEND } (repeat if AP!=0) |
 
 - Brackets are x11x: bit 0 open/close, bit 3 what is tested (0 the cell, 1 AP). The scan counts [ ] and { } together, so the two kinds must nest properly with each other; { } exist for the bootloader.
-- **Hard Reset**: IP = 99990; AP, Data and Loop = 0; MemLock cleared. **Soft Reset**: all counters 0, MemLock cleared. Resets come only from the panel and SoftRstOnEOT (EOT triggers a Soft Reset); the Loop overflow is cleared only by a reset.
-- **Bootloader** (programs/bootloader.bfk): `0<{0<}` clears the data memory, LD at 99999 loads from address 0. Program files end with `HE` (HALT, LD as EOT).
+- **Hard Reset**: IP = 9990; AP, Data and Loop = 0; MemLock cleared. **Soft Reset**: all counters 0, MemLock cleared. Resets come only from the panel and SoftRstOnEOT (EOT triggers a Soft Reset); the Loop overflow is cleared only by a reset.
+- **Bootloader** (programs/bootloader.bfk): `0<{0<}` clears the data memory, LD at 9999 loads from address 0. Program files end with `HE` (HALT, LD as EOT).
 - **IpLine sees only opcodes**, never ASCII. Conversion belongs to the loader, and verification models follow the same rule (REQ-IPV2-005).
 - **The loop scan** runs entirely inside IpLine and stops on the matching bracket, not after it.
 
@@ -112,7 +112,6 @@ Gotchas:
 ## 7. Open decisions (ask, don't decide)
 
 The full list is in TRS §18. The ones most often hit:
-- OPEN-001: AP limit.
 - OPEN-007: BELL behaviour (only the automatic bells; there is no BELL opcode since v0.42).
 - OPEN-011: hardcoded panel switches.
 - OPEN-012: TOP_LIMIT_MODE vs HARD_RST_D_CNT.

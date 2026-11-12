@@ -44,9 +44,9 @@
 `define DEKATRON_EDGE_NS 100
 `endif
 /* verilator lint_off UNUSEDPARAM */
-    parameter IP_DEKATRON_NUM = 4'd5;
+    parameter IP_DEKATRON_NUM = 4'd4;
     parameter LOOP_DEKATRON_NUM = 4'd2;
-    parameter AP_DEKATRON_NUM = 4'd5;
+    parameter AP_DEKATRON_NUM = 4'd3;
     parameter DATA_DEKATRON_NUM = 4'd3;
     parameter DEKATRON_WIDTH = 4;
     parameter INSN_WIDTH = 4;
