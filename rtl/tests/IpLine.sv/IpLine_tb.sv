@@ -644,6 +644,73 @@ initial begin
     end
     fetch_insn(code);
     check_addr("next after halt ahead", 4);
+
+    //------------------------------------------------------------------
+    // Останов сразу после дешифрации скобки (пошаговый режим, Halt): шаг
+    // останова — та же промотка, IP встаёт на парную скобку, после пуска
+    // она читается заново (F1, doc/rtl_review_2026_11_13.md §1.1). После
+    // записи скобки при загрузке промотки нет: обычный шаг
+    $display("5c. Halt on a bracket");
+    for (int i = 0; i < 8; i++) mem.mem[i] = 4'h0;
+    mem.mem[0] = 4'h6;                  // [
+    mem.mem[1] = 4'h2;                  // +
+    mem.mem[2] = 4'h7;                  // ]
+    mem.mem[3] = 4'h1;
+    pulse_rst(1'b0);
+    lvz_r = 1'b1;                       // ячейка 0: '[' перепрыгивает тело
+    fetch_insn(code);                   // '[' по адресу 0
+    @(negedge Clk);
+    HaltRq = 1'b1;
+    repeat (200) @(negedge Clk);
+    check_addr("halt on [ with zero", 2);
+    if (ip_ready || LoopCount !== '0) begin
+        errors++;
+        $display("FAIL: halt on [: ready %b, loop count %h", ip_ready, LoopCount);
+    end
+    HaltRq = 1'b0;
+    fetch_insn(code);
+    check_addr("fetch after halt on [", 2);
+    if (code !== 4'h7) begin
+        errors++;
+        $display("FAIL: fetch after halt on [: %h", code);
+    end
+    fetch_insn(code);                   // ']' при нуле: дальше
+    check_addr("past ] after halt", 3);
+
+    lvz_r = 1'b0;                       // не ноль: ']' возвращается на '['
+    pulse_rst(1'b0);
+    fetch_insn(code);
+    fetch_insn(code);
+    fetch_insn(code);
+    check_addr("] before halt", 2);
+    @(negedge Clk);
+    HaltRq = 1'b1;
+    repeat (200) @(negedge Clk);
+    check_addr("halt on ] with non-zero", 0);
+    HaltRq = 1'b0;
+    fetch_insn(code);
+    check_addr("fetch after halt on ]", 0);
+    if (code !== 4'h6) begin
+        errors++;
+        $display("FAIL: fetch after halt on ]: %h", code);
+    end
+
+    // Загрузка '[' и останов в такт снятия загрузки (InsnLoadingStop,
+    // EOT): на выходе памяти записанная скобка, но шаг обычный
+    lvz_r = 1'b1;
+    pulse_rst(1'b0);
+    Loading = 1'b1;
+    load_insn(4'h6);                    // адрес 0
+    @(negedge Clk);
+    Loading = 1'b0;
+    HaltRq  = 1'b1;
+    repeat (200) @(negedge Clk);
+    check_addr("halt after loading [", 1);
+    if (LoopCount !== '0) begin
+        errors++;
+        $display("FAIL: halt after loading [: loop count %h (scan started)", LoopCount);
+    end
+    HaltRq = 1'b0;
     rand_mode = 1'b0;
 
     //------------------------------------------------------------------

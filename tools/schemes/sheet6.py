@@ -150,7 +150,7 @@ def fig_clktree():
         f.dot(330, y)
         f.box(400, y - 20, 90, 40, "NOT_N16", [nm], bcls="tm")
         f.wire([(490, y), (640, y)], "wacc", label=out, lx=500, ly=y - 8)
-    f.box(640, 24, 540, 62, "IpLine", ["5 DFFP на C напрямую; 3 NOT_N16 по 2 DFF_J2N16 (9 сеток)",
+    f.box(640, 24, 540, 62, "IpLine", ["6 DFFP на C напрямую; 3 NOT_N16 по 2 DFF_J2N16 (9 сеток)",
                                         "(state_hi×2 | scanning, halt_pending | overflow, dir)"], cls="blk-opt", top=18)
     f.box(640, 94, 540, 56, "ApLine", ["6 DFFP на C напрямую (state, mem_here, счётчик данных);",
                                        "свой NOT_N16 → DFF_J2N16 lock_q"], cls="blk-opt", top=18)

@@ -327,3 +327,61 @@ endtask
 4. T1–T3 вносить? T2 меняет поведение только в граничном такте Run-после-Halt (лишнее чтение).
 5. T4 (EOT в памяти) и T5 (признак нуля с платы памяти) — требуют правки TRS/интерфейсов; интересны ли?
 6. F5: `EN_EMULATOR` в прошивке — намеренно выключен?
+
+## 8. Исправление F1 (TRS v0.65)
+
+Владелец, 2026-11-13: F1 исправлять (вопрос 1 §7).
+
+**Ловушка в предложении §1.1.** Условия `ip_counted_q & ~ip_ahead & ~insn_loading & scan_req` мало:
+на останов в IpLine ведут ещё два пути, где `insn_loading` падает в том же такте, что MachineCtrl входит
+в S_HALT, — InsnLoadingStop в S_FETCH_W и EOT без SoftRstOnEOT. В обоих на выходе памяти записанный при
+загрузке опкод (сквозная запись); если это скобка, шаг останова начал бы промотку по загруженной
+программе (без `]` — до переполнения). Проверено: вариант без защиты валит новый тест `IpLine_tb` 5c
+(«halt after loading [: IP = 0002, expected 1»).
+
+**Что сделано** (`rtl/DekatronPC/IpLine.sv`):
+
+- признак `fetched_q` (DFFP_J2N16): последнее обращение блока — выборка, а не запись загрузки
+  (`fetched_d = ~insn_loading` в такте `accept`, сброс линиями);
+- S_IDLE при `halt_rq`: если `ip_counted_q & ~ip_ahead & fetched_q & scan_req` — промотка
+  (`S_LOOP`, `scanning_d`, `dir_d = scan_back_req`) вместо шага S_IP; промотка кончается в S_IP на парной
+  скобке → S_IDLE → S_HALT без шага (`ip_counted_q` снят), после пуска парная скобка читается заново;
+- `{ }` в пошаговом режиме исправлены тем же путём (`loop_val_zero` по AP).
+
+**Тесты.** `IpLine_tb` 5c: останов на `[` при нуле → IP на `]`, на `]` при ненуле → IP на `[`, останов
+после загрузки `[` → обычный шаг (старый IpLine — 7 ошибок, вариант без `fetched_q` — 1).
+`DekatronPC_tb` + `programs/steptest.bfk` (`[+.]++[-.]HE`, `DekatronPC_tb_cfg_step.svh`): 20 шагов,
+вывод 1, 0 как в Run, на шаге 2 IP = 0004; добавлен в `run_tests.sh -t/-d` и в нетлистовые прогоны
+`synth_sim.sh` (DekatronPC_step). Веб-симулятор (`web/dpc.js enterHalt`, признак `fetched`) приведён к
+RTL, тест `testStepBracket` (4 проверки). `MachineCtrl_tb` скобку не получил: в нём IpLine — модель,
+промотки там нет. `dpcrun` (bfutils) не менялся: в сверке шаг в шаг он останавливается только на HALT.
+
+**Цена.** Оценка §2.2 (+2…+5) не подтвердилась. `synth_seeds.sh -s "0 1 2 3" IpLine`:
+
+| Вариант | 0 | 1 | 2 | 3 | среднее | Δ к базе |
+|---|---|---|---|---|---|---|
+| база (до правки) | 313.0 | 314.0 | 313.0 | 313.0 | 313.2 | — |
+| промотка без `fetched_q` (неверно при загрузке) | 320.0 | 316.5 | 316.5 | 323.0 | 319.0 | +5.8 |
+| **в дереве**: `fetched_q` в ветке останова | 333.0 | 334.0 | 326.5 | 326.5 | 330.0 | **+16.7** |
+| `fetched_q` и в ветке `accept` вместо `~insn_loading` (равносильно) + D = `in_fetch \| fetched_q & ~in_insn_in` | 327.5 | 323.0 | 324.0 | 326.0 | 325.1 | +11.9 |
+| ветка останова слита с `accept` + T2 (`halt_pending_q` → `halt_rq & ~scanning_q`) | 316.0 | 318.0 | 321.5 | 329.0 | 321.1 | +7.9 (T2 один: −10.0) |
+
+Оба дешёвых варианта проходят `IpLine_tb` (вне дерева). Почему `fetched_q & scan_req` в `accept`
+равносилен `~insn_loading & scan_req`: при `ip_counted_q = 1` в загрузке последним была запись
+(`fetched_q = 0`), кроме выборки самого LD (SOT), но LD не скобка; вне загрузки после останова первая
+выборка идёт с `ip_counted_q = 0`. Какой вариант оставить — решение владельца (§22 п. 23).
+
+**Регрессия на дереве с исправлением** (вариант «в дереве»):
+
+| Прогон | Результат |
+|---|---|
+| `run_tests.sh -t` | Icarus все PASS, в том числе `IpLine_tb` 5c и `DekatronPC_tb` steptest; Verilator шаг в шаг с dpcrun: helloworld, program, pi.bfk (221 386 инструкций, `3.141`) PASS |
+| `run_tests.sh -d` | все PASS, steptest на delay-модели тоже |
+| `cd tb && make regression SIM=icarus` | 34/34 PASS |
+| `synth_sim.sh` | 8/8 PASS (добавлен DekatronPC_step) |
+| `synth_sim.sh -t` | 5/5 PASS, 0 setup / 0 hold / 0 masked |
+| `run_tests.sh -s` | IpLine 333.0, ApLine 365.0, MachineCtrl 223.0; **921.0** (6Н16Б 544.5, 6Ж2Б 328.0, 6Х7Б 48.5), с 12 А110 — **933.0** (было 905.0 / 917.0) |
+| `synth_seeds.sh -s "0 1 2 3" IpLine ApLine MachineCtrl` | 921.0 / 921.0 / 913.0 / 912.0, среднее **916.7** (было 897.6) |
+| `synth_sim.sh -p` | PASS; program.bfk 2583.6 Вт ср. (накал 1887 Вт), было 2502 Вт |
+| `synth_sim.sh -p -n Pi` | PASS; pi.bfk 2585.7 Вт ср., было 2505 Вт |
+| веб `node web/test/test_dpc.js dpcrun` | 25/25 |

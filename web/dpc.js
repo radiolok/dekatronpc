@@ -126,7 +126,7 @@
       this.memReg = 0;
       this.ip = 0; this.ap = 0; this.loop = 0; this.data = 0;
       this.lock = false; this.memHere = false;
-      this.ipCounted = false; this.insn = OP.NOP; this.overflow = false;
+      this.ipCounted = false; this.fetched = false; this.insn = OP.NOP; this.overflow = false;
       this.loading = false; this.halted = true; this.phase = PH_FETCH;
       this.iret = 0; this.bells = 0; this.memReads = 0; this.memWrites = 0;
       this.rx = []; this.insnIn = []; this.tx = '';
@@ -143,7 +143,7 @@
       this.ip = hard ? BOOT_BASE : 0;   // HARD_RST_D_CNT = 3 -> 9990
       this.ap = 0; this.loop = 0; this.data = 0;
       this.lock = this.memHere = false;
-      this.ipCounted = false; this.overflow = false; this.loading = false;
+      this.ipCounted = false; this.fetched = false; this.overflow = false; this.loading = false;
       this.phase = PH_FETCH;
       this.halted = !(hard ? this.cfg.runOnHardRst : this.cfg.runOnSoftRst);
     }
@@ -153,7 +153,7 @@
     startLoading() { this.loading = true; this.run(); }
 
     // Halt key: MachineCtrl goes to S_HALT at the instruction boundary and
-    // IpLine takes its halt step (RTL: a pending loop scan is ignored).
+    // IpLine takes its halt step (a pending loop scan included, F1).
     haltKey() { if (!this.halted) this.enterHalt(); }
 
     // InsnLoadingStop: loading ends and the machine halts.
@@ -185,11 +185,19 @@
       }
     }
 
+    // IpLine S_IDLE with halt_rq: a bracket decoded but not yet executed
+    // takes its scan instead of the step and stands on the matching one,
+    // which is read again on resume (F1, doc/rtl_review_2026_11_13.md §1.1).
+    // Only after a fetch (fetched_q): after a load the register holds the
+    // written opcode, and the step is plain.
     enterHalt() {
       this.halted = true;
       this.phase = PH_FETCH;
       if (this.ipCounted) {
-        this.ip = (this.ip + 1) % IP_SIZE;
+        const zero = this.loopValZero();
+        if (this.fetched && isLoopOpen(this.insn) && zero) this.scan(false);
+        else if (this.fetched && isLoopClose(this.insn) && !zero) this.scan(true);
+        else this.ip = (this.ip + 1) % IP_SIZE;
         this.ipCounted = false;
       }
     }
@@ -240,6 +248,7 @@
       return (this.lock ? this.data : this.memReg) === 0;          // [ ]
     }
     fetch() {
+      this.fetched = !this.loading;   // IpLine fetched_q
       if (!this.ipCounted) {
         // First fetch after reset or halt: read at the current IP
         this.ipCounted = true;

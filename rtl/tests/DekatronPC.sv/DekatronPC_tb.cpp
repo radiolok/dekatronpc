@@ -22,6 +22,9 @@
 #include <iterator>
 #include <string>
 #include <verilated.h>
+#if VM_COVERAGE
+#include <verilated_cov.h>
+#endif
 #include <verilated_vcd_c.h>
 #include <getopt.h>
 #include "VDekatronPC.h"
@@ -269,6 +272,21 @@ static int stepVerilog(VerilogMachine &state)
     return -1;
 }
 
+static int writeCoverage(const char *path)
+{
+    if (path == nullptr)
+        return 0;
+#if VM_COVERAGE
+    // Counters are complete only after simulation. The old SIM_COV path
+    // wrote before the first eval(), so every database was empty.
+    VerilatedCov::write(path);
+    return 0;
+#else
+    fprintf(stderr, "FATAL: -c requires a Verilator build with --coverage\n");
+    return -1;
+#endif
+}
+
 static int compareStates(const VerilogMachine& state, const dpc::Machine& cpp, bool halted,
                          bool ipAhead = false)
 {
@@ -313,7 +331,8 @@ int main(int argc, char** argv, char** env) {
     dpc::Config cfg;
     cfg.apTop = 999;
     char *filePath = NULL;
-    while((c = getopt(argc, argv, "f:a:snth")) != -1){
+    const char *coverageFile = NULL;
+    while((c = getopt(argc, argv, "f:a:snthc:")) != -1){
         switch(c)
         {
         case 'h':
@@ -321,6 +340,7 @@ int main(int argc, char** argv, char** env) {
             std::cout << "use -s to compare with the golden model after every instruction" << std::endl;
             std::cout << "use -a <top> to set the model's AP limit (default 999, as the RTL)" << std::endl;
             std::cout << "use -n to skip the VCD dump" << std::endl;
+            std::cout << "use -c <file> to write post-run RTL coverage (built with --coverage)" << std::endl;
             std::cout << "use -h to show this menu" << std::endl;
             return 0;
         case 's':
@@ -328,6 +348,9 @@ int main(int argc, char** argv, char** env) {
             break;
         case 'n':
             noTrace = true;
+            break;
+        case 'c':
+            coverageFile = optarg;
             break;
         case 'a':
             cfg.apTop = static_cast<uint32_t>(std::stoul(optarg));
@@ -356,10 +379,6 @@ int main(int argc, char** argv, char** env) {
     cppMachine.softReset();
     cppMachine.run();
 
-#ifdef SIM_COV
-    Verilated::mkdir("logs");
-    VerilatedCov::write("logs/coverage_DPC.dat");
-#endif
 #ifdef SIM_TRACE
     state.traceOn = !noTrace;
     if (state.traceOn){
@@ -372,6 +391,7 @@ int main(int argc, char** argv, char** env) {
     state.stats.start();
     if (!startVerilog(state, code)){
         printf("FATAL: RTL did not start: power-on or program load failed\n");
+        writeCoverage(coverageFile);
         return -1;
     }
 
@@ -407,6 +427,7 @@ int main(int argc, char** argv, char** env) {
             if (compareStates(state, cppMachine, rtlState == S_HALT, rtlState == S_DECODE))
             {
                 state.stats.report(stdout, state.iret());
+                writeCoverage(coverageFile);
                 return -1;
             }
         }
@@ -435,6 +456,10 @@ int main(int argc, char** argv, char** env) {
                 static_cast<unsigned long long>(state.CPU_CLK_UNHALTED),
                 state.iret());
     state.stats.report(stdout, state.iret());
+    if (writeCoverage(coverageFile)){
+        printf("FAIL: could not write the coverage database\n");
+        exit(EXIT_FAILURE);
+    }
     if (verdict){
         printf("FAIL: RTL and model differ\n");
         exit(EXIT_FAILURE);

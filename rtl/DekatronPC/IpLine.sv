@@ -65,6 +65,14 @@
 // сдвигает его на следующую. Если же следующая уже выбрана заранее
 // (ip_ahead), IP на ней и стоит: шаг не нужен, снимается только
 // ip_counted_q, и после пуска та же инструкция читается заново.
+//
+// Скобка исполняется только при следующей выборке: тогда блок по
+// loop_val_zero решает, мотать или шагать. Если машина остановилась
+// сразу после её дешифрации (пошаговый режим, клавиша Halt), шаг
+// останова делает ту же промотку и встаёт на парную скобку; после пуска
+// она читается заново (F1, doc/rtl_review_2026_11_13.md §1.1). Промотку
+// разрешает fetched_q: на выходе памяти исполненная инструкция, а не
+// опкод, записанный при загрузке (останов по InsnLoadingStop или EOT).
 //======================================================================
 
 `default_nettype none
@@ -200,6 +208,8 @@ module IpLine #(
     logic                  halt_pending_q; // после шага IP уйти в останов
     logic                  overflow_q;
     logic                  eot_q;          // последним принят EOT
+    logic                  fetched_d;
+    logic                  fetched_q;      // последнее обращение — выборка, не запись загрузки
 
     //------------------------------------------------------------------
     // Счётчик инструкций
@@ -416,7 +426,8 @@ module IpLine #(
         state_nx = state;   // остаёмся, пока исполнитель не готов (go)
         case (state)
         S_IDLE:
-            if (halt_rq) state_nx = (ip_counted_q & ~ip_ahead) ? S_IP : S_HALT;
+            if (halt_rq) state_nx = ~(ip_counted_q & ~ip_ahead) ? S_HALT
+                                  : (fetched_q & scan_req)  ? S_LOOP : S_IP;
             else if (accept) begin
                 if (~ip_counted_q)                              state_nx = insn_loading ? S_INSN_IN : S_FETCH;
                 else if (~insn_loading & scan_req & loop_at_top) state_nx = S_IDLE;
@@ -464,6 +475,7 @@ module IpLine #(
         eot_d = eot_q;
         overflow_d = overflow_q;
         dir_d = dir_q;
+        fetched_d = fetched_q;
 
         // Физический сброс счётчиков обнуляет и состояние выборки:
         // адрес ушёл на начало, прочитанная инструкция недостоверна
@@ -474,6 +486,7 @@ module IpLine #(
             eot_d          = 1'b0;
             overflow_d     = 1'b0;
             dir_d          = 1'b0;   // входит в key_prev_s (TC-N3): без X после сброса
+            fetched_d      = 1'b0;
         end
         else begin
             case (state)
@@ -485,7 +498,15 @@ module IpLine #(
                     // инструкцию и снимаем признак выборки, чтобы
                     // после возобновления читать заново
                     ip_counted_d = 1'b0;
-                    if (ip_counted_q & ~ip_ahead) begin
+                    if (ip_counted_q & ~ip_ahead & fetched_q & scan_req) begin
+                        // Скобка дешифрована, но ещё не исполнена: её
+                        // промотка вместо шага (F1). Кончится в S_IP на
+                        // парной скобке, оттуда S_IDLE и, раз ip_counted_q
+                        // снят, S_HALT без шага
+                        scanning_d = 1'b1;
+                        dir_d      = scan_back_req;
+                    end
+                    else if (ip_counted_q & ~ip_ahead) begin
                         halt_pending_d = 1'b1;
                         dir_d          = 1'b0;
                     end
@@ -494,7 +515,8 @@ module IpLine #(
                     end
                 end
                 else if (accept) begin
-                    eot_d = 1'b0;
+                    eot_d     = 1'b0;
+                    fetched_d = ~insn_loading;
 
                     if (~ip_counted_q) begin
                         // Первая выборка после сброса: читаем по
@@ -618,10 +640,11 @@ module IpLine #(
         end
     end
 
-    // ip_counted_q и eot_q — DFFP_J2N16; остальные признаки читают входы
+    // ip_counted_q, eot_q и fetched_q — DFFP_J2N16; остальные признаки читают входы
     // пульта (dir_q) или нагружены сильнее, остаются обычными триггерами
     DFFP_J2N16 ipCountedFF (.C (clk), .D (ip_counted_d), .Q (ip_counted_q), .QN ());
     DFFP_J2N16 eotFF       (.C (clk), .D (eot_d),        .Q (eot_q),        .QN ());
+    DFFP_J2N16 fetchedFF   (.C (clk), .D (fetched_d),    .Q (fetched_q),    .QN ());
 
     // Шесть DFF_J2N16 (по спаду C): вход C — 4,5 сетки, цепь инвертора не
     // больше 10, поэтому три инвертора по два триггера (9 сеток, TRS v0.62,

@@ -24,11 +24,35 @@ export COCOTB_HDL_TIMEPRECISION = 1ps
 
 # --- Icarus-specific ---
 # --- Verilator-specific ---
+HDL_COVERAGE ?= 0
+SKIP_TESTS ?=
+COVERAGE_DIR ?= $(CURDIR)/coverage-report
+COVERAGE_FILE ?= $(COVERAGE_DIR)/data/$(COVERAGE_NAME).dat
+# Each test is a separate make invocation; tests sharing a MODULE stay distinct.
+# Invoke multi-target coverage runs through `make coverage`, not multiple goals.
+COVERAGE_NAME ?= $(firstword $(MAKECMDGOALS))
+# cocotb 2.1 declares 5.036, but its VPI runtime also works with the project
+# Verilator 5.034 (kept explicit and checked by the coverage regression).
+COVERAGE_VLT_MIN ?= 5.034
+
+ifeq ($(HDL_COVERAGE),1)
+    ifneq ($(SIM), verilator)
+        $(error HDL_COVERAGE=1 requires SIM=verilator)
+    endif
+    ifneq ($(word 2,$(MAKECMDGOALS)),)
+        $(error HDL_COVERAGE=1 supports one target per invocation; use make coverage)
+    endif
+endif
+
 ifeq ($(SIM), verilator)
     EXTRA_ARGS += --timing -Wno-fatal
     VERILATOR_TRACE ?= 0
     ifeq ($(VERILATOR_TRACE),1)
         EXTRA_ARGS += --trace
+    endif
+    ifeq ($(HDL_COVERAGE),1)
+        EXTRA_ARGS += --coverage
+        override SIM_ARGS += +verilator+coverage+file+$(COVERAGE_FILE)
     endif
 endif
 
@@ -126,7 +150,11 @@ test_dekatron_module:  sim
 test_dek_counter:      MODULE = tests.test_dekatron_counter
 test_dek_counter:      TOPLEVEL = DekatronCounter
 test_dek_counter:      VERILOG_SOURCES = $(VHDL_ROOT)/parameters.sv $(LOGIC_PATH)/Impulse.sv $(LOGIC_PATH)/OneShot.sv $(DEKATRON_PATH)/DekatronPhaseGen.sv $(DEKATRON_PATH)/DekatronPulseSender.sv $(DEKATRON_PATH)/DekatronTubeV2.sv $(DEKATRON_PATH)/BcdToBinEn.sv $(DEKATRON_PATH)/WriteLineDec.sv $(LOGIC_PATH)/NOR2_N16.sv $(LOGIC_PATH)/NOR3_N16.sv $(LOGIC_PATH)/NOT_N16.sv $(LOGIC_PATH)/A1OOI_N16J2.sv $(DEKATRON_PATH)/BinToBcdN.v $(DEKATRON_PATH)/DekatronModule.sv $(DEKATRON_PATH)/DekatronCounter.sv $(CURDIR)/tests/DekatronCounter_vcd_dump.sv
+# The multi-root VCD wrapper is an Icarus feature. Verilator needs --top only;
+# passing these Icarus flags there also breaks coverage builds.
+ifeq ($(SIM), icarus)
 test_dek_counter:      COMPILE_ARGS = -f sim_build/cmds.f -s DekatronCounter_vcd_dump
+endif
 test_dek_counter:      sim
 
 # --- Phase 3: Memory Subsystem ---
@@ -260,12 +288,15 @@ test_in12:             sim
 # =====================================================================
 sim:
 	rm -rf sim_build
+	$(if $(filter 1,$(HDL_COVERAGE)),mkdir -p "$(dir $(COVERAGE_FILE))")
+	$(if $(filter 1,$(HDL_COVERAGE)),rm -f "$(COVERAGE_FILE)")
 	COCOTB_HDL_TIMEUNIT=1ns COCOTB_HDL_TIMEPRECISION=1ps \
 	$(MAKE) TOPLEVEL=$(TOPLEVEL) TOPLEVEL_LANG=$(TOPLEVEL_LANG) \
 		SIM=$(SIM) MODULE=$(MODULE) \
 		VERILOG_SOURCES="$(VERILOG_SOURCES)" \
 		EXTRA_ARGS="$(EXTRA_ARGS)" \
 		$(if $(COMPILE_ARGS),COMPILE_ARGS="$(COMPILE_ARGS)") \
+		$(if $(SIM_ARGS),SIM_ARGS="$(SIM_ARGS)") \
 		-f $(shell cocotb-config --makefile)/Makefile.sim
 
 # =====================================================================
@@ -291,9 +322,12 @@ regression:
 	for tok in $$MODULES; do \
 	    case $$tok in *:*) grp=$${tok%%:*}; tok=$${tok##*:};; esac; \
 	    for t in $$tok; do \
+	        case " $(SKIP_TESTS) " in *" $$t "*) \
+	            printf "  %-28s " "$$t:"; echo "SKIP (Icarus-only)"; continue;; \
+	        esac; \
 	        rm -rf sim_build; \
 	        printf "  %-28s " "$$t:"; \
-	        if make test_$$t SIM=icarus >$$LOGDIR/$$t.log 2>&1; then \
+	        if $(MAKE) test_$$t SIM=$(SIM) >$$LOGDIR/$$t.log 2>&1; then \
 	            echo "PASS"; \
 	            echo "$$grp|$$t|PASS" >> $$TMPFILE; \
 	        else \
@@ -306,9 +340,9 @@ regression:
 	done; \
 	echo ""; \
 	echo "=================================="; \
-	echo "  COVERAGE SUMMARY"; \
+	echo "  TEST PASS SUMMARY"; \
 	echo "=================================="; \
-	printf "  %-18s %7s %7s %7s %8s\n" "Module" "Tests" "Pass" "Fail" "Coverage"; \
+	printf "  %-18s %7s %7s %7s %8s\n" "Module" "Tests" "Pass" "Fail" "Pass rate"; \
 	printf "  %-18s %7s %7s %7s %8s\n" "----------------" "------" "------" "------" "--------"; \
 	TOTAL_TESTS=0; TOTAL_PASS=0; TOTAL_FAIL=0; \
 	current_module=""; module_tests=0; module_pass=0; module_fail=0; \
@@ -330,13 +364,33 @@ regression:
 	rm -f $$TMPFILE; \
 	if [ "$$TOTAL_FAIL" -gt 0 ]; then exit 1; fi
 
+# Run the same targets under Verilator and merge their native RTL coverage.
+coverage:
+	@case "$(abspath $(COVERAGE_DIR))" in \
+	    "$(CURDIR)/coverage-report") ;; \
+	    *) echo "error: make coverage requires COVERAGE_DIR=$(CURDIR)/coverage-report" >&2; exit 2;; \
+	esac
+	rm -rf "$(COVERAGE_DIR)"
+	$(MAKE) regression SIM=verilator HDL_COVERAGE=1 VLT_MIN=$(COVERAGE_VLT_MIN) \
+		SKIP_TESTS="insn_decoder ms6205 keyboard sequencer"
+	python3 gen_coverage.py --output "$(COVERAGE_DIR)" "$(COVERAGE_DIR)/data/*.dat"
+
+# One aggregate metric over both suites (requires the system flow's prerequisites).
+coverage-all:
+	rm -rf "$(CURDIR)/../coverage-all"
+	$(MAKE) coverage
+	cd "$(CURDIR)/../rtl/run" && ./run_tests.sh -c
+	python3 gen_coverage.py --output "$(CURDIR)/../coverage-all" \
+		"$(COVERAGE_DIR)/data/*.dat" \
+		"$(CURDIR)/../rtl/run/coverage/data/*.dat"
+
 # =====================================================================
 # Clean
 # =====================================================================
 clean::
-	rm -rf __pycache__ sim_build results.xml *.vcd *.fst *.dat *.info
+	rm -rf __pycache__ sim_build results.xml coverage-report *.vcd *.fst *.dat *.info
 	find . -name '*.pyc' -delete
 	find . -type d -name __pycache__ -delete
 	find . -type d -name sim_build -exec rm -rf {} + 2>/dev/null || true
 
-.PHONY: clean regression sim
+.PHONY: clean regression coverage coverage-all sim
