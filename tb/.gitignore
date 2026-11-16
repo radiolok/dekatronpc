@@ -2,6 +2,7 @@ __pycache__/
 *.pyc
 sim_build/
 results.xml
+coverage-report/
 *.vcd
 *.fst
 *.vvp

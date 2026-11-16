@@ -120,6 +120,33 @@ function testBootLoad() {
   check('loop overflow stops the machine, not a halt', s === DPC.HALTED && m4.overflow && !m4.halted);
 }
 
+// Halt right after a bracket (F1): the halt step takes the pending scan.
+// Halting after every instruction (MachineCtrl Step mode) prints the same as Run.
+function testStepBracket() {
+  const src = '[+.]++[-.]H';
+  const run = new DPC.Machine();
+  run.loadCode(DPC.assemble(src, 'dpc'));
+  run.softReset(); run.run();
+  let s;
+  while ((s = run.step()) === DPC.OK);
+  const m = new DPC.Machine();
+  m.loadCode(DPC.assemble(src, 'dpc'));
+  m.softReset();
+  const ips = [];
+  for (let i = 0; i < 20; i++) { m.run(); m.step(); m.haltKey(); ips.push(m.ip); }
+  check('halt after [ with zero stands on the matching ]', ips[0] === 3, `ip ${ips[0]}`);
+  check('halt after ] with non-zero stands on the matching [', ips.includes(6) && ips[ips.indexOf(9) + 1] === 6,
+    ips.join(' '));
+  check('halting after every instruction prints as Run', m.tx === run.tx && m.tx === '\x01\x00',
+    JSON.stringify(m.tx) + ' vs ' + JSON.stringify(run.tx));
+  // A loaded '[' is not scanned on Load stop: plain step
+  const l = new DPC.Machine();
+  l.insnIn = [0x6];
+  l.softReset(); l.startLoading();
+  l.step(); l.loadingStop();             // [ written at 0, IP still on it
+  check('Load stop after a loaded [ takes a plain step', l.ip === 1 && l.loop === 0, `ip ${l.ip} loop ${l.loop}`);
+}
+
 function testCin() {
   const m = new DPC.Machine({ echoMode: false });
   m.loadCode(DPC.assemble(fs.readFileSync(path.join(PROGS, 'rot13.bfk'), 'latin1'), 'dpc'));
@@ -136,5 +163,6 @@ else console.log('skip trace compare: no dpcrun binary given');
 testAssembler();
 testBootLoad();
 testCin();
+testStepBracket();
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

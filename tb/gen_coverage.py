@@ -1,198 +1,296 @@
 #!/usr/bin/env python3
-"""Generate HDL code coverage reports using the `covered` tool.
-
-Runs `covered score` on each VCD file plus all Verilog sources, merges the
-resulting CDD files, then generates per-module HTML reports.
-
-Requires: covered (apt-get install covered)
-"""
+"""Merge native Verilator coverage databases and generate LCOV/HTML reports."""
 
 import argparse
 import glob
-import os
 import subprocess
 import sys
-from collections import defaultdict
+from dataclasses import dataclass
+from pathlib import Path
 
 
-def find_verilog_sources(source_root):
-    """Find all Verilog source files under source_root."""
-    sources = []
-    for ext in ("*.sv", "*.v"):
-        for path in glob.glob(os.path.join(source_root, "**", ext), recursive=True):
-            sources.append(os.path.abspath(path))
-    return sorted(sources)
+class CoverageError(RuntimeError):
+    """An input, tool, or output error that must stop report generation."""
 
 
-def run_covered_score(vcd_path, source_paths, cdd_path):
-    """Run `covered score` to generate a CDD from VCD + Verilog sources."""
-    cmd = ["covered", "score", "-v", vcd_path, "-o", cdd_path] + source_paths
-    try:
-        subprocess.run(cmd, check=True, capture_output=True, text=True)
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"  WARNING: covered score failed for {os.path.basename(vcd_path)}", file=sys.stderr)
-        print(f"    {e.stderr.strip()[:200]}", file=sys.stderr)
-        return False
+@dataclass
+class CoverageCounts:
+    lines_hit: int = 0
+    lines_found: int = 0
+    branches_hit: int = 0
+    branches_found: int = 0
+    toggles_hit: int = 0
+    toggles_found: int = 0
+
+    def add(self, other):
+        self.lines_hit += other.lines_hit
+        self.lines_found += other.lines_found
+        self.branches_hit += other.branches_hit
+        self.branches_found += other.branches_found
+        self.toggles_hit += other.toggles_hit
+        self.toggles_found += other.toggles_found
 
 
-def run_covered_merge(cdd_paths, merged_cdd):
-    """Merge multiple CDD files into one."""
-    if not cdd_paths:
-        return None
-    if len(cdd_paths) == 1:
-        merged = cdd_paths[0]
-        return merged
-    cmd = ["covered", "merge", "-o", merged_cdd] + cdd_paths
-    try:
-        subprocess.run(cmd, check=True, capture_output=True, text=True)
-        return merged_cdd
-    except subprocess.CalledProcessError as e:
-        print(f"  WARNING: covered merge failed: {e.stderr.strip()[:200]}", file=sys.stderr)
-        return cdd_paths[0] if cdd_paths else None
+@dataclass
+class FileCoverage(CoverageCounts):
+    source: str = ""
 
 
-def run_covered_report(merged_cdd, source_paths, output_dir):
-    """Generate HTML coverage report from merged CDD."""
-    os.makedirs(output_dir, exist_ok=True)
-    cmd = ["covered", "report", "-d", "D", "-o", output_dir, merged_cdd] + source_paths
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            print(f"  WARNING: covered report had issues: {result.stderr.strip()[:200]}", file=sys.stderr)
-        else:
-            print(f"  HTML report generated: {output_dir}")
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"  ERROR: covered report failed: {e.stderr.strip()[:200]}", file=sys.stderr)
-        return False
+def percentage(hit, found):
+    return f"{100.0 * hit / found:.1f}%" if found else "n/a"
 
 
-def run_covered_summary(merged_cdd, source_paths, output_file):
-    """Generate text coverage summary from merged CDD."""
-    cmd = ["covered", "report", "-d", "S", "-o", output_file, merged_cdd] + source_paths
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            print(f"  WARNING: covered summary had issues: {result.stderr.strip()[:200]}", file=sys.stderr)
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"  ERROR: covered summary failed: {e.stderr.strip()[:200]}", file=sys.stderr)
-        return False
+def parse_lcov_info(text):
+    """Return per-file and total counters from an LCOV tracefile."""
+    files = []
+    current = None
+    da_records = []
+    branch_records = []
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if line.startswith("SF:"):
+            if current is not None:
+                raise CoverageError("LCOV record has no end_of_record")
+            current = FileCoverage(source=line[3:])
+            da_records = []
+            branch_records = []
+        elif line == "end_of_record":
+            if current is None:
+                raise CoverageError("LCOV end_of_record has no SF record")
+            # Verilator 5.034 emits DA/BRDA but no LF/LH. LCOV summaries
+            # use those raw records, so do the same instead of reporting 0/0.
+            if da_records:
+                current.lines_found = len(da_records)
+                current.lines_hit = sum(hit > 0 for hit in da_records)
+            if branch_records:
+                current.branches_found = len(branch_records)
+                current.branches_hit = sum(hit > 0 for hit in branch_records)
+            files.append(current)
+            current = None
+        elif current is not None and ":" in line:
+            key, value = line.split(":", 1)
+            try:
+                if key == "DA":
+                    source_line, hit = value.split(",", 1)
+                    if int(source_line) < 0:
+                        raise ValueError
+                    da_records.append(0 if hit == "-" else int(hit))
+                elif key == "BRDA":
+                    fields = value.split(",")
+                    if len(fields) != 4 or any(int(field) < 0 for field in fields[:3]):
+                        raise ValueError
+                    branch_records.append(0 if fields[3] == "-" else int(fields[3]))
+                elif key in {"LF", "LH", "BRF", "BRH"}:
+                    count = int(value)
+                    if count < 0:
+                        raise ValueError
+                    attribute = {
+                        "LF": "lines_found",
+                        "LH": "lines_hit",
+                        "BRF": "branches_found",
+                        "BRH": "branches_hit",
+                    }[key]
+                    setattr(current, attribute, count)
+            except ValueError as error:
+                raise CoverageError(f"Invalid LCOV counter: {line}") from error
+    if current is not None:
+        raise CoverageError("LCOV record has no end_of_record")
+    if not files:
+        raise CoverageError("LCOV report contains no source records")
+    total = CoverageCounts()
+    for item in files:
+        total.add(item)
+    return files, total
 
 
-def parse_module_coverage(summary_file):
-    """Parse covered summary output to extract per-module stats."""
-    modules = defaultdict(lambda: {"lines": 0, "covered": 0, "pct": 0.0})
+def parse_lcov(path):
+    return parse_lcov_info(Path(path).read_text(encoding="utf-8"))
 
-    if not os.path.exists(summary_file):
-        return modules
 
-    with open(summary_file) as f:
-        lines = f.readlines()
+def parse_verilator_dat(path):
+    """Group native v_toggle/v_branch point counts by source file.
 
-    current_module = None
-    for line in lines:
-        line = line.strip()
-        if not line:
+    Verilator 5.034 stores each point as ``C '<binary key>' <count>``. The
+    key contains 0x01-separated tag records; 0x02 separates a tag from its
+    ASCII value. LCOV coalesces these points into source lines, so the native
+    database is needed for independent branch and toggle metrics.
+    """
+    counts = {}
+    for raw_record in Path(path).read_bytes().splitlines():
+        if not raw_record or raw_record.startswith(b"#"):
             continue
-
-        # covered report -d S format varies; look for module names and stats
-        if line.startswith("Module:") or line.startswith("Instance:"):
-            current_module = line.split(":", 1)[1].strip()
-        elif "Line Coverage:" in line and current_module:
-            parts = line.split()
-            for i, p in enumerate(parts):
-                if p == "Covered:" and i + 1 < len(parts):
-                    modules[current_module]["covered"] = int(parts[i + 1].rstrip(","))
-                if p == "Lines:" and i + 1 < len(parts):
-                    modules[current_module]["lines"] = int(parts[i + 1].rstrip(","))
-            if modules[current_module]["lines"] > 0:
-                modules[current_module]["pct"] = (
-                    100.0
-                    * modules[current_module]["covered"]
-                    / modules[current_module]["lines"]
-                )
-
-    return modules
-
-
-def main():
-    parser = argparse.ArgumentParser(description="Generate HDL code coverage reports")
-    parser.add_argument("--vcd-dir", required=True, help="Directory containing VCD files")
-    parser.add_argument("--source-root", required=True, help="Root of Verilog source tree")
-    parser.add_argument("--output", required=True, help="Output directory for reports")
-    parser.add_argument("--cdd-dir", required=True, help="Directory for intermediate CDD files")
-    args = parser.parse_args()
-
-    source_paths = find_verilog_sources(args.source_root)
-    if not source_paths:
-        print("ERROR: No Verilog sources found", file=sys.stderr)
-        sys.exit(1)
-
-    print(f"  Found {len(source_paths)} Verilog source files")
-
-    vcd_files = sorted(glob.glob(os.path.join(args.vcd_dir, "*.vcd")))
-    if not vcd_files:
-        print("WARNING: No VCD files found — run tests with COVERAGE=1 first", file=sys.stderr)
-        sys.exit(1)
-
-    print(f"  Found {len(vcd_files)} VCD files")
-
-    # Phase A: Score each VCD → CDD
-    os.makedirs(args.cdd_dir, exist_ok=True)
-    cdd_files = []
-    for vcd_path in vcd_files:
-        name = os.path.splitext(os.path.basename(vcd_path))[0]
-        cdd_path = os.path.join(args.cdd_dir, f"{name}.cdd")
-        print(f"  Scoring {name} ...", end=" ", flush=True)
-        if run_covered_score(vcd_path, source_paths, cdd_path):
-            cdd_files.append(cdd_path)
-            print("OK")
+        payload, separator, raw_count = raw_record.rpartition(b"' ")
+        if not separator or not payload.startswith(b"C '"):
+            raise CoverageError(f"Invalid Verilator coverage record in {path}")
+        try:
+            count = int(raw_count)
+            if count < 0:
+                raise ValueError
+            fields = {}
+            for raw_field in payload[3:].split(b"\x01"):
+                if not raw_field:
+                    continue
+                tag, delimiter, value = raw_field.partition(b"\x02")
+                if not delimiter or not tag:
+                    raise ValueError
+                fields[tag] = value
+            page = fields[b"page"].decode("ascii")
+            source = fields[b"f"].decode("utf-8")
+        except (KeyError, UnicodeError, ValueError) as error:
+            raise CoverageError(f"Invalid Verilator coverage record in {path}") from error
+        if not page.startswith(("v_toggle", "v_branch")):
+            continue
+        item = counts.setdefault(source, CoverageCounts())
+        if page.startswith("v_toggle"):
+            item.toggles_found += 1
+            if count > 0:
+                item.toggles_hit += 1
         else:
-            print("SKIPPED")
+            item.branches_found += 1
+            if count > 0:
+                item.branches_hit += 1
+    if not counts:
+        raise CoverageError(f"Coverage database has no coverage points: {path}")
+    return counts
 
-    if not cdd_files:
-        print("ERROR: No CDD files generated", file=sys.stderr)
-        sys.exit(1)
 
-    # Phase B: Merge CDDs
-    merged_cdd = os.path.join(args.cdd_dir, "merged.cdd")
-    print(f"\n  Merging {len(cdd_files)} CDD files ...", end=" ", flush=True)
-    final_cdd = run_covered_merge(cdd_files, merged_cdd)
-    print("OK" if final_cdd else "FAILED")
+def resolve_databases(patterns):
+    """Expand file/glob arguments into a validated, ordered unique list."""
+    resolved = []
+    seen = set()
+    for pattern in patterns:
+        matches = glob.glob(str(pattern))
+        if not matches and Path(pattern).is_file():
+            matches = [str(pattern)]
+        if not matches:
+            raise CoverageError(f"Coverage input did not match any file: {pattern}")
+        for match in sorted(matches):
+            database = Path(match).resolve()
+            if not database.is_file() or database.stat().st_size == 0:
+                raise CoverageError(f"Coverage database is missing or empty: {database}")
+            if database in seen:
+                raise CoverageError(f"Duplicate coverage input: {database}")
+            seen.add(database)
+            resolved.append(database)
+    if not resolved:
+        raise CoverageError("No coverage databases matched the input paths")
+    return resolved
 
-    if not final_cdd:
-        sys.exit(1)
 
-    # Phase C: Generate HTML report
-    print(f"  Generating HTML report ...", end=" ", flush=True)
-    run_covered_report(final_cdd, source_paths, args.output)
-    print("OK")
+def run_command(command):
+    """Run one external tool without hiding diagnostics or failures."""
+    print("+", " ".join(str(part) for part in command), flush=True)
+    try:
+        result = subprocess.run(
+            [str(part) for part in command],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError as error:
+        raise CoverageError(f"Required tool not found: {command[0]}") from error
+    except subprocess.CalledProcessError as error:
+        diagnostic = (error.stderr or error.stdout or str(error)).strip()
+        raise CoverageError(f"{command[0]} failed: {diagnostic}") from error
+    return result
 
-    # Phase D: Generate text summary
-    summary_file = os.path.join(args.output, "coverage_summary.txt")
-    print(f"  Generating text summary ...", end=" ", flush=True)
-    run_covered_summary(final_cdd, source_paths, summary_file)
 
-    # Phase E: Print per-module coverage
-    modules = parse_module_coverage(summary_file)
-    if modules:
-        print("\n  === Per-Module Line Coverage ===")
-        print(f"  {'Module':<30} {'Lines':>8} {'Covered':>8} {'%':>7}")
-        print(f"  {'-'*30} {'-'*8} {'-'*8} {'-'*7}")
-        total_lines = sum(m["lines"] for m in modules.values())
-        total_covered = sum(m["covered"] for m in modules.values())
-        for mod, stats in sorted(modules.items()):
-            print(f"  {mod:<30} {stats['lines']:>8} {stats['covered']:>8} {stats['pct']:>6.1f}%")
-        print(f"  {'-'*30} {'-'*8} {'-'*8} {'-'*7}")
-        pct = 100.0 * total_covered / total_lines if total_lines > 0 else 0
-        print(f"  {'TOTAL':<30} {total_lines:>8} {total_covered:>8} {pct:>6.1f}%")
-        print()
+def write_summary(info_path, merged_path, output_path, database_count):
+    files, total = parse_lcov(info_path)
+    toggle_counts = parse_verilator_dat(merged_path)
+    for item in files:
+        native = toggle_counts.get(item.source, CoverageCounts())
+        item.toggles_hit = native.toggles_hit
+        item.toggles_found = native.toggles_found
+        # BRDA also contains toggle/expression records in Verilator 5.034.
+        item.branches_hit = native.branches_hit
+        item.branches_found = native.branches_found
+    total.branches_hit = total.branches_found = 0
+    for native in toggle_counts.values():
+        total.toggles_hit += native.toggles_hit
+        total.toggles_found += native.toggles_found
+        total.branches_hit += native.branches_hit
+        total.branches_found += native.branches_found
 
-    print(f"  Report: file://{os.path.abspath(args.output)}/index.html")
-    print("  OK" if final_cdd else "FAILED")
+    lines = [
+        f"Coverage databases: {database_count}",
+        "",
+        f"{'Source':<60} {'Lines':>17} {'Branches':>17} {'Toggles':>17}",
+        "-" * 115,
+    ]
+    for item in files:
+        line_stats = f"{item.lines_hit}/{item.lines_found} ({percentage(item.lines_hit, item.lines_found)})"
+        branch_stats = (
+            f"{item.branches_hit}/{item.branches_found} "
+            f"({percentage(item.branches_hit, item.branches_found)})"
+        )
+        toggle_stats = (
+            f"{item.toggles_hit}/{item.toggles_found} "
+            f"({percentage(item.toggles_hit, item.toggles_found)})"
+        )
+        lines.append(f"{item.source:<60} {line_stats:>17} {branch_stats:>17} {toggle_stats:>17}")
+    lines.extend(
+        [
+            "-" * 115,
+            f"Overall line coverage: {total.lines_hit}/{total.lines_found} "
+            f"({percentage(total.lines_hit, total.lines_found)})",
+            f"Overall branch coverage: {total.branches_hit}/{total.branches_found} "
+            f"({percentage(total.branches_hit, total.branches_found)})",
+            f"Overall toggle coverage: {total.toggles_hit}/{total.toggles_found} "
+            f"({percentage(total.toggles_hit, total.toggles_found)})",
+        ]
+    )
+    output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return total
+
+
+def generate_report(inputs, output_dir):
+    databases = resolve_databases(inputs)
+    # Validate every input before any tool runs: verilator_coverage itself
+    # silently accepts truncated records and would publish fabricated data.
+    for database in databases:
+        parse_verilator_dat(database)
+
+    output_dir = Path(output_dir).resolve()
+    output_dir.mkdir(parents=True, exist_ok=True)
+    merged = output_dir / "merged.dat"
+    info = output_dir / "coverage.info"
+    html = output_dir / "html"
+
+    run_command(["verilator_coverage", "--write", merged, *databases])
+    if not merged.is_file() or merged.stat().st_size == 0:
+        raise CoverageError(f"verilator_coverage did not create {merged}")
+    run_command(["verilator_coverage", "--write-info", info, merged])
+    if not info.is_file() or info.stat().st_size == 0:
+        raise CoverageError(f"verilator_coverage did not create {info}")
+
+    files, _ = parse_lcov(info)
+    native = parse_verilator_dat(merged)
+    missing = set(native) - {item.source for item in files}
+    if missing:
+        raise CoverageError(
+            "Native coverage sources are absent from LCOV: " + ", ".join(sorted(missing))
+        )
+
+    run_command(["genhtml", info, "--output-directory", html])
+    total = write_summary(info, merged, output_dir / "coverage_summary.txt", len(databases))
+    return total
+
+
+def main(argv=None):
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output", required=True, help="Directory for merged data and reports")
+    parser.add_argument("databases", nargs="+", help="Verilator .dat files or glob patterns")
+    args = parser.parse_args(argv)
+    try:
+        total = generate_report(args.databases, args.output)
+    except CoverageError as error:
+        parser.exit(1, f"error: {error}\n")
+    summary = Path(args.output).resolve() / "coverage_summary.txt"
+    print(summary.read_text(encoding="utf-8"), end="")
+    print(f"HTML report: {Path(args.output).resolve() / 'html' / 'index.html'}")
+    return 0 if total.lines_found else 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

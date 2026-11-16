@@ -53,3 +53,5 @@ dpcrun has no Step key. Its `enterHalt()` mirrors IpLine S_IDLE with `halt_rq`: 
 In the model, halting after every instruction (what MachineCtrl does in Step mode, `one_step` → S_HALT) turns helloworld into garbage output. Not checked on the RTL in a simulator.
 
 By owner decision (2026-10-08) the page's STEP pauses the simulator clock after one `step()` and does not go through the halt path; HALT does, so the effect is visible there. The fix in IpLine/MachineCtrl (and dpcrun) is left for later.
+
+**Fixed (TRS v0.65, F1 of doc/rtl_review_2026_11_13.md §8).** IpLine's halt step now takes the pending scan and stands on the matching bracket, which is read again on resume; only after a fetch (`fetched_q`), not after a load write (InsnLoadingStop, EOT halt). `dpc.js enterHalt()` does the same with `this.fetched`; `testStepBracket` in `web/test/test_dpc.js` checks it (halting after every instruction prints as Run). dpcrun is unchanged: its trace compare halts only on HALT.

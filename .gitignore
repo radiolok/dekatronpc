@@ -55,6 +55,8 @@ rtl/run/synth_sim_power/
 rtl/run/sta/
 # Icarus runs with the delay-based dekatron model (rtl/run/run_tests.sh -d)
 rtl/run/delay/
+# merged cocotb + system RTL coverage (tb/Makefile coverage-all)
+coverage-all/
 
 # Quartus CLI build (rtl/run/build_fpga.sh)
 rtl/quartus_build/

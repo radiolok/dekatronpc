@@ -1,5 +1,6 @@
 *.swp
 obj_dir
+run/coverage/
 *.vcd
 quartus/Emulator.*
 quartus/output_file.*

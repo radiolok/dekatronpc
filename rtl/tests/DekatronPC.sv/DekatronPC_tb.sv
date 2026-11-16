@@ -403,6 +403,49 @@ task automatic check_bootloader();
     end
 endtask
 
+// Пошаговый режим на скобках (F1, doc/rtl_review_2026_11_13.md §1.1):
+// программа steptest.bfk `[+.]++[-.]HE` (загрузчик ставит NOP по адресу 0).
+// Останов после скобки — её промотка: '[' при нуле встаёт на парную ']',
+// ']' при ненуле — на парную '['. Вывод тот же, что в режиме Run: 1, 0
+task automatic press_step();
+    @(negedge Clk);
+    Step <= 1'b1;
+    repeat (4) @(negedge Clk);
+    Step <= 1'b0;
+    repeat (4) @(posedge Clk);
+endtask
+
+task automatic check_step_bracket();
+    $display("check_step_bracket");
+    RunOnHardRst <= 1'b0;
+    RunOnSoftRst <= 1'b0;
+    SoftRstOnEOT <= 1'b1;
+    hard_rst_key();
+    press_run();
+    @(posedge InsnInLoading);
+    @(negedge InsnInLoading);
+    wait_relay();
+    wait_halted();                      // загружено, Soft Reset, IP = 0
+    for (int i = 0; i < 20; i++) begin
+        press_step();
+        wait_halted();
+        repeat (30) @(posedge Clk);
+        $display("  step %0d: IP=%h Insn=%h tx=%0d", i + 1, IpAddress, Insn, tx_q.size());
+        if (i == 1 && IpAddress !== 16'h0004) begin
+            errors++;
+            $display("FAIL: step on [ with zero: IP = %h, expected 0004", IpAddress);
+        end
+    end
+    if (tx_q.size() !== 2) begin
+        errors++;
+        $display("FAIL: step mode printed %0d characters, expected 2", tx_q.size());
+    end
+    else if (tx_q[0] !== 8'd1 || tx_q[1] !== 8'd0) begin
+        errors++;
+        $display("FAIL: step mode printed %0d %0d, expected 1 0", tx_q[0], tx_q[1]);
+    end
+endtask
+
 //----------------------------------------------------------------------
 // Основной сценарий
 //----------------------------------------------------------------------
@@ -453,6 +496,9 @@ initial begin
 
 `ifdef TRY_PROGRAM
     check_bootloader();
+`endif
+`ifdef STEP_BRACKET
+    check_step_bracket();
 `endif
 
     check_ip_moving();

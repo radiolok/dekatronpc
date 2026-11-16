@@ -37,7 +37,8 @@
 #     -c NS Clk period in ns of the testbenches (default CLK_PERIOD_NS =
 #           10000, the 100 kHz Clk of TRS v0.24)
 #     test  Dekatron Counter IpLine ApLine MachineCtrl DekatronPC Pi
-#           (default: all but Pi; DekatronPC runs helloworld and program.bfk
+#           (default: all but Pi; DekatronPC runs helloworld, program.bfk and
+#           steptest.bfk (Step mode on brackets, F1)
 #           on one netlist, Pi runs pi.bfk on the same DekatronPC netlist,
 #           about 3.2 M clk cycles)
 #
@@ -183,7 +184,8 @@ config() {
 			return 0
 		fi
 		runs=("DekatronPC_hello|${root_dir}/programs/helloworld.bfk|-DADDINCLUDE=\"${cfg}/DekatronPC_tb_cfg_hello.svh\""
-		      "DekatronPC_program|${root_dir}/programs/program.bfk|-DADDINCLUDE=\"${cfg}/DekatronPC_tb_cfg_program.svh\"") ;;
+		      "DekatronPC_program|${root_dir}/programs/program.bfk|-DADDINCLUDE=\"${cfg}/DekatronPC_tb_cfg_program.svh\""
+		      "DekatronPC_step|${root_dir}/programs/steptest.bfk|-DADDINCLUDE=\"${cfg}/DekatronPC_tb_cfg_step.svh\"") ;;
 	*)
 		echo "unknown test $1"; return 1 ;;
 	esac

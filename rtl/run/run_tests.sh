@@ -41,7 +41,7 @@ usage() {
 	 msg "-v verbose"
 	 msg "-p schematics of the -s netlists (sch/index.html)"
 	 msg "-s synt"
-	 msg "-c coverage"
+	 msg "-c coverage: hello/program/pi on an instrumented Verilator build, then report"
 	 msg "-t sim"
 	 msg "-u uvm"
 	 msg "-g gate-level: RTL tests on the synthesized netlists (synth_sim.sh)"
@@ -83,16 +83,29 @@ fi
 veremul() {
 	#Warning: trace gives ~10% slowdown
 	TRACE="--trace -DSIM_TRACE"
-	#TRACE=""
 
 	#Warning: coverage gives 10x slowdown!
-	#COVERAGE="--coverage -DSIM_COV"
-	COVERAGE=""
+	if [ ${cov} -ne 0 ]; then
+		COVERAGE="--coverage"
+	else
+		COVERAGE=""
+	fi
 
-	files=$(cat ${1})
+	# Canonical source paths keep coverage source keys identical to the
+	# cocotb run, so the combined report does not list one RTL file twice.
+	local source_root
+	source_root=$(realpath "${script_dir}/..")
+	files=$(sed "s|^\.\./|${source_root}/|" "${1}")
 	bf_file=${2}
 	# extra testbench flags, e.g. -n: no VCD (pi.bfk would write tens of GB)
 	tb_flags=${3:-}
+	local cov_arg=()
+	if [ ${cov} -ne 0 ]; then
+		local bf_name=${bf_file##*/}
+		bf_name=${bf_name%.bfk}
+		mkdir -p "${coverage_dir}/data"
+		cov_arg=(-c "${coverage_dir}/data/system_${bf_name}.dat")
+	fi
 
 	python3 ${root_dir}/run/generate_rom.py -f ${bf_file} -o ${root_dir}/firmware.hex --hex
 	# EN_EMULATOR drives IRET and LoopCount, which the golden-model compare needs
@@ -106,10 +119,23 @@ veremul() {
 	# -s: compare with the golden model after every instruction (REQ-GM-002);
 	# the per-step trace goes to stderr, the verdict is the exit code
 	local steps=${bf_file##*/}.steps.log
-	./obj_dir/VDekatronPC -f ${bf_file} -s ${tb_flags} 2> ${steps} || { tail -n 20 ${steps}; return 1; }
+	./obj_dir/VDekatronPC -f ${bf_file} -s ${tb_flags} ${cov_arg[@]+"${cov_arg[@]}"} 2> ${steps} || { tail -n 20 ${steps}; return 1; }
+}
+
+build_dpcrun() {
+	g++ -o dpcrun -DEXEC ${dpcrun_dir}/dpcrun.cpp
+	g++ -c ${dpcrun_dir}/dpcrun.cpp
+	ar rvs libdpcrun.a dpcrun.o
 }
 
 parse_params "$@"
+
+coverage_dir=${script_dir}/coverage
+if [ ${cov} -ne 0 ]; then
+	[ ${delay} -eq 0 ] || die "-c (Verilator coverage) cannot be combined with -d (delay model)"
+	rm -rf "${coverage_dir}"
+	mkdir -p "${coverage_dir}/data"
+fi
 
 python3 -c "open('${root_dir}/zeros.txt','w').write('\n'.join(['00']*30000))"
 python3 ${root_dir}/Functions/TableGenerate.py -d ${root_dir}/Functions
@@ -140,12 +166,11 @@ if [ ${sim} -ne 0 ]; then
 
 	./emul DekatronPC ${root_dir}/programs/helloworld.bfk ${root_dir}/tests/DekatronPC.sv/DekatronPC_tb_cfg_hello.svh
 	./emul DekatronPC ${root_dir}/programs/program.bfk ${root_dir}/tests/DekatronPC.sv/DekatronPC_tb_cfg_program.svh
+	./emul DekatronPC ${root_dir}/programs/steptest.bfk ${root_dir}/tests/DekatronPC.sv/DekatronPC_tb_cfg_step.svh
 
 	bf_file=${root_dir}/programs/helloworld.bfk
-	g++ -o dpcrun -DEXEC ${dpcrun_dir}/dpcrun.cpp
+	build_dpcrun
 	./dpcrun -f ${bf_file}
-	g++ -c ${dpcrun_dir}/dpcrun.cpp
-	ar rvs libdpcrun.a dpcrun.o
 
 	veremul ${root_dir}/DekatronPC/DPC.files ${bf_file}
 
@@ -182,6 +207,7 @@ if [ ${delay} -ne 0 ]; then
 	./emul MachineCtrl
 	./emul DekatronPC ${root_dir}/programs/helloworld.bfk ${tests_dir}/DekatronPC_tb_cfg_hello.svh
 	./emul DekatronPC ${root_dir}/programs/program.bfk ${tests_dir}/DekatronPC_tb_cfg_program.svh
+	./emul DekatronPC ${root_dir}/programs/steptest.bfk ${tests_dir}/DekatronPC_tb_cfg_step.svh
 	# 3.17 M clk cycles; no VCD (it would take gigabytes)
 	EMUL_DEFINES=-DNO_VCD ./emul DekatronPC ${root_dir}/programs/pi.bfk ${tests_dir}/DekatronPC_tb_cfg_pi.svh
 	unset DEKATRON_MODEL
@@ -190,8 +216,15 @@ if [ ${delay} -ne 0 ]; then
 fi
 
 if [ ${cov} -ne 0 ]; then
-	verilator_coverage -write-info logs/DPC.info logs/coverage_DPC.dat
-	genhtml logs/DPC.info --output-directory coverage
+	if [ ${sim} -eq 0 ]; then
+		build_dpcrun
+		# Coverage needs no waveform; -n avoids multi-GB pi and clutter.
+		veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/helloworld.bfk -n
+		veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/program.bfk -n
+		veremul ${root_dir}/DekatronPC/DPC.files ${root_dir}/programs/pi.bfk -n
+	fi
+	python3 ${root_dir}/../tb/gen_coverage.py \
+		--output "${coverage_dir}" "${coverage_dir}"/data/*.dat
 fi
 
 # -p draws the -s netlists: synthesize first when any of them is missing

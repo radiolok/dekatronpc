@@ -9,13 +9,16 @@ cd tb
 make test_compare SIM=icarus        # single test
 make test_insn_decoder SIM=icarus   # single test
 make regression                     # full suite (~40 targets)
+make coverage                       # Verilator RTL line/branch/toggle report
+make coverage-all                   # UVM + system-test aggregate report
 ```
 
 ## Requirements
 
 - Python 3.8+ with `cocotb>=2.0`, `pyuvm`, `pytest`
 - Icarus Verilog (iverilog) for module-level tests
-- Verilator for full DPC/Emulator integration tests
+- Verilator for full DPC/Emulator integration tests and RTL code coverage
+- `verilator_coverage`, `lcov`, and `genhtml` for merged coverage reports
 
 ```bash
 pip install "cocotb>=2.0" pyuvm pytest
@@ -110,6 +113,41 @@ make regression
 make test_dpc SIM=verilator EXTRA_ARGS="--timing -Wno-fatal -DEMULATOR=1"
 ```
 
+### RTL code coverage
+
+```bash
+make coverage
+```
+
+This runs the regression under Verilator with `--coverage`, writes one database per target to
+`coverage-report/data/`, and merges them into:
+
+- `coverage-report/coverage_summary.txt` — per-source and overall line/branch/toggle counters;
+- `coverage-report/coverage.info` — LCOV tracefile;
+- `coverage-report/html/index.html` — annotated HTML report.
+
+`make coverage-all` runs both coverage suites and combines the cocotb databases with
+`rtl/run/coverage/data/*.dat` from `./run_tests.sh -c`, writing the aggregate report to
+`coverage-all/`. Four tests are skipped only in the Verilator coverage run: `test_insn_decoder`
+exercises the deprecated `InsnDecoder` with Icarus delta-cycle assumptions and fails 31/35 tests on
+Verilator before coverage is involved; `test_ms6205` is the known soft emulator test whose HEX images
+are not found from the cocotb working directory; `test_keyboard` and `test_sequencer` finish their
+checks but Verilator 5.034 segfaults after `$finish`. All four remain in ordinary Icarus regression.
+
+`HDL_COVERAGE=1` also works for one target. With the project's Verilator 5.034, explicitly select the
+verified cocotb compatibility setting (`make coverage` does this itself):
+
+```bash
+make test_compare SIM=verilator VLT_MIN=5.034 HDL_COVERAGE=1
+python3 gen_coverage.py --output coverage-report 'coverage-report/data/*.dat'
+```
+
+Do not use `COVERAGE=1`: cocotb reserves it for **Python** code coverage and would require another
+package. This flow uses no FST/VCD and needs no Python coverage package. Native Verilator 5.034 LCOV
+mixes branch/toggle/expression records in `BRDA`; the text summary therefore takes independent
+`v_branch` and `v_toggle` counts from the merged native `.dat`. Line counts follow the LCOV/HTML
+semantics. Reported source paths include any test wrappers supplied to Verilator.
+
 ## Key Conventions
 
 - **Signal access**: `int(dut.signal.value)` — not `.value.integer`
@@ -132,5 +170,5 @@ Some modules have output signals named identically to the module (e.g., `Impulse
 
 - **RAM test parameterization**: Default ROWS=30000 causes slow reset initialization. Override with smaller ROWS for faster simulation.
 - **Golden model shared library**: Compile `bfutils/dpcrun/dpcrun.cpp` (submodule, `dpc::Machine`) as `libdpcrun.so` for Python ctypes scoreboard integration.
-- **Coverage collection**: Enable Verilator `--coverage` and integrate `cocotb-coverage` functional coverage groups.
+- **Functional coverage**: Add explicit scenario/pyuvm cover groups without `cocotb-coverage` (it pins cocotb < 2); RTL structural line/branch/toggle coverage is already collected by `make coverage`.
 - **DekatronModule standalone test**: Module instantiation needs `parameters.sv` and full Dekatron subsystem sources.
